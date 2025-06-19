@@ -1,6 +1,6 @@
-@extends('layouts.app')
+@extends('layouts.backend')
 @section('content')
-<div class="col-md-12 main">			
+<div class="col-md-12 main">
 		<div class="row">
 			<ol class="breadcrumb">
 				<li><a href="#"><svg class="glyph stroked home"><use xlink:href="#stroked-home"></use></svg></a></li>
@@ -10,7 +10,7 @@
 <!-- Modal -->
 @if ($message = Session::get('success'))
 <div class="alert alert-success alert-block">
-	<button type="button" class="close" data-dismiss="alert">×</button>	
+	<button type="button" class="close" data-dismiss="alert">×</button>
         <strong>{{ $message }}</strong>
 </div>
 @endif
@@ -43,11 +43,11 @@
 					    	<td>{{$test->name}}</td>
 					    	<td>
 					    	@if(count($test->test_references))
-					    		@foreach($test->test_references as $test_reference) 
-					    			{{$test_reference->name}}, 
+					    		@foreach($test->test_references as $test_reference)
+					    			{{$test_reference->name}},
 					    		@endforeach
 						    @endif
-					    	</td>	    	
+					    	</td>
 				        </tr>
 				    @endforeach
 				    </tbody>
@@ -88,7 +88,7 @@
 </div>
 <script type="text/javascript">
 
- $(document).on('click', '#delete_test_reference', function() 
+ $(document).on('click', '#delete_test_reference', function()
     {
     	var test_id = $(this).data('id');
     	var test_reference_id = $(this).data('id2')

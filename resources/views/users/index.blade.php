@@ -1,209 +1,115 @@
-@extends('layouts.app')
+@extends('layouts.backend')
 @section('content')
-<div class="col-md-12 main">
-<div class="row">
-	<ol class="breadcrumb">
-		<li><a href="#"><svg class="glyph stroked home"><use xlink:href="#stroked-home"></use></svg></a></li>
-		<li class="active">Users</li>
-	</ol>
-</div><br>
-@if ($message = Session::get('success'))
-        <div class="alert alert-success">
-            <p>{{ $message }}</p>
+
+    <div class="container">
+        <div class="page-inner">
+          <div class="page-header">
+            <ul class="breadcrumbs">
+              <li class="nav-home">
+                <a href="{{url('/')}}">
+                  <i class="icon-home"></i>
+                </a>
+              </li>
+              <li class="separator">
+                <i class="icon-arrow-right"></i>
+              </li>
+              <li class="nav-item">
+                <a href="{{ url('/') }}">Admin</a>
+              </li>
+              <li class="separator">
+                <i class="icon-arrow-right"></i>
+              </li>
+              <li class="nav-item">
+                <a href="{{ route('service.index') }}">Users</a>
+              </li>
+            </ul>
+          </div>
+
+          <div class="row">
+            <div class="col-md-12">
+              <div class="card">
+                <div class="card-header">
+                  <div class="d-flex align-items-center">
+                    <h4 class="card-title">Liste des users</h4>
+
+                    <a
+                      class="btn btn-primary btn-round ms-auto"
+                      href="{{ route('users.create')}}"
+                    >
+                      <i class="fa fa-plus"></i> Ajouter un utilisateur
+                    </a>
+                  </div>
+                </div>
+
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table id="add-row" class="display table table-striped table-hover">
+                            <thead class="bg-primary text-white"> <!-- Ajout de couleur d'entête -->
+                                <tr>
+                                    <th>N</th>
+                                    <th style="text-align: center">Nom</th>
+                                    <th style="text-align: center">Email</th>
+                                    <th style="text-align: center">Status</th>
+                                    <th style="text-align: center">Role</th>
+                                    <th style="text-align: center">Action</th>
+                                </tr>
+                            </thead>
+                            <tfoot>
+                                <tr>
+                                    <th>N</th>
+                                    <th style="text-align: center">Nom</th>
+                                    <th style="text-align: center">Email</th>
+                                    <th style="text-align: center">Status</th>
+                                    <th style="text-align: center">Role</th>
+                                    <th style="text-align: center">Action</th>
+                                </tr>
+                            </tfoot>
+                            <tbody>
+                                <?php $indice = 1; ?>
+                                @foreach ($users as $key=>$user )
+                                    <tr>
+                                        <td>{{ $indice++ }}</td>
+                                        <td>{{ $user->name }} </td>
+                                        <td>{{ $user->email }}</td>
+                                        <td style="text-align: center">
+                                            <form id="#" action="{{ route('user.disable', $user->id) }}" method="GET">
+                                                @csrf
+                                                @method('PATCH')
+                                                <div class="form-group">
+                                                    <div class="form-check form-switch">
+                                                        <input
+                                                            class="form-check-input"
+                                                            type="checkbox"
+                                                            name="status"
+                                                            onchange="this.form.submit()"
+                                                            id="statusSwitch{{ $indice++ }}"
+                                                            {{ $user->status ? 'checked' : '' }}>
+                                                    </div>
+                                                </div>
+                                            </form>
+                                        <td>{{ $user->roles->first()?->name }}</td>
+                                        <td>
+                                            {{-- @can('modifier_utilisateur') --}}
+                                            <a href="{{ route('users.edit', $user->id) }}" class="btn btn-primary">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </a>
+                                            {{-- @endcan --}}
+
+                                            <a href="{{ route('users.listePermissions', $user->id) }}" type="button" class="btn btn-warning"><i class="fa fa-user-shield"></i></a>
+                                            {{-- @can('afficher_utilisateur') --}}
+                                                <a href="{{ route('users.show', $user->id) }}" type="button" class="btn btn-info"><i class="bi bi-eye-fill"></i></a>
+                                            {{-- @endcan --}}
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+          </div>
         </div>
-    @endif
-    @if ($message = Session::get('error'))
-        <div class="alert alert-danger">
-            <p>{{ $message }}</p>
-        </div>
-    @endif
-<div class="row">
-	<div class="col-md-8">
-		<div class="panel panel-default">
-			<div class="panel-heading">Manage User<a class="btn btn-sm btn-primary pull-right" href="{{url('/')}}">Back <span class="glyphicon glyphicon-share-alt"></span></a></div>
-			<div class="panel-body">
-				<table class="table table-bordered table-condensed">
-				<thead>
-					<tr>
-						<th>Username</th>
-						<th>Email</th>
-						<th>Role</th>
-						<th>Action</th>
-					</tr>
-				</thead>
-				<tbody>
-				@foreach($users as $user)
-					<tr>
-						<td>{{$user->name}}</td>
-						<td>{{$user->email}}</td>
-						<td>
-    @if($user->role)
-        {{$user->role->name}}
-    @endif
-</td>
-
-
-						<td><button style="margin-right: 5px" class="btn-sm btn-primary" id="edit_user" data-info =" {{$user->id}},{{$user->name}},{{$user->email}},{{$user->role_id}}"><span class="glyphicon glyphicon-edit "></span></button>
-                        @if(Auth::user()->id == $user->id)
-                        @else
-                        <button class="btn-sm btn-danger" id="delete_user"  data-id="{{$user->id}}"><span class="glyphicon glyphicon-remove "></span></button>
-                        @endif
-                        </td>
-					</tr>
-				@endforeach
-				</tbody>
-				</table>
-			</div>
-		</div>
-	</div>
-	<div class="col-md-4" id="user_add">
-	<div class="panel panel-default">
-		<div class="panel-heading">Add User <span class="glyphicon glyphicon-plus"></span></div>
-		<div class="panel-body">
-					{!! Form::open(array('route' => 'user.store','method'=>'POST')) !!}
-					<div class="form-group{{ $errors->has('name') ? ' has-error' : '' }}">
-                        <label>Username:</label>
-                        <input type="text" class="form-control" name="name" value="{{ old('name') }}" required autofocus>
-                        @if ($errors->has('name'))
-                            <span class="help-block">
-                                <strong>{{ $errors->first('name') }}</strong>
-                            </span>
-                        @endif
-                    </div>
-                        <div class="form-group{{ $errors->has('email') ? ' has-error' : '' }}">
-                            <label>E-Mail Address:</label>
-                                <input type="email" class="form-control" name="email" value="{{ old('email') }}" required>
-                                @if ($errors->has('email'))
-                                    <span class="help-block">
-                                        <strong>{{ $errors->first('email') }}</strong>
-                                    </span>
-                                @endif
-                        </div>
-                        <div class="form-group">
-							<label for="role_id">Roles</label>
-		                    <select class="form-control" id="role_id" name="role_id" required="">
-								<option></option>
-		                        @foreach($roles as $role)
-		                            <option value="{{ $role->id }}" >{{ $role->name }}</option>
-		                        @endforeach
-		                    </select>
-                        </div>
-
-                        <div class="form-group{{ $errors->has('password') ? ' has-error' : '' }}">
-                            <label>Password</label>
-                            <input type="password" class="form-control" name="password" required>
-                            @if ($errors->has('password'))
-                                <span class="help-block">
-                                    <strong>{{ $errors->first('password') }}</strong>
-                                </span>
-                            @endif
-                        </div>
-                        <div class="form-group">
-                            <label>Confirm Password</label>
-                            <input type="password" class="form-control" name="password_confirmation" required>
-                        </div>
-
-                        <div class="form-group">
-                                <button type="submit" class="btn btn-success">
-                                    <span class="glyphicon glyphicon-plus"></span> Add
-                                </button>
-                                <button type="reset" class="btn btn-default">Reset</button>
-                        </div>
-                   {!! Form::close()!!}
-				</div>
-			</div>
-		</div>
-		<!-- Edit User -->
-		<div class="col-md-4" id="user_edit" style="display: none;">
-		<div class="panel panel-default">
-		<div class="panel-heading">Edit User <span class="glyphicon glyphicon-plus"></span></div>
-		<div class="panel-body">
-					{!! Form::open(array('route' => 'user.edit','method'=>'POST')) !!}
-					<div class="form-group">
-					<input type="hidden" name="id" id="id">
-                        <label>Username:</label>
-                        <input id="name" type="text" class="form-control" name="name" required autofocus>
-                    </div>
-                    <div class="form-group">
-                        <label>E-Mail Address:</label>
-                            <input id="email" type="email" class="form-control" name="email" required>
-                    </div>
-					<div class="form-group">
-						<label for="role_id">Roles</label>
-						<select class="form-control role" id="role_id" name="role_id">
-							<<option value=""></option>
-							@foreach($roles as $role)
-								<option value="{{ $role->id }}">{{ $role->name }}</option>
-							@endforeach
-						</select>
-					</div>
-                    <div class="form-group">
-                        <label>Change Password</label>
-                        <input id="password" type="password" class="form-control" name="password">
-                    </div>
-					<div class="form-group">
-						<label>Confirm Password</label>
-						<input type="password" class="form-control" name="password_confirmation">
-					</div>
-                    <div class="form-group">
-                            <button type="submit" class="btn btn-success">
-                                <span class="glyphicon glyphicon-edit"></span> Edit
-                            </button>
-                            <a class="btn btn-default pull-right" id="cancel">Cancel</a>
-                    </div>
-                   {!! Form::close()!!}
-				</div>
-			</div>
-		</div>
-		</div>
-	</div>
-<div class="modal fade" id="user_delete" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-<div class="modal-dialog">
-  <div class="modal-content">
-      <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-          <h4 class="modal-title">Delete User</h4>
-      </div>
-      {!! Form::open(array('route' => 'user.delete','method'=>'POST')) !!}
-      <div class="modal-body">
-      <input type="hidden" name="id" id="delete_id">
-      	<label>Are your sure want to delete this user?</label>
-      </div>
-    <div class="modal-footer">
-        <button data-dismiss="modal" class="btn btn-default" type="button"><span class='glyphicon glyphicon-remove'></span> No</button>
-           <button class="btn btn-danger" type="submit"><span class='glyphicon glyphicon-ok'></span> Yes</button>
     </div>
-    {{Form::close()}}
-  </div>
-</div>
-</div>
-<script type="text/javascript">
-$('#cancel').click(function(){
-	 	$('#user_add').show();
-        $('#user_edit').hide();
-})
-	$(document).on('click', '#edit_user', function() {
 
-        $('#user_add').hide();
-        $('#user_edit').show();
-        var stuff = $(this).data('info').split(',');
-        fillmodalData(stuff)
-    });
 
-   function fillmodalData(details)
-    {
-        $('#id').val(details[0]);
-        $('#name').val(details[1]);
-        $('#email').val(details[2]);
-		$('#role_id').val(details[3]);
-    }
-    $(document).on('click', '#delete_user', function()
-    {
-    	var id = $(this).data('id');
-    	$('#delete_id').val(id);
-    	$('#user_delete').modal('show');
-
-    });
-
-</script>
 @endsection

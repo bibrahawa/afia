@@ -21,7 +21,6 @@ class ServiceController extends Controller
         $services = Service::get();
         $departments = Department::select('id','name')->get();
         return view('services.index', compact('services' , 'departments'));
-        //
     }
     /**
      * Store a newly created resource in storage.
@@ -31,17 +30,21 @@ class ServiceController extends Controller
      */
     public function store(Request $request)
     {
-       
-        $data = $request->all();
-        $this->validate($request, ['name'=>'required|unique:services', 'amount'=>'required|numeric' , 'department_id' => 'required']);
-         $tax = Hospital::first()->tax_percent;
-        if($request->with_tax) {
 
+        $request->validate([
+            'name'=>'required',
+            'amount'=>'required|numeric',
+            'department_id' => 'required'
+        ]);
+
+        $tax = Hospital::first()->tax_percent;
+
+        if($request->with_tax) {
             $tax_cal = 100 + $tax;
             $request['amount'] = $request->amount*100/$tax_cal;
         }
 
-        Service::create($data);
+        Service::create($request->all());
         return back()->with('success', 'Service saved Successfully.');
         //
     }
@@ -53,10 +56,10 @@ class ServiceController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function edit(Request $request)
+    public function update(Request $request)
     {
          $tax = Hospital::first()->tax_percent;
-        $this->validate($request, ['name'=>'required','amount'=>'required|numeric' , 'department_id' => 'required|numeric']);
+        $request->validate( ['name'=>'required','amount'=>'required|numeric' , 'department_id' => 'required|numeric']);
         $data = Service::find ( $request->id );
         $data->name = ($request->name);
 
@@ -82,17 +85,17 @@ class ServiceController extends Controller
     public function delete(Request $request)
     {
 
-      $service = Service::find($request->id); 
+      $service = Service::find($request->id);
 
       if(count($service->service_sales) || count($service->tests)) {
 
         return back()->with('error', 'Service cannot be deleted...');
       } else {
-            $service->delete();
-            return back()->with('success', 'Service deleted successfully');
+        $service->delete();
+        return back()->with('success', 'Service deleted successfully');
       }
-      
-     
-    } 
+
+
+    }
 
 }

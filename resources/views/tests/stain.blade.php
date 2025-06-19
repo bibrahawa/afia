@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.backend')
 @section('content')
 <div class="col-md-12 main">
 		<div class="row">
@@ -163,7 +163,7 @@
 });
 
    $('#remove_test').click(function(){
-	 	
+
         $(this).parentsUntil('.add_test').remove();
 });
 
@@ -175,9 +175,9 @@
         var test_id = $(this).data('test_id');
         var test = $(this).data('test');
 
-        	for (i = 0; i < test.length; i++) { 
+        	for (i = 0; i < test.length; i++) {
         		$('.add_test').append("<tr class='add_more_test'><td><div class='input-group'><input type='text' name='test_name[]' value='"+ test[i] +"' class='form-control input-md' required=''><span class='input-group-btn'><a class='btn btn-sm btn-danger remove'><span class='glyphicon glyphicon-remove'></span></a></span></div></td></tr>");
-        		
+
         	}
 
     	$('.add_test .remove').on('click', function() {

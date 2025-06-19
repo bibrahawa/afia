@@ -35,7 +35,7 @@ class HospitalController extends Controller
     public function updateHospital(Request $request, $id)
     {
         $hospital = Hospital::find($id);
-        $this->validate($request, [
+        $request->validate( [
             'name' => 'required',
             'slogan' => 'required',
             
@@ -52,7 +52,7 @@ class HospitalController extends Controller
     public function updateTax(Request $request, $id)
     {
         $tax = Tax::find($id);
-        $this->validate($request, [
+        $request->validate( [
             'name' => 'required',
             'percent' => 'required',
         ]);

@@ -1,6 +1,6 @@
-@extends('layouts.app')
+@extends('layouts.backend')
 @section('content')
-<div class="col-sm-12  main">			
+<div class="col-sm-12  main">
 		<div class="row">
 			<ol class="breadcrumb">
 				<li><a href="#"><svg class="glyph stroked home"><use xlink:href="#stroked-home"></use></svg></a></li>
@@ -10,11 +10,11 @@
 <!-- Modal -->
 @if ($message = Session::get('success'))
 <div class="alert alert-success alert-block">
-	<button type="button" class="close" data-dismiss="alert">×</button>	
+	<button type="button" class="close" data-dismiss="alert">×</button>
         <strong>{{ $message }}</strong>
 </div>
 @endif
-@if ($error = Session::get('error'))        
+@if ($error = Session::get('error'))
 <div class="alert alert-danger">
             <ul>
                {{ $error }}
@@ -62,9 +62,9 @@
 								<th>Total Amount</th>
 								<th>Date</th>
 								<th>Return</th>
-								
+
 								<th>Duplicate</th>
-								
+
 							</tr>
 						</thead>
 						<tbody>
@@ -85,11 +85,11 @@
 							<td><a class="btn btn-sm btn-primary invoiceReturn" data-return="{{$invoice->id}}, {{$invoice->invoice_no}}, {{number_format($invoice->total_amount)}}"><span class="glyphicon glyphicon-share-alt"></span>Return Bill</a>
 							</td>
 							@endif
-							
+
 							<td>
 								<a href="{{route('invoice.duplicate', $invoice->id)}}" class=" btn-sm btn btn-primary">Re-Print Bill</a>
 							</td>
-							
+
 							</tr>
 						@endforeach
 						</tbody>
@@ -100,11 +100,11 @@
 							<th>${{$total['discount']}}</th>
 							<th>${{number_format($total['tax_amount'], 2)}}</th>
 							<th>${{number_format($total['total_amount'], 2)}}</th>
-							
+
 							<td>Complete</td>
 						</tr>
-						
-						
+
+
 					</table>
 					</div>
 				</div>
@@ -170,7 +170,7 @@
         dom: 'Bfrtip',
         buttons: [
              'excel', 'pdf', 'print'
-        
+
         ]
 
     } );

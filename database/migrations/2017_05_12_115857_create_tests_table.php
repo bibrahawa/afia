@@ -14,14 +14,13 @@ class CreateTestsTable extends Migration
     public function up()
     {
         Schema::create('tests', function (Blueprint $table) {
-            $table->increments('id');
-            $table->integer('service_id')->unsigned();
+            $table->id();
+            // $table->integer('service_id')->unsigned();
             $table->string('name');
             $table->string('report_type');
             $table->string('description')->nullable();
+            $table->float('amount');
             $table->timestamps();
-           
-            
         });
     }
 
@@ -33,6 +32,6 @@ class CreateTestsTable extends Migration
     public function down()
     {
         Schema::dropIfExists('tests');
-        
+
     }
 }

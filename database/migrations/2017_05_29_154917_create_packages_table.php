@@ -14,12 +14,13 @@ class CreatePackagesTable extends Migration
     public function up()
     {
         Schema::create('packages', function (Blueprint $table) {
-            $table->increments('id');
+            $table->id();
+            $table->foreignId('department_id')->nullable()->constrained()->onDelete('cascade');
             $table->string('name');
             $table->string('description')->nullable();
-            $table->float('price', 8,4);
+            $table->float('price');
             $table->timestamps();
-           
+
         });
     }
 

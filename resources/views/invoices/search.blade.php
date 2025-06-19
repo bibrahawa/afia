@@ -1,6 +1,6 @@
-@extends('layouts.app')
+@extends('layouts.backend')
 @section('content')
-<div class="col-sm-12  main">			
+<div class="col-sm-12  main">
 		<div class="row">
 			<ol class="breadcrumb">
 				<li><a href="#"><svg class="glyph stroked home"><use xlink:href="#stroked-home"></use></svg></a></li>
@@ -10,16 +10,16 @@
 <!-- Modal -->
 @if ($message = Session::get('success'))
 <div class="alert alert-success alert-block">
-	<button type="button" class="close" data-dismiss="alert">×</button>	
+	<button type="button" class="close" data-dismiss="alert">×</button>
         <strong>{{ $message }}</strong>
 </div>
 @endif
-@if ($error = Session::get('errors'))        
+@if ($error = Session::get('errors'))
 <div class="alert alert-danger">
             <ul>
-               
+
                 <li>{{ $error }}</li>
-           
+
             </ul>
         </div>
     @endif
@@ -80,7 +80,7 @@
 								<th></th>
 							</tr>
 						</tfoot>
-						
+
 						<tbody>
 						@foreach($invoices as $invoice)
 						<tr>

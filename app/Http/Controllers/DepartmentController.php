@@ -28,7 +28,7 @@ class DepartmentController extends Controller
     public function store(Request $request)
     {
         $data = $request->all();
-        $this->validate($request, ['name'=>'required|unique:departments']);
+        $request->validate( ['name'=>'required|unique:departments']);
         Department::create($data);
         return back()->with('success', 'Department saved successfully.');
         //
@@ -41,11 +41,11 @@ class DepartmentController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function edit(Request $request)
+    public function update(Request $request)
     {
         //return $request->all();
-        
-        $data = Department::find ( $request->id );
+
+        $data = Department::find($request->id );
         $data->name = ($request->name);
         $data->save ();
         return back()->with('success', 'Department Updated successfully');
@@ -55,20 +55,26 @@ class DepartmentController extends Controller
     /**
      * Remove the specified resource from storage.
      *
-     * @param  int  $id
+     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function delete(Request $request)
+    public function delete($id)
     {
+        $department = Department::findOrFail($id);
 
-      //return $request->all();
-      $department = Department::find($request->id);
-      if(count($department->services) || count($department->employees) || count($department->doctor)) {
-        return back()->with('error', 'Department cannot be deleted..');
-      } else {
-      $department->delete();
-      return back()->with('success', 'Department deleted successfully.');
-     }
-    } 
+        if ($department->services()->exists() ||
+            $department->employees()->exists()
+            // || $department->doctors()->exists()
+            ) {
+            return back()->with('error', 'Department cannot be deleted because it has related records.');
+        }
+
+        try {
+            $department->delete();
+            return back()->with('success', 'Department deleted successfully.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to delete department.');
+        }
+    }
 
 }

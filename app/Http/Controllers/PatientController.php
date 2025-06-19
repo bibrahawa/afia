@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Patient;
-use App\Models\Doctor;
+use App\Models\User;
 
 class PatientController extends Controller
 {
@@ -12,18 +12,19 @@ class PatientController extends Controller
     {
 
     }
+
     /**
      * Display a listing of the resource.
      *
      * @return \Illuminate\Http\Response
      */
+
     public function index()
     {
         $patients = Patient::get();
         return view('patients.index' , compact('patients'));
-
-        //
     }
+
     /**
      * Store a newly created resource in storage.
      *
@@ -32,14 +33,22 @@ class PatientController extends Controller
      */
     public function store(Request $request)
     {
-
-        //return $data;
-        $this->validate($request, []);
         $data = $request->all();
-        //return $data;
-        Patient::create($data);
+        $data['age'] = date('Y') - date('Y', strtotime($data['birth_date']));
+        $data['country'] = 'Guinee';
+        $data['state'] = 'Conakry';
+
+        $user = new User();
+        $user->name = $request->first_name;
+        $user->email = $request->email;
+        $user->password = "12345678";
+
+        if($user->save()){
+            $data['user_id'] = $user->id;
+            Patient::create($data);
+            $user->assignRole('patient');
+        }
         return back()->with('success', 'Patient saved Successfully.');
-        //
     }
 
     /**
@@ -51,10 +60,36 @@ class PatientController extends Controller
     public function show($id)
     {
         $patient = Patient::find($id);
-        //return $patient->appointments()->get();
-        $doctors = Doctor::get();
-        return view('patients.profile' , compact('patient', 'doctors'));
+        return view('patients.show' , compact('patient'));
         //
+    }
+
+    public function addFile(Request $request, $id){
+
+        $patient = Patient::findOrFail($id);
+
+        if (!$request->hasFile('file')) {
+            return back()->with('error', 'Please select files to upload');
+        }
+
+        try {
+
+            $file = $request->file('file');
+            // Store file
+            $chemin = $file->store('patients/files/'.$patient->id, 'public');
+            // Create file record
+
+            $patient->files()->create([
+                'nom_fichier' => $request->name,
+                'chemin_fichier' => $chemin,
+                'used_by' => 'accueil'
+            ]);
+
+            return back()->with('success', 'Files uploaded successfully');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Error uploading files: ' . $e->getMessage());
+        }
+
     }
 
     /**
@@ -91,11 +126,10 @@ class PatientController extends Controller
     {
         $patient = Patient::find($id);
         $data = $request->all();
+        $data['age'] = date('Y') - date('Y', strtotime($data['birth_date']));
         $patient->update($data);
         return back()
             ->with('success', 'Patient updated successfully');
-
-        //
     }
 
     /**

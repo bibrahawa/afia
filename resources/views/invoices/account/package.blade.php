@@ -1,6 +1,6 @@
-@extends('layouts.app')
+@extends('layouts.backend')
 @section('content')
-<div class="col-sm-12  main">			
+<div class="col-sm-12  main">
 		<div class="row">
 			<ol class="breadcrumb">
 				<li><a href="#"><svg class="glyph stroked home"><use xlink:href="#stroked-home"></use></svg></a></li>
@@ -10,16 +10,16 @@
 <!-- Modal -->
 @if ($message = Session::get('success'))
 <div class="alert alert-success alert-block">
-	<button type="button" class="close" data-dismiss="alert">×</button>	
+	<button type="button" class="close" data-dismiss="alert">×</button>
         <strong>{{ $message }}</strong>
 </div>
 @endif
-@if ($error = Session::get('errors'))        
+@if ($error = Session::get('errors'))
 <div class="alert alert-danger">
             <ul>
-               
+
                 <li>{{ $error }}</li>
-           
+
             </ul>
         </div>
     @endif
@@ -27,9 +27,9 @@
 			<div class="col-md-12">
 				<div class="panel panel-default">
 					<div class="panel-heading">
-					
+
 						Package Reports
-					
+
 					<div class="pull-right">Report From: {{$total['starting_date']}}/{{$total['ending_date']}}</div></div>
 					<div class="panel-body">
 					<div class="row">
@@ -73,11 +73,11 @@
 								<th colspan="2"><b>Total:</b></th>
 								<th><b>${{$total["total"]}}<b></th>
 								<th colspan="4"></th>
-								
+
 
 							</tr>
 						</tfoot>
-						
+
 						<tbody>
 						@foreach($invoices as $invoice)
 						<tr>

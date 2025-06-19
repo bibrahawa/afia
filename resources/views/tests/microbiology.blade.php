@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.backend')
 @section('content')
 <div class="col-md-12 main">
 		<div class="row">

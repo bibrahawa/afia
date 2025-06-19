@@ -1,398 +1,625 @@
-@extends('layouts.app')
-@section('content')  
+@extends("layouts.backend")
 
-    <div class="col-md-12 main">           
-        <div class="row">
-            <ol class="breadcrumb">
-                <li><a href="#"><svg class="glyph stroked home"><use xlink:href="#stroked-home"></use></svg></a></li>
-                <li class="active">Dashboard</li>
-            </ol>
+@section("content")
+<div class="container">
+    <div class="page-inner">
+      <div
+        class="d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-4"
+      >
+        <div>
+          <h3 class="fw-bold mb-3">Dashboard</h3>
+          <h6 class="op-7 mb-2">Admin Dashboard</h6>
         </div>
-        <!--/.row-->
-       
-        <div class="row">
-            <div class="col-lg-12">
-                <h2 class="page-header">Dashboard</h2>
-            </div>
-        </div><!--/.row-->
-         @if ($message = Session::get('success'))
-            <div class="alert alert-success alert-block">
-                <button type="button" class="close" data-dismiss="alert">×</button> 
-                    <strong>{{ $message }}</strong>
-            </div>
-        @endif
-        <div class="row">
-            <div class="col-xs-12 col-md-6 col-lg-3">
-                <div class="panel panel-orange panel-widget">
-                    <div class="row no-padding">
-                        <div class="col-sm-2 col-lg-3 widget-left">
-                        <i class="fas fa-notes-medical fa-3x"></i>
-                        </div>
-                        <div class="col-sm-10 col-lg-9 widget-right">
-                            <div class="large">{{$pending['appointment']}}</div>
-                            <div class="text-muted">Pending Appointment</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-xs-12 col-md-6 col-lg-3">
-                <div class="panel panel-blue panel-widget ">
-                    <div class="row no-padding">
-                        <div class="col-sm-3 col-lg-5 widget-left">
-                        <i class="fas fa-users fa-3x"></i>
-                        </div>
-                        <div class="col-sm-9 col-lg-7 widget-right">
-                            <div class="large">{{$patients->count()}}</div>
-                            <div class="text-muted">Total Patient</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-xs-12 col-md-6 col-lg-3">
-                <div class="panel panel-teal panel-widget">
-                    <div class="row no-padding">
-                        <div class="col-sm-3 col-lg-5 widget-left">
-                        <i class="fas fa-vial fa-3x"></i>
-                        </div>
-                        <div class="col-sm-9 col-lg-7 widget-right">
-                            <div class="large">{{$total_test}}</div>
-                            <div class="text-muted">Total Test</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-xs-12 col-md-6 col-lg-3">
-                <div class="panel panel-red panel-widget">
-                    <div class="row no-padding">
-                        <div class="col-sm-3 col-lg-5 widget-left">
-                        <i class="fas fa-user-md fa-3x"></i>
-                        </div>
-                        <div class="col-sm-9 col-lg-7 widget-right">
-                            <div class="large">{{$total_doctor}}</div>
-                            <div class="text-muted">Total Doctor</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div><!--/.row-->
-        
-        <div class="row">
-            
-            <!-- Appointment for today -->
-             <div class="col-lg-12">
-                <div class="panel panel-default">
-                    <div class="panel-heading">Today's Appointment</div>
-                    <div class="panel-body">
-                         <table id="table1" class="display table table-bordered table-condensed table-hover" cellspacing="0" width="100%">
-                            <thead>
-                               <tr>
-                                <th>#</th>
-                                <th>Name</th>
-                                <th>Patient</th>
-                                <th>Doctor</th>
-                                <th>Description</th>
-                                <th>Time</th>
-                                <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php $i=1;?>
-                                @foreach($appointments as $appointment)
-                                <tr>
-                                    <td>{{$i++}}</td>
-                                    <td>{{$appointment->name}}</td>
-                                    <td>{{$appointment->patient->first_name}} {{$appointment->patient->last_name}}</td>
-                                    <td>{{$appointment->doctor->employee->first_name}} {{$appointment->doctor->employee->middle_name}} {{$appointment->doctor->employee->last_name}}</td>
-                                    <td>{{$appointment->description}}</td>
-                                    <td>{{$appointment->time}}</td>
-                                    <td>
-                                     @if($appointment->status)
-                                    <a class="btn-sm btn-success" href="{{ route('appointment.edit',$appointment->id) }}"><span class=" glyphicon glyphicon-ok"></span> Complete</a>    
-                                    @else
-                                    <a class="btn-sm btn-warning" href="{{ route('appointment.edit',$appointment->id) }}"><span class=" glyphicon glyphicon-refresh"> </span> Pending</a>
-                                    @endif
-                                    </td>
-                                </tr>
-                                @endforeach
-                            </tbody>                 
-                        </table>
-                    </div>
-                </div>
-            </div>
-            <!-- Appointmet table ends -->
-            <div class="col-lg-12">
-            <!-- Today invoice collection -->
-                <div class="panel panel-default">
-                    <div class="panel-heading">Today's Collection</div>
-                    <div class="panel-body">
-                        <table id="table" class="display table table-bordered table-condensed" cellspacing="0" width="100%">
-                            <thead>
-                               <tr>
-                               <th>#</th>
-                                <th>Invoice No</th>
-                                <th>Payment</th>
-                                <th>Sub Total</th>
-                                <th>Discount</th>
-                                <th>Tax</th>
-                                <th>Total Amount</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            <?php $i=1;?>
-                            @foreach($invoices as $invoice)
-                                <tr>
-                                    <td>{{$i++}}</td>
-                                    <td>{{$invoice->invoice_no}}</td>
-                                    <td>{{$invoice->payment_type}}</td>
-                                    <td>${{number_format($invoice->sub_total, 2)}}</td>
-                                    <td>${{$invoice->discount}}</td>
-                                    <td>${{number_format($invoice->tax_amount, 2)}}</td>
-                                    <td>${{number_format($invoice->total_amount)}}</td>
-                                </tr>@endforeach
-                            </tbody>
-                                 <tr>
-                                    <th></th>
-                                    <th>Total:</th>
-                                    <th></th>
-                                    <th>${{number_format($total['sub_total'], 2)}}</th>
-                                    <th>${{$total['discount']}}</th>
-                                    <th>${{number_format($total['tax_amount'], 2)}}</th>
-                                    <th>${{number_format($total['total_amount'])}}</th>
-                                </tr>                    
-                        </table>
-                    </div>
-                </div>
-            </div>
-            <!-- Today collection ends -->
-            <!-- opd table -->
-            <div class="col-lg-12">
-                <div class="panel panel-default">
-                    <div class="panel-heading">Today's OPD</div>
-                    <div class="panel-body">
-                         <table id="example" class="display table table-bordered table-condensed table-hover" cellspacing="0" width="100%">
-                            <thead>
-                               <tr>
-                                <th>#</th>
-                                <th>Patient</th>
-                                <th>Doctor</th>
-                                <th>Register At</th>
-                                <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php $i=1;?>
-                                @foreach($opds as $opd)
-                                <tr>
-                                    <td>{{$i++}}</td>
-                                    <td>{{$opd->invoice->patient->first_name}} {{$opd->invoice->patient->last_name}}</td>
-                                    <td>{{$opd->doctor->employee->first_name}} {{$opd->doctor->employee->middle_name}} {{$opd->doctor->employee->last_name}}</td>
-                                    <td>{{$opd->created_at}}</td>
-                                    @if($opd->status == 1)
-                                    <td><span class="btn-sm btn-success glyphicon glyphicon-ok"> Complete</span></td>
-                                    @else
-                                    <td><a class="btn-sm btn-warining" href="{{ route('doctor.edit',$opd->id) }}"><span class=" glyphicon glyphicon-refresh"> Pending</span></a> </span></td>
-                                    @endif
-                                </tr>
-                                @endforeach
-                            </tbody>                 
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-        </div><!--/.row-->
+        <div class="ms-md-auto py-2 py-md-0">
+          <a href="#" class="btn btn-label-info btn-round me-2">Manage</a>
+          <a href="{{ route('patient.index') }}" class="btn btn-primary btn-round">Add Customer</a>
         </div>
-        
-        <!-- <div class="row">
-            <div class="col-xs-6 col-md-3">
-                <div class="panel panel-default">
-                    <div class="panel-body easypiechart-panel">
-                        <h4>New Orders</h4>
-                        <div class="easypiechart" id="easypiechart-blue" data-percent="92" ><span class="percent">92%</span>
-                        </div>
-                    </div>
+      </div>
+      <div class="row">
+        <div class="col-sm-6 col-md-3">
+          <div class="card card-stats card-round">
+            <div class="card-body">
+              <div class="row align-items-center">
+                <div class="col-icon">
+                  <div
+                    class="icon-big text-center icon-primary bubble-shadow-small"
+                  >
+                    <i class="fas fa-users"></i>
+                  </div>
                 </div>
+                <div class="col col-stats ms-3 ms-sm-0">
+                  <div class="numbers">
+                    <p class="card-category">Patiente</p>
+                    <h4 class="card-title">1,294</h4>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="col-xs-6 col-md-3">
-                <div class="panel panel-default">
-                    <div class="panel-body easypiechart-panel">
-                        <h4>Comments</h4>
-                        <div class="easypiechart" id="easypiechart-orange" data-percent="65" ><span class="percent">65%</span>
-                        </div>
-                    </div>
+          </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+          <div class="card card-stats card-round">
+            <div class="card-body">
+              <div class="row align-items-center">
+                <div class="col-icon">
+                  <div
+                    class="icon-big text-center icon-info bubble-shadow-small"
+                  >
+                    <i class="fas fa-user-check"></i>
+                  </div>
                 </div>
+                <div class="col col-stats ms-3 ms-sm-0">
+                  <div class="numbers">
+                    <p class="card-category">Patiente Assurer</p>
+                    <h4 class="card-title">1303</h4>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="col-xs-6 col-md-3">
-                <div class="panel panel-default">
-                    <div class="panel-body easypiechart-panel">
-                        <h4>New Users</h4>
-                        <div class="easypiechart" id="easypiechart-teal" data-percent="56" ><span class="percent">56%</span>
-                        </div>
-                    </div>
+          </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+          <div class="card card-stats card-round">
+            <div class="card-body">
+              <div class="row align-items-center">
+                <div class="col-icon">
+                  <div
+                    class="icon-big text-center icon-success bubble-shadow-small"
+                  >
+                    <i class="fas fa-luggage-cart"></i>
+                  </div>
                 </div>
+                <div class="col col-stats ms-3 ms-sm-0">
+                  <div class="numbers">
+                    <p class="card-category">Sales</p>
+                    <h4 class="card-title">1,345</h4>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="col-xs-6 col-md-3">
-                <div class="panel panel-default">
-                    <div class="panel-body easypiechart-panel">
-                        <h4>Visitors</h4>
-                        <div class="easypiechart" id="easypiechart-red" data-percent="27" ><span class="percent">27%</span>
-                        </div>
-                    </div>
+          </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+          <div class="card card-stats card-round">
+            <div class="card-body">
+              <div class="row align-items-center">
+                <div class="col-icon">
+                  <div
+                    class="icon-big text-center icon-secondary bubble-shadow-small"
+                  >
+                    <i class="far fa-check-circle"></i>
+                  </div>
                 </div>
+                <div class="col col-stats ms-3 ms-sm-0">
+                  <div class="numbers">
+                    <p class="card-category">Order</p>
+                    <h4 class="card-title">576</h4>
+                  </div>
+                </div>
+              </div>
             </div>
-        </div> -->
-        <!--/.row-->
-                                
-       <!--  <div class="row">
-            <div class="col-md-8">
-            
-                <div class="panel panel-default chat">
-                    <div class="panel-heading" id="accordion"><svg class="glyph stroked two-messages"><use xlink:href="#stroked-two-messages"></use></svg> Chat</div>
-                    <div class="panel-body">
-                        <ul>
-                            <li class="left clearfix">
-                                <span class="chat-img pull-left">
-                                    <img src="http://placehold.it/80/30a5ff/fff" alt="User Avatar" class="img-circle" />
-                                </span>
-                                <div class="chat-body clearfix">
-                                    <div class="header">
-                                        <strong class="primary-font">John Doe</strong> <small class="text-muted">32 mins ago</small>
-                                    </div>
-                                    <p>
-                                        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla ante turpis, rutrum ut ullamcorper sed, dapibus ac nunc. Vivamus luctus convallis mauris, eu gravida tortor aliquam ultricies. 
-                                    </p>
-                                </div>
-                            </li>
-                            <li class="right clearfix">
-                                <span class="chat-img pull-right">
-                                    <img src="http://placehold.it/80/dde0e6/5f6468" alt="User Avatar" class="img-circle" />
-                                </span>
-                                <div class="chat-body clearfix">
-                                    <div class="header">
-                                        <strong class="pull-left primary-font">Jane Doe</strong> <small class="text-muted">6 mins ago</small>
-                                    </div>
-                                    <p>
-                                        Mauris dignissim porta enim, sed commodo sem blandit non. Ut scelerisque sapien eu mauris faucibus ultrices. Nulla ac odio nisl. Proin est metus, interdum scelerisque quam eu, eleifend pretium nunc. Suspendisse finibus auctor lectus, eu interdum sapien.
-                                    </p>
-                                </div>
-                            </li>
-                            <li class="left clearfix">
-                                <span class="chat-img pull-left">
-                                    <img src="http://placehold.it/80/30a5ff/fff" alt="User Avatar" class="img-circle" />
-                                </span>
-                                <div class="chat-body clearfix">
-                                    <div class="header">
-                                        <strong class="primary-font">John Doe</strong> <small class="text-muted">32 mins ago</small>
-                                    </div>
-                                    <p>
-                                        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla ante turpis, rutrum ut ullamcorper sed, dapibus ac nunc. Vivamus luctus convallis mauris, eu gravida tortor aliquam ultricies. 
-                                    </p>
-                                </div>
-                            </li>
-                        </ul>
-                    </div>
-                    
-                    <div class="panel-footer">
-                        <div class="input-group">
-                            <input id="btn-input" type="text" class="form-control input-md" placeholder="Type your message here..." />
-                            <span class="input-group-btn">
-                                <button class="btn btn-success btn-md" id="btn-chat">Send</button>
-                            </span>
-                        </div>
-                    </div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-8">
+          <div class="card card-round">
+            <div class="card-header">
+              <div class="card-head-row">
+                <div class="card-title">User Statistics</div>
+                <div class="card-tools">
+                  <a
+                    href="#"
+                    class="btn btn-label-success btn-round btn-sm me-2"
+                  >
+                    <span class="btn-label">
+                      <i class="fa fa-pencil"></i>
+                    </span>
+                    Export
+                  </a>
+                  <a href="#" class="btn btn-label-info btn-round btn-sm">
+                    <span class="btn-label">
+                      <i class="fa fa-print"></i>
+                    </span>
+                    Print
+                  </a>
                 </div>
-                 -->
-          <!--/.col-->
-            
-           <!--  <div class="col-md-4">
-            
-                <div class="panel panel-blue">
-                    <div class="panel-heading dark-overlay"><svg class="glyph stroked clipboard-with-paper"><use xlink:href="#stroked-clipboard-with-paper"></use></svg>To-do List</div>
-                    <div class="panel-body">
-                        <ul class="todo-list">
-                        <li class="todo-list-item">
-                                <div class="checkbox">
-                                    <input type="checkbox" id="checkbox" />
-                                    <label for="checkbox">Make a plan for today</label>
-                                </div>
-                                <div class="pull-right action-buttons">
-                                    <a href="#"><svg class="glyph stroked pencil"><use xlink:href="#stroked-pencil"></use></svg></a>
-                                    <a href="#" class="flag"><svg class="glyph stroked flag"><use xlink:href="#stroked-flag"></use></svg></a>
-                                    <a href="#" class="trash"><svg class="glyph stroked trash"><use xlink:href="#stroked-trash"></use></svg></a>
-                                </div>
-                            </li>
-                            <li class="todo-list-item">
-                                <div class="checkbox">
-                                    <input type="checkbox" id="checkbox" />
-                                    <label for="checkbox">Update Basecamp</label>
-                                </div>
-                                <div class="pull-right action-buttons">
-                                    <a href="#"><svg class="glyph stroked pencil"><use xlink:href="#stroked-pencil"></use></svg></a>
-                                    <a href="#" class="flag"><svg class="glyph stroked flag"><use xlink:href="#stroked-flag"></use></svg></a>
-                                    <a href="#" class="trash"><svg class="glyph stroked trash"><use xlink:href="#stroked-trash"></use></svg></a>
-                                </div>
-                            </li>
-                            <li class="todo-list-item">
-                                <div class="checkbox">
-                                    <input type="checkbox" id="checkbox" />
-                                    <label for="checkbox">Send email to Jane</label>
-                                </div>
-                                <div class="pull-right action-buttons">
-                                    <a href="#"><svg class="glyph stroked pencil"><use xlink:href="#stroked-pencil"></use></svg></a>
-                                    <a href="#" class="flag"><svg class="glyph stroked flag"><use xlink:href="#stroked-flag"></use></svg></a>
-                                    <a href="#" class="trash"><svg class="glyph stroked trash"><use xlink:href="#stroked-trash"></use></svg></a>
-                                </div>
-                            </li>
-                            <li class="todo-list-item">
-                                <div class="checkbox">
-                                    <input type="checkbox" id="checkbox" />
-                                    <label for="checkbox">Drink coffee</label>
-                                </div>
-                                <div class="pull-right action-buttons">
-                                    <a href="#"><svg class="glyph stroked pencil"><use xlink:href="#stroked-pencil"></use></svg></a>
-                                    <a href="#" class="flag"><svg class="glyph stroked flag"><use xlink:href="#stroked-flag"></use></svg></a>
-                                    <a href="#" class="trash"><svg class="glyph stroked trash"><use xlink:href="#stroked-trash"></use></svg></a>
-                                </div>
-                            </li>
-                            <li class="todo-list-item">
-                                <div class="checkbox">
-                                    <input type="checkbox" id="checkbox" />
-                                    <label for="checkbox">Do some work</label>
-                                </div>
-                                <div class="pull-right action-buttons">
-                                    <a href="#"><svg class="glyph stroked pencil"><use xlink:href="#stroked-pencil"></use></svg></a>
-                                    <a href="#" class="flag"><svg class="glyph stroked flag"><use xlink:href="#stroked-flag"></use></svg></a>
-                                    <a href="#" class="trash"><svg class="glyph stroked trash"><use xlink:href="#stroked-trash"></use></svg></a>
-                                </div>
-                            </li>
-                            <li class="todo-list-item">
-                                <div class="checkbox">
-                                    <input type="checkbox" id="checkbox" />
-                                    <label for="checkbox">Tidy up workspace</label>
-                                </div>
-                                <div class="pull-right action-buttons">
-                                    <a href="#"><svg class="glyph stroked pencil"><use xlink:href="#stroked-pencil"></use></svg></a>
-                                    <a href="#" class="flag"><svg class="glyph stroked flag"><use xlink:href="#stroked-flag"></use></svg></a>
-                                    <a href="#" class="trash"><svg class="glyph stroked trash"><use xlink:href="#stroked-trash"></use></svg></a>
-                                </div>
-                            </li>
-                        </ul>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="chart-container" style="min-height: 375px">
+                <canvas id="statisticsChart"></canvas>
+              </div>
+              <div id="myChartLegend"></div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card card-primary card-round">
+            <div class="card-header">
+              <div class="card-head-row">
+                <div class="card-title">Daily Sales</div>
+                <div class="card-tools">
+                  <div class="dropdown">
+                    <button
+                      class="btn btn-sm btn-label-light dropdown-toggle"
+                      type="button"
+                      id="dropdownMenuButton"
+                      data-bs-toggle="dropdown"
+                      aria-haspopup="true"
+                      aria-expanded="false"
+                    >
+                      Export
+                    </button>
+                    <div
+                      class="dropdown-menu"
+                      aria-labelledby="dropdownMenuButton"
+                    >
+                      <a class="dropdown-item" href="#">Action</a>
+                      <a class="dropdown-item" href="#">Another action</a>
+                      <a class="dropdown-item" href="#"
+                        >Something else here</a
+                      >
                     </div>
-                    <div class="panel-footer">
-                        <div class="input-group">
-                            <input id="btn-input" type="text" class="form-control input-md" placeholder="Add new task" />
-                            <span class="input-group-btn">
-                                <button class="btn btn-primary btn-md" id="btn-todo">Add</button>
-                            </span>
-                        </div>
+                  </div>
+                </div>
+              </div>
+              <div class="card-category">March 25 - April 02</div>
+            </div>
+            <div class="card-body pb-0">
+              <div class="mb-4 mt-2">
+                <h1>$4,578.58</h1>
+              </div>
+              <div class="pull-in">
+                <canvas id="dailySalesChart"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="card card-round">
+            <div class="card-body pb-0">
+              <div class="h1 fw-bold float-end text-primary">+5%</div>
+              <h2 class="mb-2">17</h2>
+              <p class="text-muted">Users online</p>
+              <div class="pull-in sparkline-fix">
+                <div id="lineChart"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-12">
+          <div class="card card-round">
+            <div class="card-header">
+              <div class="card-head-row card-tools-still-right">
+                <h4 class="card-title">Users Geolocation</h4>
+                <div class="card-tools">
+                  <button
+                    class="btn btn-icon btn-link btn-primary btn-xs"
+                  >
+                    <span class="fa fa-angle-down"></span>
+                  </button>
+                  <button
+                    class="btn btn-icon btn-link btn-primary btn-xs btn-refresh-card"
+                  >
+                    <span class="fa fa-sync-alt"></span>
+                  </button>
+                  <button
+                    class="btn btn-icon btn-link btn-primary btn-xs"
+                  >
+                    <span class="fa fa-times"></span>
+                  </button>
+                </div>
+              </div>
+              <p class="card-category">
+                Map of the distribution of users around the world
+              </p>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="table-responsive table-hover table-sales">
+                    <table class="table">
+                      <tbody>
+                        <tr>
+                          <td>
+                            <div class="flag">
+                              <img
+                                src="assets/img/flags/id.png"
+                                alt="indonesia"
+                              />
+                            </div>
+                          </td>
+                          <td>Indonesia</td>
+                          <td class="text-end">2.320</td>
+                          <td class="text-end">42.18%</td>
+                        </tr>
+                        <tr>
+                          <td>
+                            <div class="flag">
+                              <img
+                                src="assets/img/flags/us.png"
+                                alt="united states"
+                              />
+                            </div>
+                          </td>
+                          <td>USA</td>
+                          <td class="text-end">240</td>
+                          <td class="text-end">4.36%</td>
+                        </tr>
+                        <tr>
+                          <td>
+                            <div class="flag">
+                              <img
+                                src="assets/img/flags/au.png"
+                                alt="australia"
+                              />
+                            </div>
+                          </td>
+                          <td>Australia</td>
+                          <td class="text-end">119</td>
+                          <td class="text-end">2.16%</td>
+                        </tr>
+                        <tr>
+                          <td>
+                            <div class="flag">
+                              <img
+                                src="assets/img/flags/ru.png"
+                                alt="russia"
+                              />
+                            </div>
+                          </td>
+                          <td>Russia</td>
+                          <td class="text-end">1.081</td>
+                          <td class="text-end">19.65%</td>
+                        </tr>
+                        <tr>
+                          <td>
+                            <div class="flag">
+                              <img
+                                src="assets/img/flags/cn.png"
+                                alt="china"
+                              />
+                            </div>
+                          </td>
+                          <td>China</td>
+                          <td class="text-end">1.100</td>
+                          <td class="text-end">20%</td>
+                        </tr>
+                        <tr>
+                          <td>
+                            <div class="flag">
+                              <img
+                                src="assets/img/flags/br.png"
+                                alt="brazil"
+                              />
+                            </div>
+                          </td>
+                          <td>Brasil</td>
+                          <td class="text-end">640</td>
+                          <td class="text-end">11.63%</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mapcontainer">
+                    <div
+                      id="world-map"
+                      class="w-100"
+                      style="height: 300px"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-4">
+          <div class="card card-round">
+            <div class="card-body">
+              <div class="card-head-row card-tools-still-right">
+                <div class="card-title">New Customers</div>
+                <div class="card-tools">
+                  <div class="dropdown">
+                    <button
+                      class="btn btn-icon btn-clean me-0"
+                      type="button"
+                      id="dropdownMenuButton"
+                      data-bs-toggle="dropdown"
+                      aria-haspopup="true"
+                      aria-expanded="false"
+                    >
+                      <i class="fas fa-ellipsis-h"></i>
+                    </button>
+                    <div
+                      class="dropdown-menu"
+                      aria-labelledby="dropdownMenuButton"
+                    >
+                      <a class="dropdown-item" href="#">Action</a>
+                      <a class="dropdown-item" href="#">Another action</a>
+                      <a class="dropdown-item" href="#"
+                        >Something else here</a
+                      >
                     </div>
-                </div> -->
-
-    <script type="text/javascript">
-        $(document).ready(function(){
-            $('#table').DataTable();
-            $('#table1').DataTable();
-
-        });
-    </script>
+                  </div>
+                </div>
+              </div>
+              <div class="card-list py-4">
+                <div class="item-list">
+                  <div class="avatar">
+                    <img
+                      src="assets/img/jm_denis.jpg"
+                      alt="..."
+                      class="avatar-img rounded-circle"
+                    />
+                  </div>
+                  <div class="info-user ms-3">
+                    <div class="username">Jimmy Denis</div>
+                    <div class="status">Graphic Designer</div>
+                  </div>
+                  <button class="btn btn-icon btn-link op-8 me-1">
+                    <i class="far fa-envelope"></i>
+                  </button>
+                  <button class="btn btn-icon btn-link btn-danger op-8">
+                    <i class="fas fa-ban"></i>
+                  </button>
+                </div>
+                <div class="item-list">
+                  <div class="avatar">
+                    <span
+                      class="avatar-title rounded-circle border border-white"
+                      >CF</span
+                    >
+                  </div>
+                  <div class="info-user ms-3">
+                    <div class="username">Chandra Felix</div>
+                    <div class="status">Sales Promotion</div>
+                  </div>
+                  <button class="btn btn-icon btn-link op-8 me-1">
+                    <i class="far fa-envelope"></i>
+                  </button>
+                  <button class="btn btn-icon btn-link btn-danger op-8">
+                    <i class="fas fa-ban"></i>
+                  </button>
+                </div>
+                <div class="item-list">
+                  <div class="avatar">
+                    <img
+                      src="assets/img/talha.jpg"
+                      alt="..."
+                      class="avatar-img rounded-circle"
+                    />
+                  </div>
+                  <div class="info-user ms-3">
+                    <div class="username">Talha</div>
+                    <div class="status">Front End Designer</div>
+                  </div>
+                  <button class="btn btn-icon btn-link op-8 me-1">
+                    <i class="far fa-envelope"></i>
+                  </button>
+                  <button class="btn btn-icon btn-link btn-danger op-8">
+                    <i class="fas fa-ban"></i>
+                  </button>
+                </div>
+                <div class="item-list">
+                  <div class="avatar">
+                    <img
+                      src="assets/img/chadengle.jpg"
+                      alt="..."
+                      class="avatar-img rounded-circle"
+                    />
+                  </div>
+                  <div class="info-user ms-3">
+                    <div class="username">Chad</div>
+                    <div class="status">CEO Zeleaf</div>
+                  </div>
+                  <button class="btn btn-icon btn-link op-8 me-1">
+                    <i class="far fa-envelope"></i>
+                  </button>
+                  <button class="btn btn-icon btn-link btn-danger op-8">
+                    <i class="fas fa-ban"></i>
+                  </button>
+                </div>
+                <div class="item-list">
+                  <div class="avatar">
+                    <span
+                      class="avatar-title rounded-circle border border-white bg-primary"
+                      >H</span
+                    >
+                  </div>
+                  <div class="info-user ms-3">
+                    <div class="username">Hizrian</div>
+                    <div class="status">Web Designer</div>
+                  </div>
+                  <button class="btn btn-icon btn-link op-8 me-1">
+                    <i class="far fa-envelope"></i>
+                  </button>
+                  <button class="btn btn-icon btn-link btn-danger op-8">
+                    <i class="fas fa-ban"></i>
+                  </button>
+                </div>
+                <div class="item-list">
+                  <div class="avatar">
+                    <span
+                      class="avatar-title rounded-circle border border-white bg-secondary"
+                      >F</span
+                    >
+                  </div>
+                  <div class="info-user ms-3">
+                    <div class="username">Farrah</div>
+                    <div class="status">Marketing</div>
+                  </div>
+                  <button class="btn btn-icon btn-link op-8 me-1">
+                    <i class="far fa-envelope"></i>
+                  </button>
+                  <button class="btn btn-icon btn-link btn-danger op-8">
+                    <i class="fas fa-ban"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-8">
+          <div class="card card-round">
+            <div class="card-header">
+              <div class="card-head-row card-tools-still-right">
+                <div class="card-title">Transaction History</div>
+                <div class="card-tools">
+                  <div class="dropdown">
+                    <button
+                      class="btn btn-icon btn-clean me-0"
+                      type="button"
+                      id="dropdownMenuButton"
+                      data-bs-toggle="dropdown"
+                      aria-haspopup="true"
+                      aria-expanded="false"
+                    >
+                      <i class="fas fa-ellipsis-h"></i>
+                    </button>
+                    <div
+                      class="dropdown-menu"
+                      aria-labelledby="dropdownMenuButton"
+                    >
+                      <a class="dropdown-item" href="#">Action</a>
+                      <a class="dropdown-item" href="#">Another action</a>
+                      <a class="dropdown-item" href="#"
+                        >Something else here</a
+                      >
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <!-- Projects table -->
+                <table class="table align-items-center mb-0">
+                  <thead class="thead-light">
+                    <tr>
+                      <th scope="col">Payment Number</th>
+                      <th scope="col" class="text-end">Date & Time</th>
+                      <th scope="col" class="text-end">Amount</th>
+                      <th scope="col" class="text-end">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <th scope="row">
+                        <button
+                          class="btn btn-icon btn-round btn-success btn-sm me-2"
+                        >
+                          <i class="fa fa-check"></i>
+                        </button>
+                        Payment from #10231
+                      </th>
+                      <td class="text-end">Mar 19, 2020, 2.45pm</td>
+                      <td class="text-end">$250.00</td>
+                      <td class="text-end">
+                        <span class="badge badge-success">Completed</span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th scope="row">
+                        <button
+                          class="btn btn-icon btn-round btn-success btn-sm me-2"
+                        >
+                          <i class="fa fa-check"></i>
+                        </button>
+                        Payment from #10231
+                      </th>
+                      <td class="text-end">Mar 19, 2020, 2.45pm</td>
+                      <td class="text-end">$250.00</td>
+                      <td class="text-end">
+                        <span class="badge badge-success">Completed</span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th scope="row">
+                        <button
+                          class="btn btn-icon btn-round btn-success btn-sm me-2"
+                        >
+                          <i class="fa fa-check"></i>
+                        </button>
+                        Payment from #10231
+                      </th>
+                      <td class="text-end">Mar 19, 2020, 2.45pm</td>
+                      <td class="text-end">$250.00</td>
+                      <td class="text-end">
+                        <span class="badge badge-success">Completed</span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th scope="row">
+                        <button
+                          class="btn btn-icon btn-round btn-success btn-sm me-2"
+                        >
+                          <i class="fa fa-check"></i>
+                        </button>
+                        Payment from #10231
+                      </th>
+                      <td class="text-end">Mar 19, 2020, 2.45pm</td>
+                      <td class="text-end">$250.00</td>
+                      <td class="text-end">
+                        <span class="badge badge-success">Completed</span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th scope="row">
+                        <button
+                          class="btn btn-icon btn-round btn-success btn-sm me-2"
+                        >
+                          <i class="fa fa-check"></i>
+                        </button>
+                        Payment from #10231
+                      </th>
+                      <td class="text-end">Mar 19, 2020, 2.45pm</td>
+                      <td class="text-end">$250.00</td>
+                      <td class="text-end">
+                        <span class="badge badge-success">Completed</span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th scope="row">
+                        <button
+                          class="btn btn-icon btn-round btn-success btn-sm me-2"
+                        >
+                          <i class="fa fa-check"></i>
+                        </button>
+                        Payment from #10231
+                      </th>
+                      <td class="text-end">Mar 19, 2020, 2.45pm</td>
+                      <td class="text-end">$250.00</td>
+                      <td class="text-end">
+                        <span class="badge badge-success">Completed</span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th scope="row">
+                        <button
+                          class="btn btn-icon btn-round btn-success btn-sm me-2"
+                        >
+                          <i class="fa fa-check"></i>
+                        </button>
+                        Payment from #10231
+                      </th>
+                      <td class="text-end">Mar 19, 2020, 2.45pm</td>
+                      <td class="text-end">$250.00</td>
+                      <td class="text-end">
+                        <span class="badge badge-success">Completed</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 @endsection

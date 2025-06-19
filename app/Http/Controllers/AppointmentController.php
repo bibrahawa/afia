@@ -45,7 +45,7 @@ class AppointmentController extends Controller
         $request ['appointment_date'] = date('Y-m-d', strtotime($request->appointment_date));
        
         $data = $request->all();
-        $this->validate($request, ['doctor_id'=>'required|numeric', 'patient_id'=>'required',]);
+        $request->validate( ['doctor_id'=>'required|numeric', 'patient_id'=>'required',]);
         //return $data;
         Appointment::create($data);
         return back()->with('success', 'Appointment saved Successfully.');
@@ -103,7 +103,7 @@ class AppointmentController extends Controller
     public function updated(Request $request)
     {
         //return $request->all();
-        $this->validate($request, ['doctor_id'=>'required']);
+        $request->validate( ['doctor_id'=>'required']);
         if($request->appointment_date) {
         $request['appointment_date'] = date('Y-m-d', strtotime($request->appointment_date));
             

@@ -13,7 +13,7 @@ class DoctorController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth');
+        // $this->middleware('auth');
     }
     /**
      * Display a listing of the resource.
@@ -38,9 +38,9 @@ class DoctorController extends Controller
      */
     public function store(Request $request)
     {
-        $this->validate($request, ['employee_id'=>'required']);
-        $data = $request->all(); 
-        
+        $request->validate( ['employee_id'=>'required']);
+        $data = $request->all();
+
         $tax = Hospital::first()->tax_percent;
 
         if($request->with_tax) {
@@ -54,26 +54,6 @@ class DoctorController extends Controller
         return back()->with('success', 'Doctor saved Successfully.');
         //
     }
-    
-    // public function edit($id)
-    // {
-    //     //return $id;
-    //     $opd = Doctor::find($id);
-    //     //return $opd;
-
-    //     if($opd->employee->status == 0)
-    //     {
-    //         $status['status'] = 1;
-    //     }else
-    //     {
-    //         $status['status'] = 0;
-    //     }
-
-    //     $opd->update($status);
-
-    //     return back()->with('success', 'Doctor active Successfully');
-    //     //
-    // }
 
     public function edit($id)
 {
@@ -136,25 +116,7 @@ class DoctorController extends Controller
     return back()->with('success', 'Doctor Updated Successfully');
     }
 
-    // public function update(Request $request, $id)
-    // {
-       
-    //     $doctor = Doctor::find ( $id );
 
-    //     if($request->with_tax) {
-
-    //         $tax_cal = 100 + $tax;
-    //         $request['fee'] = $request->fee*100/$tax_cal;
-    //         $request['opd_charge'] = $request->opd_charge*100/$tax_cal;
-    //     }
-        
-    //     $doctor->update($request->all());
-    //     $departments = Department::get();
-    //      return back()->with('success', 'Doctor Updated Successfully');
-    //     //
-    // }
-
-     
     public function destroy($id)
     {
         $doctor = Doctor::find($id);
@@ -163,8 +125,8 @@ class DoctorController extends Controller
             return back()->with('error', 'Doctor cannot delted..');
         }
         $doctor->delete();
-        return redirect()->route('doctor.index')->with('success', 'Doctor Deletetd Successfully');  
-     
-    } 
+        return redirect()->route('doctor.index')->with('success', 'Doctor Deletetd Successfully');
+
+    }
 
 }

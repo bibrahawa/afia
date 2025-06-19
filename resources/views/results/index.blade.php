@@ -1,6 +1,6 @@
-@extends('layouts.app')
+@extends('layouts.backend')
 @section('content')
-<div class="col-md-12 main">			
+<div class="col-md-12 main">
 		<div class="row">
 			<ol class="breadcrumb">
 				<li><a href="#"><svg class="glyph stroked home"><use xlink:href="#stroked-home"></use></svg></a></li>
@@ -10,7 +10,7 @@
 <!-- Modal -->
 @if ($message = Session::get('success'))
 <div class="alert alert-success alert-block">
-	<button type="button" class="close" data-dismiss="alert">×</button>	
+	<button type="button" class="close" data-dismiss="alert">×</button>
         <strong>{{ $message }}</strong>
 </div>
 @endif
@@ -59,7 +59,7 @@
 							</div>
 						@endif
 						<!-- Results count -->
-						@if($results->count()) 
+						@if($results->count())
 						<!-- forloop 1results -->
 							<div class="col-md-6">
 							<label>Select Result:</label>
@@ -82,7 +82,7 @@
 
 
 
-			
+
 <div class="modal fade" id="addResult"  role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
 	<div class="modal-dialog" style="width:50%">
 		<div class="modal-content">
@@ -134,11 +134,11 @@
 
 </div>
 
-	
+
 <script type="text/javascript">
 
 	$(document).on("click", ".test_result .add-more", function(e) {
-           
+
 			e.preventDefault();
 			var newLoc = $('.widal-table .widal-tr').first().clone();
 			newLoc.appendTo('table.widal-table');
@@ -149,22 +149,22 @@
             $(this).parent().parent().parent().remove();
         });
 
-  
+
  $(document).on('change', '#test_report', function() {
 
         var id = $('#test_report').val();
        $('.test_result').load({!! json_encode(url('/result/test'))!!}+'/'+id);
        $('#addResult').modal('show');
-       
+
     });
 
   $(document).on('change', '#test_result', function() {
 
         var id = $('#test_result').val();
-       
+
        $('.test_result').load({!! json_encode(url('/result/tests'))!!}+'/'+id);
        $('#editResult').modal('show');
-       
+
     });
 
    function fillmodalData(details)
@@ -175,6 +175,6 @@
         $('#flag').val(details[3]);
     }
 
-     
+
 </script>
 @endsection

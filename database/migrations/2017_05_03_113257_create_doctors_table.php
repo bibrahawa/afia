@@ -14,12 +14,12 @@ class CreateDoctorsTable extends Migration
     public function up()
     {
         Schema::create('doctors', function (Blueprint $table) {
-            $table->increments('id');
+            $table->id();
             $table->integer('employee_id')->unsigned();
             $table->float('fee');
             $table->float('opd_charge');
             $table->timestamps();
-            
+
         });
     }
 
@@ -31,6 +31,6 @@ class CreateDoctorsTable extends Migration
     public function down()
     {
         Schema::dropIfExists('doctors');
-        
+
     }
 }

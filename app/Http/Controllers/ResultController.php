@@ -23,10 +23,9 @@ class ResultController extends Controller
 		$reports = Report::where('status', 0)->get();
 		return view('results.index', compact('reports'));
 	}
-	
+
 	public function generateReport($report_id)
 	{
-		//return $report_id;
 		$report = Report::find($report_id);
 		if($report->doctor_id)
 		{
@@ -47,13 +46,13 @@ class ResultController extends Controller
 
 		$test = $test_report->test;
 		$list ='';
-		
+
 		$list .='<input type="hidden" name="test_report_id" value="'.$id.'">';
 
 		if ($test_report->report_type == 'haematology' || $test->report_type == 'biochemistry') {
 
 			$list .= $this->getReferenceResult($test);// $list .= $this->test_reference($test);
-	
+
 		}
 
 		if ($test_report->report_type == 'immunology') {
@@ -66,7 +65,7 @@ class ResultController extends Controller
 			$list .= $this->getStainResult($test);
 
 		}
-		
+
 		if ($test_report->report_type == 'examination') {
 
 			$list .= $this->getExaminationResult($test);
@@ -81,7 +80,7 @@ class ResultController extends Controller
 
 			$list .= $this->getWidalResult($test);
 		}
-		
+
 		return $list;
 	}
 
@@ -112,7 +111,7 @@ class ResultController extends Controller
 
 			$list .= $this->editExamination($test, $test_report);
 		}
-		
+
 
 		if ($test->report_type == 'microbiology') {
 
@@ -164,7 +163,7 @@ class ResultController extends Controller
 
 			$data['status'] = 1;
 			$test_report->update($data);
-		}	
+		}
 
 		if ($test->report_type == 'immunology') {
 
@@ -196,7 +195,7 @@ class ResultController extends Controller
 				$data['status'] = 1;
 				$test_report->update($data);
 			}
-			
+
 		}
 
 		if ($test->report_type == 'stain') {
@@ -234,7 +233,7 @@ class ResultController extends Controller
 			$len = count($request->test_antibiotic_ids);
 
 			for ($i=0; $i < $len; $i++)
-			{ 
+			{
 				$result_value['test_report_id'] = $test_report->id;
 				$result_value['test_antibiotic_id'] = $request->test_antibiotic_ids[$i];
 				$result_value['result'] = $request->antibiotic_result[$i];
@@ -252,7 +251,7 @@ class ResultController extends Controller
 		}
 
 		if($test->report_type == 'widal') {
-	
+
 			$result['antigens'] = $request->antigens;
 			$result['results'] = $request->results;
 			$result['agglutinations'] = $request->agglutinations;
@@ -298,9 +297,9 @@ class ResultController extends Controller
 						$test_results['result'] = $request->result;
 						$test_report->test_result->update($test_results);
 					}
-				
+
 				$data['status'] = 1;
-				$test_report->update($data);	
+				$test_report->update($data);
 		}
 
 		if ($test->report_type == 'immunology') {
@@ -327,9 +326,9 @@ class ResultController extends Controller
 						$test_report->test_result->update($test_result);
 				}
 
-				
+
 			}
-			
+
 
 		if ($test->report_type == 'stain') {
 
@@ -351,24 +350,24 @@ class ResultController extends Controller
 			$test_results['result'] = $request->test_result;
 			$test_report->test_result->update($test_results);
 			$data['status'] = 1;
-			$test_report->update($data);	
+			$test_report->update($data);
 		}
 
 		if ($test->report_type == 'microbiology') {
 
 			$count = count($request->test_antibiotic_ids);
 					for ($i=0; $i < $count; $i++)
-				{ 
+				{
 					$test_antibiotic_result = TestAntibioticResult::find($request->test_antibiotic_ids[$i]);
 					$result_value['result'] = $request->antibiotic_result[$i];
-					
+
 					$test_antibiotic_result->update($result_value);
-				} 
+				}
 
 				$test_results['result'] = $request->test_result;
 				$test_report->test_result->update($test_results);
 				$data['status'] = 1;
-				$test_report->update($data);	
+				$test_report->update($data);
 			}
 
 			if ($test->report_type == 'widal') {
@@ -384,7 +383,7 @@ class ResultController extends Controller
 			}
 
 			$test_report->update(['report_type' => $test_report->test->report_type]);
-		
+
 		return back()->with('success', 'Test Result saved successfully');
 	}
 
@@ -408,7 +407,7 @@ class ResultController extends Controller
 				foreach ($test->test_references as $test_reference) {
 
 					if (count($test_reference->children)) {
-						
+
 						$list .='<tr><td><strong>'. $test_reference->name.'</strong></td><td></td><td></td><td></td><td></td><tr>';
 
 						foreach ($test_reference->children as $child) {
@@ -429,7 +428,7 @@ class ResultController extends Controller
 					foreach ($test->test_references as $test_reference) {
 
 					if (count($test_reference->children)) {
-						
+
 						$list .='<tr><td><strong>'. $test->name.'</strong></td><td></td><td></td><td></td><td></td><tr>';
 
 						foreach ($test_reference->children as $child) {
@@ -438,7 +437,7 @@ class ResultController extends Controller
 							$list .='<tr><td><div style="margin-left:15px;">'.$child->name.'</div></td><td><input type="text" class="form-control" name="result[]"></td><td>'.$child->unit. '</td><td>'.$child->range.'</td><td><select name="flag[]" class="form-control" required><option value="N">Normal</option><option value="H">High</option><option value="L">Low</option></select></td><tr>';
 						}
 
-					} 
+					}
 					else {
 
 							$list .= '<input type="hidden" name="test_reference_id[]" value="'.$test_reference->id.'">';
@@ -450,7 +449,7 @@ class ResultController extends Controller
 				$list .= '<input type="hidden" name="test_id" value="'.$test->id.'">';
 				$list .='<tr><td>'.$test->name.'</td><td colspan="4"><input type="text" class="form-control" name="result"></td></tr>';
 				$list .= '</table>';
-		
+
 				return $list;
 			}
 
@@ -519,7 +518,7 @@ class ResultController extends Controller
 		return $list;
 	}
 
-	public function getMicrobiologyResult($test) 
+	public function getMicrobiologyResult($test)
 	{
 		$list = '';
 		$list .= '<h2>'.$test->name.'</h2>';
@@ -527,14 +526,14 @@ class ResultController extends Controller
 
 		foreach( $test->test_antibiotics as $antibiotic) {
 			//return $antibiotic->id;
-			
+
 			$list .= '<tr><td><input type="hidden" name="test_antibiotic_ids[]" value="'.$antibiotic->id.'"><strong>'.$antibiotic->name.'</strong></td><td><select  class="form-control" name="antibiotic_result[]" required><option>Sensitive</option><option>Resistant</option></select></td></tr>';
 		}
 
 		$list .= '</table><strong>Report Comment:</strong>
 						<input type="textarea" name="test_result" class="form-control">';
 		return $list;
-	}	
+	}
 
 
 	public function getWidalResult($test)
@@ -549,7 +548,7 @@ class ResultController extends Controller
 
 	}
 
-	public function editReferences($test, $test_report) 
+	public function editReferences($test, $test_report)
 	{
 			$list = '';
 
@@ -568,7 +567,7 @@ class ResultController extends Controller
 				foreach ($test->test_references as $test_reference) {
 
 					if (count($test_reference->children)) {
-						
+
 						$list .='<tr><td><strong>'. $test_reference->name.'</strong></td><td></td><td></td><td></td><td></td><tr>';
 
 						foreach ($test_reference->children as $child) {
@@ -602,7 +601,7 @@ class ResultController extends Controller
 								} else {
 									$list .= '<option value="N" >Normal</option><option value="H" >High</option><option value="L" selected>Low</option></select></td><tr>';
 								}
-					} 
+					}
 				}
 
 			}	elseif(count($test->test_references)) {
@@ -610,7 +609,7 @@ class ResultController extends Controller
 				foreach ($test->test_references as $test_reference) {
 
 					if (count($test_reference->children)) {
-						
+
 						$list .='<tr><td><strong>'. $test_reference->name.'</strong></td><td></td><td></td><td></td><td></td><tr>';
 
 						foreach ($test_reference->children as $child) {
@@ -653,14 +652,14 @@ class ResultController extends Controller
 						$list .= '<input type="hidden" name="test_result_id" value="'.$test_report->test_result->id.'">';
 						$list .='<tr><td>'.$test->name.'</td><td colspan="4"><input type="text" class="form-control" name="result" value="'.$test_report->test_result->result.'"></td></tr>';
 						$list .= '</table>';
-				
+
 						return $list;
 				}
 
 				$list .= '</table>';
 				$list .= '<strong>Report Comment:</strong>
 						<input type="textarea" name="test_result" class="form-control" value="'.$test_report->test_result->result.'">';
-				
+
 				return $list;
 	}
 
@@ -692,10 +691,10 @@ class ResultController extends Controller
 			if ($test_report->test_result->result == 'Positive') {
 				$list .='<option>Not Active</option><option>Active</option><option>Negative</option><option selected="true">Positive</option></select></td>';
 			}
-			
-			$list .= '<tr></table>';   
+
+			$list .= '<tr></table>';
         }
-        return $list;       
+        return $list;
 	 }
 
 
@@ -716,7 +715,7 @@ class ResultController extends Controller
 
 	public function editExamination($test, $test_report)
 	{
-		
+
 		$list = '';
 
 		$list .= '<h2>'.$test->name.'</h2>';
@@ -727,15 +726,15 @@ class ResultController extends Controller
 		$microscopic = $test->test_examination->microscopic();
 		$microscopic_result = unserialize( $test_report->examination_result->microscopic_result);
 
-		for ($i = 0 ; $i < count($macroscopic); $i++) { 
+		for ($i = 0 ; $i < count($macroscopic); $i++) {
 
 			$list .= '<tr><td><strong>'.$macroscopic[$i].'</strong></td><td><input name="macroscopic_result[] class="form-control" required value="'.$macroscopic_result[$i].'"></td></tr>';
 		}
 		$result = unserialize($test_report->examination_result->result);
 
 		$list .= '<tr><td colspan=2><input class="form-control" placeholder="Result" name="macroscopic_comment" value="'.$result["macroscopic_comment"].'"></td></tr></table></td><td><table class="table">';
-			
-			for ($i = 0 ; $i < count($microscopic); $i++) { 
+
+			for ($i = 0 ; $i < count($microscopic); $i++) {
 
 			$list .= '<tr><td><strong>'.$microscopic[$i].'</strong></td><td><input name="microscopic_result[] class="form-control" required value="'.$microscopic_result[$i].'"></td></tr>';
 		}
@@ -757,7 +756,7 @@ class ResultController extends Controller
 
 		foreach( $test_report->test_antibiotic_results  as $antibiotic) {
 			//return $antibiotic->id;
-			
+
 			$list .= '<tr><td><input type="hidden" name="test_antibiotic_ids[]" value="'.$antibiotic->id.'"><strong>'.$antibiotic->test_antibiotic->name.'</strong></td><td><select  class="form-control" name="antibiotic_result[]" required>';
 			if ($antibiotic->result == 'Sensitive') {
 
@@ -766,12 +765,12 @@ class ResultController extends Controller
 
 				$list .= '<option >Sensitive</option><option selected>Resistant</option></select></td></tr>';
 			}
-			
+
 		}
-		$list .= '</table>';	
+		$list .= '</table>';
 		$list .= '<strong>Report Comment:</strong><input type="textarea" name="test_result" class="form-control" value="'.$test_report->test_result->result.'">';
 		return $list;
-	}	
+	}
 
 	public function editWidal($test, $test_report)
 	{
@@ -782,10 +781,10 @@ class ResultController extends Controller
 		$test_result = $test_report->test_result;
 		$result = unserialize($test_result->result);
 
-		for ($i = 0; $i < count($result["results"]); $i++) { 
+		for ($i = 0; $i < count($result["results"]); $i++) {
 
 			$list .= '<input type="hidden" name="test_result_id" value="$test_result->id">';
-			
+
 			$list .= '<tr class="widal-tr"><td><input class="form-control" type="text" name="antigens[]" required value="'.$result["antigens"][$i].'"></td><td>';
 			$list .='<select class="form-control" name="results[]">';
 
@@ -800,5 +799,5 @@ class ResultController extends Controller
 		$list .= '</table><br><a class="btn-sm btn btn-danger add-more">Add More</a>';
 		return $list;
 	}
-	
+
 }

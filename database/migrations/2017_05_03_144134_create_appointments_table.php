@@ -14,7 +14,7 @@ class CreateAppointmentsTable extends Migration
     public function up()
     {
         Schema::create('appointments', function (Blueprint $table) {
-            $table->increments('id');
+            $table->id();
             $table->string('name');
             $table->string('description')->nullable();
             $table->string('time')->nullable();
@@ -36,6 +36,6 @@ class CreateAppointmentsTable extends Migration
     {
         Schema::dropIfExists('appointments');
         $table->dropForeign('appointments_patient_id_foreign');
-        $table->dropForeign('appointments_doctor_id_foreign'); 
+        $table->dropForeign('appointments_doctor_id_foreign');
     }
 }

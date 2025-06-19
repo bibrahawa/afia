@@ -1,211 +1,374 @@
-@extends('layouts.app')
+@extends('layouts.backend')
+
 @section('content')
-<div class="col-md-12 main">			
-		<div class="row">
-			<ol class="breadcrumb">
-				<li><a href="#"><svg class="glyph stroked home"><use xlink:href="#stroked-home"></use></svg></a></li>
-				<li class="active">Manage Test</li>
-			</ol>
-		</div><br><!--/.row-->
-<!-- Modal -->
-@if ($message = Session::get('success'))
-<div class="alert alert-success alert-block">
-	<button type="button" class="close" data-dismiss="alert">×</button>	
-        <strong>{{ $message }}</strong>
-</div>
-@endif
-@if ($message = Session::get('error'))
-<div class="alert alert-danger alert-block">
-	<button type="button" class="close" data-dismiss="alert">×</button>	
-        <strong>{{ $message }}</strong>
-</div>
-@endif
-@if (count($errors) > 0)
-        <div class="alert alert-danger">
-            <ul>
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
-		<div class="row">
-			<div class="col-md-9">
-				<div class="panel panel-default">
-					<div class="panel-heading">Manage Test</div>
-					<div class="panel-body">
-					
-					<table id="example" class="table table-bordered table-condensed" cellspacing="0" width="100%">
-				    	<thead>
-				        <tr>
-			            	<th>ID</th>
-					        <th>Name</th>
+
+<div class="container">
+    <div class="page-inner">
+      <div class="page-header">
+        <ul class="breadcrumbs">
+          <li class="nav-home">
+            <a href="{{url('/')}}">
+              <i class="icon-home"></i>
+            </a>
+          </li>
+          <li class="separator">
+            <i class="icon-arrow-right"></i>
+          </li>
+          <li class="nav-item">
+            <a href="{{ url('/') }}">Admin</a>
+          </li>
+          <li class="separator">
+            <i class="icon-arrow-right"></i>
+          </li>
+          <li class="nav-item">
+            <a href="{{ route('test.index') }}">Tests</a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="row">
+        <div class="col-md-12">
+          <div class="card">
+            <div class="card-header">
+              <div class="d-flex align-items-center">
+                <h4 class="card-title">Liste des tests</h4>
+                <button
+                  class="btn btn-primary btn-round ms-auto"
+                  data-bs-toggle="modal"
+                  data-bs-target="#addRowModal"
+                >
+                  <i class="fa fa-plus"></i> Ajouter un test
+                </button>
+              </div>
+            </div>
+
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="add-row" class="display table table-striped table-hover">
+                    <thead class="bg-primary text-white"> <!-- Ajout de couleur d'entête -->
+                        <tr>
+                            <th style="width: 10%">ID</th>
+                            <th>Name</th>
 					        <th>Type</th>
 					        <td>Description</td>
-					        <th>Action</th>
-						    </tr>
-						</thead>
-						    <tbody>
-						     @foreach($tests as $test)
-						    	<tr>
-							    	<td>{{$test->id}}</td>
-							    	<td>{{$test->name}}</td>
-							    	<td>{{ucfirst($test->report_type)}}</td>
-							    	<td>{{$test->description}}</td>
-					           		<td>
-			                           	<button id="test_edit" class="btn-sm btn-info" data-info="{{$test->id}}, {{$test->name}},{{$test->report_type}}, {{$test->description}}">
-			                           		<span class="glyphicon glyphicon-edit" ></span>
-			                            </button>
-			                            <button class="btn-sm btn-danger" data-test="{{$test->id}}" id="test_delete">	<span class="glyphicon glyphicon-remove"></span>
-			                            </button>
-	                            	</td>
-				        		</tr>
-				    		@endforeach
-				    </tbody>
-					</table>
-					
-					</div>
-				</div>
-			</div>
-			<div class="col-md-3 add">
-			<div class="panel panel-default">
-				<div class="panel-heading">Add New Test</div>
-				<div class="panel-body">
-				{!! Form::open(array('route' => 'test.store','method'=>'POST')) !!}
-				<div class="form-group">
-		      	<label>Select Services:</label>
-			        <select name="service_id" class="form-control select" required="" style="width:100%" id="service">
-			        <option></option>
-			            @foreach($services as $service)
-			                <option value="{{$service->id}}" data-name="{{$service->name}}">{{ $service->name}}</option>
-			            @endforeach
-			        </select>
-			    </div>
-			    <div class=" form-group">
-					<label>Test Name:</label>
-				 	{!! Form::text('name', null, array('class' => 'form-control', 'id' => 'test_name')) !!}
-				</div>
-				<div class="form-group">
-				<label>Report Type:</label>
-					<select class="form-control" name="report_type" required="">
-					<option></option>
-						<option value="haematology">HAEMATOLOGY</option>
-						<option value="biochemistry">BIOCHEMISTRY</option>
-						<option value="immunology">IMMUNOLOGY</option>
-						<option value="examination">EXAMINATION</option>
-						<option value="microbiology">MICROBIOLOGY</option>
-						<option value="stain">STAIN</option>
-						<<option value="widal">WIDAL</option>}
-						option
-					</select>
-				</div>
-				<div class="form-group">
-					<label>Description:</label>
-				 	{!! Form::text('description', null, array('class' => 'form-control')) !!}
-				</div>
-			    </div>
-			    <div class="panel-footer">
-				<button class="btn btn-primary" type="submit"><span class='glyphicon glyphicon-edit'></span>Add</button>
-				<button class="btn btn-default pull-right" type="reset">Reset</button>
-           		</div>
-           		{!! Form::close()!!}
-			</div>
-		</div>
-		<!-- Edit Test -->
-		<div class="col-md-3 edit" style="display: none">
-			<div class="panel panel-default">
-				<div class="panel-heading">Edit Test</div>
-				<div class="panel-body">
-				{!! Form::open(array('route' => 'test.edit','method'=>'POST' )) !!}
-				<input name="id" type="name" class="hidden form-control" id="id" >
-			    <div class=" form-group">
-					<label>Test Name:</label>
-				 	{!! Form::text('name', null, array('class' => ' form-control', 'required'=>'required', 'id'=>'name')) !!}
-				</div>
-				<div class="form-group">
-				<label>Report Type:</label>
-					<select class="form-control" name="report_type" id="report_type">
-						<option value="haematology">HAEMATOLOGY</option>
-						<option value="biochemistry">BIOCHEMISTRY</option>
-						<option value="immunology">IMMUNOLOGY</option>
-						<option value="examination">EXAMINATION</option>
-						<option value="microbiology">MICROBIOLOGY</option>
-						<option value="stain">STAIN</option>
-						<<option value="widal">WIDAL</option>}
-						option
-						
-					</select>
-				</div>
-				<div class="form-group">
-					<label>Description:</label>
-				 	{!! Form::text('description', null, array('class' => 'form-control', 'id'=>'description')) !!}
-				</div>
-				
-				<div class="panel-footer">
-					<button class="btn btn-primary" type="submit"><span class='glyphicon glyphicon-edit'></span>Edit</button>
-					<a class="btn btn-default pull-right" id="cancel">Cancel</a>
-           		</div>
-           		{!! Form::close()!!}
-			</div>
-		</div>
-</div>
+                            <th style="width: 10%">Actions</th>
+                        </tr>
+                    </thead>
+                    <tfoot>
+                        <tr>
+                            <th>ID</th>
+				            <th>Name</th>
+					        <th>Type</th>
+					        <td>Description</td>
+				            <th>Actions</th>
+                        </tr>
+                    </tfoot>
+                    <tbody>
+                        @foreach($tests as $test)
+                            <tr>
+                                <td>{{ $test->id}}</td>
+                                <td>{{ $test->name}}</td>
+                                <td>{{ ucfirst($test->report_type) }}</td>
+                                <td>{{ $test->description}}</td>
+                                <td>
+                                    <div class="form-button-action">
+                                        <!-- Modifier : Ajout des data-bs-toggle et data-bs-target -->
+                                        <button
+                                            type="button"
+                                            class="btn btn-warning btn-round btn-sm edit-button"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#editRowModal"
+                                            data-info="{{$test}}">
 
-</div><!--/.row-->	
-<div class="modal fade" id="deletetest"  role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-<div class="modal-dialog">
-  <div class="modal-content">
-      <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-          <h4 class="modal-title">Delete Test</h4>
+                                            <i class="fa fa-edit"></i>
+                                        </button>
+
+                                        <!-- Supprimer : Ajout des data-bs-toggle et data-bs-target -->
+                                        <button
+                                            type="button"
+                                            class="btn btn-danger btn-round btn-sm delete-button"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#deleteRowModal"
+                                            data-id="{{$test->id}}"
+                                            data-name="{{$test->name}}"
+                                        >
+                                            <i class="fa fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                    </table>
+                </div>
+
+                <!-- Modal Add -->
+                <div class="modal fade" id="addRowModal" tabindex="-1" role="dialog" aria-hidden="true">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header border-0">
+                                <h5 class="modal-title">
+                                    <span class="fw-mediumbold"> Nouveau</span>
+                                    <span class="fw-light"> test</span>
+                                </h5>
+                                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <div class="modal-body">
+                                <p class="small">Créez un nouveau test en remplissant le formulaire ci-dessous.</p>
+                                <form id="addTestForm" action="{{ route('test.store') }}" method="POST">
+                                    @csrf
+                                    <div class="row">
+
+                                        <div class="col-sm-6">
+                                            <div class="form-group form-group-default">
+                                                <label>Nom du test</label>
+                                                <input id="name" name="name" type="text" class="form-control" placeholder="Entrez le nom" required/>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-sm-6">
+                                            <div class="form-group form-group-default">
+                                                <label>Amount</label>
+                                                <div class="input-group">
+                                                    <input type="text" name="amount" class="form-control" placeholder="Amount">
+                                                    <span class="input-group-text">GNF</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-sm-12">
+                                            <div class="form-group">
+                                                <label class="form-label">Type :</label>
+                                                <select class="selectpicker" name="report_type" data-live-search="true">
+                                                    <option value="haematology">HÉMATOLOGIE</option>
+                                                    <option value="biochemistry">BIOCHIMIE</option>
+                                                    <option value="immunology">IMMUNOLOGIE</option>
+                                                    <option value="examination">EXAMEN</option>
+                                                    <option value="microbiology">MICROBIOLOGIE</option>
+                                                    <option value="stain">COLORATION</option>
+                                                    <option value="widal">TEST DE WIDAL</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-sm-12">
+                                            <div class="form-group form-group-default">
+                                                <label>Description</label>
+                                                <textarea name='description' class="form-control" placeholder="Description"></textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="modal-footer border-0">
+                                <button type="submit" id="addRowButton" class="btn btn-primary" form="addTestForm">
+                                    Ajouter
+                                    <div class="spinner-border spinner-border-sm text-light" role="status" id="addLoader" style="display: none;">
+                                        <span class="sr-only">Loading...</span>
+                                    </div>
+                                </button>
+
+                                <button type="button" class="btn btn-danger" data-bs-dismiss="modal">
+                                    Fermer
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Edit -->
+                <div class="modal fade" id="editRowModal" tabindex="-1" role="dialog" aria-hidden="true">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header border-0">
+                                <h5 class="modal-title">
+                                    <span class="fw-mediumbold"> Modifier</span>
+                                    <span class="fw-light"> test</span>
+                                </h5>
+                                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <div class="modal-body">
+                                <form id='editTestForm' action="#" method="POST">
+                                    @csrf
+                                    @method('POST')
+                                    <div class="row">
+                                        <input type="hidden" name="edit_id" name="id">
+                                        <div class="col-sm-6">
+                                            <div class="form-group form-group-default">
+                                                <label>Nom du test</label>
+                                                <input id="edit_name" name="name" type="text" class="form-control" placeholder="Entrez le nom" required/>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-sm-6">
+                                            <div class="form-group form-group-default">
+                                                <label>Amount</label>
+                                                <div class="input-group">
+                                                    <input type="text" id="edit_amount" name="amount" class="form-control" placeholder="Amount">
+                                                    <span class="input-group-text">GNF</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-sm-12">
+                                            <div class="form-group">
+                                                <label>Type :</label>
+                                                <select class="selectpicker" name="report_type" id="edit_report_type" data-live-search="true">
+                                                    <option value="haematology">HÉMATOLOGIE</option>
+                                                    <option value="biochemistry">BIOCHIMIE</option>
+                                                    <option value="immunology">IMMUNOLOGIE</option>
+                                                    <option value="examination">EXAMEN</option>
+                                                    <option value="microbiology">MICROBIOLOGIE</option>
+                                                    <option value="stain">COLORATION</option>
+                                                    <option value="widal">TEST DE WIDAL</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        {{-- <div class="col-sm-6">
+                                            <div class="form-group form-group-default">
+                                                <label>Service</label>
+                                                <select name="service_id" id="edit_service_id" class="form-control">
+                                                    <option disabled selected>Selectionnez un service</option>
+                                                    @foreach ($services as $service)
+                                                        <option value="{{$service->id}}">{{ $service->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                        </div> --}}
+
+                                        <div class="col-sm-12">
+                                            <div class="form-group form-group-default">
+                                                <label>Description</label>
+                                                <textarea name='description' id="edit_description" class="form-control" placeholder="Description"></textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+                            </div>
+                            <div class="modal-footer border-0">
+                                <!-- Bouton pour la modification -->
+                                <button type="submit" class="btn btn-success" id="editRowButton" form="editTestForm">
+                                    Modifier
+                                    <div class="spinner-border spinner-border-sm text-light" role="status" id="editLoader" style="display: none;">
+                                        <span class="sr-only">Loading...</span>
+                                    </div>
+                                </button>
+                                <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Fermer</button>
+                            </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Delete -->
+                <div class="modal fade" id="deleteRowModal" tabindex="-1" role="dialog" aria-hidden="true">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header border-0">
+                                <h5 class="modal-title">Êtes-vous sûr de vouloir supprimer ce test ?</h5>
+                                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <div class="modal-body">
+                                <!-- Formulaire de suppression -->
+                                <form id="deleteTestForm" action="{{ route('test.delete', ['id' => '']) }}" method="POST">
+                                    @csrf
+                                    @method('DELETE') <!-- Utiliser la méthode DELETE -->
+                                    <p id="test_name_to_delete"></p>
+                                    <input type="hidden" id="delete_id" name="id">
+                                </form>
+                            </div>
+                            <div class="modal-footer border-0">
+                                <!-- Bouton pour la suppression -->
+                                <button type="submit" class="btn btn-danger" id="deleteRowButton" form="deleteTestForm">
+                                    Supprimer
+                                    <div class="spinner-border spinner-border-sm text-light" role="status" id="deleteLoader" style="display: none;">
+                                        <span class="sr-only">Loading...</span>
+                                    </div>
+                                </button>
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                    Annuler
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
       </div>
-      {!! Form::open(array('route' => 'test.delete','method'=>'POST')) !!}
-      <div class="modal-body">
-      <input type="hidden" name="id" id="test_id">
-      	<label>Are your sure want to Delete this test?</label>
-      </div>
-    <div class="modal-footer">
-        <button data-dismiss="modal" class="btn btn-default" type="button"><span class='glyphicon glyphicon-remove'></span> No</button>
-           <button class="btn btn-danger" type="submit"><span class='glyphicon glyphicon-ok'></span> Yes</button>
     </div>
-    {{Form::close()}}
-  </div>
 </div>
-</div>
-<script type="text/javascript">
-$('#service').on('change', function() {
-	
-	var test_name = $("#service option:selected").text();
-	$('#test_name').val(test_name);
-});
 
-$('#cancel').click(function(){
-	 	$('.edit').hide();
-        $('.add').show();
-});
-  
- $(document).on('click', '#test_edit', function() {
- 		
-        var stuff = $(this).data('info').split(',');
-        $('.add').hide();
- 		$('.edit').show();
- 		fillmodalData(stuff)
-        
-    });
+@endsection
 
-   function fillmodalData(details)
-    {
-        $('#id').val(details[0]);
-        $('#name').val(details[1]);
-        $('#report_type').val(details[2]);
-       	$('#description').val(details[3]);
-        
-    }
+@section('script')
+    <script type="text/javascript">
+        // Événement pour modifier un test
+        $(document).on('click', '.edit-button', function() {
+            var test = $(this).data('info')
+            // Mettre à jour le champ du modal
+            $('#edit_id').val(test.id);
+            $('#edit_name').val(test.name);
+            $('#edit_amount').val(test.amount);
+            $('#edit_description').val(test.description);
+            $('#edit_service_id').val(test.service_id);
+            $('#edit_report_type').val(test.report_type);
 
-    $(document).on('click', '#test_delete', function() 
-    {
-    	var id = $(this).data('test');
-    	$('#test_id').val(id);
-    	$('#deletetest').modal('show');
-    });
-</script>
+            // Afficher le modal
+            $('#editRowModal').modal('show');
+        });
+
+        // Événement pour supprimer un test
+        $(document).on('click', '.delete-button', function() {
+            var id = $(this).data('id');
+            var name = $(this).data('name');
+
+            // Afficher le nom du test à supprimer
+            $('#test_name_to_delete').text("Voulez-vous vraiment supprimer l'examen : " + name + " ?");
+
+            // Mettre à jour l'action du formulaire de suppression avec l'ID du test
+            $('#delete_id').val(id);
+            $('#deleteTestForm').attr('action', '/test/delete/' + id);
+
+            // Afficher le modal de confirmation
+            $('#deleteRowModal').modal('show');
+        });
+
+        // Afficher le loader pour l'ajout de test
+        $('#addTestForm').on('submit', function() {
+            $('#addRowButton').prop('disabled', true);  // Désactive le bouton pour éviter plusieurs clics
+            $('#addLoader').show();  // Affiche le loader
+        });
+
+        // Afficher le loader pour la modification de test
+        $('#editTestForm').on('submit', function() {
+            $('#editRowButton').prop('disabled', true);  // Désactive le bouton pour éviter plusieurs clics
+            $('#editLoader').show();  // Affiche le loader
+        });
+
+        // Afficher le loader pour la suppression de test
+        $('#deleteTestForm').on('submit', function() {
+            $('#deleteRowButton').prop('disabled', true);  // Désactive le bouton pour éviter plusieurs clics
+            $('#deleteLoader').show();  // Affiche le loader
+        });
+
+        // Lorsque la requête est terminée (réponse du serveur)
+        $(document).ajaxComplete(function() {
+            // Masquer les loaders et réactiver les boutons
+            $('#addRowButton').prop('disabled', false);  // Réactive le bouton "Ajouter"
+            $('#addLoader').hide();  // Masque le loader "Ajouter"
+
+            $('#editRowButton').prop('disabled', false);  // Réactive le bouton "Modifier"
+            $('#editLoader').hide();  // Masque le loader "Modifier"
+
+            $('#deleteRowButton').prop('disabled', false);  // Réactive le bouton "Supprimer"
+            $('#deleteLoader').hide();  // Masque le loader "Supprimer"
+        });
+
+    </script>
 @endsection

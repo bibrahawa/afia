@@ -12,10 +12,10 @@ class PackageTest extends Model
 	{
 		return $this->belongsTo('App\Models\Package');
 	}
-    //
+
     public function test()
 	{
 		return $this->belongsTo('App\Models\Test');
 	}
-    //
+
 }

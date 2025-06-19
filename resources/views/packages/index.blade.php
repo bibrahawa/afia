@@ -1,241 +1,399 @@
-@extends('layouts.app')
+@extends('layouts.backend')
+
 @section('content')
-<div class="col-md-12 main">			
-		<div class="row">
-			<ol class="breadcrumb">
-				<li><a href="#"><svg class="glyph stroked home"><use xlink:href="#stroked-home"></use></svg></a></li>
-				<li class="active">Icons</li>'
-				<li>Package</li>
-			</ol>
-		</div><br><!--/.row-->
-<!-- Modal -->
-@if ($message = Session::get('success'))
-<div class="alert alert-success alert-block">
-	<button type="button" class="close" data-dismiss="alert">×</button>	
-        <strong>{{ $message }}</strong>
-</div>
-@endif
-@if (count($errors) > 0)
-        <div class="alert alert-danger">
-            <ul>
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
+
+<div class="container">
+    <div class="page-inner">
+      <div class="page-header">
+        <ul class="breadcrumbs">
+          <li class="nav-home">
+            <a href="{{url('/')}}">
+              <i class="icon-home"></i>
+            </a>
+          </li>
+          <li class="separator">
+            <i class="icon-arrow-right"></i>
+          </li>
+          <li class="nav-item">
+            <a href="{{ url('/') }}">Admin</a>
+          </li>
+          <li class="separator">
+            <i class="icon-arrow-right"></i>
+          </li>
+          <li class="nav-item">
+            <a href="{{ route('package.index') }}">Package</a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="row">
+        <div class="col-md-12">
+          <div class="card">
+            <div class="card-header">
+              <div class="d-flex align-items-center">
+                <h4 class="card-title">Liste des packages</h4>
+                {{-- Bouton "Ajouter un package" qui redirige vers la page de création --}}
+                <button class="btn btn-primary btn-round ms-auto"
+                  data-bs-toggle="modal"
+                  data-bs-target="#addRowModal">
+                  <i class="fa fa-plus"></i> Ajouter un package
+                </button>
+              </div>
+            </div>
+
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="add-row" class="display table table-striped table-hover">
+                    <thead class="bg-primary text-white">
+                        <tr>
+                            <th style="width: 10%">ID</th>
+                            <th>Package Name</th>
+                            <th>Tests</th>
+                            <th>Services</th> {{-- Ajouté pour la cohérence --}}
+                            <th>Price</th>
+                            <th style="width: 10%">Actions</th>
+                        </tr>
+                    </thead>
+                    <tfoot>
+                        <tr>
+                            <th>ID</th>
+                            <th>Package Name</th>
+                            <th>Tests</th>
+                            <th>Services</th>
+                            <th>Price</th>
+                            <th>Actions</th>
+                        </tr>
+                    </tfoot>
+                    <tbody>
+                        @foreach($packages as $package)
+                            <tr>
+                                <td>{{ $package->id}}</td>
+                                <td>{{ $package->name}}</td>
+                                <td>
+                                    @foreach($package->tests as $test)
+                                        <li> {{$test->name}} </li>
+                                    @endforeach
+                                </td>
+                                <td>
+                                    @foreach($package->services as $service)
+                                        <li> {{$service->name}} </li>
+                                    @endforeach
+                                </td>
+                                <td>{{ number_format($package->price, 2)}}</td>
+                                <td>
+                                    <div class="form-button-action">
+                                        <button  type="button"
+                                            class="btn btn-warning btn-round btn-sm edit-button"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#editRowModal"
+                                            data-info="{{$package->id}},{{$package->name}},{{$package->department_id}}, {{ $package->tests->pluck('id') }},{{$package->services->pluck('id') }}"
+                                        >
+                                            <i class="fa fa-edit"></i>
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            class="btn btn-danger btn-round btn-sm delete-button"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#deleteRowModal"
+                                            data-id="{{$package->id}}"
+                                            data-name="{{$package->name}}"
+                                        >
+                                            <i class="fa fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                    </table>
+                </div>
+
+                <div class="modal fade" id="addRowModal" tabindex="-1" role="dialog" aria-hidden="true">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-body">
+                                <p class="small">Créez ou modifiez un package en remplissant le formulaire ci-dessous.</p>
+                                <form id="addPackageForm" action="{{ route('package.store') }}" method="POST">
+                                    @csrf
+                                    <div class="row">
+                                        <div class="col-sm-12">
+                                            <div class="form-group form-group-default">
+                                                <label>Nom du package</label>
+                                                <input name="name" type="text" id="name" class="form-control" placeholder="Entrez le nom" required/>
+                                                @error('name') <span class="text-danger">{{ $message }}</span> @enderror
+                                            </div>
+                                        </div>
+
+                                        <div class="col-sm-12">
+                                            <div class="form-group">
+                                                <label>Départements:</label>
+                                                <select name="department_id" id="add_department_id" class="form-control selectpicker" data-live-search="true" title="Sélectionnez un département">
+                                                    <option value="">Sélectionnez un département</option>
+                                                    @foreach ($departments as $dep)
+                                                        <option value="{{$dep->id}}">{{ $dep->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                                @error('department') <span class="text-danger">{{ $message }}</span> @enderror
+                                            </div>
+                                        </div>
+
+                                        <div class="col-sm-12">
+                                            <div class="form-group">
+                                                <label>Ajouter des examens:</label>
+                                                {{-- Utilisation de select multiple pour les tests --}}
+                                                <select name="tests[]" id="add_tests" class="form-control selectpicker" data-live-search="true" title="Sélectionnez les examens" multiple>
+                                                    @foreach($tests as $test)
+                                                        <option value="{{ $test->id }}">
+                                                            {{ $test->name }} = {{ number_format($test->amount, 0, ',', ' ') }} FG
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                                @error('tests') <span class="text-danger">{{ $message }}</span> @enderror
+                                            </div>
+                                        </div>
+
+                                        <div class="col-sm-12">
+                                            <div class="form-group">
+                                                <label>Ajouter des services:</label>
+                                                <select name="services[]" id="add_services" class="form-control selectpicker" data-live-search="true" title="Sélectionnez les services" multiple>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-sm-12">
+                                            <div class="form-group form-group-default">
+                                                <label>Description</label>
+                                                <textarea name="description" class="form-control" placeholder="Description"></textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="modal-footer border-0">
+                                        <button type="submit" class="btn btn-primary">
+                                            Sauvegarder
+                                        </button>
+                                        <a href="{{ route('package.index') }}" class="btn btn-secondary">Annuler</a>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal fade" id="editRowModal" tabindex="-1" role="dialog" aria-hidden="true">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-body">
+                                <form id="editPackageForm" action="{{ route('package.store') }}" method="POST">
+                                    @csrf
+                                    <div class="row">
+                                        <div class="col-sm-12">
+                                            <div class="form-group form-group-default">
+                                                <label>Nom du package</label>
+                                                <input name="name" type="text" id="edit_name" class="form-control" placeholder="Entrez le nom" required/>
+                                                @error('name') <span class="text-danger">{{ $message }}</span> @enderror
+                                            </div>
+                                        </div>
+
+                                        <div class="col-sm-12">
+                                            <div class="form-group">
+                                                <label>Départements:</label>
+                                                <select name="department_id" id="edit_department_id" class="form-control selectpicker" data-live-search="true" title="Sélectionnez un département">
+                                                    <option value="">Sélectionnez un département</option>
+                                                    @foreach ($departments as $dep)
+                                                        <option value="{{$dep->id}}">{{ $dep->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                                @error('department') <span class="text-danger">{{ $message }}</span> @enderror
+                                            </div>
+                                        </div>
+
+                                        <div class="col-sm-12">
+                                            <div class="form-group">
+                                                <label>Ajouter des examens:</label>
+                                                {{-- Utilisation de select multiple pour les tests --}}
+                                                <select name="tests[]" id="edit_tests" class="form-control selectpicker" data-live-search="true" title="Sélectionnez les examens" multiple>
+                                                    @foreach($tests as $test)
+                                                        <option value="{{ $test->id }}">
+                                                            {{ $test->name }} = {{ number_format($test->amount, 0, ',', ' ') }} FG
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                                @error('tests') <span class="text-danger">{{ $message }}</span> @enderror
+                                            </div>
+                                        </div>
+
+                                        <div class="col-sm-12">
+                                            <div class="form-group">
+                                                <label>Ajouter des services:</label>
+                                                <select name="services[]" id="edit_services" class="form-control selectpicker" data-live-search="true" title="Sélectionnez les services" multiple>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-sm-12">
+                                            <div class="form-group form-group-default">
+                                                <label>Description</label>
+                                                <textarea name="description" id="edit_description" class="form-control" placeholder="Description"></textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="modal-footer border-0">
+                                        <button type="submit" class="btn btn-primary">
+                                            Modifier
+                                        </button>
+                                        <a href="{{ route('package.index') }}" class="btn btn-secondary">Annuler</a>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal fade" id="deleteRowModal" tabindex="-1" role="dialog" aria-hidden="true">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header border-0">
+                                <h5 class="modal-title">Êtes-vous sûr de vouloir supprimer ce package ?</h5>
+                                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="deletePackageForm" action="#" method="POST">
+                                    @csrf
+                                    @method('DELETE')
+                                    <p id="package_name_to_delete"></p>
+                                    <input type="hidden" id="delete_id" name="id">
+                                </form>
+                            </div>
+                            <div class="modal-footer border-0">
+                                <button type="submit" class="btn btn-danger" id="deleteRowButton" form="deletePackageForm">
+                                    Supprimer
+                                    <div class="spinner-border spinner-border-sm text-light" role="status" id="deleteLoader" style="display: none;">
+                                        <span class="sr-only">Loading...</span>
+                                    </div>
+                                </button>
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                    Annuler
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-    @endif
-		<div class="row">
-			<div class="col-md-8">
-				<div class="panel panel-default">
-					<div class="panel-heading">Package Table<a class="btn btn-sm btn-primary pull-right" href="{{url('/')}}">
-					Back <span class="glyphicon glyphicon-share-alt"></span></a></div>
-					<div class="panel-body">
-					@if($packages->count())
-						<table id="example" class="table table-bordered table-condensed" cellspacing="0" width="100%">
-						<thead>
-				        <tr>
-				           <th>S.n</th>
-						   <th>Package Name</th>
-						   <th>Tests</th>
-						   <th>Price</th>
-						   <th>Action</th>
-				            
-				        </tr>
-				    	</thead>
-				    	<tbody>
-
-						<?php $i=1;?>
-						@foreach($packages as $package)
-
-							<tr>
-								<td>{{$i++}}</td>
-								<td>{{$package->name}}</td>
-								<td>
-						    		@foreach($package->packageTests()->get() as $package_test)
-						    			<li>{{$package_test->test->name}}<a class="btn-sm" id="test_delete" data-id="{{$package_test->id}}"><span class="glyphicon glyphicon-remove"></span></a></li>
-						    		@endforeach
-						    	</td> 
-						    	<td>${{$package->price}}</td>	
-								<td>
-                           <button id="package_edit" class="btn-sm btn-info" data-edit="{{$package->id}}, {{$package->name}}, {{$package->description}}, {{$package->price}}, {{$package->status}}"><span class="glyphicon glyphicon-edit" ></span>
-                            </button>
-
-                             <button class="btn-sm btn-danger" data-package="{{$package->id}}" id="package_delete"><span class="glyphicon glyphicon-remove"></span></button>
-                            </td>
-							</tr>
-						     </td>
-				        </tr>
-				    @endforeach
-				    </tbody>
-					</table>
-					@endif
-
-					</div>
-				</div>
-			</div>
-			<div class="col-md-4 add">
-			<div class="panel panel-default">
-				<div class="panel-heading">Add New Package</div>
-				<div class="panel-body">
-				{!! Form::open(array('route' => 'package.store','method'=>'POST')) !!}
-			    <div class=" form-group">
-					<label>Package Name:</label>
-				 	{!! Form::text('name', null, array('class' => 'form-control')) !!}
-				</div>
-				<div class="form-group">
-					<label>Description:</label>
-					<input type="text" name="description" class="form-control">
-				</div>
-				<div class="form-group">
-		      	<label>Select Tests:</label>
-			        <select name="test_id[]" class="form-control select" required style="width:100%" multiple="">
-			        <option></option>
-			            @foreach($tests as $test)
-			                <option value="{{$test->id}}" data-name="{{$test->name}}">{{ $test->name}}</option>
-			            @endforeach
-			        </select>
-			    </div>
-			    <div class="form-group">
-			    	<label>Price:</label>
-			    	<input type="text" name="price" class="form-control" required="">
-			    </div>
-			     <div class="form-group">
-	    	<label for="with_tax">With Tax</label>
-	    	<input type="checkbox" name="with_tax" id="with_tax" >
-	    </div>
-			    </div>
-			    <div class="panel-footer">
-				<button class="btn btn-success" type="submit"><span class='glyphicon glyphicon-edit'></span>Add</button>
-				<button class="btn btn-default pull-right" type="reset">Reset</button>
-           		</div>
-           		{!! Form::close()!!}
-			</div>
-		</div>
-		<!-- Edit Test -->
-		<div class="col-md-4 edit" style="display: none">
-			<div class="panel panel-default">
-				<div class="panel-heading">Edit Packakge</div>
-				<div class="panel-body">
-				{!! Form::open(array('route' => 'package.edit','method'=>'POST' )) !!}
-				
-				<input name="id" type="name" class="hidden form-control" id="id" >
-			    <div class=" form-group">
-					<label>Package Name:</label>
-				 	{!! Form::text('name', null, array('class' => ' form-control',  'id'=>'name')) !!}
-				</div>
-				<div class="form-group">
-					<label>Description:</label>
-					<input type="text" name="description" class="form-control" id="description">
-				</div>
-			    <div class="form-group">
-			    	<label>Price:</label>
-			    	<input type="text" name="price" class="form-control"  id="price">
-			    </div>
-			
-				<div class="form-group">
-				<label>Add Tests:</label>
-			        <select name="test_id[]" class="form-control select" style="width:100%"  multiple>
-			       
-			            @foreach($tests as $test)
-			                <option value="{{$test->id}}" data-name="{{$test->name}}">{{ $test->name}}</option>
-			            @endforeach
-			        
-			        </select>
-			    </div> 
-			     <div class="form-group">
-			    	<label for="with_tax">With Tax</label>
-			    	<input type="checkbox" name="with_tax" id="with_tax" >
-			    </div>
-			    </div>
-				<div class="panel-footer">
-					<button class="btn btn-success" type="submit"><span class='glyphicon glyphicon-edit'></span>Edit</button>
-					<a class="btn btn-default pull-right" id="cancel">Cancel</a>
-           		</div>
-           		
-           		{!! Form::close()!!}
-			</div>
-		</div>
-</div>
-			
-<div class="modal fade" id="delete"  role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-<div class="modal-dialog">
-  <div class="modal-content">
-      <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-          <h4 class="modal-title">Delete Test</h4>
       </div>
-      {!! Form::open(array('route' => 'package.test.delete','method'=>'POST')) !!}
-      <div class="modal-body">
-      <input type="hidden" name="id" id="delete_id">
-      	<label>Are your sure want to delete this test test?</label>
-      </div>
-    <div class="modal-footer">
-        <button data-dismiss="modal" class="btn btn-default" type="button"><span class='glyphicon glyphicon-remove'></span> No</button>
-           <button class="btn btn-danger" type="submit"><span class='glyphicon glyphicon-ok'></span> Yes</button>
     </div>
-    {{Form::close()}}
-  </div>
-</div>
 </div>
 
-<div class="modal fade" id="deletePackage"  role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-<div class="modal-dialog">
-  <div class="modal-content">
-      <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-          <h4 class="modal-title">Delete Package</h4>
-      </div>
-      {!! Form::open(array('route' => 'package.delete','method'=>'POST')) !!}
-      <div class="modal-body">
-      <input type="hidden" name="id" id="package_id">
-      	<label>Are your sure want to delete this pacakge?</label>
-      </div>
-    <div class="modal-footer">
-        <button data-dismiss="modal" class="btn btn-default" type="button"><span class='glyphicon glyphicon-remove'></span> No</button>
-           <button class="btn btn-danger" type="submit"><span class='glyphicon glyphicon-ok'></span> Yes</button>
-    </div>
-    {{Form::close()}}
-  </div>
-</div>
-</div>
+@endsection
+
+@section('script')
 <script type="text/javascript">
-$('#cancel').click(function(){
-	 	$('.edit').hide();
-        $('.add').show();
-});
-  
- $(document).on('click', '#package_edit', function() {
- 		
-        var stuff = $(this).data('edit').split(',');
-        fillmodalData(stuff)
-        $('.add').hide();
-        $('.edit').show();
-        
+    $(document).ready(function() {
+
+
+
+        $('#deletePackageForm').on('submit', function() {
+            $('#deleteRowButton').prop('disabled', true);
+            $('#deleteLoader').show();
+        });
+
     });
 
-   function fillmodalData(details)
-    {
-        $('#id').val(details[0]);
-        $('#name').val(details[1]);
-        $('#description').val(details[2]);
-        $('#price').val(details[3]);
-        
-    }
-     $(document).on('click', '#test_delete', function() 
-    {
-    	var id = $(this).data('id');
-    	$('#delete_id').val(id);
-    	$('#delete').modal('show');
+    // Données des départements et services depuis Laravel
+        const departments = @json($departments);
+        const services = @json($services);
+
+    $(document).ready(function() {
+        // Initialiser les selectpickers
+        $('.selectpicker').selectpicker();
+
+        // Écouteur d'événement pour le changement de département
+        $('#add_department_id').on('changed.bs.select', function() {
+            const selectedDepartmentId = $(this).val();
+
+            // Filtrer et mettre à jour les services
+            updateServices(selectedDepartmentId);
+        });
+
+        // Fonction pour mettre à jour les services
+        function updateServices(departmentId) {
+            const serviceSelect = $('#add_services');
+
+            serviceSelect.selectpicker('destroy');
+            serviceSelect.html('');
+            serviceSelect.empty();
+            serviceSelect[0].innerHTML = '';
+
+            if (departmentId) {
+                const filteredServices = services.filter(service =>
+                    parseInt(service.department_id) === parseInt(departmentId)
+                );
+
+                filteredServices.forEach(service => {
+                    serviceSelect.append(`<option value="${service.id}">${service.name}</option>`);
+                });
+            }
+
+            serviceSelect.selectpicker({
+                liveSearch: true,
+                multipleSeparator: ', '
+            });
+        }
+
+        // Optionnel : Déclencher le filtrage au chargement de la page si un département est déjà sélectionné
+        const initialDepartmentId = $('#add_department_id').val();
+        if (initialDepartmentId) {
+            updateServices(initialDepartmentId);
+        }
     });
 
-    $(document).on('click', '#package_delete', function() 
-    {
-    	var id = $(this).data('package');
-    	$('#package_id').val(id);
-    	$('#deletePackage').modal('show');
+    $(document).on('click', '.delete-button', function() {
+        var id = $(this).data('id');
+        var name = $(this).data('name');
+
+        $('#package_name_to_delete').text("Voulez-vous vraiment supprimer le package : " + name + " ?");
+        $('#delete_id').val(id);
+        $('#deletePackageForm').attr('action', '/package/delete/' + id);
+
+        $('#deleteRowModal').modal('show');
+    });
+
+        // Écouteur d'événement pour le bouton d'édition
+    $(document).on('click', '.edit-button', function() {
+
+        var info = $(this).data('info').split(',');
+        var packageId = info[0];
+        var packageName = info[1];
+        var departmentId = info[2];
+        var amount = info[3];
+
+        // Mettre à jour l'URL du formulaire d'édition
+        $('#editPackageForm').attr('action', '/package/update/' + packageId);
+
+        // Mettre à jour les champs du formulaire
+        $('#edit_name').val(packageName);
+        $('#edit_department_id').val(departmentId);
+        $('#edit_department_id').selectpicker('refresh');
+
+        alert(info[4].split(','));
+        // Mettre à jour les tests sélectionnés
+        $('#edit_tests').val(info[4] ? info[4].split(',') : []);
+        $('#edit_tests').selectpicker('refresh');
+
+        // Mettre à jour les services sélectionnés
+        $('#edit_services').val(info[5] ? info[5].split(',') : []);
+        $('#edit_services').selectpicker('refresh');
+
+        // Afficher la modale d'édition
+        $('#editRowModal').modal('show');
     });
 
 </script>
+
+
 @endsection
-		
-				    	

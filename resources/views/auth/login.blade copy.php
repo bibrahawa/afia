@@ -1,68 +1,47 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Admin Login</title>
-<link href="{{ asset('css/bootstrap.min.css')}}" rel="stylesheet">
-<link href="{{asset('css/datepicker3.css')}}" rel="stylesheet">
-<link href="{{asset('css/styles.css')}}" rel="stylesheet">
+<x-guest-layout>
+    <!-- Session Status -->
+    <x-auth-session-status class="mb-4" :status="session('status')" />
 
-<!--[if lt IE 9]>
-<script src="js/html5shiv.js"></script>
-<script src="js/respond.min.js"></script>
-<![endif]-->
-</head>
-<body>
-    
-    <div class="row">
-        <div class="col-xs-10 col-xs-offset-1 col-sm-8 col-sm-offset-2 col-md-4 col-md-offset-4">
-            <div class="login-panel panel panel-default">
-                <div class="panel-heading">{{$setting->name}}</div>
-                <div class="panel-body">
-                @if ($success = Session::get('success'))
-                    <div class="alert alert-success alert-block">
-                        <button type="button" class="close" data-dismiss="alert">×</button>
-                            <strong>{{ $success }}</strong>
-                    </div>
-                    @endif
-                @if(count($errors))
-                    <div class="alert alert-danger alert-block">
-                    <button type="button" class="close" data-dismiss="alert">×</button>
-                    @foreach($errors->all() as $error)
-                         <strong>{{ $error }}</strong>
-                    @endforeach
-                    </div>
-                    @endif
+    <form method="POST" action="{{ route('login') }}">
+        @csrf
 
-                
-                    <form role="form" method="POST" action="{{ route('login') }}">
-                        {{ csrf_field() }}
-                        <fieldset>
-                             <div class="form-group">
-                                <input class="form-control" placeholder="Username" name="name" type="text" autofocus="" required="">
-                            </div>
-                            <div class="form-group">
-                                <input class="form-control" placeholder="Password" name="password" type="password" value="" required="">
-                            </div>
-                             @if ($errors->has('password'))
-                                    <span class="help-block">
-                                        <strong></strong>
-                                    </span>
-                                @endif
-                            <div class="checkbox">
-                                <label>
-                                    <input type="checkbox" name="remember" {{ old('remember') ? 'checked' : '' }}> Remember Me
-                                </label>
-                            </div>
-                            <button type="submit" class="btn btn-success">Login</a>
-                        </fieldset>
-                    </form>
-                </div>
-            </div>
-        </div><!-- /.col-->
-    </div><!-- /.row -->    y
-    </script>   
-</body>
+        <!-- Email Address -->
+        <div>
+            <x-input-label for="name" :value="__('Name')" />
+            <x-text-input id="name" class="block mt-1 w-full" type="text" name="name" :value="old('name')" required autofocus autocomplete="username" />
+            <x-input-error :messages="$errors->get('name')" class="mt-2" />
+        </div>
 
-</html>
+        <!-- Password -->
+        <div class="mt-4">
+            <x-input-label for="password" :value="__('Password')" />
+
+            <x-text-input id="password" class="block mt-1 w-full"
+                            type="password"
+                            name="password"
+                            required autocomplete="current-password" />
+
+            <x-input-error :messages="$errors->get('password')" class="mt-2" />
+        </div>
+
+        <!-- Remember Me -->
+        <div class="block mt-4">
+            <label for="remember_me" class="inline-flex items-center">
+                <input id="remember_me" type="checkbox" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500" name="remember">
+                <span class="ms-2 text-sm text-gray-600">{{ __('Remember me') }}</span>
+            </label>
+        </div>
+
+        <div class="flex items-center justify-end mt-4">
+            @if (Route::has('password.request'))
+                <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" href="{{ route('password.request') }}">
+                    {{ __('Forgot your password?') }}
+                </a>
+            @endif
+
+            <x-primary-button class="ms-3">
+                {{ __('Log in') }}
+            </x-primary-button>
+        </div>
+    </form>
+</x-guest-layout>

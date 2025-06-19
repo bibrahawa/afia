@@ -28,6 +28,9 @@ use App\Http\Controllers\ResultController;
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\DoctorApiController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ConsultationController;
+use App\Http\Controllers\MedicamentController;
 use App\Models\Service;
 
 /*
@@ -53,14 +56,29 @@ Route::get('/amount', function() {
     return 'Complete';
 });
 
+Route::resource('users', UserController::class)->names('users');
+Route::get('disable-user/{id}',[UserController::class,'disableUser'])->name('user.disable');
+Route::get('index-permissions', [UserController::class, 'indexPermissions'])->name('users.index_permissions');
+Route::get('liste-permissions/{id}', [UserController::class, 'listePermissions'])->name('users.listePermissions');
+Route::post('assign-permissions/{id}', [UserController::class, 'assignPermissions'])->name('users.store_permissions');
+
+
 Route::get('val', function(){
-    $user = auth()->user();
-    $hasPermission = $user->can('search.invoice');
-    dd($hasPermission, $user->permissions->pluck('name'));
+    return view('dashboard');
 });
 
 // Routes d'authentification
 // Authentication Routes
+
+Route::middleware('auth')->group(function () {
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
+
+require __DIR__.'/auth.php';
+
+
 Route::middleware('guest')->group(function () {
     Route::get('login', fn() => view('auth.login'))->name('login');
     Route::get('register', fn() => view('auth.register'))->name('register');
@@ -99,24 +117,35 @@ Route::middleware(['auth'])->group(function() {
     Route::name('department.')->group(function() {
         Route::get('department', [DepartmentController::class, 'getIndex'])->name('index');
         Route::post('department/add', [DepartmentController::class, 'store'])->name('add');
-        Route::post('department/edit', [DepartmentController::class, 'edit'])->name('edit');
-        Route::post('department/delete', [DepartmentController::class, 'delete'])->name('delete');
+        Route::post('department/update', [DepartmentController::class, 'update'])->name('update');
+        Route::delete('department/delete/{id?}', [DepartmentController::class, 'delete'])->name('delete');
     });
 
     // Gestion des services
     Route::name('service.')->group(function() {
         Route::get('service', [ServiceController::class, 'getIndex'])->name('index');
         Route::post('service/add', [ServiceController::class, 'store'])->name('add');
-        Route::post('service/edit', [ServiceController::class, 'edit'])->name('edit');
-        Route::post('service/delete', [ServiceController::class, 'delete'])->name('delete');
+        Route::post('service/update', [ServiceController::class, 'update'])->name('update');
+        Route::delete('service/delete/{id?}', [ServiceController::class, 'delete'])->name('delete');
     });
 
     // Resources
     Route::resource('employee', EmployeeController::class);
     Route::resource('doctor', DoctorController::class);
     Route::resource('patient', PatientController::class);
+    Route::post('patient/file/{id}', [PatientController::class, 'addFile'])->name('patient.addFile');
     Route::resource('appointment', AppointmentController::class);
     Route::resource('role', RoleController::class);
+
+
+    Route::resource('/consultation', ConsultationController::class);
+    Route::resource('medicaments', MedicamentController::class);
+
+    Route::post('/consultations/{consultation}/facturer', [ConsultationController::class, 'facturer'])->name('consultations.facturer');
+    // Route::get('/patients/{patient}/consultations', [ConsultationController::class, 'index'])->name('consultations.index');
+    // Route::get('/patients/{patient}/consultations/create', [ConsultationController::class, 'create'])->name('consultations.create');
+    // Route::post('/consultations', [ConsultationController::class, 'store'])->name('consultations.store');
+
 
     // Gestion des rendez-vous
     Route::post('appointment/updated', [AppointmentController::class, 'updated'])->name('appointment.updated');
@@ -125,13 +154,17 @@ Route::middleware(['auth'])->group(function() {
     Route::name('package.')->group(function() {
         Route::get('package', [PackageController::class, 'getIndex'])->name('index');
         Route::post('package', [PackageController::class, 'store'])->name('store');
-        Route::post('package/edit', [PackageController::class, 'edit'])->name('edit');
+        Route::post('package/update', [PackageController::class, 'update'])->name('update');
         Route::post('package/test/delete', [PackageController::class, 'packageTestDelete'])->name('test.delete');
-        Route::post('pacakge/delete', [PackageController::class, 'delete'])->name('delete');
+        Route::delete('package/delete/{id}', [PackageController::class, 'delete'])->name('delete');
         Route::post('package/sale', [PackageController::class, 'packageSale'])->name('sale');
         // Route::get('package/sale', [PackageController::class, 'sale'])->name('sale');
         Route::get('package/sale/{id}', [PackageController::class, 'packageSales'])->name('sales');
     });
+
+    Route::get('/get-services-by-department/{departmentId}', [PackageController::class, 'getServicesByDepartment'])->name('get.services.by.department');
+    // You might also need a similar route for tests if you want to filter them too.
+    Route::get('/get-tests-by-department/{departmentId}', [PackageController::class, 'getTestsByDepartment'])->name('get.tests.by.department');
 
     // Gestion des factures
     Route::name('invoice.')->group(function() {
@@ -222,6 +255,9 @@ Route::middleware(['auth'])->group(function() {
 
     // Comptabilité
     Route::name('account.')->group(function() {
+        Route::get('account/facture', [AccountController::class, 'factureNonPayer'])->name('facture');
+        Route::post('account/facture', [AccountController::class, 'payer'])->name('payer');
+
         Route::get('account/service', [AccountController::class, 'serviceReport'])->name('service');
         Route::get('account/opd', [AccountController::class, 'opdReport'])->name('opd');
         Route::get('account/package', [AccountController::class, 'packageReport'])->name('package');

@@ -14,10 +14,9 @@ class CreateTestStainsTable extends Migration
     public function up()
     {
         Schema::create('test_stains', function (Blueprint $table) {
-            $table->increments('id');
-            $table->integer('test_id')->unsigned();
+            $table->id();
             $table->string('test_names');
-            $table->foreign('test_id')->references('id')->on('tests')->onDelete('cascade')->onUpdate('cascade');
+            $table->foreignId('test_id')->constrained('tests')->onDelete('cascade')->onUpdate('cascade');
             $table->timestamps();
         });
     }

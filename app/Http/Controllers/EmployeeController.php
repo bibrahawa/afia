@@ -10,7 +10,7 @@ class EmployeeController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth');
+        // $this->middleware('auth');
     }
     /**
      * Display a listing of the resource.
@@ -43,17 +43,16 @@ class EmployeeController extends Controller
     public function store(Request $request)
     {
 
-         $this->validate($request, ['department_id'=>'required|numeric']);
-         if (count($request->working_day)) {
+        $request->validate(['department_id'=>'required|numeric']);
+        if (count($request->working_day)) {
              $request['working_day'] = implode(',',$request->working_day);
         }
         //serialize($request->working_day);
         $data = $request->all();
         if($request->type == 'Doctor')
         {
-            $data['first_name'] = 'DR.'.$request->first_name;
+            $data['first_name'] = 'DR '.$request->first_name;
         }
-        //return $data;
 
         Employee::create($data);
         return redirect()->route('employee.index')->with('success', 'Employee saved Successfully.');

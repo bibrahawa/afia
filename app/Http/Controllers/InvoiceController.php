@@ -272,7 +272,7 @@ class InvoiceController extends Controller
     {
       //return $request->all();
       $invoice = Invoice::find($request->id);
-      $this->validate($request, ['return_amount' => 'numeric']);
+      $request->validate( ['return_amount' => 'numeric']);
 
       if ($invoice->invoiceReturns()->get()->count()) {
         return back()->with('error', 'Invoice No is already returned...');

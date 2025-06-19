@@ -8,8 +8,10 @@ use App\Models\Test;
 Use App\Models\PackageTest;
 use App\Models\Patient;
 use App\Models\Invoice;
+use App\Models\Department;
 use App\Models\Hospital;
 use App\Models\Report;
+use App\Models\Service;
 use App\Models\TestReport;
 use App\Models\PackageSale;
 use Auth;
@@ -19,66 +21,75 @@ class PackageController extends Controller
 
 	public function getIndex()
 	{
-		$packages = Package::get();
-		//return $package_test;
-		$tests = Test::get();
-		//return $tests;
-		return view('packages.index', compact('packages', 'tests'));
+        $packages = Package::with(['tests', 'services'])->get(); // Récupérer les packages pour la liste
+        $departments = Department::all(); // Récupérer les départements pour le formulaire de création
+        $tests = Test::all(); // Récupérer les départements pour le formulaire de création
+        $services = Service::all(); // Récupérer les départements pour le formulaire de création
+		return view('packages.index', compact('packages', 'departments', 'tests', 'services'));
 	}
 
 	public function store(Request $request)
 	{
-		//return $request->all();
-		$this->validate($request, ['price' => 'required|numeric']);
+
+        // dd($request->all());
+		$request->validate([
+            'name' => 'required'
+            ]);
+
 		$package['name'] = $request->name;
 		$package['description'] = $request->description;
-		$package['price'] = $request->price;
+        $package['price'] = 0;
 
-		$tax = Hospital::first()->tax_percent;
+        if ($request->has('tests')) {
+            foreach ($request->tests as $test) {
+                $package['price'] += Test::find($test)->amount;
+            }
+        }
 
-        if($request->with_tax) {
-
-            $tax_cal = 100 + $tax;
-            $request['price'] = $request->amount*100/$tax_cal;
+        if ($request->has('services')) {
+            foreach ($request->services as $service) {
+                $package['price'] += Service::find($service)->amount;
+            }
         }
 
 		$package = Package::create($package);
-		//return $package;
-		$tests = $request->test_id;
-		foreach ($tests as $test) {
-			$data['test_id'] = $test;
-			$data['package_id'] = $package->id;
-			PackageTest::create($data);
-		}
+        $package->services()->attach($request->services);
+        $package->tests()->attach($request->tests);
+
 		return back()->with('success', 'Package Created Successfully.');
 
-	}  
-	public function edit(Request $request)
+	}
+
+	public function update(Request $request)
 	{
-		//return $request->all();
 		$package = Package::find($request->id);
 		$data['name'] = $request->name;
-		$data['price'] = $request->price;
 		$data['description'] = $request->description;
-		$tax = Hospital::first()->tax_percent;
+		$data['price'] = 0;
 
-        if($request->with_tax) {
-
-            $tax_cal = 100 + $tax;
-            $request['price'] = $request->amount*100/$tax_cal;
+        if ($request->has('test_id')) {
+            foreach ($request->test_id as $test) {
+                $data['price'] += Test::find($test)->amount;
+            }
         }
 
-		
+        if ($request->has('service_id')) {
+            foreach ($request->service_id as $service) {
+                $data['price'] += Service::find($service)->amount;
+            }
+        }
+
+
 		$package->update($data);
 
-		$tests = $request->test_id;
-		if($tests)
-		{
-			foreach ($tests as $test) {
-				$data['test_id'] = $test;
-				$data['package_id'] = $package->id;
-				PackageTest::create($data);
-			}
+		// Gérer les tests associés
+        if ($request->has('test_id')) {
+            $package->tests()->sync($request->input("test_id"));
+		}
+
+        // Gérer les services associés
+        if ($request->has('service_id')) {
+            $package->tests()->sync($request->input("service_id"));
 		}
 
 		return back()->with('success', 'Package Updated Successfully.');
@@ -87,7 +98,7 @@ class PackageController extends Controller
 
 	public function packageTestDelete(Request $request)
 	{
-		//return $request->all();
+
 		$package_test = PackageTest::find($request->id);
 		if($package_test) {
 			$package_test->delete();
@@ -101,12 +112,36 @@ class PackageController extends Controller
 	 	//return $request->all();
 	 	$package = Package::find($request->id);
 
-	 	if(count($package->packageSales)) {
-	 		return back()->with('error', 'Package cannot deleted..');
-	 	}
+	 	// if(count($package->packageSales)) {
+	 	// 	return back()->with('error', 'Package cannot deleted..');
+	 	// }
+
+        $package->tests()->detach();
+        $package->services()->detach();
 	 	$package->delete();
+
 	 	return back()->with('success', 'Package Deleted Successfully.');
 	 }
+
+     public function getServicesByDepartment($departmentId)
+     {
+         $department = Department::with('services')->find($departmentId); // Assuming a many-to-many or one-to-many relationship
+         if ($department) {
+             return response()->json($department->services);
+         }
+
+         return response()->json([]);
+     }
+
+     public function getTestsByDepartment($departmentId)
+     {
+         $department = Department::with('tests')->find($departmentId); // Assuming a many-to-many or one-to-many relationship
+         if ($department) {
+             return response()->json($department->tests);
+         }
+
+         return response()->json([]);
+     }
 
 	 public function sale()
 	 {
@@ -137,13 +172,13 @@ class PackageController extends Controller
 		if($request->discount)
 		{
 			$discount = $request->discount;
-			$sub_total = $sub_total - $discount;		
+			$sub_total = $sub_total - $discount;
 		}
 
-		$tax_amount = $sub_total * $tax_percent /100;	
+		$tax_amount = $sub_total * $tax_percent /100;
 		$cash = $request->cash;
 		$total_amount = $sub_total + $tax_amount;
-		
+
         $invoice['sub_total'] = $package->price;
         $invoice['discount'] = $request->discount;
         $invoice['tax_amount'] = $tax_amount;
@@ -156,7 +191,7 @@ class PackageController extends Controller
         $invoice['cash'] = $request->cash;
         //return $invoice;
 
-       $invoices = Invoice::create($invoice); 
+       $invoices = Invoice::create($invoice);
 
         $package_sale['patient_id'] = $request->patient_id;
         $package_sale['package_id'] = $request->package_id;
@@ -165,10 +200,10 @@ class PackageController extends Controller
         //return $package_sale;
         $package_sale = PackageSale::create($package_sale);
 
-        
+
 
         $report['patient_id'] = $request->patient_id;
-       
+
         //return $report;
         $report = Report::create($report);
         $test_report['report_id'] = $report->id;
@@ -214,13 +249,13 @@ class PackageController extends Controller
 	 		 			</thead>
 	 		 			<tbody>';
 
-	 		 			
+
 		$list .='<tr><td>1</td><td>'.$package->name.'</td><td>Rs.'.$package->price.'</td><td><a href="/package/sale"><span class="btn-sm btn-danger glyphicon glyphicon-remove"></span></a></button></td></tr>
 		<div class="total_field">
 		<tr><td></td><td></td><td></td><td>Sub Total:Rs. '.$package->price.'</td></tr>
 		<tr><td></td><td></td><td></td><td>HST('.$hospital->tax_percent.'%):Rs. '.$tax_amount.'</td></tr><input type="hidden" id="package_charge" value="' . $package->price.'"><input type="hidden" id="tax_percent" value="' .$hospital->tax_percent.'">
 		<tr class="success"><td></td><td></td><td></td><td >Total Amount:Rs. '.$total_amount.'</td></tr></div>	</tbody>
-	 		 				
+
 	 		 			</table>';
 		return $list;
 

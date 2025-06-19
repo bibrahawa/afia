@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.backend')
 @section('content')
 <div class="col-md-12 main">
 	<div class="row">
@@ -157,7 +157,7 @@
 			          		<label>Parent Test:</label>
 				         <select name="parent_id" class="form-control" id='parent_select'>
 				         	<option></option>
-				         
+
 			            	@foreach ( $test_references as $test_reference)
 				            <option value="{{$test_reference->id}}">{{$test_reference->name}}</option>
 				            @endforeach
@@ -171,7 +171,7 @@
 		</div>
 		</div>
 		</div>
-	
+
 <div class="modal fade" id="test_reference_delete"  role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
 <div class="modal-dialog">
   <div class="modal-content">

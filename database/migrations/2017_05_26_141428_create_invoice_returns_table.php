@@ -14,14 +14,12 @@ class CreateInvoiceReturnsTable extends Migration
     public function up()
     {
         Schema::create('invoice_returns', function (Blueprint $table) {
-            $table->increments('id');
-            $table->integer('invoice_id')->unsigned();
+            $table->id();
             $table->float('return_amount');
             $table->string('return_reason')->nullable();
-            $table->integer('user_id')->unsigned();
             $table->boolean('status')->default(1);
-            $table->foreign('invoice_id')->references('id')->on('invoices')->onDelete('cascade')->onUpdate('cascade');
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade')->onUpdate('cascade');
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade'); // Utilisateur qui a enregistré le paiement
+            $table->foreignId('invoice_id')->constrained('invoices')->onDelete('cascade')->onUpdate('cascade');
             $table->timestamps();
 
         });

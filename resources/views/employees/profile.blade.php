@@ -1,7 +1,7 @@
-@extends('layouts.app')
+@extends('layouts.backend')
 @section('content')
 
-<div class="col-md-12 main">   
+<div class="col-md-12 main">
 <div class="row">
 	<ol class="breadcrumb">
 		<li><a href="#"><svg class="glyph stroked home"><use xlink:href="#stroked-home"></use></svg></a></li>
@@ -11,13 +11,13 @@
 </div><br>
 @if ($message = Session::get('success'))
 <div class="alert alert-success alert-block">
-	<button type="button" class="close" data-dismiss="alert">×</button>	
+	<button type="button" class="close" data-dismiss="alert">×</button>
         <strong>{{ $message }}</strong>
 </div>
 @endif
 @if ($message = Session::get('error'))
 <div class="alert alert-danger alert-block">
-	<button type="button" class="close" data-dismiss="alert">×</button>	
+	<button type="button" class="close" data-dismiss="alert">×</button>
         <strong>{{ $message }}</strong>
 </div>
 @endif
@@ -52,7 +52,7 @@
 				<label>Working Days: {{$employee->working_day}}</label><br>
 				<label>Available Time: {{$employee->in_time}} - {{$employee->out_time}}</label><br>
 				<label>Department: {{$employee->department->name}}</label><br>
-				
+
 				</div>
 	</div>
 </div>

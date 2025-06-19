@@ -1,10 +1,10 @@
-@extends('layouts.app')
+@extends('layouts.backend')
 @section('content')
 @include('patients.partials.edit')
 @include('patients.partials.appointment')
 @include('patients.partials.js')
 
-<div class="col-lg-12 main">			
+<div class="col-lg-12 main">
 	<div class="row">
 		<ol class="breadcrumb">
 			<li><a href="#"><svg class="glyph stroked home"><use xlink:href="#stroked-home"></use></svg></a></li>
@@ -75,7 +75,7 @@
 						    </tr>
 					    </thead>
 					    <tbody>
-					   
+
 					    @foreach( $patient->appointments()->get() as $appointment)
 					    <tr>
 					    <td>{{$appointment->id}}</td>
@@ -85,7 +85,7 @@
 					    <td>{{$appointment->time}}</td>
 					    <td>
 					    @if($appointment->status)
-					   	<a class="btn-sm btn-success" href="{{ route('appointment.edit',$appointment->id) }}"><span class=" glyphicon glyphicon-ok"></span> Complete</a>	
+					   	<a class="btn-sm btn-success" href="{{ route('appointment.edit',$appointment->id) }}"><span class=" glyphicon glyphicon-ok"></span> Complete</a>
 						@else
 						<a class="btn-sm btn-warning" href="{{ route('appointment.edit',$appointment->id) }}"><span class=" glyphicon glyphicon-refresh"> </span> Pending</a>
 						@endif
@@ -94,7 +94,7 @@
                        </td>
                        </tr>
 					   @endforeach
-					   
+
 					    </tbody>
 					</table>
 					@else
@@ -119,7 +119,7 @@
 					    </tr>
 					    </thead>
 					    <tbody>
-					   
+
 					    @foreach( $patient->reports()->get() as $report)
 					    <tr>
 					    <td>{{$report->id}}</td>
@@ -136,7 +136,7 @@
 					    @endif
                        </tr>
 					   @endforeach
-					   
+
 					    </tbody>
 					</table>
 					@else

@@ -1,13 +1,13 @@
-@extends('layouts.app')
+@extends('layouts.backend')
 @section('content')
-<div class="col-md-12 main">   
+<div class="col-md-12 main">
 <div class="row">
 	<ol class="breadcrumb">
 		<li><a href="#"><svg class="glyph stroked home"><use xlink:href="#stroked-home"></use></svg></a></li>
 		<li class="active">Hospital Setting</li>
 	</ol>
 </div><!--/.row-->
-		
+
 <div class="row">
 	<div class="col-lg-12">
 		<h1 class="page-header">{{$hospital->name}} Setting</h1>
@@ -72,7 +72,7 @@
 						<button class="btn btn-success" type="submit">Save Changes</button>
 						<button class="btn btn-primary" type="reset">Default</button>
 						</div>
-					
+
 				</div>
 			</div>
 		</div>
@@ -94,8 +94,8 @@
 						<button class="btn btn-success" type="submit">Save Changes</button>
 						<button class="btn btn-primary" type="reset">Default</button>
 						</div>
-					
-						
+
+
 				</div>
 			</div>
 		</div>
@@ -117,8 +117,8 @@
 						<button class="btn btn-success" type="submit">Save Changes</button>
 						<button class="btn btn-primary" type="reset">Default</button>
 						</div>
-					
-						
+
+
 				</div>
 			</div>
 		</div>

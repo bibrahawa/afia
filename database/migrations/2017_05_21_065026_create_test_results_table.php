@@ -14,11 +14,10 @@ class CreateTestResultsTable extends Migration
     public function up()
     {
         Schema::create('test_results', function (Blueprint $table) {
-            $table->increments('id');
-            $table->integer('test_report_id')->unsigned();
+            $table->id();
             $table->text('result')->nullable();
             $table->boolean('status')->default(0);
-            $table->foreign('test_report_id')->references('id')->on('test_reports')->onDelete('cascade')->onUpdate('cascade');
+            $table->foreignId('test_report_id')->constrained()->onDelete('cascade')->onUpdate('cascade');
             $table->timestamps();
 
         });
@@ -33,6 +32,6 @@ class CreateTestResultsTable extends Migration
     {
         Schema::dropIfExists('test_results');
         $table->dropForeign('test_results_test_report_id_foreign');
-       
+
     }
 }

@@ -1,6 +1,6 @@
-@extends('layouts.app')
+@extends('layouts.backend')
 @section('content')
-<div class="col-md-12 main">			
+<div class="col-md-12 main">
 		<div class="row">
 			<ol class="breadcrumb">
 				<li><a href="#"><svg class="glyph stroked home"><use xlink:href="#stroked-home"></use></svg></a></li>
@@ -10,7 +10,7 @@
 <!-- Modal -->
 @if ($message = Session::get('success'))
 <div class="alert alert-success alert-block">
-	<button type="button" class="close" data-dismiss="alert">×</button>	
+	<button type="button" class="close" data-dismiss="alert">×</button>
         <strong>{{ $message }}</strong>
 </div>
 @endif
@@ -45,7 +45,7 @@
 						    	{{$test_reference->name}},
 						    	@endforeach
 						    	@endif
-					    	</td>	    	
+					    	</td>
 				        </tr>
 				    @endforeach
 				    </tbody>
@@ -144,7 +144,7 @@
         $('.add').show();
 })
  $(document).on('click', '.edit-modal', function() {
-        
+
         var stuff = $(this).data('info').split(',');
         fillmodalData(stuff)
         $('#edittest_reference').modal('show');
@@ -155,10 +155,10 @@
         $('#id').val(details[0]);
         $('#name').val(details[1]);
         $('#unit').val(details[2]);
-        $('#ref_range').val(details[3]);   
+        $('#ref_range').val(details[3]);
     }
      $(document).on('click', '.edit-test_reference', function() {
-        
+
         $('.form-horizontal').show();
         var stuff = $(this).data('info').split(',');
         fillmodal(stuff)
@@ -169,7 +169,7 @@
         $('#id_test_reference').val(details[0]);
         $('#test_reference_name').val(details[1]);
     }
-     $(document).on('click', '#delete_test_reference', function() 
+     $(document).on('click', '#delete_test_reference', function()
     {
     	var test_id = $(this).data('id');
     	var test_reference_id = $(this).data('id2')

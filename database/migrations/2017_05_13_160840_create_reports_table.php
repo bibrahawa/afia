@@ -14,15 +14,14 @@ class CreateReportsTable extends Migration
     public function up()
     {
         Schema::create('reports', function (Blueprint $table) {
-            $table->increments('id');
-            $table->integer('patient_id')->unsigned();
+            $table->id();
+            $table->foreignId('patient_id')->constrained()->onDelete('cascade')->onUpdate('cascade');
             $table->integer('doctor_id')->nullable();
             $table->string('report')->nullable();
             $table->string('result')->nullable();
             $table->boolean('status')->default(0);
-            $table->foreign('patient_id')->references('id')->on('patients')->onDelete('cascade')->onUpdate('cascade');
             $table->timestamps();
-           
+
         });
     }
 
@@ -34,8 +33,8 @@ class CreateReportsTable extends Migration
     public function down()
     {
         Schema::dropIfExists('reports');
-        $table->dropForeign('reports_lab_id_foreign'); 
+        $table->dropForeign('reports_lab_id_foreign');
         $table->dropForeign('reports_patient_id_foreign');
-        
+
     }
 }

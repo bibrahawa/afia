@@ -13,9 +13,9 @@ class CreateServiceSalesTable extends Migration
      */
     public function up()
     {
-        Schema::create('service_sales', function (Blueprint $table) 
+        Schema::create('service_sales', function (Blueprint $table)
         {
-            $table->increments('id');
+            $table->id();
             $table->integer('service_id');
             $table->string('service_name');
             $table->float('amount', 28,21);

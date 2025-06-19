@@ -18,7 +18,7 @@ class ReferenceTestController extends Controller
 	public function store(Request $request)
     {
        //return $request->all();
-        $this->validate($request, ['name'=>'required|unique:test_references']);
+        $request->validate( ['name'=>'required|unique:test_references']);
          
         TestReference::create($request->all());
         return back()->with('success', 'Test References saved Successfully.');
@@ -28,7 +28,7 @@ class ReferenceTestController extends Controller
     public function edit(Request $request)
     {
         //return $request->all();
-        $this->validate($request, ['name'=>'required']);
+        $request->validate( ['name'=>'required']);
         $data = TestReference::find ( $request->id );
         $data->update($request->all());
         return back()->with('success', 'Test Reference Updated successfully');

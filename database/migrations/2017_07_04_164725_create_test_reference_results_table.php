@@ -14,7 +14,7 @@ class CreateTestReferenceResultsTable extends Migration
     public function up()
     {
         Schema::create('test_reference_results', function (Blueprint $table) {
-            $table->increments('id');
+            $table->id();
             $table->integer('test_report_id');
             $table->integer('test_reference_id');
             $table->string('result');

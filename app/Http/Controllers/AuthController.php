@@ -34,8 +34,9 @@ class AuthController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:10',
-            'password' => 'required|string|min:8',
+            'password' => 'required|string|min:6',
         ]);
+
 
         if (Auth::attempt(['name' => $request->name, 'password' => $request->password])) {
             return redirect()->route('dashboard');

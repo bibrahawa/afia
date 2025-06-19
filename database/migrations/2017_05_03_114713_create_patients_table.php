@@ -14,18 +14,18 @@ class CreatePatientsTable extends Migration
     public function up()
     {
         Schema::create('patients', function (Blueprint $table) {
-            $table->increments('id');
+            $table->id();
+            $table->foreignId('user_id')->nullable()->constrained()->onDelete('cascade');
             $table->string('first_name');
             $table->string('middle_name')->nullable();
             $table->string('last_name');
-            $table->string('email')->nullable();
             $table->integer('age');
             $table->string('phone')->nullable();
-            $table->enum('gender', array('Male', 'Female' , 'Other'));
+            $table->enum('gender', array('Male', 'Female'));
             $table->string('birth_date')->nullable();
-            $table->string('country')->default('Nepal');
-            $table->string('state')->default('Bagmati');
-            $table->string('district')->default('Kathmandu');
+            $table->string('country')->default('Guinee');
+            $table->string('state')->default('Conakry');
+            $table->string('district')->nullable();
             $table->string('location')->nullable();
             $table->string('occupation')->nullable();
             $table->string('description')->nullable();
@@ -33,6 +33,7 @@ class CreatePatientsTable extends Migration
             $table->string('relative_phone')->nullable();
             $table->enum('marital_status', array('single', 'married' , 'other'));
             $table->enum('blood_group', array('A+','A-','B+','AB+','AB-','B-','O+','O-'))->nullable();
+            $table->boolean('first_visit')->default(true);
             $table->timestamps();
             $table->softDeletes();
         });

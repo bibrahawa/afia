@@ -21,8 +21,9 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
-        'password',
-        'role_id'
+        'status',
+        'password'
+        // 'role_id'
     ];
 
     /**
@@ -48,15 +49,21 @@ class User extends Authenticatable
         ];
     }
 
-    public function scopeActive($query)
+    // public function scopeActive($query)
+    // {
+    //     return $query->where('active', 1);
+    // }
+
+    public function role()
     {
-        return $query->where('active', 1);
+        return $this->belongsTo('App\Models\Role');
     }
 
-    // public function role()
-    // {
-    //     return $this->belongsTo('App\Models\Role');
-    // }
+    public function employee()
+    {
+        return $this->hasOne(Employee::class);
+    }
+
 
     // public function permissions(){
     //     return $this->belongsToMany('App\Models\Permission', 'permission_role');

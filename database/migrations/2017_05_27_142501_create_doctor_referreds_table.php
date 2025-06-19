@@ -14,11 +14,11 @@ class CreateDoctorReferredsTable extends Migration
     public function up()
     {
         Schema::create('doctor_referreds', function (Blueprint $table) {
-            $table->increments('id');
+            $table->id();
             $table->integer('doctor_id')->unsigned();
             $table->integer('invoice_id')->unsigned();
             $table->timestamps();
-           
+
         });
     }
 
@@ -30,6 +30,6 @@ class CreateDoctorReferredsTable extends Migration
     public function down()
     {
         Schema::dropIfExists('doctor_referreds');
-        
+
     }
 }

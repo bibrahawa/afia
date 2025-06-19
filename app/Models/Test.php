@@ -6,12 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Test extends Model
 {
-	protected $fillable = ['name', 'service_id', 'report_type', 'description'];
-    //
-    public function service()
-	{
-		return $this->belongsTo('App\Models\Service');
-	}
+	protected $fillable = ['name', 'report_type', 'description', 'amount'];
+
 
 	public function test_references()
 	{
@@ -44,5 +40,5 @@ class Test extends Model
 	}
 
 
-	
+
 }

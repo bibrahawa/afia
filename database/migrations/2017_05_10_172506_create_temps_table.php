@@ -14,7 +14,7 @@ class CreateTempsTable extends Migration
     public function up()
     {
         Schema::create('temps', function (Blueprint $table) {
-            $table->increments('id');
+            $table->id();
             $table->integer('service_id');
             $table->string('service_name');
             $table->float('amount', 28,21);

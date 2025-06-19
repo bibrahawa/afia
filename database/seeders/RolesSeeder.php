@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Permission;
 use App\Models\Role;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 
 class RolesSeeder extends Seeder
@@ -15,14 +16,35 @@ class RolesSeeder extends Seeder
      */
     public function run()
     {
-        // Role::truncate();
-        // $role = Role::create([
-        //     'name'        => 'Superadmin',
-        //     'description' => 'Role for Super administrator',
+        // $adminRole  = Role::create(['name' => 'admin']);
+        $medecinRole = Role::create(['name' => 'medecin']);
+        $acceuilRole = Role::create(['name' => 'accueil']);
+
+        // $adminRole->givePermissionTo(Permission::all());
+
+        // $userAdmin = User::create([
+        //     'name'=> 'admin',
+        //     'status' => true,
+        //     'email' => 'admin@gmail.com',
+        //     'password' => bcrypt('Admin@01'),
         // ]);
 
-        // $permissions = Permission::get();
-        // $permission_ids = $permissions->pluck('id')->toArray();
-        // $role->permissions()->attach($permission_ids);
+        $userMedecin = User::create([
+            'name' => 'medecin',
+            'status' => true,
+            'email' => 'medecin@gmail.com',
+            'password' => bcrypt('medecin@01'),
+        ]);
+
+        $userAcceuil = User::create([
+            'name' => 'acceuil',
+            'status' => true,
+            'email' => 'acceuil@gmail.com',
+            'password' => bcrypt('acceuil@01'),
+        ]);
+
+        // $userAdmin->assignRole($adminRole);
+        $userMedecin->assignRole($medecinRole);
+        $userAcceuil->assignRole($acceuilRole);
     }
 }

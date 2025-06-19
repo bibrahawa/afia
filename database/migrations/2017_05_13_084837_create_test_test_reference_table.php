@@ -14,11 +14,11 @@ class CreateTestTestReferenceTable extends Migration
     public function up()
     {
         Schema::create('test_test_reference', function (Blueprint $table) {
-            $table->increments('id');
+            $table->id();
             $table->integer('test_id');
             $table->integer('test_reference_id');
             $table->timestamps();
-  
+
 
         });
     }

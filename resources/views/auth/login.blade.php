@@ -1,71 +1,86 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Admin Login</title>
-<link href="{{ asset('css/bootstrap.min.css')}}" rel="stylesheet">
-<link href="{{asset('css/datepicker3.css')}}" rel="stylesheet">
-<link href="{{asset('css/styles.css')}}" rel="stylesheet">
-
-<!--[if lt IE 9]>
-<script src="js/html5shiv.js"></script>
-<script src="js/respond.min.js"></script>
-<![endif]-->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Aprosafe</title>
+  <link href="https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+  <style>
+    body {
+      background: linear-gradient(to right, #4facfe, #00f2fe);
+      font-family: 'Poppins', sans-serif;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .login-container {
+      background: rgba(255, 255, 255, 0.9);
+      padding: 40px;
+      border-radius: 15px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      animation: fadeIn 1s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .form-control {
+      border-radius: 30px;
+    }
+    .btn-primary {
+      border-radius: 30px;
+      transition: 0.3s;
+    }
+    .btn-primary:hover {
+      background: #00d4ff;
+      transform: scale(1.05);
+    }
+    .toggle-password {
+      cursor: pointer;
+      position: absolute;
+      right: 15px;
+      top: 77%;
+      transform: translateY(-50%);
+    }
+    .form-label {
+      display: block;
+      text-align: left;
+      font-weight: 500;
+    }
+  </style>
 </head>
 <body>
-
-    <div class="row">
-        <div class="col-xs-10 col-xs-offset-1 col-sm-8 col-sm-offset-2 col-md-4 col-md-offset-4">
-            <div class="login-panel panel panel-default">
-                <div class="panel-heading">
-                    {{-- {{$setting->name}} --}}
-                    APROSAFE
-                </div>
-                <div class="panel-body">
-                @if ($success = Session::get('success'))
-                    <div class="alert alert-success alert-block">
-                        <button type="button" class="close" data-dismiss="alert">×</button>
-                            <strong>{{ $success }}</strong>
-                    </div>
-                    @endif
-                @if(count($errors))
-                    <div class="alert alert-danger alert-block">
-                    <button type="button" class="close" data-dismiss="alert">×</button>
-                    @foreach($errors->all() as $error)
-                         <strong>{{ $error }}</strong>
-                    @endforeach
-                    </div>
-                    @endif
-
-
-                    <form role="form" method="POST" action="{{ route('login') }}">
-                        {{ csrf_field() }}
-                        <fieldset>
-                             <div class="form-group">
-                                <input class="form-control" placeholder="Username" name="name" type="text" autofocus="" required="">
-                            </div>
-                            <div class="form-group">
-                                <input class="form-control" placeholder="Password" name="password" type="password" value="" required="">
-                            </div>
-                             @if ($errors->has('password'))
-                                    <span class="help-block">
-                                        <strong></strong>
-                                    </span>
-                                @endif
-                            <div class="checkbox">
-                                <label>
-                                    <input type="checkbox" name="remember" {{ old('remember') ? 'checked' : '' }}> Remember Me
-                                </label>
-                            </div>
-                            <button type="submit" class="btn btn-success">Login</a>
-                        </fieldset>
-                    </form>
-                </div>
-            </div>
-        </div><!-- /.col-->
-    </div><!-- /.row -->
-    </script>
+  <div class="login-container text-center">
+    <img src="{{ asset('assets/img/logo.png') }}" alt="Logo" class="mb-3" width="100">
+    <h3 class="mb-3">Connexion</h3>
+    <form method="POST" action="{{ route('login') }}">
+        @csrf
+      <div class="mb-3 position-relative text-start">
+        <label for="name" class="form-label">Name</label>
+        <input type="text" name="name" :value="old('name')" class="form-control" id="name" placeholder="name" required>
+      </div>
+      <div class="mb-3 position-relative text-start">
+        <label for="password" class="form-label">Mot de passe</label>
+        <input type="password" name="password" class="form-control" id="password" placeholder="Mot de passe" required>
+        <i class="bi bi-eye-slash toggle-password" id="togglePassword"></i>
+      </div>
+      <button type="submit" class="btn btn-primary w-100">Se connecter</button>
+    </form>
+  </div>
+  <script>
+    document.getElementById('togglePassword').addEventListener('click', function () {
+      const passwordInput = document.getElementById('password');
+      if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        this.classList.replace('bi-eye-slash', 'bi-eye');
+      } else {
+        passwordInput.type = 'password';
+        this.classList.replace('bi-eye', 'bi-eye-slash');
+      }
+    });
+  </script>
 </body>
-
 </html>

@@ -14,7 +14,7 @@ class CreateTestAntibioticResultsTable extends Migration
     public function up()
     {
         Schema::create('test_antibiotic_results', function (Blueprint $table) {
-            $table->increments('id');
+            $table->id();
             $table->integer('test_report_id');
             $table->string('test_antibiotic_id');
             $table->string('result');

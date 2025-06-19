@@ -10,7 +10,7 @@ class TestController extends Controller
 {
 	public function index()
 	{
-		
+
 		$services = Service::get();
 		$tests = Test::get();
         $antibiotics = [];
@@ -20,7 +20,8 @@ class TestController extends Controller
 	public function store(Request $request)
     {
         //return $request->all();
-        $this->validate($request, ['name' => 'required|unique:tests']);
+        // dd($request->all());
+        $request->validate( ['name' => 'required|unique:tests']);
         $test = Test::create($request->all());
         return back()->with('success', 'Test saved Successfully.');
     }
@@ -45,10 +46,10 @@ class TestController extends Controller
     public function edit(Request $request)
     {
         //return $request->all();
-        $this->validate($request, ['name'=>'required']);
+        $request->validate( ['name'=>'required']);
         $test = Test::find ( $request->id );
         if ($test->report_type != $request->report_type) {
-            
+
             if ( $test->report_type == 'hematology' or $test->report_type == 'biochemistry') {
 
                 // deattach the relation $test_reference = $test->test_reference_test;
@@ -56,7 +57,7 @@ class TestController extends Controller
 
             if ($test->report_type == 'examination') {
                 //deattach the relation of test in examination
-            } 
+            }
             if ( $test->report_type == 'microbiology') {
                 //deattach the relation of test in microbiology test
             }
@@ -76,7 +77,7 @@ class TestController extends Controller
         }
         $test->delete();
         return back()->with('success', 'Test successfully Deleted');
-      
+
     }
 
 }

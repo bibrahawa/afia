@@ -14,13 +14,13 @@ class CreateTestReferencesTable extends Migration
     public function up()
     {
         Schema::create('test_references', function (Blueprint $table) {
-            $table->increments('id');
+            $table->id();
             $table->string('name');
             $table->string('unit')->nullable();
             $table->string('range')->nullable();
             $table->integer('parent_id')->nullable()->unsigned();
             $table->timestamps();
-            
+
         });
     }
 

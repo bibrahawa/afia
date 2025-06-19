@@ -16,11 +16,6 @@ class Role extends SpatieRole
         'description',
     ];
 
-    // public function users()
-    // {
-    //     return $this->hasMany('App\Models\User');
-    // }
-
     // public function permissions()
     // {
     //     return $this->belongsToMany('App\Models\Permission')->withTimestamps();

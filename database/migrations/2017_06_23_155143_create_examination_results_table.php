@@ -14,12 +14,11 @@ class CreateExaminationResultsTable extends Migration
     public function up()
     {
         Schema::create('examination_results', function (Blueprint $table) {
-            $table->increments('id');
-            $table->integer('test_report_id')->unsigned();
+            $table->id();
             $table->string('macroscopic_result');
             $table->string('microscopic_result');
             $table->string('result')->nullable();
-            $table->foreign('test_report_id')->references('id')->on('test_reports')->onDelete('cascade')->onUpdate('cascade');
+            $table->foreignId('test_report_id')->constrained('test_reports')->onDelete('cascade')->onUpdate('cascade');
             $table->timestamps();
         });
     }

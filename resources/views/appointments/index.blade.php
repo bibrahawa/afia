@@ -1,9 +1,9 @@
-@extends('layouts.app')
+@extends('layouts.backend')
 @section('content')
 @include('appointments.partials.add')
 @include('appointments.partials.edit')
 @include('appointments.partials.js')
-<div class="col-lg-12 main">			
+<div class="col-lg-12 main">
 		<div class="row">
 			<ol class="breadcrumb">
 				<li><a href="#"><svg class="glyph stroked home"><use xlink:href="#stroked-home"></use></svg></a></li>
@@ -13,7 +13,7 @@
 		</div><br><!--/.row-->
 @if ($message = Session::get('success'))
 <div class="alert alert-success alert-block">
-	<button type="button" class="close" data-dismiss="alert">×</button>	
+	<button type="button" class="close" data-dismiss="alert">×</button>
         <strong>{{ $message }}</strong>
 </div>
 @endif
@@ -56,9 +56,9 @@
 						    	<td>{{$appointment->description}}</td>
 						    	<td>{{$appointment->time}}</td>
 						    	<td>{{$appointment->appointment_date}}</td>
-								<td> 
+								<td>
 									@if($appointment->status)
-								   	<a class="btn btn-sm btn-success" href="{{ route('appointment.edit',$appointment->id) }}"><span class=" glyphicon glyphicon-ok"></span> Completed</a>	
+								   	<a class="btn btn-sm btn-success" href="{{ route('appointment.edit',$appointment->id) }}"><span class=" glyphicon glyphicon-ok"></span> Completed</a>
 									@else
 									<a class="btn btn-sm btn-warning" href="{{ route('appointment.edit',$appointment->id) }}"><span class=" glyphicon glyphicon glyphicon-refresh"> </span> Pending</a>
 									@endif
@@ -82,7 +82,7 @@
 					</div>
 				</div>
 			</div>
-		</div><!--/.row-->	
+		</div><!--/.row-->
 </div><!--/.main-->
 
 @endsection

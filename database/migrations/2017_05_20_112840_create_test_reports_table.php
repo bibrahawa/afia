@@ -14,16 +14,14 @@ class CreateTestReportsTable extends Migration
     public function up()
     {
         Schema::create('test_reports', function (Blueprint $table) {
-            $table->increments('id');
-            $table->integer('report_id')->unsigned();
-            $table->integer('test_id')->unsigned();
+            $table->id();
             $table->string('report_type');
             $table->boolean('sample')->default(0);
             $table->boolean('status')->default(0);
-            $table->foreign('test_id')->references('id')->on('tests')->onDelete('cascade')->onUpdate('cascade');
-            $table->foreign('report_id')->references('id')->on('reports')->onDelete('cascade')->onUpdate('cascade');
+            $table->foreignId('test_id')->constrained()->onDelete('cascade')->onUpdate('cascade');
+            $table->foreignId('report_id')->constrained()->onDelete('cascade')->onUpdate('cascade');
             $table->timestamps();
-          
+
         });
     }
 
@@ -36,6 +34,6 @@ class CreateTestReportsTable extends Migration
     {
         Schema::dropIfExists('test_reports');
         $table->dropForeign('test_reports_test_id_foreign');
-        $table->dropForeign('test_reports_report_id_foreign'); 
+        $table->dropForeign('test_reports_report_id_foreign');
     }
 }

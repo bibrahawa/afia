@@ -14,13 +14,11 @@ class CreateReferenceResultsTable extends Migration
     public function up()
     {
         Schema::create('reference_results', function (Blueprint $table) {
-            $table->increments('id');
-            $table->integer('test_report_id')->unsigned();
-            $table->integer('test_reference_id')->unsigned();
+            $table->id();
             $table->string('result');
             $table->string('flag');
-            $table->foreign('test_report_id')->references('id')->on('test_reports')->onDelete('cascade')->onUpdate('cascade');
-            $table->foreign('test_reference_id')->references('id')->on('test_references')->onDelete('cascade')->onUpdate('cascade');
+            $table->foreignId('test_report_id')->constrained('test_reports')->onDelete('cascade')->onUpdate('cascade');
+            $table->foreignId('test_reference_id')->constrained('test_references')->onDelete('cascade')->onUpdate('cascade');
             $table->timestamps();
         });
     }

@@ -14,16 +14,13 @@ class CreatePackageSalesTable extends Migration
     public function up()
     {
         Schema::create('package_sales', function (Blueprint $table) {
-            $table->increments('id');
-            $table->integer('package_id')->unsigned();
-            $table->integer('invoice_id')->unsigned();
-            $table->integer('patient_id')->unsigned();
+            $table->id();
             $table->float('package_price');
-            $table->foreign('package_id')->references('id')->on('packages')->onDelete('cascade')->onUpdate('cascade');
-            $table->foreign('invoice_id')->references('id')->on('invoices')->onDelete('cascade')->onUpdate('cascade');
-            $table->foreign('patient_id')->references('id')->on('patients')->onDelete('cascade')->onUpdate('cascade');
+            $table->foreignId('patient_id')->constrained()->onDelete('cascade')->onUpdate('cascade');
+            $table->foreignId('package_id')->constrained()->onDelete('cascade')->onUpdate('cascade');
+            $table->foreignId('invoice_id')->constrained()->onDelete('cascade')->onUpdate('cascade');
             $table->timestamps();
-           
+
         });
     }
 

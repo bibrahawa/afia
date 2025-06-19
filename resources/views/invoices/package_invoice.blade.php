@@ -1,7 +1,7 @@
-@extends('layouts.app')
+@extends('layouts.backend')
 @section('content')
 
-<div class="col-lg-12 main">			
+<div class="col-lg-12 main">
 	<div class="row">
 		<ol class="breadcrumb">
 			<li><a href="#"><svg class="glyph stroked home"><use xlink:href="#stroked-home"></use></svg></a></li>
@@ -11,7 +11,7 @@
 <!-- Modal -->
 @if ($message = Session::get('success'))
 <div class="alert alert-success alert-block">
-	<button type="button" class="close" data-dismiss="alert">×</button>	
+	<button type="button" class="close" data-dismiss="alert">×</button>
         <strong>{{ $message }}</strong>
 </div>
 @endif
@@ -32,7 +32,7 @@
 				<div class="row">
 					<div class="col-md-8">
 						<!-- services -->
-						
+
 						<div class="row">
 						{{Form::open(array('route'=>'package.sale', 'method'=>'post', 'class'=>'form-group'))}}
 
@@ -54,7 +54,7 @@
 	 		 				@endforeach
 	 		 				</select>
 	 		 			</div>
-	 		 			
+
 	 		 			<div class=" col-md-3 form-group">
 								<label>Payment type</label>
 								<select name="payment_type" class="form-control">
@@ -71,7 +71,7 @@
 		                        <div class="col-md-3 form-group">
 								<label>Discount :</label>
 								<input type="number" name="discount"  placeholder="" class="form-control" id="discount"><br>
-								</div>	
+								</div>
 		                        <div class="col-md-3 form-group">
 								<label>Cash :</label>
 								<input type="number" name="cash"  placeholder="" class="form-control" id="cash" required><br>
@@ -82,13 +82,13 @@
 							<div class="col-md-12 form-group" id="comment" style="display: none;">
 								<input type="textarea" class="form-control" name="comment" placeholder="Comment..." >
 							</div>
-		 		 			{{Form::close()}}		
+		 		 			{{Form::close()}}
 
 		 		 		</div>
 		 		 		<div class="row">
 	 		 			<div class="col-md-12">
 	 		 			<div id="bill"></div>
-	 		 			
+
 	 		 			</div></div>
 	 		 			</div>
 	 		 			<div class="col-md-4">
@@ -99,28 +99,28 @@
 							<div class="col-md-6" id="calculateBtn" style="display: none">
 	                            <button class="btn btn-primary" id="calculate"><span class="glyphicon glyphicon-ok"></span>Calculate</button> <br><br>
 	                            <span id="msg"></span><br>
-		                        
+
                             </div>
                             <br>
                             <div class="col-md-12">
 								<div id="tender"></div>
 							</div>
 
-		 		 			
+
 		 		 			<div class="col-md-12" id="complete" style="display: none;">
 		 		 			<p>--------------------------------------------------------------------</p>
 		 		 				<button class="btn btn-success" id="complete">Complete</button>
 		 		 				<a href="{{url('package/sale')}}" class="btn btn-default">Reset</a>
-		 		 			</div>	
+		 		 			</div>
 						</div>
  		 			</div>
  		 			</div>
 	 			</div>
-	 			
+
  			</div>
 		</div>
 	</div>
-	 		 			
+
 
 
 <script type="text/javascript">
@@ -145,10 +145,10 @@ $(document).ready(function() {
 	    	$('#calculateBtn').show();
 	    	//$('#patient').load({!! json_encode(url('/invoice/patient'))!!}+'/'+patient_id);
 
-	    	
-	    	
+
+
 	    });
-  	$('#complete').on('click', '#complete', function() 
+  	$('#complete').on('click', '#complete', function()
 			{
 				$('#submit').click();
 
@@ -163,7 +163,7 @@ $(document).ready(function() {
         var tax = $('#tax_percent').val();
         if(sub_total.length)
         {
-       
+
         if(cash > 0)
         {
         	if(discount)
@@ -175,7 +175,7 @@ $(document).ready(function() {
         	var tax_amount = total * tax /100;
         	var total_amount = total + tax_amount;
         	var tender_amount = cash - total_amount;
-        	
+
     		if(tender_amount < 0)
     		{
     			$('#msg').show();
@@ -188,7 +188,7 @@ $(document).ready(function() {
     		$('#comment').show();
     		$('#tender').html('<strong>Sub Total: $'+ sub_total +'</strong><br><strong>Discount:$'+ discount + '</strong><br><b>------------------------------</b><br><strong>Taxable Amount:' + total+'</strong><br><strong>HST('+ tax+'%): $'+ tax_amount +'</strong><br><b>-----------------------------<b><br><strong>Total: $'+ total_amount +'</strong><br><strong>Cash: $ ' + cash + '</strong><br><strong>Return:$' + tender_amount+ '</strong>');
     		$('#tender').show();
-    		}  
+    		}
     	}
         else
         {

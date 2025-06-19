@@ -1,103 +1,173 @@
 <?php
 
+
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\User;
-use App\Models\Role;
-use Auth;
+use App\Models\Department;
+use App\Models\Employee;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules;
+use Illuminate\Support\Facades\Validator;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
     public function index()
     {
-        $users = User::get();
-        $roles = Role::get();
-        //return $users;
-        return view('users.index', compact('users', 'roles'));
+        $users = User::all();
+        $roles = Role::all();
+        return view('users.index', compact('users','roles'));
     }
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
+
+    public function listePermissions($id)
+    {
+        $user = User::find($id);
+        $permissions = Permission::all();
+        return view('users.create_permissions', compact('user', 'permissions'));
+    }
+
+    public function assignPermissions(Request $request, $id)
+    {
+
+        try {
+            $user = User::findOrFail($id);
+        
+            // Récupérer uniquement les champs nécessaires (en ignorant _token et autres)
+            $permissions = collect($request->except('_token'))->mapWithKeys(fn($value, $key) => [str_replace('_', '.', $key) => (bool) $value]);
+        
+            $newPermissions = $permissions->filter()->keys();
+        
+            $user->syncPermissions($newPermissions);
+        
+            return redirect()->back()->with('success', 'Permissions mises à jour');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Erreur : ' . $e->getMessage());
+        }
+        
+        
+
+        return redirect()->route('users.index',compact('user'))->withSucces('permissions ajouté avec succès.');;
+    }
+
+    public function create()
+    {
+        $roles = Role::all();
+        $departments = Department::all();
+        return view('users.create', compact('roles','departments'));
+    }
+
     public function store(Request $request)
     {
-        //return $request->all();
-       $this->validate($request, ['name' => 'required|string|unique:users',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:6|confirmed',
-        ]);
-        $request['password'] = bcrypt($request->password);
-        // /return $request->all();
-        User::create($request->all());
-        return back()->with('success', 'User created successfully');
-    }
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function edit(Request $request)
-    {
-        //return $request->all();
-        $user = User::find($request->id);
-        //return $user;
-        $this->validate($request, ['name' => 'required|string|unique:users,name,'.$user->id,
-	         'email' => 'required|string|email|max:255|unique:users,email,'.$user->id]);
-        //return $request->all();
-        $data['name'] = $request->name;
-        $data['email'] = $request->email;
-        if($request->password)
+        $rules = [
+            'first_name'                  => 'required|string|max:255',
+            'last_name'               => 'required|string|max:255',
+            'email'                => 'required|email|unique:users,email',
+            'phone'              => 'required|string|min:8|max:15',
+            'password'             => ['required', 'confirmed', Rules\Password::defaults()],
+            'password_confirmation'=> 'required',
+            'department_id'=>'required|numeric',
+        ];
+
+        if (count($request->working_day)) {
+             $request['working_day'] = implode(',',$request->working_day);
+        }
+
+        $data = $request->all();
+
+        if($request->role_id == 'medecin')
         {
-            $this->validate($request , ['password' => 'required|string|min:6|confirmed']);
-       		$data['password'] = bcrypt($request->password);
+            $data['first_name'] = 'DR '.$request->first_name;
         }
-        if($request->role_id)
-        {
-       		$data['role_id'] = $request->role_id;
+
+        $user = new User();
+        $user->name = $request->name;
+        $user->email = $request->email;
+        $user->password = $request->password;
+
+        if($user->save()){
+            $data['user_id'] = $user->id;
+            Employee::create($data);
+            $user->assignRole($request->role_id);
         }
-        //return $data;
-        $user->update($data);
-        return back()->with('success', 'User edited successfully');
+
+        return redirect()->route('users.index')->withSucces('Utilisateur ajouté avec succès.');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function delete(Request $request)
+    public function show(User $user)
     {
-      	// return $request->all();
-       $user = User::find($request->id);
-       if (count($user->invoices) || count($user->role) ) {
-        return back()->with('error', 'User cannot deletd..');
-        }
-       $user->delete();
-       return back()->with('success', 'User deleted successfully.');
+        return view('users.show', compact('user'));
     }
 
-    public function changePassword(Request $request)
-
+    public function edit(User $user)
     {
-    
-       // return $request->all();
-        $user = Auth::user();
-       
-        $this->validate($request, ['password'=> 'required|string|min:6|confirmed']);
-        $data['password'] = bcrypt($request->password);
-        $user->update($data);
-        Auth::guard()->logout();
-        return back()->with('success', 'Password Changed successfully..');
+        return view('users.edit', compact('user'));
+    }
+
+    public function update(Request $request, User $user)
+    {
+        $rules = [
+            'nom'                  => 'required|string|max:255',
+            'prenom'               => 'required|string|max:255',
+            'contact'              => 'required|string|min:8|max:15',
+            'role'                 => 'required|string|max:50',
+            'password'             => ['required', 'confirmed', Rules\Password::defaults()],
+        ];
+
+        $validator = Validator::make($request->all(), $rules);
+
+        if ($validator->fails()) {
+            return back()->withErrors($validator)->withInput();
+        }
+
+        $user = User::find($user->id);
+
+
+        if ($request->hasFile('image')) {
+            $image = $request->image->getClientOriginalName() . '_' . time() . '.' . $request->image->extension();
+            $image = str_replace(" ", "_", $image);
+            $request->image->move(public_path('assets/img'), $image);
+            $user->image = $image;
+        }
+
+        $user->nom     = $request->nom;
+        $user->prenom  = $request->prenom;
+        $user->contact = $request->contact;
+        $user->email   = $request->email;
+        $user->contact = $request->contact ?? $user->contact;
+        $user->role    = $request->role ?? $user->role;
+
+        if ($request->filled('password')) {
+            $user->password = Hash::make($request->password);
+        }
+
+        $user->update();
+        return redirect()->route('users.index')->withSucces('Utilisateur mis à jour avec succès.');
+    }
+
+    public function destroy(User $user)
+    {
+        $user->delete();
+        return redirect()->route('users.index')->withSucces('Utilisateur supprimé avec succès.');
+    }
+
+    public function disableUser($id)
+    {
+       $user = User::findOrFail($id);
+
+       if(is_null($user)){
+          return back();
+        }
+        $user->status ? $user->status =  false : $user->status =  true;
+        if ($user->status ==false && $user->save()) {
+            return back()->withError('Utilisateur suspendu avec succes');
+        }else{
+            if ($user->status == true && $user->save()) {
+                return back()->withSucces('Utilisateur Activé avec succes');
+            }
+        }
     }
 }

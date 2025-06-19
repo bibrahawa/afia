@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.backend')
 @section('content')
 <div class="col-md-12 main">
 		<div class="row">
@@ -193,7 +193,7 @@ $('.add_macroscopic .remove_macro').on('click', function(e) {
         var microscopic = $(this).data('microscopic');
         var macroscopic = $(this).data('macroscopic');
 
-        	for (i = 0; i < microscopic.length; i++) { 
+        	for (i = 0; i < microscopic.length; i++) {
         		$('.add_microscopic').append("<tr class='add_more_microscopic'><td><div class='input-group'><input type='text' name='microscopic[]' value='"+ microscopic[i] +"' class='form-control input-md' required=''><span class='input-group-btn'><a class='btn btn-sm btn-danger remove_micro'><span class='glyphicon glyphicon-remove'></span></a></span></td></tr>");
         	}
 

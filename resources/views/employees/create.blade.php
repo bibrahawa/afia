@@ -1,6 +1,6 @@
-@extends('layouts.app')
+@extends('layouts.backend')
 @section('content')
-<div class="col-md-12 main">			
+<div class="col-md-12 main">
 		<div class="row">
 			<ol class="breadcrumb">
 				<li><a href="#"><svg class="glyph stroked home"><use xlink:href="#stroked-home"></use></svg></a></li>
@@ -11,19 +11,19 @@
 <!-- Modal -->
 @if ($message = Session::get('success'))
 <div class="alert alert-success alert-block">
-	<button type="button" class="close" data-dismiss="alert">×</button>	
+	<button type="button" class="close" data-dismiss="alert">×</button>
         <strong>{{ $message }}</strong>
 </div>
 @endif
 @if ($message = Session::get('error'))
 <div class="alert alert-danger alert-block">
-	<button type="button" class="close" data-dismiss="alert">×</button>	
+	<button type="button" class="close" data-dismiss="alert">×</button>
         <strong>{{ $message }}</strong>
 </div>
 @endif
 @if (count($errors) > 0)
         <div class="alert alert-danger">
-           
+
             <ul>
                 @foreach ($errors->all() as $error)
                     <li>{{ $error }}</li>
@@ -37,7 +37,7 @@
 					<div class="panel-heading">Add Employee
 					<a class="btn btn-primary pull-right" href="{{route('employee.index')}}"><span class="glyphicon glyphicon"></span>Back</a></div>
 					<div class="panel-body">
-          			
+
       				<div class="container">
 		      	{!! Form::open(array('route' => 'employee.store','method'=>'POST')) !!}
 		      	<div class="row">
@@ -57,11 +57,13 @@
 					<label>Email:</label>
 				 	{!! Form::email('email', null, array('class' => 'form-control')) !!}
 				</div>
-				<div class=" col-md-4 form-group">
+
+                <div class=" col-md-4 form-group">
 					<label>Phone:</label>
 				 	{!! Form::input('number','phone' ,null, array('class' => 'form-control', 'required'=>'required')) !!}
 				</div>
-				<div class=" col-md-4 form-group">
+
+                <div class=" col-md-4 form-group">
 					<label>Type:</label>
 				 	<select class="form-control" name="type" required>
 				 	<option></option>
@@ -70,7 +72,7 @@
 					<option>Reception</option>
 					<option>Pharmacy</option>
 					<option>Acountant</option>
-					<option>Nurse</option>	
+					<option>Nurse</option>
 					<option>Other</option>
 				 	</select>
 				</div>
@@ -120,14 +122,14 @@
 			        <option>Wednesday</option>
 			        <option>Thursday</option>
 			        <option>Friday</option>
-			        <option>Saturday</option>   
+			        <option>Saturday</option>
 			        </select>
 			    </div>
-			    
-				
+
+
 		      </div>
 		    <div class="modal-footer">
-		        
+
 		          <button class="btn btn-danger" type="reset">Reset</button>
 		           <button class="btn btn-success" type="submit">Save changes</button>
 		    </div>
