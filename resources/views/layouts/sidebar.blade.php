@@ -66,7 +66,7 @@
             <li class="nav-item">
                 <a href="{{ route('account.facture') }}">
                     <i class="fas fa-table"></i>
-                    <p>Facture non payer</p>
+                    <p>Paiement en attente</p>
                 </a>
             </li>
 
@@ -131,6 +131,20 @@
                 <a href="{{ route('users.index') }}">
                     <i class="fas fa-layer-group"></i>
                     <p>Users</p>
+                </a>
+            </li>
+
+            <li class="nav-section">
+                <span class="sidebar-mini-icon">
+                    <i class="fa fa-ellipsis-h"></i>
+                </span>
+                <h4 class="text-section">Rapport</h4>
+            </li>
+
+            <li class="nav-item">
+                <a href="{{ route('reports.index') }}">
+                    <i class="fas fa-layer-group"></i>
+                    <p>Rapport</p>
                 </a>
             </li>
 

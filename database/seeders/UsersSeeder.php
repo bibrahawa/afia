@@ -15,14 +15,42 @@ class UsersSeeder extends Seeder
      */
     public function run()
     {
-    //    User::truncate();
-        $user = User::create([
-            'name'     => 'Admin',
-            'email'    => 'admin@admin.com',
-            'password' => 'Admin@01'
-            // 'role_id'  => Role::find(1)->id,
+        $adminRole  = Role::find(1);
+        $medecinRole = Role::create(['name' => 'medecin']);
+        $acceuilRole = Role::create(['name' => 'accueil']);
+
+        $userAdmin = User::create([
+            'name'=> 'Admin',
+            'status' => true,
+            'email' => 'admin@aprosafe.com',
+            'password' => 'Admin@01',
         ]);
 
-        $user->assignRole('admin');
+        // $employee = Employee::create([
+        //     'first_name'=> 'Admin',
+        //     'last_name'=> 'Admin',
+        //     'status' => true,
+        //     'email' => 'admin@aprosafe.com',
+        //     'password' => 'Admin@01',
+        // ]);
+
+        $userMedecin = User::create([
+            'name' => 'binta',
+            'status' => true,
+            'email' => 'binta@aprosafe.com',
+            'password' => 'binta@01',
+        ]);
+
+        $userAcceuil = User::create([
+            'name' => 'secretaire',
+            'status' => true,
+            'email' => 'secretaire@aprosafe.com',
+            'password' => 'secretaire@01',
+        ]);
+
+        $userAdmin->assignRole($adminRole);
+        $userMedecin->assignRole($medecinRole);
+        $userAcceuil->assignRole($acceuilRole);
+
     }
 }

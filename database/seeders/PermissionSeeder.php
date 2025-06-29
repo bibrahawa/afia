@@ -17,8 +17,6 @@ class PermissionSeeder extends Seeder
      */
     public function run()
     {
-        // Role::query()->truncate();
-        // Permission::query()->truncate();
         $count = 0;
 
         $role = Role::create(['name' => 'admin']);

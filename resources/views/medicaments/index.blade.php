@@ -130,12 +130,19 @@
 
                                         <div class="col-sm-12">
                                             <div class="form-group form-group-default">
-                                                <label>Selectionnez une forme:</label>
+                                                <label>Sélectionnez une forme :</label>
                                                 <select name="forme" class="form-control">
-                                                    <option value="Comprime">Comprime</option>
-                                                    <option value="Sirop">Sirop</option>
-                                                    <option value="Injection">Injection</option>
-                                                    <option value="Perfusion">Perfusion</option>
+                                                    <option value="COMPRIMÉ">COMPRIMÉ</option>
+                                                    <option value="GÉLULE">GÉLULE</option>
+                                                    <option value="SIROP">SIROP</option>
+                                                    <option value="INJECTION">INJECTION</option>
+                                                    <option value="PERFUSION">PERFUSION</option>
+                                                    <option value="CRÈME">CRÈME</option>
+                                                    <option value="POMMADE">POMMADE</option>
+                                                    <option value="SUPPOSITOIRE">SUPPOSITOIRE</option>
+                                                    <option value="INHALATEUR">INHALATEUR</option>
+                                                    <option value="GOUTTES">GOUTTES</option>
+                                                    <option value="SPRAY">SPRAY</option>
                                                 </select>
                                             </div>
                                         </div>
@@ -171,7 +178,12 @@
                                                 <textarea name="instructions" class="form-control"></textarea>
                                             </div>
                                         </div>
-
+                                        <div class="col-sm-12">
+                                            <div class="form-group form-group-default">
+                                                <label>Prix:</label>
+                                                <input type="text" name="amount" class="form-control">
+                                            </div>
+                                        </div>
                                     </div>
                                 </form>
                             </div>
@@ -213,12 +225,19 @@
                                         <input type="hidden" name="id" id="edit_id">
                                         <div class="col-sm-12">
                                             <div class="form-group form-group-default">
-                                                <label>Selectionnez une forme:</label>
-                                                <select name="forme" id="edit_forme" class="form-control">
-                                                    <option value="Comprime">Comprime</option>
-                                                    <option value="Sirop">Sirop</option>
-                                                    <option value="Injection">Injection</option>
-                                                    <option value="Perfusion">Perfusion</option>
+                                                <label>Sélectionnez une forme :</label>
+                                                <select name="forme" id="edit_form" class="form-control">
+                                                    <option value="COMPRIMÉ">COMPRIMÉ</option>
+                                                    <option value="GÉLULE">GÉLULE</option>
+                                                    <option value="SIROP">SIROP</option>
+                                                    <option value="INJECTION">INJECTION</option>
+                                                    <option value="PERFUSION">PERFUSION</option>
+                                                    <option value="CRÈME">CRÈME</option>
+                                                    <option value="POMMADE">POMMADE</option>
+                                                    <option value="SUPPOSITOIRE">SUPPOSITOIRE</option>
+                                                    <option value="INHALATEUR">INHALATEUR</option>
+                                                    <option value="GOUTTES">GOUTTES</option>
+                                                    <option value="SPRAY">SPRAY</option>
                                                 </select>
                                             </div>
                                         </div>
@@ -252,6 +271,12 @@
                                             <div class="form-group form-group-default">
                                                 <label>Instruction:</label>
                                                 <textarea name="instructions" id="edit_instructions" class="form-control"></textarea>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-12">
+                                            <div class="form-group form-group-default">
+                                                <label>Prix:</label>
+                                                <input type="text" id="edit_amount" name="amount" class="form-control">
                                             </div>
                                         </div>
 
@@ -325,6 +350,7 @@
             $('#edit_nom').val(medicament.nom);
             $('#edit_frequence').val(medicament.frequence);
             $('#edit_instructions').val(medicament.instructions);
+            $('#edit_amount').val(medicament.amount);
             $('#edit_duree').val(medicament.duree);
             $('#edit_dosage').val(medicament.dosage);
 

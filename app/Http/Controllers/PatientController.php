@@ -33,6 +33,7 @@ class PatientController extends Controller
      */
     public function store(Request $request)
     {
+
         $data = $request->all();
         $data['age'] = date('Y') - date('Y', strtotime($data['birth_date']));
         $data['country'] = 'Guinee';
@@ -48,6 +49,7 @@ class PatientController extends Controller
             Patient::create($data);
             $user->assignRole('patient');
         }
+
         return back()->with('success', 'Patient saved Successfully.');
     }
 
@@ -66,12 +68,14 @@ class PatientController extends Controller
 
     public function addFile(Request $request, $id){
 
-        $patient = Patient::findOrFail($id);
-
-        if (!$request->hasFile('file')) {
-            return back()->with('error', 'Please select files to upload');
+        if(!$request->hasFile('file')) {
+            return back()->with('error', 'No file selected for upload');
         }
 
+        if(!$id) {
+            return back()->with('error', 'Invalid patient ID');
+        }
+        $patient = Patient::find($id);
         try {
 
             $file = $request->file('file');

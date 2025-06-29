@@ -21,7 +21,7 @@
             <i class="icon-arrow-right"></i>
           </li>
           <li class="nav-item">
-            <a href="{{ route('test.index') }}">Tests</a>
+            <a href="{{ route('test.index') }}">Examens</a>
           </li>
         </ul>
       </div>
@@ -31,13 +31,13 @@
           <div class="card">
             <div class="card-header">
               <div class="d-flex align-items-center">
-                <h4 class="card-title">Liste des tests</h4>
+                <h4 class="card-title">Liste des examens</h4>
                 <button
                   class="btn btn-primary btn-round ms-auto"
                   data-bs-toggle="modal"
                   data-bs-target="#addRowModal"
                 >
-                  <i class="fa fa-plus"></i> Ajouter un test
+                  <i class="fa fa-plus"></i> Ajouter un examen
                 </button>
               </div>
             </div>
@@ -59,7 +59,7 @@
                             <th>ID</th>
 				            <th>Name</th>
 					        <th>Type</th>
-					        <td>Description</td>
+					        <td>Montant</td>
 				            <th>Actions</th>
                         </tr>
                     </tfoot>
@@ -69,7 +69,7 @@
                                 <td>{{ $test->id}}</td>
                                 <td>{{ $test->name}}</td>
                                 <td>{{ ucfirst($test->report_type) }}</td>
-                                <td>{{ $test->description}}</td>
+                                <td>{{ number_format($test->amount)}}</td>
                                 <td>
                                     <div class="form-button-action">
                                         <!-- Modifier : Ajout des data-bs-toggle et data-bs-target -->
@@ -192,11 +192,11 @@
                                 </button>
                             </div>
                             <div class="modal-body">
-                                <form id='editTestForm' action="#" method="POST">
+                                <form id='editTestForm' action="{{ route('test.edit') }}" method="POST">
                                     @csrf
                                     @method('POST')
                                     <div class="row">
-                                        <input type="hidden" name="edit_id" name="id">
+                                        <input type="hidden" id="edit_id" name="edit_id">
                                         <div class="col-sm-6">
                                             <div class="form-group form-group-default">
                                                 <label>Nom du test</label>

@@ -1,64 +1,208 @@
 @extends('layouts.backend')
 @section('content')
 
-<div class="col-md-12 main">
-<div class="row">
-	<ol class="breadcrumb">
-		<li><a href="#"><svg class="glyph stroked home"><use xlink:href="#stroked-home"></use></svg></a></li>
-		<li class="active">Icon</li>
-		<li> Profile </li>
-	</ol>
-</div><br>
-@if ($message = Session::get('success'))
-<div class="alert alert-success alert-block">
-	<button type="button" class="close" data-dismiss="alert">×</button>
-        <strong>{{ $message }}</strong>
-</div>
-@endif
-@if ($message = Session::get('error'))
-<div class="alert alert-danger alert-block">
-	<button type="button" class="close" data-dismiss="alert">×</button>
-        <strong>{{ $message }}</strong>
-</div>
-@endif
-@if (count($errors) > 0)
-<div class="alert alert-danger">
-        <ul>
-            @foreach ($errors->all() as $error)
-                <li>{{ $error }}</li>
-                <button type="button" class="close" data-dismiss="alert">×</button>
-            @endforeach
+<div class="container">
+    <div class="page-inner">
+      <div class="page-header">
+        <ul class="breadcrumbs">
+          <li class="nav-home">
+            <a href="{{url('/')}}">
+              <i class="icon-home"></i>
+            </a>
+          </li>
+          <li class="separator">
+            <i class="icon-arrow-right"></i>
+          </li>
+          <li class="nav-item">
+            <a href="{{ url('/') }}">Admin</a>
+          </li>
+          <li class="separator">
+            <i class="icon-arrow-right"></i>
+          </li>
+          <li class="nav-item">
+            <a href="{{ route('patient.index') }}">Profile</a>
+          </li>
         </ul>
-</div>
-@endif
+      </div>
+      <?php $employee = auth()->user()->employee ?>
+        <main id="main" class="main">
+            <section class="section profile">
+            <div class="row">
+                <div class="col-xl-4">
+                    <div class="card">
+                        <div class="card-body profile-card pt-4 d-flex flex-column align-items-center">
+                            <img src="{{ asset('assets/img/profile.jpg') }}" alt="Profile" class="rounded-circle">
+                            <h2>{{ $employee->last_name." ".$employee->first_name }}</h2>
+                            <h3>{{ $employee->occupation }}</h3>
+                            <div class="social-links mt-2">
+                                <a href="#" class="twitter"><i class="bi bi-twitter"></i></a>
+                                <a href="#" class="facebook"><i class="bi bi-facebook"></i></a>
+                                <a href="#" class="instagram"><i class="bi bi-instagram"></i></a>
+                                <a href="#" class="linkedin"><i class="bi bi-linkedin"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-<div class="row">
-<div class="col-lg-12">
-<div class="panel panel-default">
-	<div class="panel-heading">{{$employee->first_name}} {{$employee->last_name}}
-		<a style="margin-left: 5px" class="btn btn-sm btn-primary pull-right" href="{{route('employee.edit', $employee->id)}}"><span class=" glyphicon glyphicon-edit"> </span>Edit Employee</a><a class="btn btn-sm btn-default pull-right" href="{{url('employee')}}">Back <span class="glyphicon glyphicon-share-alt"></span></a>
-	</div>
-	<div class="panel-body">
-				<div class="col-md-6">
-					<b>Address: {{$employee->address}}</b><br>
-					<b>Phone: {{$employee->phone}}</b><br>
-					<label>Email: <a href="mail:to">{{$employee->email}}</a></label><br>
-					<label>Education: {{$employee->education}}</label><br>
-					<label>Description: {{$employee->description}}</label><br>
-					<label>Certificate: {{$employee->certificate}}</label><br>
-					<label>Speciality: {{$employee->spciality}}</label><br>
-				</div>
-				<div class="col-md-6">
-				<label>Working Days: {{$employee->working_day}}</label><br>
-				<label>Available Time: {{$employee->in_time}} - {{$employee->out_time}}</label><br>
-				<label>Department: {{$employee->department->name}}</label><br>
+                <div class="col-xl-8">
+                    <div class="card">
+                        <div class="card-body pt-3">
+                            <!-- Bordered Tabs -->
+                            <ul class="nav nav-tabs nav-tabs-bordered">
 
-				</div>
-	</div>
-</div>
-</div>
-</div>
-</div>
+                                <li class="nav-item">
+                                    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#profile-overview">Overview</button>
+                                </li>
 
+                                <li class="nav-item">
+                                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#profile-edit">Edit Profile</button>
+                                </li>
+
+                                <li class="nav-item">
+                                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#profile-change-password">Change Password</button>
+                                </li>
+
+                            </ul>
+                            <div class="tab-content pt-2">
+                                <div class="tab-pane fade show active profile-overview" id="profile-overview">
+
+                                    <h5 class="card-title">Profile Details</h5>
+                                    <div class="row">
+                                        <div class="col-lg-3 col-md-4 label">Jour de travail</div>
+                                        <div class="col-lg-9 col-md-8">{{ $employee->working_day }}</div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-lg-3 col-md-4 label">Job</div>
+                                        <div class="col-lg-9 col-md-8">{{ $employee->speciality }}</div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-lg-3 col-md-4 label">Country</div>
+                                        <div class="col-lg-9 col-md-8">USA</div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-lg-3 col-md-4 label">Address</div>
+                                        <div class="col-lg-9 col-md-8">{{ $employee->address }}</div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-lg-3 col-md-4 label">Phone</div>
+                                        <div class="col-lg-9 col-md-8">{{ $employee->phone }}</div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-lg-3 col-md-4 label">Email</div>
+                                        <div class="col-lg-9 col-md-8">{{ auth()->user()->email }}</div>
+                                    </div>
+
+                                </div>
+
+                                <div class="tab-pane fade profile-edit pt-3" id="profile-edit">
+                                    <!-- Profile Edit Form -->
+                                    <form>
+
+                                        <div class="row mb-3">
+                                            <label for="first_name" class="col-md-4 col-lg-3 col-form-label">Nom</label>
+                                            <div class="col-md-8 col-lg-9">
+                                                <input name="first_name" type="text" class="form-control" id="first_name" placeholder="Barry">
+                                            </div>
+                                        </div>
+
+                                        <div class="row mb-3">
+                                            <label for="last_name" class="col-md-4 col-lg-3 col-form-label">Prenom</label>
+                                            <div class="col-md-8 col-lg-9">
+                                                <input name="last_name" type="text" class="form-control" id="last_name" placeholder="Hawa">
+                                            </div>
+                                        </div>
+
+                                        <div class="row mb-3">
+                                            <label for="company" class="col-md-4 col-lg-3 col-form-label">Company</label>
+                                            <div class="col-md-8 col-lg-9">
+                                                <input name="company" type="text" class="form-control" id="company" value="Lueilwitz, Wisoky and Leuschke">
+                                            </div>
+                                        </div>
+
+                                        <div class="row mb-3">
+                                            <label for="Job" class="col-md-4 col-lg-3 col-form-label">Job</label>
+                                            <div class="col-md-8 col-lg-9">
+                                                <input name="job" type="text" class="form-control" id="Job" value="Web Designer">
+                                            </div>
+                                        </div>
+
+                                        <div class="row mb-3">
+                                            <label for="Country" class="col-md-4 col-lg-3 col-form-label">Country</label>
+                                            <div class="col-md-8 col-lg-9">
+                                                <input name="country" type="text" class="form-control" id="Country" value="USA">
+                                            </div>
+                                        </div>
+
+                                        <div class="row mb-3">
+                                            <label for="Address" class="col-md-4 col-lg-3 col-form-label">Address</label>
+                                            <div class="col-md-8 col-lg-9">
+                                                <input name="address" type="text" class="form-control" id="Address" value="A108 Adam Street, New York, NY 535022">
+                                            </div>
+                                        </div>
+
+                                        <div class="row mb-3">
+                                            <label for="Phone" class="col-md-4 col-lg-3 col-form-label">Phone</label>
+                                            <div class="col-md-8 col-lg-9">
+                                                <input name="phone" type="text" class="form-control" id="Phone" value="(436) 486-3538 x29071">
+                                            </div>
+                                        </div>
+
+                                        <div class="row mb-3">
+                                            <label for="Email" class="col-md-4 col-lg-3 col-form-label">Email</label>
+                                            <div class="col-md-8 col-lg-9">
+                                                <input name="email" type="email" class="form-control" id="Email" value="k.anderson@example.com">
+                                            </div>
+                                        </div>
+
+                                        <div class="text-center">
+                                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                                        </div>
+                                    </form><!-- End Profile Edit Form -->
+                                </div>
+
+                                <div class="tab-pane fade pt-3" id="profile-change-password">
+                                    <!-- Change Password Form -->
+                                    <form action="" method="post">
+                                        <div class="row mb-3">
+                                            <label for="currentPassword" class="col-md-4 col-lg-3 col-form-label">Current Password</label>
+                                            <div class="col-md-8 col-lg-9">
+                                                <input name="password" type="password" class="form-control" id="currentPassword">
+                                            </div>
+                                        </div>
+
+                                        <div class="row mb-3">
+                                            <label for="newPassword" class="col-md-4 col-lg-3 col-form-label">New Password</label>
+                                            <div class="col-md-8 col-lg-9">
+                                                <input name="newpassword" type="password" class="form-control" id="newPassword">
+                                            </div>
+                                        </div>
+
+                                        <div class="row mb-3">
+                                            <label for="renewPassword" class="col-md-4 col-lg-3 col-form-label">Re-enter New Password</label>
+                                            <div class="col-md-8 col-lg-9">
+                                                <input name="renewpassword" type="password" class="form-control" id="renewPassword">
+                                            </div>
+                                        </div>
+
+                                        <div class="text-center">
+                                            <button type="submit" class="btn btn-primary">Change Password</button>
+                                        </div>
+                                    </form><!-- End Change Password Form -->
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            </section>
+        </main>
+    </div>
+</div><!-- End #main -->
 
 @endsection

@@ -561,7 +561,7 @@
                             <form id="addFileForm" action="" method="post" enctype="multipart/form-data">
                                 @csrf
                                 <div class="modal-body p-4">
-                                    
+
                                     <div class="file-upload-zone" onclick="document.getElementById('fileInput').click()">
                                         <i class="fas fa-cloud-upload-alt text-primary fa-3x mb-3"></i>
                                         <h6>Glissez votre fichier ici ou cliquez pour parcourir</h6>
@@ -581,7 +581,7 @@
                                         <i class="fas fa-times"></i>
                                         Annuler
                                     </button>
-                                    
+
                                     <button type="submit" form="addFileForm" class="btn btn-primary-enhanced">
                                         <i class="fas fa-upload"></i>
                                         Uploader
@@ -632,7 +632,7 @@
 
         $(document).on('click', '.add-file-button', function() {
             var patient = $(this).data('patient');
-             
+
             // Mettre à jour l'action du formulaire de suppression avec l'ID du patient
             $('#addFileForm').attr('action', '/patient/file/' + patient.id);
 

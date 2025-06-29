@@ -194,7 +194,7 @@
                                             </div>
                                         </div>
 
-                                        <div class="col-sm-6">
+                                        <div class="col-sm-12">
                                             <div class="form-group">
                                                 <div class="form-group">
                                                     <label>Departement</label>
@@ -206,7 +206,7 @@
                                             </div>
                                         </div>
 
-                                        <div class="col-sm-6">
+                                        <div class="col-sm-12">
                                             <div class="form-group">
                                                 <label>Amount</label>
                                                 <div class="input-group">

@@ -5,16 +5,13 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Report;
 use App\Models\Patient;
-use App\Models\Invoice;
 use App\Models\Hospital;
 use App\Models\Test;
 use App\Models\Doctor;
-use App\Models\ServiceSale;
+use App\Models\Service;
+use App\Models\Department;
+use App\Models\Consultation;
 use App\Models\TestReport;
-use App\Models\TestResult;
-use App\Models\ResultValue;
-use App\Models\TestAntibiotic;
-use App\Models\TestAntibioticResult;
 use App\Models\TestReferenceResult;
 use Auth;
 use PDF;
@@ -23,10 +20,12 @@ class ReportController extends Controller
 {
 	public function index()
 	{
-		
-		$reports = Report::orderBy('created_at', 'DESC')->get();
-		return view('reports.index', compact('reports'));
-	}
+        $services = Service::all();
+        $departments = Department::all();
+        $examens = Test::all();
+		return view('reports.tools.index', compact('services', 'departments', 'examens'));
+
+    }
 
     public function edit($id)
     {
@@ -45,7 +44,7 @@ class ReportController extends Controller
             }
             else
             {
-                $list .= '<strong>'.$test->test->name.': </strong> <input type="checkbox" name="sample[]" value="'. $test->id.'"><br>';  
+                $list .= '<strong>'.$test->test->name.': </strong> <input type="checkbox" name="sample[]" value="'. $test->id.'"><br>';
 
             }
        }
@@ -72,10 +71,10 @@ class ReportController extends Controller
                     $test = TestReport::find($test->id);
                     $test->update($test_report);
                 }
-                   
+
             }
         }
-        
+
        }
 
        return back()->with('success', 'Sample Collect successfully');
@@ -109,7 +108,7 @@ class ReportController extends Controller
             $list .= $this->getHeader($report,  $setting);
             $list .= $this->haematologyReport($haematology_tests);
             $list .= $this->getFooter($report);
-            
+
         }
 
         if (count($biochemistry_tests)) {
@@ -125,7 +124,7 @@ class ReportController extends Controller
             $list .= $this->getHeader($report, $setting);
             $list .= $this->stainReport($stain_tests);
             $list .= $this->getFooter($report);
-            
+
         }
 
         if (count($immunology_tests)) {
@@ -133,7 +132,7 @@ class ReportController extends Controller
             $list .= $this->getHeader($report, $setting);
             $list .= $this->immunologyReport($immunology_tests);
             $list .= $this->getFooter($report);
-            
+
         }
 
          if (count($examination_tests)) {
@@ -158,8 +157,8 @@ class ReportController extends Controller
             $list .= $this->widalReport($widal_tests);
             $list .= $this->getFooter($report);
         }
-        $list .= '</div>';      
-        
+        $list .= '</div>';
+
         //return $list;
         $pdf = PDF::loadHtml($list);
         $pdf->save(public_path().'/reports/'.$report->patient->first_name.$report->id.'.pdf');
@@ -191,13 +190,13 @@ class ReportController extends Controller
     }
 
 
-    public function haematologyReport($test_reports) 
+    public function haematologyReport($test_reports)
     {
         $list = '';
         $list .= '<h3 align="center">HAEMATOLOGY REPORT</h3>';
         $list .= $this->referenceReport($test_reports);
         return $list;
-        
+
     }
 
     public function referenceReport($test_reports)
@@ -215,7 +214,7 @@ class ReportController extends Controller
                     foreach ($test_report->test->test_references as $test_reference) {
 
                         if (count($test_reference->children)) {
-                            
+
                             $list .='<tr><td colspan="4"><u><strong>'. $test_reference->name.'</strong><u></td></tr>';
 
                             foreach ($test_reference->children as $child) {
@@ -251,7 +250,7 @@ class ReportController extends Controller
                     foreach ($test_report->test->test_references as $test_reference) {
 
                         if (count($test_reference->children)) {
-                                    
+
                             $list .='<tr><td colspan="4"><strong>'. $test_reference->name.'</strong></td><tr>';
 
                                 foreach ($test_reference->children as $child) {
@@ -285,16 +284,16 @@ class ReportController extends Controller
                         }
                     }
                 } else {
-                                
+
                         $list .='<tr><td><strong>'. $test_report->test->name.'</strong></td><td colspan="3">'.$test_report->test_result->result.'</td></tr>';
                 }
             }
-                               
+
             $list .='</tbody></table>';
             return $list;
     }
 
-    public function biochemistryReport($test_reports) 
+    public function biochemistryReport($test_reports)
     {
 
         $list = '';
@@ -304,7 +303,7 @@ class ReportController extends Controller
     }
 
 
-    public function stainReport($test_reports) 
+    public function stainReport($test_reports)
     {
         $list = '';
         foreach ($test_reports as $test_report) {
@@ -319,10 +318,10 @@ class ReportController extends Controller
 
                 $list .='<tr><td>'.$tests[$i].'</td><td>'.$test_results[$i].'</td></tr>';
             }
-            $list .= '</table> ';  
+            $list .= '</table> ';
         }
-                   
-        return $list;  
+
+        return $list;
     }
 
 
@@ -336,13 +335,13 @@ class ReportController extends Controller
 
             if(count($test_report->test->test_references)) {
 
-                
+
                 $list .= '<table border="0" cellpadding="3" cellspacing="0"  style="width:100%; margin-bottom:30px;"><thead><tr><th><u>Test Name</th><th><u>Result</th><th><u>Unit</th><th><u>Range</th><th><u>Flag</th></tr></thead><tbody>';
 
                 foreach ($test_report->test->test_references as $test_reference) {
 
                     if (count($test_reference->children)) {
-                        
+
                         $list .='<tr><td colspan="4"><strong>'. $test_reference->name.'</strong></td></tr>';
 
                         foreach ($test_reference->children as $child) {
@@ -360,20 +359,20 @@ class ReportController extends Controller
                     }
                 }
 
-                $list .= '</tbody></table><br>'; 
+                $list .= '</tbody></table><br>';
             } else {
 
-                
+
                 $list .= '<table border="1" cellpadding="5" cellspacing="0"  style="width:100%; margin-bottom:30px;"><thead><tr><th>Test Name</th><th align="center">Result</th></thead><tbody>';
 
                 $list .='<tr><td><strong>'. $test_report->test->name.'</strong></td><td>'.$test_report->test_result->result.'</td></tr>';
-                $list .= '</tbody></table><br>';  
-            }  
+                $list .= '</tbody></table><br>';
+            }
         }
 
-             
+
         return $list;
-    }   
+    }
 
 
     public function examinationReport($test_reports)
@@ -392,13 +391,13 @@ class ReportController extends Controller
             $microscopic = $test_report->test->test_examination->microscopic();
             $microscopic_result = unserialize( $test_report->examination_result->microscopic_result);
 
-            for ($i = 0 ; $i < count($macroscopic); $i++) { 
+            for ($i = 0 ; $i < count($macroscopic); $i++) {
 
                 $list .= '<tr><td>'.$macroscopic[$i].'</td><td>'.$macroscopic_result[$i].'</td></tr>';
             }
             $list .= '</table></td><td><table width="100%">';
 
-            for ($i = 0 ; $i < count($microscopic); $i++) { 
+            for ($i = 0 ; $i < count($microscopic); $i++) {
 
             $list .= '<tr><td>'.$microscopic[$i].'</td><td> '.$microscopic_result[$i].'</td></tr>';
             }
@@ -418,10 +417,10 @@ class ReportController extends Controller
         }
 
         return $list;
-    } 
+    }
 
 
-    public function microbiologyReport($test_reports) 
+    public function microbiologyReport($test_reports)
     {
         $list = '';
         $list .= '<br><div align="center" style="margin-top:30px;"><b>MICROBIOLOGY REPORT</b></div>';
@@ -429,7 +428,7 @@ class ReportController extends Controller
             foreach($test_reports as $test_report) {
 
                 $list .= '<u><h4 align="center">'.$test_report->test->name.'</h4></u>';
-                
+
                 if(count($test_report->test_result)) {
                     $list .= '<b>Result: </b>';
                     $list .= '<b style="font-weight:normal">'.$test_report->test_result->result.'</b>';
@@ -455,7 +454,7 @@ class ReportController extends Controller
         $list = '';
         $list .= '<br><div align="center" style="margin-top:30px;"><b>HAEMATOLOGY REPORT</b></div>';
         foreach ($widal_tests as $test) {
-           
+
             $list .= '<h3 align="center">'. $test->test->name.'</h3>';
             $test_result = $test->test_result;
             $result = unserialize($test_result->result);
@@ -463,7 +462,7 @@ class ReportController extends Controller
             $list .= '<table border="1" cellpadding="5" cellspacing="0"  style="width:100%; margin-bottom:30px;" align="center"><tr><th>Antigens</th><th>Result</th><th>Agglutination Titre</th><th>Significant Titre</th></tr>';
 
 
-            for ($i=0; $i < count($result["results"]); $i++) { 
+            for ($i=0; $i < count($result["results"]); $i++) {
 
                 $list .= '<tr><td>'.$result["antigens"][$i].'</td><td>'.$result["results"][$i].'</td><td>'.$result["agglutinations"][$i].'</td><td>'.$result["significants"][$i].'</td></tr>';
            }
@@ -472,11 +471,11 @@ class ReportController extends Controller
         }
 
         return $list;
-        
+
     }
 
 
-    public function getHeader($report, $setting) 
+    public function getHeader($report, $setting)
     {
         $list = '';
         $list .='<div style="margin-top:160px;  position:relative">';
@@ -489,9 +488,9 @@ class ReportController extends Controller
             $list .= $doctor->employee->first_name.' '.$doctor->employee->last_name.'</strong></div></div><br><br><br>';
         }
         return $list;
-    }  
+    }
 
-    public function getFooter($report) 
+    public function getFooter($report)
     {
         $list = '';
          if ($report->result) {
@@ -501,10 +500,65 @@ class ReportController extends Controller
 
         $list .='<table style="width:100%; margin:30px;" align="center"><tr><td>----------------</td><td>------------------</td><td>----------------<td></tr>';
         $list .='<tr><td>    <strong>Technician</strong>   </td><td>    <strong>Technologist</strong>   </td><td>   <strong>Pathologist</strong>   </td></tr></table><br>';
-       
+
         $list .= '<div align="left">Date:  '.date('Y-m-d h:m').'</strong><br>Report By : '.Auth::user()->name.'</div><div style="page-break-after: always;
         page-break-inside: avoid;"></div>';
         return $list;
+    }
+
+    public function service(Request $request)
+    {
+        // Validation des données
+        $request->validate([
+            'department_id' => 'required',
+            'services' => 'required|array',
+            'from' => 'required|date',
+            'to' => 'required|date|after_or_equal:from',
+        ], [
+            'to.after_or_equal' => 'La date de fin doit être supérieure ou égale à la date de début',
+            'services.required' => 'Veuillez sélectionner au moins un service',
+        ]);
+
+        $departmentId = $request->get('department_id');
+        $serviceIds = $request->get('services');
+        $from = $request->get('from');
+        $to = $request->get('to');
+        $rapports = [];
+
+        // Conversion des dates
+        $fromDate = \Carbon\Carbon::createFromFormat('Y-m-d', $from)->startOfDay();
+        $toDate = \Carbon\Carbon::createFromFormat('Y-m-d', $to)->endOfDay();
+        // Construction de la requête pour les services
+        $consultationQuery = Consultation::whereBetween('created_at', [$fromDate, $toDate]);
+        // Filtrer par département si spécifié
+        if ($departmentId != 'all') {
+            $consultationQuery->where('department_id', $departmentId);
+        }
+
+        $consultationQuery = $consultationQuery->get();
+
+        $consultationQuery->map(function($consultation) use ($serviceIds, &$rapports) {
+            // Récupération des services associés à la consultation
+            foreach ($consultation->services as $service) {
+                // Vérifier si le service est dans la liste des services sélectionnés
+                if (in_array($service->id, $serviceIds) || in_array('all', $serviceIds)) {
+                    $rapports[] = [
+                        'department' => $consultation->department->name,
+                        'patiente' => $consultation->patient->first_name . ' ' . $consultation->patient->last_name,
+                        'consultation' => $consultation,
+                        'service' => $service->name,
+                        'amount' => $service->amount,
+                    ];
+                }
+            }
+        });
+
+
+        return view('reports.tools.rapport_service', compact(
+            'rapports',
+            'from',
+            'to',
+        ));
     }
 
 }

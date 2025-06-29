@@ -44,68 +44,68 @@
             <div class="card-body">
                 <div class="table-responsive">
                     <table id="add-row" class="display table table-striped table-hover">
-                    <thead class="bg-primary text-white">
-                        <tr>
-                            <th style="width: 10%">ID</th>
-                            <th>Package Name</th>
-                            <th>Tests</th>
-                            <th>Services</th> {{-- Ajouté pour la cohérence --}}
-                            <th>Price</th>
-                            <th style="width: 10%">Actions</th>
-                        </tr>
-                    </thead>
-                    <tfoot>
-                        <tr>
-                            <th>ID</th>
-                            <th>Package Name</th>
-                            <th>Tests</th>
-                            <th>Services</th>
-                            <th>Price</th>
-                            <th>Actions</th>
-                        </tr>
-                    </tfoot>
-                    <tbody>
-                        @foreach($packages as $package)
+                        <thead class="bg-primary text-white">
                             <tr>
-                                <td>{{ $package->id}}</td>
-                                <td>{{ $package->name}}</td>
-                                <td>
-                                    @foreach($package->tests as $test)
-                                        <li> {{$test->name}} </li>
-                                    @endforeach
-                                </td>
-                                <td>
-                                    @foreach($package->services as $service)
-                                        <li> {{$service->name}} </li>
-                                    @endforeach
-                                </td>
-                                <td>{{ number_format($package->price, 2)}}</td>
-                                <td>
-                                    <div class="form-button-action">
-                                        <button  type="button"
-                                            class="btn btn-warning btn-round btn-sm edit-button"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#editRowModal"
-                                            data-info="{{$package->id}},{{$package->name}},{{$package->department_id}}, {{ $package->tests->pluck('id') }},{{$package->services->pluck('id') }}"
-                                        >
-                                            <i class="fa fa-edit"></i>
-                                        </button>
-
-                                        <button
-                                            type="button"
-                                            class="btn btn-danger btn-round btn-sm delete-button"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#deleteRowModal"
-                                            data-id="{{$package->id}}"
-                                            data-name="{{$package->name}}"
-                                        >
-                                            <i class="fa fa-trash"></i>
-                                        </button>
-                                    </div>
-                                </td>
+                                <th style="width: 10%">ID</th>
+                                <th>Package Name</th>
+                                <th>Tests</th>
+                                <th>Services</th> {{-- Ajouté pour la cohérence --}}
+                                <th>Price</th>
+                                <th style="width: 10%">Actions</th>
                             </tr>
-                        @endforeach
-                    </tbody>
+                        </thead>
+                        <tfoot>
+                            <tr>
+                                <th>ID</th>
+                                <th>Package Name</th>
+                                <th>Tests</th>
+                                <th>Services</th>
+                                <th>Price</th>
+                                <th>Actions</th>
+                            </tr>
+                        </tfoot>
+                        <tbody>
+                            @foreach($packages as $package)
+                                <tr>
+                                    <td>{{ $package->id}}</td>
+                                    <td>{{ $package->name}}</td>
+                                    <td>
+                                        @foreach($package->tests as $test)
+                                            <li> {{$test->name}} </li>
+                                        @endforeach
+                                    </td>
+                                    <td>
+                                        @foreach($package->services as $service)
+                                            <li> {{$service->name}} </li>
+                                        @endforeach
+                                    </td>
+                                    <td>{{ number_format($package->price, 2)}}</td>
+                                    <td>
+                                        <div class="form-button-action">
+                                            <button  type="button"
+                                                class="btn btn-warning btn-round btn-sm edit-button"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#editRowModal"
+                                                data-info="{{$package->id}},{{$package->name}},{{$package->department_id}}, {{ $package->tests->pluck('id') }},{{$package->services->pluck('id') }}"
+                                            >
+                                                <i class="fa fa-edit"></i>
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                class="btn btn-danger btn-round btn-sm delete-button"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#deleteRowModal"
+                                                data-id="{{$package->id}}"
+                                                data-name="{{$package->name}}"
+                                            >
+                                                <i class="fa fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
                     </table>
                 </div>
 
@@ -140,6 +140,14 @@
 
                                         <div class="col-sm-12">
                                             <div class="form-group">
+                                                <label>Ajouter des services:</label>
+                                                <select name="services[]" id="add_services" class="form-control selectpicker" data-live-search="true" title="Sélectionnez les services" multiple>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-sm-12">
+                                            <div class="form-group">
                                                 <label>Ajouter des examens:</label>
                                                 {{-- Utilisation de select multiple pour les tests --}}
                                                 <select name="tests[]" id="add_tests" class="form-control selectpicker" data-live-search="true" title="Sélectionnez les examens" multiple>
@@ -152,15 +160,6 @@
                                                 @error('tests') <span class="text-danger">{{ $message }}</span> @enderror
                                             </div>
                                         </div>
-
-                                        <div class="col-sm-12">
-                                            <div class="form-group">
-                                                <label>Ajouter des services:</label>
-                                                <select name="services[]" id="add_services" class="form-control selectpicker" data-live-search="true" title="Sélectionnez les services" multiple>
-                                                </select>
-                                            </div>
-                                        </div>
-
                                         <div class="col-sm-12">
                                             <div class="form-group form-group-default">
                                                 <label>Description</label>
@@ -380,7 +379,7 @@
         $('#edit_department_id').val(departmentId);
         $('#edit_department_id').selectpicker('refresh');
 
-        alert(info[4].split(','));
+        // alert(info[4].split(','));
         // Mettre à jour les tests sélectionnés
         $('#edit_tests').val(info[4] ? info[4].split(',') : []);
         $('#edit_tests').selectpicker('refresh');

@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+use App\Models\Antecedant;
+
 class Patient extends Model
 {
 
@@ -56,6 +58,11 @@ class Patient extends Model
     public function files()
     {
         return $this->hasMany(FichierPatient::class);
+    }
+
+    public function antecedant()
+    {
+        return $this->hasOne("App\Models\Antecedent");
     }
 
 }

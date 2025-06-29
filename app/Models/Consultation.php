@@ -31,22 +31,22 @@ class Consultation extends Model
 
     public function medicaments()
     {
-        return $this->belongsToMany(Medicament::class, 'consultation_medicament');
+        return $this->belongsToMany(Medicament::class, 'consultation_medicament')->withPivot('facturer');
     }
 
     public function services()
     {
-        return $this->belongsToMany(Service::class, 'consultation_service');
+        return $this->belongsToMany(Service::class, 'consultation_service')->withPivot('facturer');
     }
 
     public function packages()
     {
-        return $this->belongsToMany(Package::class, 'consultation_package');
+        return $this->belongsToMany(Package::class, 'consultation_package')->withPivot('facturer');
     }
 
     public function tests()
     {
-        return $this->belongsToMany(Test::class, 'consultation_test');
+        return $this->belongsToMany(Test::class, 'consultation_test')->withPivot('facturer');
     }
 
     public function transaction()

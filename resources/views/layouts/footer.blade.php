@@ -21,7 +21,7 @@
       </div>
       <div>
         Distributed by
-        <a target="_blank" href="#">WCFA</a>.
+        <a href="#"> WCFA</a>.
       </div>
     </div>
   </footer>

@@ -423,7 +423,7 @@
 
     .selected-item {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
+        color: black;
         padding: 8px 12px;
         border-radius: 20px;
         font-size: 14px;
@@ -567,6 +567,92 @@
     }
 </style>
 
+<style>
+    .dropdown-item {
+        padding: 8px 12px;
+        cursor: pointer;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .dropdown-item:hover {
+        background-color: #f8f9fa;
+    }
+
+    .item-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+    }
+
+    .item-name {
+        flex: 1;
+        font-weight: 500;
+    }
+
+    .billing-options {
+        margin-left: 15px;
+    }
+
+    .billing-checkbox {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        font-size: 12px;
+        color: #666;
+    }
+
+    .billing-checkbox input[type="checkbox"] {
+        margin-right: 5px;
+        transform: scale(0.9);
+    }
+
+    .billing-label {
+        font-size: 11px;
+        white-space: nowrap;
+    }
+
+    .checkmark {
+        margin-left: 3px;
+    }
+
+    /* Style pour les éléments sélectionnés */
+    .selected-item {
+        display: inline-flex;
+        align-items: center;
+        background: #e3f2fd;
+        border: 1px solid #2196f3;
+        border-radius: 15px;
+        padding: 5px 10px;
+        margin: 2px;
+        font-size: 12px;
+    }
+
+    .selected-item.not-billed {
+        background: #fff3e0;
+        border-color: #ff9800;
+    }
+
+    .selected-item .billing-status {
+        font-size: 10px;
+        margin-left: 5px;
+        padding: 2px 6px;
+        border-radius: 8px;
+        background: rgba(255,255,255,0.7);
+    }
+
+    .selected-item.not-billed .billing-status {
+        color: #e65100;
+    }
+
+    .selected-item .remove-item {
+        margin-left: 8px;
+        cursor: pointer;
+        color: #666;
+        font-weight: bold;
+    }
+</style>
+
 @endsection
 
 @section('content')
@@ -602,17 +688,17 @@
                                     <span class="status-badge status-required ms-2">Obligatoire</span>
                                 </label>
                                 <div class="select-wrapper">
-                                    <select class="form-control" id="patient_id" name="patient_id" onselect="getFile()" required>
+                                    <select class="form-control" id="patient_id" name="patient_id" required>
                                         <option value="">Choisir un patient...</option>
                                         @foreach ($patients as $patient)
-                                            <option value="{{ $patient->id }}">{{ $patient->first_name." ".$patient->middle_name." ".$patient->last_name }} </option>
+                                            <option value="{{ $patient->id }}"> {{ $patient->first_name." ".$patient->middle_name." ".$patient->last_name." ".$patient->phone }} </option>
                                         @endforeach
                                     </select>
                                 </div>
-                                <button type="button" class="btn btn-outline-enhanced btn-sm-enhanced mt-2">
+                                {{-- <button type="button" class="btn btn-outline-enhanced btn-sm-enhanced mt-2">
                                     <i class="fas fa-plus"></i>
                                     Nouveau Patient
-                                </button>
+                                </button> --}}
                             </div>
                         </div>
                         <div class="col-lg-6 col-md-12">
@@ -624,17 +710,17 @@
                                 </label>
 
                                 <div class="select-wrapper">
-                                    <select class="form-control" name="fichiers_enregistres[]" required>
+                                    <select class="form-control" name="fichiers_enregistres[]">
                                         <option value="">Choisir un fichier...</option>
                                         @foreach ($fichiersPatients as $file)
                                             <option value="{{ $file->id }}">{{ $file->nom_fichier }}</option>
                                         @endforeach
                                     </select>
                                 </div>
-                                <button type="button" class="btn btn-outline-enhanced btn-sm-enhanced mt-2" data-bs-toggle="modal" data-bs-target="#uploadFileModal">
+                                {{-- <button type="button" class="btn btn-outline-enhanced btn-sm-enhanced mt-2 add-file-button" data-bs-toggle="modal" data-bs-target="#uploadFileModal">
                                     <i class="fas fa-upload"></i>
                                     Ajouter un Document
-                                </button>
+                                </button> --}}
                             </div>
                         </div>
                     </div>
@@ -783,27 +869,72 @@
                                 </label>
                                 <div class="search-select">
                                     <input type="hidden" name="selected_items" id="selected-items-input">
+                                    <input type="hidden" name="billing_status" id="billing-status-input">
                                     <input type="text" class="search-input" placeholder="Rechercher services, examens, packages, médicaments..." id="search-input">
                                     <div class="selected-items" id="selected-items"></div>
                                     <div class="dropdown-list" id="dropdown-list">
                                         <div class="category">Services</div>
                                         @foreach ($services as $service)
-                                            <div class="dropdown-item" data-value="service-{{$service->id}}" data-category="services">{{ $service->name }}</div>
+                                            <div class="dropdown-item" data-value="service-{{$service->id}}" data-category="services" data-name="{{ $service->name }}">
+                                                <div class="item-content">
+                                                    <span class="item-name">{{ $service->name }}</span>
+                                                    <div class="billing-options">
+                                                        <label class="billing-checkbox">
+                                                            <input type="checkbox" class="billing-check" data-item="service-{{$service->id}}" checked>
+                                                            <span class="checkmark"></span>
+                                                            <span class="billing-label"></span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         @endforeach
 
                                         <div class="category">Examens Complémentaires</div>
                                         @foreach ($tests as $examen)
-                                            <div class="dropdown-item" data-value="examen-{{$examen->id}}" data-category="examens">{{ $examen->name }}</div>
+                                            <div class="dropdown-item" data-value="examen-{{$examen->id}}" data-category="examens" data-name="{{ $examen->name }}">
+                                                <div class="item-content">
+                                                    <span class="item-name">{{ $examen->name }}</span>
+                                                    <div class="billing-options">
+                                                        <label class="billing-checkbox">
+                                                            <input type="checkbox" class="billing-check" data-item="examen-{{$examen->id}}" checked>
+                                                            <span class="checkmark"></span>
+                                                            <span class="billing-label"></span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         @endforeach
 
                                         <div class="category">Packages</div>
                                         @foreach ($packages as $package)
-                                            <div class="dropdown-item" data-value="package-{{$package->id}}" data-category="packages">{{ $package->name }}</div>
+                                            <div class="dropdown-item" data-value="package-{{$package->id}}" data-category="packages" data-name="{{ $package->name }}">
+                                                <div class="item-content">
+                                                    <span class="item-name">{{ $package->name }}</span>
+                                                    <div class="billing-options">
+                                                        <label class="billing-checkbox">
+                                                            <input type="checkbox" class="billing-check" data-item="package-{{$package->id}}" checked>
+                                                            <span class="checkmark"></span>
+                                                            <span class="billing-label"></span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         @endforeach
 
                                         <div class="category">Prescription Médicamenteuse</div>
                                         @foreach ($medicaments as $medicament)
-                                            <div class="dropdown-item" data-value="medicament-{{$medicament->id}}" data-category="medicaments">{{ $medicament->name }}</div>
+                                            <div class="dropdown-item" data-value="medicament-{{$medicament->id}}" data-category="medicaments" data-name="{{ $medicament->nom }}">
+                                                <div class="item-content">
+                                                    <span class="item-name">{{ $medicament->nom }}</span>
+                                                    <div class="billing-options">
+                                                        <label class="billing-checkbox">
+                                                            <input type="checkbox" class="billing-check" data-item="medicament-{{$medicament->id}}" checked>
+                                                            <span class="checkmark"></span>
+                                                            <span class="billing-label"></span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         @endforeach
                                     </div>
                                 </div>
@@ -1031,31 +1162,36 @@
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body p-4">
-                    <div class="file-upload-zone" onclick="document.getElementById('fileInput').click()">
-                        <i class="fas fa-cloud-upload-alt text-primary fa-3x mb-3"></i>
-                        <h6>Glissez votre fichier ici ou cliquez pour parcourir</h6>
-                        <p class="text-muted mb-0">PDF, JPG, PNG, DOCX - Max 10MB</p>
-                        <input type="file" id="fileInput" name="newFile" class="d-none" accept=".pdf,.jpg,.jpeg,.png,.docx">
+                <form id="addFileForm" action="" method="post" enctype="multipart/form-data">
+                    @csrf
+                    <input type="hidden" name="patient_id" id="patient_file_id">
+                    <div class="modal-body p-4">
+                        <div class="file-upload-zone" onclick="document.getElementById('fileInput').click()">
+                            <i class="fas fa-cloud-upload-alt text-primary fa-3x mb-3"></i>
+                            <h6>Glissez votre fichier ici ou cliquez pour parcourir</h6>
+                            <p class="text-muted mb-0">PDF, JPG, PNG, DOCX - Max 10MB</p>
+                            <input type="file" id="fileInput" name="file" class="d-none" accept=".pdf,.jpg,.jpeg,.png,.docx">
+                        </div>
+                        <div class="form-group-enhanced mt-3">
+                            <label class="form-label-enhanced">
+                                <i class="fas fa-comment text-secondary"></i>
+                                Description du Document
+                            </label>
+                            <input type="text" name="name" class="form-control" placeholder="Ex: Radiographie thoracique du 02/06/2025">
+                        </div>
                     </div>
-                    <div class="form-group-enhanced mt-3">
-                        <label class="form-label-enhanced">
-                            <i class="fas fa-comment text-secondary"></i>
-                            Description du Document
-                        </label>
-                        <input type="text" name="fileDescription" class="form-control" placeholder="Ex: Radiographie thoracique du 02/06/2025">
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-enhanced" data-bs-dismiss="modal">
+                            <i class="fas fa-times"></i>
+                            Annuler
+                        </button>
+
+                        <button type="submit" class="btn btn-primary-enhanced">
+                            <i class="fas fa-upload"></i>
+                            Uploader
+                        </button>
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-enhanced" data-bs-dismiss="modal">
-                        <i class="fas fa-times"></i>
-                        Annuler
-                    </button>
-                    <button type="button" class="btn btn-primary-enhanced">
-                        <i class="fas fa-upload"></i>
-                        Uploader
-                    </button>
-                </div>
+                </form>
             </div>
         </div>
     </div>
@@ -1066,6 +1202,44 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Événement pour modifier un patient
+        $(document).on('click', '.edit-button', function() {
+            var patient = $(this).data('patient_update');
+
+            // Mettre à jour le champ du modal
+            $('#edit_id').val(patient.id);
+            $('#edit_first_name').val(patient.first_name);
+            $('#edit_last_name').val(patient.last_name);
+            $('#edit_email').val(patient.email);
+            $('#edit_phone').val(patient.phone);
+            $('#edit_gender').val(patient.gender);
+            $('#edit_marital_status').val(patient.marital_status);
+            $('#edit_blood_group').val(patient.blood_group);
+            $('#edit_birth_date').val(patient.birth_date);
+            $('#edit_relative_name').val(patient.relative_name);
+            $('#edit_relative_phone').val(patient.relative_phone);
+            $('#edit_district').val(patient.district);
+            $('#edit_location').val(patient.location);
+            $('#edit_occupation').val(patient.occupation);
+            $('#edit_department').val(patient.description);
+
+            $('#editDepartmentForm').attr('action', '/patient/' + patient.id);
+
+            // Afficher le modal
+            $('#editRowModal').modal('show');
+        });
+
+        $(document).on('click', '.add-file-button', function() {
+            var patient = $(this).data('patient');
+            $('#patient_file_id').val(patient.id);
+
+            // Mettre à jour l'action du formulaire de suppression avec l'ID du patient
+            $('#addFileForm').attr('action', '/consultation/' + patient.id + '/add-file');
+
+            // Afficher le modal de confirmation
+            $('#uploadFileModal').modal('show');
+        });
+
         // No $('.selectpicker').selectpicker(); needed here
         const patients = @json($patients);
         const fichierPatients = @json($fichiersPatients);
@@ -1089,52 +1263,61 @@
 
         patientSelect.addEventListener('change', function() {
             const patientId = this.value;
-            if (patientId) {
 
-                // Clear existing options first if a patient is found
+            if (patientId) {
+                // Trouver le patient sélectionné directement
+                const selectedPatient = patients.find(patient => patient.id == patientId);
+
+                if (selectedPatient && selectedPatient.first_visit == true) {
+                    antecedentsSection.style.display = 'block';
+                    antecedentsSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                    // Optionnel : rendre les textareas requis
+                    // const textareas = antecedentsSection.querySelectorAll('textarea');
+                    // textareas.forEach(textarea => {
+                    //     textarea.setAttribute('required', 'required');
+                    // });
+                } else {
+                    antecedentsSection.style.display = 'none';
+                    const textareas = antecedentsSection.querySelectorAll('textarea');
+                    textareas.forEach(textarea => {
+                        textarea.removeAttribute('required');
+                    });
+                }
+
+                // Gestion des fichiers - nettoyer et repeupler les options
                 const fileSelect = document.querySelector('select[name="fichiers_enregistres[]"]');
+
                 if (fileSelect) {
-                    // Keep only the first default option
+                    // Garder seulement la première option par défaut
                     while (fileSelect.options.length > 1) {
                         fileSelect.remove(1);
                     }
 
-                    // Add new options
-                fichierPatients.forEach(file => {
-                        setTimeout(() => {
-                            const option = document.createElement('option');
-                            option.value = file.id;
-                            option.textContent = file.nom_fichier;
-                            fileSelect.appendChild(option);
-                        }, 500);
+                    // Ajouter les nouvelles options (filtrer par patient si nécessaire)
+                    const patientFiles = fichierPatients.filter(file => file.patient_id == patientId);
+                    patientFiles.forEach(file => {
+                        const option = document.createElement('option');
+                        option.value = file.id;
+                        option.textContent = file.nom_fichier;
+                        fileSelect.appendChild(option);
                     });
                 }
 
-                patients.forEach(patient => {
-                    setTimeout(() => {
-                        if (patient.id == patientId && patient.first_visit == true) {
-                            antecedentsSection.style.display = 'block';
-                            antecedentsSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-                            const textareas = antecedentsSection.querySelectorAll('textarea');
-                            textareas.forEach(textarea => {
-                                textarea.setAttribute('required', 'required');
-                            });
-                        } else {
-                            antecedentsSection.style.display = 'none';
-                            const textareas = antecedentsSection.querySelectorAll('textarea');
-                            textareas.forEach(textarea => {
-                                textarea.removeAttribute('required');
-                            });
-                        }
-                    }, 1000);
-                });
-
             } else {
+                // Aucun patient sélectionné
                 antecedentsSection.style.display = 'none';
                 antecedentsSection.querySelectorAll('textarea').forEach(textarea => {
                     textarea.removeAttribute('required');
                 });
+
+                // Réinitialiser le select des fichiers
+                const fileSelect = document.querySelector('select[name="fichiers_enregistres[]"]');
+                if (fileSelect) {
+                    while (fileSelect.options.length > 1) {
+                        fileSelect.remove(1);
+                    }
+                }
             }
         });
 
@@ -1309,229 +1492,288 @@
 </script>
 
 <script>
-    searchInput = document.getElementById('search-input');
-    const dropdownList = document.getElementById('dropdown-list');
-    const selectedItems = document.getElementById('selected-items');
-    const cardBody = document.querySelector('.card-body-service-seach');
-    let selected = [];
-    let allItems = Array.from(dropdownList.querySelectorAll('.dropdown-item'));
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('search-input');
+        const dropdownList = document.getElementById('dropdown-list');
+        const selectedItemsContainer = document.getElementById('selected-items');
+        const selectedItemsInput = document.getElementById('selected-items-input');
+        const cardBody = document.querySelector('.card-body-service-seach');
 
-    // Fonction pour animer le redimensionnement de la card
-    function animateCardResize() {
-        // Forcer un reflow pour que les transitions fonctionnent
-        cardBody.style.transition = 'all 0.3s ease';
+        let selected = []; // Stores {value, text} for display
+        let billingStatus = {}; // Stores {value: boolean} for billing status
 
-        // La card va automatiquement s'ajuster grâce à height: auto
-        setTimeout(() => {
-            cardBody.style.transition = '';
-        }, 300);
-    }
+        // Cache all dropdown items for efficient filtering
+        const allDropdownItems = Array.from(dropdownList.querySelectorAll('.dropdown-item'));
 
-    // Afficher/masquer le dropdown avec animation
-    searchInput.addEventListener('focus', () => {
-        dropdownList.classList.add('show');
-        filterItems('');
-    });
+        // --- Utility Functions ---
 
-    // Filtrer les éléments lors de la saisie
-    searchInput.addEventListener('input', (e) => {
-        const filter = e.target.value.toLowerCase();
-        filterItems(filter);
-    });
-
-    function filterItems(filter) {
-        let hasVisibleItems = false;
-        let currentCategory = null;
-
-        // Masquer toutes les catégories d'abord
-        dropdownList.querySelectorAll('.category').forEach(cat => {
-            cat.style.display = 'none';
-        });
-
-        allItems.forEach(item => {
-            const text = item.textContent.toLowerCase();
-            const category = item.dataset.category;
-            const isVisible = text.includes(filter);
-
-            item.style.display = isVisible ? 'flex' : 'none';
-
-            if (isVisible) {
-                hasVisibleItems = true;
-
-                // Afficher la catégorie si nécessaire
-                if (category !== currentCategory) {
-                    const categoryElement = item.previousElementSibling;
-                    if (categoryElement && categoryElement.classList.contains('category')) {
-                        categoryElement.style.display = 'block';
-                    }
-                    currentCategory = category;
-                }
-            }
-        });
-
-        // Afficher "Aucun résultat" si nécessaire
-        let noResults = dropdownList.querySelector('.no-results');
-        if (!hasVisibleItems && filter) {
-            if (!noResults) {
-                noResults = document.createElement('div');
-                noResults.className = 'no-results';
-                noResults.textContent = 'Aucun résultat trouvé';
-                dropdownList.appendChild(noResults);
-            }
-            noResults.style.display = 'block';
-        } else if (noResults) {
-            noResults.style.display = 'none';
+        // Animates the card's resize for a smoother user experience
+        function animateCardResize() {
+            cardBody.style.transition = 'all 0.3s ease';
+            // The card will naturally adjust its height due to `height: auto`
+            setTimeout(() => {
+                cardBody.style.transition = '';
+            }, 300);
         }
-    }
 
-    // Sélectionner un élément
-    dropdownList.addEventListener('click', (e) => {
-        if (e.target.classList.contains('dropdown-item')) {
-            const value = e.target.dataset.value;
-            const text = e.target.textContent;
+        // Updates the displayed selected items and the hidden input fields
+        function updateSelectedItemsDisplay() {
+            selectedItemsContainer.innerHTML = ''; // Clear current display
 
-            if (!selected.find(item => item.value === value)) {
-                selected.push({value, text});
-                updateSelectedItems();
-                e.target.classList.add('selected');
+            selected.forEach(item => {
+                const isBilled = billingStatus[item.value];
+                const selectedItemDiv = document.createElement('div');
+                selectedItemDiv.className = `selected-item ${!isBilled ? 'not-billed' : ''}`;
+                selectedItemDiv.innerHTML = `
+                    <span>${item.text}</span>
+                    <span class="billing-status">${isBilled ? 'Facturé' : 'Non facturé'}</span>
+                    <span class="remove-item" data-value="${item.value}">&times;</span>
+                `;
+                selectedItemsContainer.appendChild(selectedItemDiv);
+            });
 
-                // Animer le redimensionnement de la card
+            updateItemCount(); // Update the count of selected items
+            updateHiddenInputs(); // Update the hidden input fields for form submission
+        }
+
+        // Updates the count of selected items displayed
+        function updateItemCount() {
+            const existingCount = document.querySelector('.item-count');
+            if (existingCount) {
+                existingCount.remove();
+            }
+
+            if (selected.length > 0) {
+                const countElement = document.createElement('div');
+                countElement.className = 'item-count';
+                countElement.textContent = `${selected.length} sélectionné${selected.length > 1 ? 's' : ''}`;
+                selectedItemsContainer.appendChild(countElement);
+            }
+        }
+
+        // Updates the hidden input fields (`selected-items-input` and `billing-status-input`)
+        function updateHiddenInputs() {
+            // Transform selected items into the desired categorized format
+            const categorizedSelected = selected.reduce((acc, item) => {
+                let category = 'autres';
+                let cleanValue = item.value;
+
+                if (item.value.startsWith('service-')) {
+                    category = 'services';
+                    cleanValue = item.value.replace('service-', '');
+                } else if (item.value.startsWith('examen-')) {
+                    category = 'examens';
+                    cleanValue = item.value.replace('examen-', '');
+                } else if (item.value.startsWith('package-')) {
+                    category = 'packages';
+                    cleanValue = item.value.replace('package-', '');
+                } else if (item.value.startsWith('medicament-')) {
+                    category = 'medicaments';
+                    cleanValue = item.value.replace('medicament-', '');
+                }
+
+                if (!acc[category]) acc[category] = [];
+                acc[category].push({
+                    value: cleanValue,
+                    text: item.text
+                });
+
+                return acc;
+            }, {});
+
+            selectedItemsInput.value = JSON.stringify(categorizedSelected);
+            // Store billing status for all selected items
+            document.getElementById('billing-status-input').value = JSON.stringify(billingStatus);
+        }
+
+        // Filters dropdown items based on the search input
+        function filterDropdownItems(filter) {
+            let hasVisibleItems = false;
+            let currentCategory = null;
+
+            // Hide all categories first
+            dropdownList.querySelectorAll('.category').forEach(cat => {
+                cat.style.display = 'none';
+            });
+
+            allDropdownItems.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                const category = item.dataset.category;
+                const isVisible = text.includes(filter);
+
+                item.style.display = isVisible ? 'flex' : 'none';
+
+                if (isVisible) {
+                    hasVisibleItems = true;
+
+                    // Show the category if needed
+                    if (category !== currentCategory) {
+                        const categoryElement = item.previousElementSibling;
+                        if (categoryElement && categoryElement.classList.contains('category')) {
+                            categoryElement.style.display = 'block';
+                        }
+                        currentCategory = category;
+                    }
+                }
+            });
+
+            // Display "No results" message if no items are visible and there's a filter
+            let noResults = dropdownList.querySelector('.no-results');
+            if (!hasVisibleItems && filter) {
+                if (!noResults) {
+                    noResults = document.createElement('div');
+                    noResults.className = 'no-results';
+                    noResults.textContent = 'Aucun résultat trouvé';
+                    dropdownList.appendChild(noResults);
+                }
+                noResults.style.display = 'block';
+            } else if (noResults) {
+                noResults.style.display = 'none';
+            }
+        }
+
+        // --- Event Listeners ---
+
+        // Show dropdown and filter on search input focus
+        searchInput.addEventListener('focus', () => {
+            dropdownList.classList.add('show');
+            filterDropdownItems(searchInput.value.toLowerCase());
+        });
+
+        // Filter dropdown items as the user types
+        searchInput.addEventListener('input', (e) => {
+            filterDropdownItems(e.target.value.toLowerCase());
+        });
+
+        // Handle item selection and billing checkbox changes in the dropdown
+        dropdownList.addEventListener('click', (e) => {
+            // Handle billing checkbox change
+            if (e.target.classList.contains('billing-check')) {
+                const itemValue = e.target.dataset.item;
+                billingStatus[itemValue] = e.target.checked;
+                // If the item is already selected, update its display
+                if (selected.some(item => item.value === itemValue)) {
+                    updateSelectedItemsDisplay();
+                    animateCardResize();
+                }
+                return; // Prevent item selection logic from running
+            }
+
+            // Handle item selection
+            const itemElement = e.target.closest('.dropdown-item');
+            if (itemElement) {
+                const value = itemElement.dataset.value;
+                const text = itemElement.textContent.replace(/(Facturé|Non facturé)/, '').trim(); // Remove billing status from text
+                const billingCheck = itemElement.querySelector('.billing-check');
+
+                if (!selected.some(item => item.value === value)) {
+                    selected.push({
+                        value,
+                        text
+                    });
+                    // Initialize billing status if not already set (e.g., from pre-selected items)
+                    if (billingCheck) {
+                        billingStatus[value] = billingCheck.checked;
+                    } else {
+                        billingStatus[value] = true; // Default to billed if no checkbox
+                    }
+
+                    itemElement.classList.add('selected'); // Mark as selected in dropdown
+                    updateSelectedItemsDisplay();
+                    animateCardResize();
+                }
+
+                searchInput.value = '';
+                filterDropdownItems(''); // Clear filter and show all items
+                // Keep focus on search input if needed, or close dropdown
+                // searchInput.focus();
+                dropdownList.classList.remove('show');
+            }
+        });
+
+        // Remove selected item when its 'x' button is clicked
+        selectedItemsContainer.addEventListener('click', (e) => {
+            if (e.target.classList.contains('remove-item')) {
+                const valueToRemove = e.target.dataset.value;
+                selected = selected.filter(item => item.value !== valueToRemove);
+                delete billingStatus[valueToRemove]; // Also remove its billing status
+
+                const dropdownItem = dropdownList.querySelector(`[data-value="${valueToRemove}"]`);
+                if (dropdownItem) {
+                    dropdownItem.classList.remove('selected');
+                }
+
+                updateSelectedItemsDisplay();
                 animateCardResize();
             }
+        });
 
-            searchInput.value = '';
-            searchInput.focus();
-            filterItems('');
-        }
-    });
-
-    // Mettre à jour l'affichage des éléments sélectionnés
-    function updateSelectedItems() {
-        selectedItems.innerHTML = selected.map(item => `
-            <div class="selected-item">
-                <span>${item.text}</span>
-                <span class="remove-item" data-value="${item.value}">×</span>
-            </div>
-        `).join('');
-
-        document.getElementById('selected-items-input').value = JSON.stringify(
-        selected.reduce((acc, item) => {
-            let category = '';
-            let cleanValue = '';
-
-            if (item.value.startsWith('service-')) {
-                category = 'services';
-                cleanValue = item.value.replace('service-', '');
-            } else if (item.value.startsWith('examen-')) {
-                category = 'examens';
-                cleanValue = item.value.replace('examen-', '');
-            } else if (item.value.startsWith('package-')) {
-                category = 'packages';
-                cleanValue = item.value.replace('package-', '');
-            } else if (item.value.startsWith('medicament-')) {
-                category = 'medicaments';
-                cleanValue = item.value.replace('medicament-', '');
-            } else {
-                category = 'autres';
-                cleanValue = item.value;
+        // Close dropdown when clicking outside the search-select area
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.search-select')) {
+                dropdownList.classList.remove('show');
             }
+        });
 
-            if (!acc[category]) acc[category] = [];
-            acc[category].push({ value: cleanValue, text: item.text });
-
-            return acc;
-            }, {})
-        );
-
-        // alert('Selected values set: ' + selected.map(item => item.value).join(', '));
-        // Ajouter un compteur
-        updateItemCount();
-
-    }
-
-    function updateItemCount() {
-        const existingCount = document.querySelector('.item-count');
-        if (existingCount) {
-            existingCount.remove();
-        }
-
-        if (selected.length > 0) {
-            const countElement = document.createElement('div');
-            countElement.className = 'item-count';
-            countElement.textContent = `${selected.length} sélectionné${selected.length > 1 ? 's' : ''}`;
-            selectedItems.appendChild(countElement);
-        }
-    }
-
-    // Supprimer un élément sélectionné
-    selectedItems.addEventListener('click', (e) => {
-        if (e.target.classList.contains('remove-item')) {
-            const value = e.target.dataset.value;
-            selected = selected.filter(item => item.value !== value);
-            updateSelectedItems();
-
-            const dropdownItem = dropdownList.querySelector(`[data-value="${value}"]`);
-            if (dropdownItem) {
-                dropdownItem.classList.remove('selected');
+        // Keyboard navigation (Escape to close dropdown)
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                dropdownList.classList.remove('show');
+                searchInput.blur();
             }
+        });
 
-            // Animer le redimensionnement de la card
+        // --- Global Functions (for external interaction if needed) ---
+
+        window.getSelectedValues = function() {
+            return selected.map(item => item.value);
+        };
+
+        window.getSelectedItems = function() {
+            return selected.map(item => ({
+                value: item.value,
+                text: item.text
+            }));
+        };
+
+        window.setSelectedValues = function(values) {
+            selected = [];
+            billingStatus = {}; // Clear existing billing status
+
+            allDropdownItems.forEach(item => {
+                item.classList.remove('selected');
+                if (values.includes(item.dataset.value)) {
+                    const value = item.dataset.value;
+                    const text = item.textContent.replace(/(Facturé|Non facturé)/, '').trim();
+                    selected.push({
+                        value,
+                        text
+                    });
+
+                    const billingCheck = item.querySelector('.billing-check');
+                    if (billingCheck) {
+                        billingStatus[value] = billingCheck.checked;
+                    } else {
+                        billingStatus[value] = true; // Default to billed
+                    }
+                    item.classList.add('selected');
+                }
+            });
+
+            updateSelectedItemsDisplay();
             animateCardResize();
+        };
+
+        // --- Initialization ---
+
+        // Observe selectedItemsContainer for resize to trigger card animation if needed
+        if (window.ResizeObserver) {
+            const resizeObserver = new ResizeObserver(() => {
+                // No direct action needed here as animateCardResize is called on changes
+            });
+            resizeObserver.observe(selectedItemsContainer);
         }
     });
-
-    // Fermer le dropdown en cliquant ailleurs
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('.search-select')) {
-            dropdownList.classList.remove('show');
-        }
-    });
-
-    // Navigation au clavier
-    searchInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            dropdownList.classList.remove('show');
-            searchInput.blur();
-        }
-    });
-
-    // Fonctions utiles pour l'intégration
-    window.getSelectedValues = function() {
-        return selected.map(item => item.value);
-    };
-
-    window.getSelectedItems = function() {
-        return selected.map(item => ({ value: item.value, text: item.text }));
-    };
-
-    window.setSelectedValues = function(values) {
-        selected = [];
-        allItems.forEach(item => {
-            item.classList.remove('selected');
-            if (values.includes(item.dataset.value)) {
-                selected.push({
-                    value: item.dataset.value,
-                    text: item.textContent
-                });
-                item.classList.add('selected');
-            }
-        });
-
-        updateSelectedItems();
-        animateCardResize();
-
-        // document.getElementById('selected-items-input').value = selected;
-    };
-
-    // Observer pour détecter les changements de taille
-    if (window.ResizeObserver) {
-        const resizeObserver = new ResizeObserver(entries => {
-            // La card se redimensionne automatiquement
-            // Aucune action supplémentaire nécessaire
-        });
-        resizeObserver.observe(selectedItems);
-    }
-
 </script>
 
 @endsection

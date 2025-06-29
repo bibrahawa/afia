@@ -25,7 +25,7 @@ class CreateHospitalsTable extends Migration
             $table->string('registration_no');
             $table->string('invoice_message')->nullable();
             $table->string('website')->nullable();
-            $table->string('description')->nullable();
+            $table->longText('description')->nullable();
             $table->string('invoice_prefix')->default('LWC-');
             $table->string('patient_prefix')->default('LWC-');
             $table->string('tax_type')->nullabel();

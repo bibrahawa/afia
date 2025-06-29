@@ -17,11 +17,11 @@ class ReferenceTestController extends Controller
 
 	public function store(Request $request)
     {
-       //return $request->all();
+    //    return $request->all();
         $request->validate( ['name'=>'required|unique:test_references']);
-         
+
         TestReference::create($request->all());
-        return back()->with('success', 'Test References saved Successfully.');
+        return back()->with('success', 'Examen saved Successfully.');
         //
     }
 
@@ -29,10 +29,9 @@ class ReferenceTestController extends Controller
     {
         //return $request->all();
         $request->validate( ['name'=>'required']);
-        $data = TestReference::find ( $request->id );
+        $data = TestReference::find ($request->edit_id);
         $data->update($request->all());
-        return back()->with('success', 'Test Reference Updated successfully');
-        //
+        return back()->with('success', 'Examen Updated successfully');
     }
     public function delete(Request $request)
     {
@@ -44,7 +43,7 @@ class ReferenceTestController extends Controller
       if(count($test->children) || count($test->test_reference_results)) {
         return back()->with('error', 'Parent test cannot deleted..');
       }
-      
+
       $test->delete();
       return back()->with('success', 'Test Reference deleted successfully.');
 

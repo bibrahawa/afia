@@ -16,23 +16,23 @@ class RolesSeeder extends Seeder
      */
     public function run()
     {
-        // $adminRole  = Role::create(['name' => 'admin']);
+        $adminRole  = Role::create(['name' => 'admin']);
         $medecinRole = Role::create(['name' => 'medecin']);
         $acceuilRole = Role::create(['name' => 'accueil']);
 
-        // $adminRole->givePermissionTo(Permission::all());
+        $adminRole->givePermissionTo(Permission::all());
 
-        // $userAdmin = User::create([
-        //     'name'=> 'admin',
-        //     'status' => true,
-        //     'email' => 'admin@gmail.com',
-        //     'password' => bcrypt('Admin@01'),
-        // ]);
+        $userAdmin = User::create([
+            'name'=> 'Admin',
+            'status' => true,
+            'email' => 'admin@aprosafe.com',
+            'password' => bcrypt('Admin@01'),
+        ]);
 
         $userMedecin = User::create([
             'name' => 'medecin',
             'status' => true,
-            'email' => 'medecin@gmail.com',
+            'email' => 'medecin@aprosafe.com',
             'password' => bcrypt('medecin@01'),
         ]);
 
@@ -43,7 +43,7 @@ class RolesSeeder extends Seeder
             'password' => bcrypt('acceuil@01'),
         ]);
 
-        // $userAdmin->assignRole($adminRole);
+        $userAdmin->assignRole($adminRole);
         $userMedecin->assignRole($medecinRole);
         $userAcceuil->assignRole($acceuilRole);
     }

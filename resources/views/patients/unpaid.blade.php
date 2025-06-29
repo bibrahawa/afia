@@ -71,7 +71,7 @@
                                 <td>{{$patient->first_name." ".$patient->middle_name." ".$patient->last_name}}</td>
                                 <td>{{$patient->phone}}</td>
                                 <td>{{$patient->district."/".$patient->location}}</td>
-                                <td>{{$patient->montant_du}}</td>
+                                <td>{{number_format($patient->montant_du)." GNF"}}</td>
                                 <td>
                                     <a href="{{ route('patient.show', $patient->id) }}" class="btn btn-sm btn-primary"><i class="fa fa-eye"></i></a>
 
@@ -84,7 +84,7 @@
                                             data-bs-target="#addNewPaiementModal"
                                             data-newpaiement="{{ $patient }}"
                                         >
-                                            <i class="fa fa-money"></i>
+                                            <i class="fas fa-money-bill"></i>
                                         </button>
 
                                     </div>
@@ -117,13 +117,10 @@
 
                                         <div class=" col-sm-12">
                                             <div class="form-group form-group-default">
-                                                <label class="form-label">Mode de paiement:</label>
-                                                <select name="source" id="edit_source" class="form-control">
-                                                    <option value="cash">Cash</option>
-                                                    <option value="om">OM</option>
-                                                    <option value="momo">Momo</option>
-                                                    <option value="Vista">Vista</option>
-                                                </select>
+                                                <label>Mode de paiement:</label>
+                                                <div class="input-group">
+                                                    <input type="text" name="source" class="form-control" value="CASH" placeholder="montant" readonly required>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -131,7 +128,7 @@
                                         <div class="col-sm-12">
                                             <div class="form-group form-group-default">
                                                 <label class="form-label">Description:</label>
-                                                <textarea name="description" class="form-control"></textarea>
+                                                <textarea name="description" class="form-control" placeholder="Ecrivez une description ici"></textarea>
                                             </div>
                                         </div>
 
@@ -139,7 +136,7 @@
                                             <div class="form-group form-group-default">
                                                 <label>Amount</label>
                                                 <div class="input-group">
-                                                    <input type="text" name="montant" class="form-control" placeholder="montant">
+                                                    <input type="text" name="montant" class="form-control" placeholder="montant" required>
                                                     <span class="input-group-text">GNF</span>
                                                 </div>
                                             </div>
@@ -156,8 +153,6 @@
                                         <span class="sr-only">Loading...</span>
                                     </div>
                                 </button>
-
-
                             </div>
                         </div>
                     </div>

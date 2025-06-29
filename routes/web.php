@@ -131,6 +131,7 @@ Route::middleware(['auth'])->group(function() {
 
     // Resources
     Route::resource('employee', EmployeeController::class);
+    Route::get('employee/profile', [EmployeeController::class, 'profile'])->name('employee.profile');
     Route::resource('doctor', DoctorController::class);
     Route::resource('patient', PatientController::class);
     Route::post('patient/file/{id}', [PatientController::class, 'addFile'])->name('patient.addFile');
@@ -140,8 +141,15 @@ Route::middleware(['auth'])->group(function() {
 
     Route::resource('/consultation', ConsultationController::class);
     Route::resource('medicaments', MedicamentController::class);
-
     Route::post('/consultations/{consultation}/facturer', [ConsultationController::class, 'facturer'])->name('consultations.facturer');
+
+    // Les factures de consultations
+    Route::get('/consultations/{id}/facture', [ConsultationController::class, 'facture'])->name('consultations.facture');
+    Route::get('/consultations/{id}/facture/ordonnance', [ConsultationController::class, 'facture_ordonnance'])->name('consultations.facture.ordonnance');
+    Route::get('/consultations/{id}/facture/medicament', [ConsultationController::class, 'facture_medicament'])->name('consultations.facture.medicament');
+    Route::get('/consultations/{id}/facture/paiement', [ConsultationController::class, 'facture_paiement'])->name('consultations.facture.paiement');
+    Route::get('/consultations/{id}/facture/examen', [ConsultationController::class, 'facture_examen'])->name('consultations.facture.examen');
+
     // Route::get('/patients/{patient}/consultations', [ConsultationController::class, 'index'])->name('consultations.index');
     // Route::get('/patients/{patient}/consultations/create', [ConsultationController::class, 'create'])->name('consultations.create');
     // Route::post('/consultations', [ConsultationController::class, 'store'])->name('consultations.store');
@@ -262,4 +270,12 @@ Route::middleware(['auth'])->group(function() {
         Route::get('account/opd', [AccountController::class, 'opdReport'])->name('opd');
         Route::get('account/package', [AccountController::class, 'packageReport'])->name('package');
     });
+
+    // RAPPORTS
+    Route::get('report', [ReportController::class, 'index'])->name('reports.index');
+    Route::post('service/report', [ReportController::class, 'service'])->name('service.report');
+
+    Route::get('/facture', function(){
+        return view('consultations.facture.facture_consultation');
+    })->name('facture.consultation');
 });

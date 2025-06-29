@@ -23,8 +23,10 @@ class EmployeeController extends Controller
         $departments = Department::select('id','name')->get();
         //$days = explode(',',$employees->working_day);
         return view('employees.index' , compact('employees', 'departments'));
+    }
 
-        //
+    public function profile(){
+        return view('employees.profile');
     }
 
 
