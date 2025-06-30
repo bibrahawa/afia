@@ -536,23 +536,31 @@ class ReportController extends Controller
         }
 
         $consultationQuery = $consultationQuery->get();
-
-        $consultationQuery->map(function($consultation) use ($serviceIds, &$rapports) {
+        $i = 0;
+        $consultationQuery->map(function($consultation) use ($serviceIds, &$rapports, $i) {
+            $total = 0;
+            $rapports[$i] = [
+                'department' => $consultation->department->name,
+                'patiente' => $consultation->patient->first_name . ' ' . $consultation->patient->last_name,
+                'consultation' => $consultation,
+            ];
             // Récupération des services associés à la consultation
-            foreach ($consultation->services as $service) {
+            foreach ($consultation->services as $key=>$service) {
                 // Vérifier si le service est dans la liste des services sélectionnés
                 if (in_array($service->id, $serviceIds) || in_array('all', $serviceIds)) {
-                    $rapports[] = [
-                        'department' => $consultation->department->name,
-                        'patiente' => $consultation->patient->first_name . ' ' . $consultation->patient->last_name,
-                        'consultation' => $consultation,
+                    $rapports[$i]['services'][$key] = [
                         'service' => $service->name,
                         'amount' => $service->amount,
                     ];
+                    $total += $service->amount;
                 }
             }
+
+            $rapports[$i]['total'] = $total;
+
         });
 
+        $i++;
 
         return view('reports.tools.rapport_service', compact(
             'rapports',

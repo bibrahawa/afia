@@ -197,7 +197,7 @@
                                                 {{ $examen->name }}
                                                 <span class="ml-1">
                                                     @if ($examen->pivot->facturer)
-                                                        {{ number_format($examen->amount) }} GNF
+                                                        {{ " = ".number_format($examen->amount) }} GNF
                                                     @else
                                                         Hors Clinique
                                                     @endif
@@ -260,17 +260,17 @@
 
                         <!-- Fichiers joints -->
                         @if($consultation->fichiers->count() > 0)
-                        <hr>
-                        <div class="info-item">
-                            <div class="info-label">Fichiers joints</div>
-                            <div class="info-value">
-                                @foreach($consultation->fichiers as $file)
-                                    <a href="{{ Storage::url($file->chemin) }}" target="_blank" class="btn btn-sm btn-outline-primary mr-2 mb-1">
-                                        <i class="fas fa-file"></i> {{ $file->nom_fichier }}
-                                    </a>
-                                @endforeach
+                            <hr>
+                            <div class="info-item">
+                                <div class="info-label">Fichiers joints</div>
+                                <div class="info-value">
+                                    @foreach($consultation->fichiers as $file)
+                                        <a href="{{ Storage::url($file->chemin) }}" target="_blank" class="btn btn-sm btn-outline-primary mr-2 mb-1">
+                                            <i class="fas fa-file"></i> {{ $file->nom_fichier }}
+                                        </a>
+                                    @endforeach
+                                </div>
                             </div>
-                        </div>
                         @endif
                     </div>
                 </div>
@@ -293,7 +293,7 @@
                                 <table class="table table-striped">
                                     <thead class="thead-light">
                                         <tr>
-                                            <th>Disponible</th>
+                                            <th>Status</th>
                                             <th width="30%">Médicament</th>
                                             <th width="20%">Fréquence</th>
                                             <th width="15%">Durée</th>
@@ -305,9 +305,9 @@
                                             <tr>
                                                 <td>
                                                     @if ($med->pivot->facturer)
-                                                        <i class="fas fa-circle-check"></i>
+                                                        <i class="far fa-check-circle"></i>
                                                     @else
-                                                        <i class="fas fa-circle"></i>
+                                                        <i class="far fa-circle"></i>
                                                     @endif
                                                 </td>
                                                 <td><strong>{{ $med->nom }}</strong></td>

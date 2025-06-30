@@ -82,8 +82,7 @@
                                             class="btn btn-success btn-sm payer-button"
                                             data-bs-toggle="modal"
                                             data-bs-target="#addNewPaiementModal"
-                                            data-newpaiement="{{ $patient }}"
-                                        >
+                                            data-newpaiement="{{ $patient }}">
                                             <i class="fas fa-money-bill"></i>
                                         </button>
 

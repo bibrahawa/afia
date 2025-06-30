@@ -33,36 +33,25 @@
                     <tr>
                         <th>#</th>
                         <th>Department</th>
-                        <th>Service</th>
-                        <th>Montant</th>
                         <th>Patiente</th>
+                        <th>Service</th>
+                        <th>Total</th>
                     </tr>
                 </thead>
                 <tbody>
+                    <?php $i = 1 ?>
                     @foreach($rapports as $rapport)
                         <tr>
+                            <td>{{ $i++ }}</td>
                             <td>{{ $rapport['department'] }}</td>
-                            <td>{{ $rapport['service'] }}</td>
-                            <td>{{ $rapport['amount'] }}</td>
                             <td>{{ $rapport['patiente'] }}</td>
+                            @foreach ($rapport['services'] as $item)
+                                <td><i class="fas fa-arrow-right">{{ " ".$item['service']." = ".number_format($item['amount'])." GNF" }}</i></td>
+                            @endforeach
+                            <td>{{ number_format($rapport['total'])." GNF" }}</td>
                         </tr>
                     @endforeach
-                        <div class="total-section">
-                            <div class="total-card">
-                                <div class="total-row">
-                                    <span>Sous-total:</span>
-                                    <span>21,000 FCFA</span>
-                                </div>
-                                <div class="total-row">
-                                    <span>TVA (18%):</span>
-                                    <span>3,780 FCFA</span>
-                                </div>
-                                <div class="total-row final">
-                                    <span>MONTANT TOTAL:</span>
-                                    <span class="amount">24,780 FCFA</span>
-                                </div>
-                            </div>
-                        </div>
+
                 </tbody>
             </table>
         </div>

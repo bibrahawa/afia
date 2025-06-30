@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\Employee;
+use App\Models\Department;
 use Illuminate\Database\Seeder;
 
 class UsersSeeder extends Seeder
@@ -18,6 +19,7 @@ class UsersSeeder extends Seeder
     {
         $adminRole  = Role::find(1);
         $medecinRole = Role::create(['name' => 'medecin']);
+        $patientRole = Role::create(['name' => 'patiente']);
         $acceuilRole = Role::create(['name' => 'accueil']);
 
         $userAdmin = User::create([
@@ -25,6 +27,10 @@ class UsersSeeder extends Seeder
             'status' => true,
             'email' => 'admin@aprosafe.com',
             'password' => 'Admin@01',
+        ]);
+
+        Department::create([
+            'name' => 'GYNECOLOGIE',
         ]);
 
         Employee::create([

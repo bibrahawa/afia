@@ -184,7 +184,7 @@
                         <label for="department_id" class="col-md-3 col-form-label fw-semibold">Departement</label>
                         <div class="col-md-9">
                             <select class="form-control selectpicker" name="department_id" id="department_id" data-live-search="true">
-                                <option value="all">Toutes les departements</option>
+                                <option value="all" selected>Toutes les departements</option>
                                 @foreach ($departments as $department)
                                     <option value="{{ $department->id }}">{{ $department->name }}</option>
                                 @endforeach
@@ -196,7 +196,7 @@
                         <label for="service_id" class="col-md-3 col-form-label fw-semibold">Service</label>
                         <div class="col-md-9">
                             <select class="form-control selectpicker" name="services[]" id="add_services" data-live-search="true" title="Sélectionnez les services" multiple>
-                                <option value="all">Toutes les departements</option>
+                                <option value="all" selected>Tous les services</option>
                                 @foreach ($departments as $department)
                                     <option value="{{ $department->id }}">{{ $department->name }}</option>
                                 @endforeach
