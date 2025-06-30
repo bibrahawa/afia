@@ -31,30 +31,9 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ConsultationController;
 use App\Http\Controllers\MedicamentController;
-use App\Models\Service;
+use App\Http\Controllers\HospitalisationController;
+use App\Http\Controllers\ChambreController;
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider within a group which
-| contains the "web" middleware group. Now create something great!
-|
-*/
-
-// Route publique pour le calcul du montant
-Route::get('/amount', function() {
-    $amount = Service::get();
-
-    foreach($amount as $amt) {
-        $data["amount"] = $amt->amount * 20 / 21;
-        $amt->update($data);
-    }
-
-    return 'Complete';
-});
 
 Route::resource('users', UserController::class)->names('users');
 Route::get('disable-user/{id}',[UserController::class,'disableUser'])->name('user.disable');
@@ -278,4 +257,13 @@ Route::middleware(['auth'])->group(function() {
     Route::get('/facture', function(){
         return view('consultations.facture.facture_consultation');
     })->name('facture.consultation');
+
+    Route::resource('hospitalisations', HospitalisationController::class);
+    Route::resource('chambres', ChambreController::class);
+
+    Route::get('/hospitalisations/{hospitalisation}/facture', [
+        HospitalisationController::class, 'facture'
+    ])->name('hospitalisations.facture');
+
+
 });

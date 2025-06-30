@@ -197,8 +197,8 @@
                         <div class="col-md-9">
                             <select class="form-control selectpicker" name="services[]" id="add_services" data-live-search="true" title="Sélectionnez les services" multiple>
                                 <option value="all" selected>Tous les services</option>
-                                @foreach ($departments as $department)
-                                    <option value="{{ $department->id }}">{{ $department->name }}</option>
+                                @foreach ($services as $service)
+                                    <option value="{{ $service->id }}">{{ $service->name }}</option>
                                 @endforeach
                             </select>
                         </div>

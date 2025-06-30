@@ -109,6 +109,16 @@
                     <p>Employes</p>
                 </a>
 
+                <a href="{{ route('chambres.index') }}">
+                    <i class="fas fa-layer-group"></i>
+                    <p>Chambres</p>
+                </a>
+
+                <a href="{{ route('hospitalisations.index') }}">
+                    <i class="fas fa-layer-group"></i>
+                    <p>Hospitalisations</p>
+                </a>
+
                 {{-- <a href="{{ route('doctor.index') }}">
                     <i class="fas fa-layer-group"></i>
                     <p>Docteur OPD</p>
