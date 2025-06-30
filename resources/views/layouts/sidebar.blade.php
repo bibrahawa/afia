@@ -3,12 +3,10 @@
     <div class="sidebar-logo">
         <!-- Logo Header -->
         <div class="logo-header" data-background-color="orange2">
-            <a href="{{ url('/') }}" class="logo">
-                <img src="assets/img/kaiadmin/logo_light.svg"
-                    alt="navbar brand"
-                    class="navbar-brand"
-                    height="20"/>
-            </a>
+            <img src="{{ asset("assets/img/logo.jpeg") }}"
+                alt="Logo Aprosafe"
+                class="h-12 w-auto object-contain mx-auto"/>
+
             <div class="nav-toggle">
                 <button class="btn btn-toggle toggle-sidebar">
                     <i class="gg-menu-right"></i>

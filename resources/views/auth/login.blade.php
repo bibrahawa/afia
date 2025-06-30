@@ -53,8 +53,9 @@
   </style>
 </head>
 <body>
+
   <div class="login-container text-center">
-    <img src="{{ asset('assets/img/logo.png') }}" alt="Logo" class="mb-3" width="100">
+    <img src="{{ asset('assets/img/logo.jpeg') }}" alt="Logo" class="mb-3" width="100">
     <h3 class="mb-3">Connexion</h3>
     <form method="POST" action="{{ route('login') }}">
         @csrf
