@@ -65,4 +65,9 @@ class Patient extends Model
         return $this->hasOne("App\Models\Antecedent");
     }
 
+    public function hospitalisations()
+    {
+        return $this->hasMany(Hospitalisation::class);
+    }
+
 }

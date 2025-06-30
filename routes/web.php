@@ -261,6 +261,10 @@ Route::middleware(['auth'])->group(function() {
     Route::resource('hospitalisations', HospitalisationController::class);
     Route::resource('chambres', ChambreController::class);
 
+    Route::get('/hospitalisations/{hospitalisation}/payer', [
+        HospitalisationController::class, 'payer'
+    ])->name('hospitalisations.payer');
+
     Route::get('/hospitalisations/{hospitalisation}/facture', [
         HospitalisationController::class, 'facture'
     ])->name('hospitalisations.facture');

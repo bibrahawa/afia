@@ -64,7 +64,6 @@ class PatientController extends Controller
     {
         $patient = Patient::find($id);
         return view('patients.show' , compact('patient'));
-        //
     }
 
     public function addFile(Request $request, $id){

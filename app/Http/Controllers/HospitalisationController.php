@@ -42,6 +42,7 @@ class HospitalisationController extends Controller
         ]);
 
         $date_sortie = Carbon::parse($request->date_entree)->addDays((int)$request->nombre_jours);
+
         Hospitalisation::create([
             'patient_id' => $request->patient_id,
             'chambre_id' => $request->chambre_id,
@@ -102,10 +103,8 @@ class HospitalisationController extends Controller
     }
 
 
-    public function facture(Hospitalisation $hospitalisation)
+    public function payer(Hospitalisation $hospitalisation)
     {
-
-
         // Durée réelle
         $dateDebut = \Carbon\Carbon::parse($hospitalisation->date_entree);
         $dateFin = $hospitalisation->date_sortie_effective ?? now();
@@ -117,8 +116,10 @@ class HospitalisationController extends Controller
         \DB::transaction(function () use (&$hospitalisation, $total) {
             $hospitalisation->load('patient', 'chambre');
             // Marquer comme libéré si pas déjà fait
-            if (!$hospitalisation->date_sortie_effective) {
+            if ($hospitalisation->status !== 'Terminé') {
+
                 $hospitalisation->date_sortie_effective = now();
+                $hospitalisation->total_payer = $total;
                 $hospitalisation->statut = 'Terminé';
                 $hospitalisation->save();
 
@@ -142,6 +143,29 @@ class HospitalisationController extends Controller
             }
         });
 
+
+        $factureNo = 'HOSP-' . now()->format('Ym') . str_pad($hospitalisation->id, 3, '0', STR_PAD_LEFT);
+
+        $pdf = Pdf::loadView('hospitalisations.facture-pdf', [
+            'hospitalisation' => $hospitalisation,
+            'nombreJours' => $nombreJours,
+            'total' => $total,
+            'factureNo' => $factureNo,
+        ]);
+
+        return $pdf->stream("Facture-{$factureNo}.pdf");
+    }
+
+    public function facture(Hospitalisation $hospitalisation)
+    {
+
+        // Durée réelle
+        $dateDebut = \Carbon\Carbon::parse($hospitalisation->date_entree);
+        $dateFin = $hospitalisation->date_sortie_effective ?? now();
+        $nombreJours = ceil($dateDebut->diffInDays($dateFin) ?: 1);
+
+        $prixJour = $hospitalisation->chambre->prix_par_jour;
+        $total = $prixJour * $nombreJours;
 
         $factureNo = 'HOSP-' . now()->format('Ym') . str_pad($hospitalisation->id, 3, '0', STR_PAD_LEFT);
 

@@ -47,6 +47,7 @@
                     <table id="add-row" class="display table table-striped table-hover">
                     <thead class="bg-primary text-white">
                         <tr>
+                            <th class="p-2">#</th>
                             <th class="p-2">Patiente</th>
                             <th class="p-2">Chambre</th>
                             <th class="p-2">Entrée</th>
@@ -57,6 +58,7 @@
                     </thead>
                     <tfoot>
                         <tr>
+                            <th class="p-2">#</th>
                             <th class="p-2">Patiente</th>
                             <th class="p-2">Chambre</th>
                             <th class="p-2">Entrée</th>
@@ -68,6 +70,7 @@
                     <tbody>
                         @foreach($hospitalisations as $hospitalisation)
                             <tr>
+                                <td class="p-2">{{ $loop->iteration }}</td>
                                 <td class="p-2">{{ $hospitalisation->patient->first_name." ".$hospitalisation->patient->last_name }}</td>
                                 <td class="p-2">{{ $hospitalisation->chambre->numero }}</td>
                                 <td class="p-2">{{ $hospitalisation->date_entree }}</td>
@@ -91,7 +94,6 @@
                                         >
                                             <i class="fa fa-edit"></i>
                                         </button>
-
                                         &nbsp;&nbsp;
                                         <a href="{{ route('hospitalisations.facture', $hospitalisation->id) }}"
                                             class="btn btn-info btn-round btn-sm" target="_blank">
@@ -106,6 +108,20 @@
                                                 <i class="fa fa-trash"></i>
                                             </button>
                                         </form>
+
+                                        @if ($hospitalisation->total_payer == 0)
+                                            &nbsp;&nbsp;
+                                            <form action="{{ route('hospitalisations.payer', $hospitalisation->id) }}" method="GET"
+                                                onsubmit="return confirm('Voulez-vous payer cette hospitalisation ?')">
+                                                @csrf
+                                                <button class="btn btn-primary btn-round btn-sm">
+                                                    Facturer
+                                                </button>
+                                            </form>
+                                        @endif
+
+
+
                                     </div>
                                 </td>
                             </tr>

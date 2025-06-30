@@ -44,8 +44,16 @@
         <tfoot>
             <tr>
                 <th colspan="3" class="right">Total à payer</th>
-                <th class="right">{{ number_format($total, 2) }} GNF</th>
+                <th class="right">{{ number_format($total) }} GNF</th>
             </tr>
+
+            @if ($hospitalisation->total_payer < $total)
+                <tr>
+                    <th colspan="3" class="right">Reste à payer</th>
+                    <th class="right">{{ number_format($total-$hospitalisation->total_payer) }} GNF</th>
+                </tr>
+            @endif
+
         </tfoot>
     </table>
 

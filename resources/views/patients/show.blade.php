@@ -52,11 +52,11 @@
                             <li><strong>Groupe sangins :</strong> {{ $patient->blood_group }}</li>
                             <li><strong>Genre :</strong> {{$patient->gender}}</li>
                             <li><strong>Date de naissance :</strong> {{$patient->birth_date}}</li>
-                        </ul>                  
+                        </ul>
                     </div>
                 </div>
             </div>
-            
+
             <div class="col-md-12">
                 <div class="card">
                     <div class="card-header">
@@ -65,7 +65,7 @@
                                 <i class="icon-arrow-left" style="color: white"> </i>
                             </a>
                             &nbsp;&nbsp;&nbsp;&nbsp;
-                            <h4 class="card-title">Historique des consultations de {{ $patient->first_name." ".$patient->last_name }}</h4>
+                            <h4 class="card-title">Historique des consultations</h4>
                         </div>
                     </div>
 
@@ -79,8 +79,8 @@
                                         <th>Date</th>
                                         <th>Département</th>
                                         <th>Médecin</th>
-                                        <th>Patient</th>
                                         <th>Motif</th>
+                                        <th>Total</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
@@ -90,8 +90,8 @@
                                         <th>Date</th>
                                         <th>Département</th>
                                         <th>Médecin</th>
-                                        <th>Patient</th>
                                         <th>Motif</th>
+                                        <th>Total</th>
                                         <th>Actions</th>
                                     </tr>
                                 </tfoot>
@@ -102,8 +102,8 @@
                                             <td>{{ $consultation->created_at->format('d/m/Y') }}</td>
                                             <td>{{ $consultation->department->name }}</td>
                                             <td>{{ $consultation->medecin->first_name." ".$consultation->medecin->last_name ?? '—' }}</td>
-                                            <td>{{ $consultation->patient->first_name." ".$consultation->patient->last_name }}</td>
                                             <td>{{ Str::limit($consultation->motif, 30) }}</td>
+                                            <td>{{ number_format($consultation->transaction->total)." GNF" }}</td>
                                             <td>
                                                 <a href="{{ route('consultation.show', $consultation->id) }}" class="btn btn-sm btn-primary"><i class="fa fa-eye"></i></a>
                                                 <a href="{{ route('consultations.facturer', $consultation) }}" class="btn btn-sm btn-info"><i class="fa fa-file-invoice"></i></a>
@@ -116,7 +116,70 @@
                                     @endforelse
                                 </tbody>
                             </table>
-                        </div>                  
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="d-flex align-items-center">
+                            <a href="{{ route('patient.index') }}" class="btn-primary btn-sm">
+                                <i class="icon-arrow-left" style="color: white"> </i>
+                            </a>
+                            &nbsp;&nbsp;&nbsp;&nbsp;
+                            <h4 class="card-title">Historique des hospitalisations</h4>
+                        </div>
+                    </div>
+
+                    <div class="card-body">
+                        <h4><strong>📦 Hospitalisation</strong></h4>
+                        <div class="table-responsive">
+                            <table id="add-row" class="display table table-striped table-hover">
+                                <thead class="bg-primary text-white">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Description</th>
+                                        <th>Prix/Jour</th>
+                                        <th>Nbre de Jours</th>
+                                        <th>Total</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tfoot>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Description</th>
+                                        <th>Prix/Jour</th>
+                                        <th>Nbre de Jours</th>
+                                        <th>Total</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </tfoot>
+                                <tbody>
+                                    @forelse ($patient->hospitalisations as $hospitalisation)
+                                        <tr>
+                                            <td>{{ $loop->iteration }}</td>
+                                            <td>Hospitalisation ({{ number_format(ceil($hospitalisation->nombre_jours)) }} jours)</td>
+                                            <td>{{ number_format($hospitalisation->chambre->prix_par_jour) }} GNF</td>
+                                            <td>{{ number_format(ceil($hospitalisation->nombre_jours))." Jours" }}</td>
+                                            <td>{{ number_format($hospitalisation->total_payer) }} GNF</td>
+                                            <td>
+                                                <a href="{{ route('hospitalisations.facture', $hospitalisation->id) }}"
+                                                    class="btn btn-info btn-round btn-sm" target="_blank">
+                                                    📄
+                                                 </a>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="7" class="text-center text-muted">Aucune hospitalisation enregistrée.</td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>

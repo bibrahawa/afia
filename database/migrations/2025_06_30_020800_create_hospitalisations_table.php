@@ -21,6 +21,7 @@ return new class extends Migration
             $table->date('date_sortie_effective')->nullable();
             $table->enum('statut', ['En cours', 'Terminé', 'Annulé'])->default('En cours');
             $table->text('observation')->nullable();
+            $table->integer('total_payer')->default(0);
             $table->timestamps();
         });
     }
