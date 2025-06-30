@@ -194,7 +194,7 @@
                                     <span aria-hidden="true">&times;</span>
                                 </button>
                             </div>
-                            <form id='editChambreForm' action="{{ route('chambres.update', $chambre->id) }}" method="POST">
+                            <form id='editChambreForm' action="#" method="POST">
                                 @csrf
                                 @method('POST')
 
