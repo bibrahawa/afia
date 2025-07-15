@@ -26,7 +26,7 @@
             backdrop-filter: blur(10px);
             border-radius: 20px;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            max-width: 600px;
+            max-width: 700px;
             width: 100%;
             overflow: hidden;
             position: relative;
@@ -205,26 +205,91 @@
             color: white;
         }
 
+        .calendar-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            background: rgba(79, 172, 254, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .calendar-nav {
+            background: #4facfe;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.3s ease;
+        }
+
+        .calendar-nav:hover {
+            background: #357abd;
+            transform: scale(1.05);
+        }
+
+        .calendar-nav:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .month-year {
+            font-size: 18px;
+            font-weight: bold;
+            color: #4facfe;
+            text-align: center;
+            flex: 1;
+            margin: 0 20px;
+        }
+
+        .calendar-header {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+
+        .calendar-header-day {
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+            color: #4facfe;
+            background: rgba(79, 172, 254, 0.1);
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
         .calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
             gap: 5px;
-            margin-top: 15px;
+            margin-bottom: 20px;
         }
 
         .calendar-day {
-            padding: 10px;
+            padding: 12px;
             text-align: center;
             border: 1px solid #e0e0e0;
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.3s ease;
             background: white;
+            min-height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 500;
+            position: relative;
         }
 
-        .calendar-day:hover {
+        .calendar-day:hover:not(.disabled):not(.other-month) {
             background: #f0f8ff;
             border-color: #4facfe;
+            transform: scale(1.05);
         }
 
         .calendar-day.selected {
@@ -239,15 +304,38 @@
             cursor: not-allowed;
         }
 
+        .calendar-day.other-month {
+            background: #fafafa;
+            color: #bbb;
+            cursor: default;
+        }
+
+        .calendar-day.today {
+            border: 2px solid #ff6b6b;
+            font-weight: bold;
+        }
+
+        .calendar-day.today::after {
+            content: '';
+            position: absolute;
+            bottom: 2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 6px;
+            background: #ff6b6b;
+            border-radius: 50%;
+        }
+
         .time-slots {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
             gap: 10px;
             margin-top: 15px;
         }
 
         .time-slot {
-            padding: 10px;
+            padding: 12px;
             text-align: center;
             border: 2px solid #e0e0e0;
             border-radius: 8px;
@@ -260,12 +348,25 @@
         .time-slot:hover {
             border-color: #4facfe;
             background: #f0f8ff;
+            transform: translateY(-2px);
         }
 
         .time-slot.selected {
             background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
             color: white;
             border-color: #4facfe;
+        }
+
+        .time-slot.unavailable {
+            background: #ffebee;
+            color: #f44336;
+            cursor: not-allowed;
+            border-color: #ffcdd2;
+        }
+
+        .time-slot.unavailable:hover {
+            background: #ffebee;
+            transform: none;
         }
 
         .buttons {
@@ -332,6 +433,7 @@
             padding: 20px;
             border-radius: 15px;
             margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.1);
         }
 
         .summary-item {
@@ -352,6 +454,35 @@
             color: #4facfe;
         }
 
+        .quick-date-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .quick-date-btn {
+            padding: 8px 16px;
+            background: rgba(79, 172, 254, 0.1);
+            border: 2px solid rgba(79, 172, 254, 0.3);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            color: #4facfe;
+            font-weight: 500;
+        }
+
+        .quick-date-btn:hover {
+            background: rgba(79, 172, 254, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .quick-date-btn.selected {
+            background: #4facfe;
+            color: white;
+        }
+
         @media (max-width: 768px) {
             .container {
                 margin: 10px;
@@ -365,6 +496,15 @@
                 grid-template-columns: 1fr;
             }
 
+            .calendar-controls {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .month-year {
+                margin: 0;
+            }
+
             .calendar-grid {
                 grid-template-columns: repeat(7, 1fr);
                 gap: 3px;
@@ -373,14 +513,19 @@
             .calendar-day {
                 padding: 8px 4px;
                 font-size: 12px;
+                min-height: 40px;
             }
 
             .time-slots {
-                grid-template-columns: repeat(3, 1fr);
+                grid-template-columns: repeat(2, 1fr);
             }
 
             .buttons {
                 flex-direction: column;
+            }
+
+            .quick-date-selector {
+                justify-content: center;
             }
         }
     </style>
@@ -417,6 +562,9 @@
                         <option value="pediatrie">Pédiatrie</option>
                         <option value="orthopédie">Orthopédie</option>
                         <option value="gynécologie">Gynécologie</option>
+                        <option value="neurologie">Neurologie</option>
+                        <option value="psychiatrie">Psychiatrie</option>
+                        <option value="ophtalmologie">Ophtalmologie</option>
                     </select>
                 </div>
 
@@ -441,6 +589,8 @@
                         <option value="urgence">Urgence</option>
                         <option value="suivi">Suivi médical</option>
                         <option value="prevention">Prévention</option>
+                        <option value="bilan">Bilan de santé</option>
+                        <option value="vaccination">Vaccination</option>
                         <option value="autre">Autre</option>
                     </select>
                 </div>
@@ -455,8 +605,31 @@
             <div class="step" id="step-3">
                 <h2>Choisissez la date et l'heure</h2>
 
+                <div class="quick-date-selector">
+                    <div class="quick-date-btn" onclick="selectQuickDate('today')">Aujourd'hui</div>
+                    <div class="quick-date-btn" onclick="selectQuickDate('tomorrow')">Demain</div>
+                    <div class="quick-date-btn" onclick="selectQuickDate('thisWeek')">Cette semaine</div>
+                    <div class="quick-date-btn" onclick="selectQuickDate('nextWeek')">Semaine prochaine</div>
+                </div>
+
                 <div class="form-group">
                     <label>Date</label>
+                    <div class="calendar-controls">
+                        <button class="calendar-nav" onclick="changeMonth(-1)">‹</button>
+                        <div class="month-year" id="month-year"></div>
+                        <button class="calendar-nav" onclick="changeMonth(1)">›</button>
+                    </div>
+
+                    <div class="calendar-header">
+                        <div class="calendar-header-day">Dim</div>
+                        <div class="calendar-header-day">Lun</div>
+                        <div class="calendar-header-day">Mar</div>
+                        <div class="calendar-header-day">Mer</div>
+                        <div class="calendar-header-day">Jeu</div>
+                        <div class="calendar-header-day">Ven</div>
+                        <div class="calendar-header-day">Sam</div>
+                    </div>
+
                     <div class="calendar-grid" id="calendar-grid">
                         <!-- Le calendrier sera généré dynamiquement -->
                     </div>
@@ -546,35 +719,54 @@
         let selectedProfessional = null;
         let selectedDate = null;
         let selectedTime = null;
+        let currentMonth = new Date().getMonth();
+        let currentYear = new Date().getFullYear();
 
         const professionals = {
             medecine: [
-                { name: "Dr. Martin Dubois", speciality: "Médecin généraliste" },
-                { name: "Dr. Sophie Laurent", speciality: "Médecin généraliste" }
+                { name: "Dr. Martin Dubois", speciality: "Médecin généraliste", availability: "Tous les jours sauf dimanche" },
+                { name: "Dr. Sophie Laurent", speciality: "Médecin généraliste", availability: "Lundi, mercredi, vendredi" }
             ],
             cardiologie: [
-                { name: "Dr. Pierre Moreau", speciality: "Cardiologue" },
-                { name: "Dr. Marie Petit", speciality: "Cardiologue" }
+                { name: "Dr. Pierre Moreau", speciality: "Cardiologue", availability: "Mardi, jeudi, vendredi" },
+                { name: "Dr. Marie Petit", speciality: "Cardiologue", availability: "Lundi, mercredi, samedi" }
             ],
             dermatologie: [
-                { name: "Dr. Jean Dupont", speciality: "Dermatologue" },
-                { name: "Dr. Claire Simon", speciality: "Dermatologue" }
+                { name: "Dr. Jean Dupont", speciality: "Dermatologue", availability: "Lundi au vendredi" },
+                { name: "Dr. Claire Simon", speciality: "Dermatologue", availability: "Mardi, jeudi, samedi" }
             ],
             pediatrie: [
-                { name: "Dr. Anne Lefèvre", speciality: "Pédiatre" },
-                { name: "Dr. Paul Roux", speciality: "Pédiatre" }
+                { name: "Dr. Anne Lefèvre", speciality: "Pédiatre", availability: "Tous les jours" },
+                { name: "Dr. Paul Roux", speciality: "Pédiatre", availability: "Lundi, mercredi, vendredi" }
             ],
             orthopédie: [
-                { name: "Dr. Michel Bernard", speciality: "Orthopédiste" },
-                { name: "Dr. Nathalie Garnier", speciality: "Orthopédiste" }
+                { name: "Dr. Michel Bernard", speciality: "Orthopédiste", availability: "Lundi, mercredi, vendredi" },
+                { name: "Dr. Nathalie Garnier", speciality: "Orthopédiste", availability: "Mardi, jeudi, samedi" }
             ],
             gynécologie: [
-                { name: "Dr. Isabelle Morel", speciality: "Gynécologue" },
-                { name: "Dr. Catherine Rousseau", speciality: "Gynécologue" }
+                { name: "Dr. Isabelle Morel", speciality: "Gynécologue", availability: "Lundi au vendredi" },
+                { name: "Dr. Catherine Rousseau", speciality: "Gynécologue", availability: "Mardi, jeudi, samedi" }
+            ],
+            neurologie: [
+                { name: "Dr. Philippe Blanc", speciality: "Neurologue", availability: "Lundi, mercredi, vendredi" },
+                { name: "Dr. Françoise Noir", speciality: "Neurologue", availability: "Mardi, jeudi" }
+            ],
+            psychiatrie: [
+                { name: "Dr. Antoine Vert", speciality: "Psychiatre", availability: "Lundi au vendredi" },
+                { name: "Dr. Sylvie Rouge", speciality: "Psychiatre", availability: "Mardi, jeudi, samedi" }
+            ],
+            ophtalmologie: [
+                { name: "Dr. Lucas Bleu", speciality: "Ophtalmologue", availability: "Lundi, mercredi, vendredi" },
+                { name: "Dr. Emma Jaune", speciality: "Ophtalmologue", availability: "Mardi, jeudi, samedi" }
             ]
         };
 
-        const timeSlots = ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30"];
+        const timeSlots = ["08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30"];
+
+        const months = [
+            "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+            "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
+        ];
 
         function updateProfessionals() {
             const department = document.getElementById('department').value;
@@ -590,7 +782,8 @@
                     card.innerHTML = `
                         <div class="professional-avatar">${prof.name.split(' ')[1][0]}</div>
                         <div style="font-weight: 600; margin-bottom: 5px;">${prof.name}</div>
-                        <div style="color: #666; font-size: 14px;">${prof.speciality}</div>
+                        <div style="color: #666; font-size: 14px; margin-bottom: 5px;">${prof.speciality}</div>
+                        <div style="color: #999; font-size: 12px;">${prof.availability}</div>
                     `;
                     grid.appendChild(card);
                 });
@@ -605,28 +798,140 @@
 
         function generateCalendar() {
             const grid = document.getElementById('calendar-grid');
+            const monthYear = document.getElementById('month-year');
+
             grid.innerHTML = '';
+            monthYear.textContent = `${months[currentMonth]} ${currentYear}`;
+
+            const firstDay = new Date(currentYear, currentMonth, 1);
+            const lastDay = new Date(currentYear, currentMonth + 1, 0);
+            const startDate = new Date(firstDay);
+            startDate.setDate(startDate.getDate() - firstDay.getDay());
 
             const today = new Date();
-            const currentMonth = today.getMonth();
-            const currentYear = today.getFullYear();
+            today.setHours(0, 0, 0, 0);
 
-            for (let i = 0; i < 30; i++) {
-                const date = new Date(today);
-                date.setDate(today.getDate() + i);
+            for (let i = 0; i < 42; i++) {
+                const date = new Date(startDate);
+                date.setDate(startDate.getDate() + i);
 
                 const dayDiv = document.createElement('div');
                 dayDiv.className = 'calendar-day';
                 dayDiv.textContent = date.getDate();
-                dayDiv.onclick = () => selectDate(dayDiv, date);
 
-                if (date.getDay() === 0 || date.getDay() === 6) {
+                const isCurrentMonth = date.getMonth() === currentMonth;
+                const isToday = date.getTime() === today.getTime();
+                const isPast = date < today;
+                const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+
+                if (!isCurrentMonth) {
+                    dayDiv.classList.add('other-month');
+                } else if (isPast) {
                     dayDiv.classList.add('disabled');
                     dayDiv.onclick = null;
+                } else if (isWeekend) {
+                    dayDiv.classList.add('disabled');
+                    dayDiv.onclick = null;
+                } else {
+                    dayDiv.onclick = () => selectDate(dayDiv, date);
+                }
+
+                if (isToday) {
+                    dayDiv.classList.add('today');
                 }
 
                 grid.appendChild(dayDiv);
             }
+        }
+
+        function changeMonth(direction) {
+            const today = new Date();
+            const maxMonth = today.getMonth() + 6; // 6 mois à l'avance
+            const maxYear = today.getFullYear() + (maxMonth >= 12 ? 1 : 0);
+            const adjustedMaxMonth = maxMonth % 12;
+
+            currentMonth += direction;
+
+            if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            } else if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            }
+
+            // Empêcher de naviguer trop loin dans le passé ou le futur
+            if (currentYear < today.getFullYear() ||
+                (currentYear === today.getFullYear() && currentMonth < today.getMonth()) ||
+                (currentYear > maxYear) ||
+                (currentYear === maxYear && currentMonth > adjustedMaxMonth)) {
+
+                currentMonth -= direction;
+                if (currentMonth < 0) {
+                    currentMonth = 11;
+                    currentYear--;
+                } else if (currentMonth > 11) {
+                    currentMonth = 0;
+                    currentYear++;
+                }
+                return;
+            }
+
+            generateCalendar();
+        }
+
+        function selectQuickDate(type) {
+            const today = new Date();
+            let targetDate;
+
+            document.querySelectorAll('.quick-date-btn').forEach(btn => btn.classList.remove('selected'));
+            event.target.classList.add('selected');
+
+            switch (type) {
+                case 'today':
+                    targetDate = new Date(today);
+                    break;
+                case 'tomorrow':
+                    targetDate = new Date(today);
+                    targetDate.setDate(today.getDate() + 1);
+                    break;
+                case 'thisWeek':
+                    targetDate = new Date(today);
+                    // Aller au prochain jour ouvrable de cette semaine
+                    const daysUntilFriday = 5 - today.getDay();
+                    if (daysUntilFriday > 0) {
+                        targetDate.setDate(today.getDate() + Math.min(daysUntilFriday, 1));
+                    } else {
+                        targetDate.setDate(today.getDate() + 1);
+                    }
+                    break;
+                case 'nextWeek':
+                    targetDate = new Date(today);
+                    const daysUntilMonday = 8 - today.getDay();
+                    targetDate.setDate(today.getDate() + daysUntilMonday);
+                    break;
+            }
+
+            // Éviter les weekends
+            while (targetDate.getDay() === 0 || targetDate.getDay() === 6) {
+                targetDate.setDate(targetDate.getDate() + 1);
+            }
+
+            currentMonth = targetDate.getMonth();
+            currentYear = targetDate.getFullYear();
+            generateCalendar();
+
+            // Sélectionner automatiquement la date
+            setTimeout(() => {
+                const dayElements = document.querySelectorAll('.calendar-day');
+                dayElements.forEach(day => {
+                    if (parseInt(day.textContent) === targetDate.getDate() &&
+                        !day.classList.contains('other-month') &&
+                        !day.classList.contains('disabled')) {
+                        selectDate(day, targetDate);
+                    }
+                });
+            }, 100);
         }
 
         function selectDate(dayDiv, date) {
@@ -640,11 +945,28 @@
             const slotsContainer = document.getElementById('time-slots');
             slotsContainer.innerHTML = '';
 
+            // Simuler des créneaux indisponibles de manière aléatoire
+            const unavailableSlots = [];
+            const randomUnavailable = Math.floor(Math.random() * 4);
+            for (let i = 0; i < randomUnavailable; i++) {
+                const randomIndex = Math.floor(Math.random() * timeSlots.length);
+                if (!unavailableSlots.includes(timeSlots[randomIndex])) {
+                    unavailableSlots.push(timeSlots[randomIndex]);
+                }
+            }
+
             timeSlots.forEach(time => {
                 const slot = document.createElement('div');
                 slot.className = 'time-slot';
                 slot.textContent = time;
-                slot.onclick = () => selectTime(slot, time);
+
+                if (unavailableSlots.includes(time)) {
+                    slot.classList.add('unavailable');
+                    slot.textContent += ' - Indisponible';
+                } else {
+                    slot.onclick = () => selectTime(slot, time);
+                }
+
                 slotsContainer.appendChild(slot);
             });
         }
@@ -695,7 +1017,10 @@
                     return;
                 }
 
-                alert('Rendez-vous confirmé avec succès! Vous recevrez un email de confirmation.');
+                // Simuler une confirmation de rendez-vous
+                setTimeout(() => {
+                    alert('✅ Rendez-vous confirmé avec succès!\n\nVous recevrez un email de confirmation dans quelques instants.\n\nN\'oubliez pas d\'apporter votre carte vitale et une pièce d\'identité.');
+                }, 500);
                 return;
             }
 
@@ -732,7 +1057,7 @@
             }
 
             document.getElementById('prev-btn').style.display = currentStep === 1 ? 'none' : 'block';
-            document.getElementById('next-btn').textContent = currentStep === 4 ? 'Confirmer' : 'Suivant';
+            document.getElementById('next-btn').textContent = currentStep === 4 ? 'Confirmer le rendez-vous' : 'Suivant';
 
             if (currentStep === 3 && document.getElementById('calendar-grid').children.length === 0) {
                 generateCalendar();

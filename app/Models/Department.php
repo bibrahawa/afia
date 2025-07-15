@@ -6,26 +6,23 @@ use Illuminate\Database\Eloquent\Model;
 
 class Department extends Model
 {
-    
+
 
 	protected $fillable = ['name'];
 
     public function employees()
     {
-        return $this->hasMany('App\Models\Employee');
+        return $this->hasMany(Employee::class);
     }
     public function services()
     {
-        return $this->hasMany('App\Models\Service');
+        return $this->hasMany(Service::class);
     }
-    public function doctors()
+
+    public function activeEmployees()
     {
-        return $this->hasMany('App\Models\Doctor');
+        return $this->hasMany(Employee::class)->where('is_active', true);
     }
-    
-     public function labs()
-    {
-        return $this->hasMany('App\Models\Lab');
-    }
-    //
+
+
 }

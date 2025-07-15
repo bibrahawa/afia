@@ -30,7 +30,9 @@ class CreateEmployeesTable extends Migration
             $table->string('in_time')->nullable();
             $table->string('out_time')->nullable();
             $table->string('type')->nullable();
-            $table->integer('department_id')->unsigned();
+            $table->foreignId('department_id')->constrained()->onDelete('cascade');
+            $table->boolean('is_active')->default(true);
+
             $table->timestamps();
 
         });

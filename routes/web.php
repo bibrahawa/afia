@@ -41,6 +41,10 @@ Route::get('index-permissions', [UserController::class, 'indexPermissions'])->na
 Route::get('liste-permissions/{id}', [UserController::class, 'listePermissions'])->name('users.listePermissions');
 Route::post('assign-permissions/{id}', [UserController::class, 'assignPermissions'])->name('users.store_permissions');
 
+Route::get('rdv', function(){
+    return view('appointments.rdv.rdv');
+});
+
 
 Route::get('val', function(){
     return view('dashboard');

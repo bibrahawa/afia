@@ -6,19 +6,60 @@ use Illuminate\Database\Eloquent\Model;
 
 class Appointment extends Model
 {
-	protected $fillable = 
-	[
-        'name', 'description', 'time', 'patient_id', 'doctor_id', 'status', 'appointment_date'
+    use HasFactory;
+
+    protected $fillable = [
+        'employee_id',
+        'patient_id',
+        'appointment_date',
+        'appointment_time',
+        'reason',
+        'description',
+        'status',
+        'notes',
+        'confirmed_at',
+        'cancelled_at'
     ];
+
+    protected $casts = [
+        'appointment_date' => 'date',
+        'appointment_time' => 'datetime:H:i',
+        'confirmed_at' => 'datetime',
+        'cancelled_at' => 'datetime'
+    ];
+
+    public function employee()
+    {
+        return $this->belongsTo(Employee::class);
+    }
 
     public function patient()
     {
-        return $this->belongsTo('App\Models\Patient');
+        return $this->belongsTo(Patient::class, 'patient_id');
     }
-    
-    public function doctor()
+
+    public function scopeUpcoming($query)
     {
-        return $this->belongsTo('App\Models\Doctor');
+        return $query->where('appointment_date', '>=', now()->toDateString());
     }
-    //
+
+    public function scopeToday($query)
+    {
+        return $query->where('appointment_date', now()->toDateString());
+    }
+
+    public function scopeConfirmed($query)
+    {
+        return $query->where('status', 'confirmed');
+    }
+
+    public function canBeCancelled()
+    {
+        return $this->status === 'pending' || $this->status === 'confirmed';
+    }
+
+    public function getFormattedDateTimeAttribute()
+    {
+        return $this->appointment_date->format('d/m/Y') . ' à ' . $this->appointment_time->format('H:i');
+    }
 }

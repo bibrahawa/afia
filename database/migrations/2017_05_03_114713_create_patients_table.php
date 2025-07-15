@@ -31,7 +31,7 @@ class CreatePatientsTable extends Migration
             $table->string('description')->nullable();
             $table->string('relative_name')->nullable();
             $table->string('relative_phone')->nullable();
-            $table->enum('marital_status', array('Celibataire', 'Marie' , 'Autre'));
+            $table->string('marital_status');
             $table->enum('blood_group', array('A+','A-','B+','AB+','AB-','B-','O+','O-'))->nullable();
             $table->boolean('first_visit')->default(true);
             $table->timestamps();
