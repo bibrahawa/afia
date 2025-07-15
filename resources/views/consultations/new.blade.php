@@ -877,7 +877,7 @@
                                         @foreach ($services as $service)
                                             <div class="dropdown-item" data-value="service-{{$service->id}}" data-category="services" data-name="{{ $service->name }}">
                                                 <div class="item-content">
-                                                    <span class="item-name">{{ $service->name }}</span>
+                                                    <span class="item-name">{{ $service->name }} - {{ number_format($service->amount) }} GNF</span>
                                                     <div class="billing-options">
                                                         <label class="billing-checkbox">
                                                             <input type="checkbox" class="billing-check" data-item="service-{{$service->id}}" checked>
@@ -893,7 +893,7 @@
                                         @foreach ($tests as $examen)
                                             <div class="dropdown-item" data-value="examen-{{$examen->id}}" data-category="examens" data-name="{{ $examen->name }}">
                                                 <div class="item-content">
-                                                    <span class="item-name">{{ $examen->name }}</span>
+                                                    <span class="item-name">{{ $examen->name }} - {{ number_format($examen->amount) }} GNF</span>
                                                     <div class="billing-options">
                                                         <label class="billing-checkbox">
                                                             <input type="checkbox" class="billing-check" data-item="examen-{{$examen->id}}" checked>
@@ -909,7 +909,7 @@
                                         @foreach ($packages as $package)
                                             <div class="dropdown-item" data-value="package-{{$package->id}}" data-category="packages" data-name="{{ $package->name }}">
                                                 <div class="item-content">
-                                                    <span class="item-name">{{ $package->name }}</span>
+                                                    <span class="item-name">{{ $package->name }} - {{ number_format($package->price) }}</span>
                                                     <div class="billing-options">
                                                         <label class="billing-checkbox">
                                                             <input type="checkbox" class="billing-check" data-item="package-{{$package->id}}" checked>
@@ -925,7 +925,7 @@
                                         @foreach ($medicaments as $medicament)
                                             <div class="dropdown-item" data-value="medicament-{{$medicament->id}}" data-category="medicaments" data-name="{{ $medicament->nom }}">
                                                 <div class="item-content">
-                                                    <span class="item-name">{{ $medicament->nom }}</span>
+                                                    <span class="item-name">{{ $medicament->nom }} - {{ number_format($medicament->amount) }}</span>
                                                     <div class="billing-options">
                                                         <label class="billing-checkbox">
                                                             <input type="checkbox" class="billing-check" data-item="medicament-{{$medicament->id}}" checked>

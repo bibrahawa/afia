@@ -66,32 +66,45 @@ class HospitalisationController extends Controller
     public function edit(Hospitalisation $hospitalisation)
     {
         $patients = Patient::all();
-        $chambres = Chambre::where('statut', 'Libre')->orWhere('id', $hospitalisation->chambre_id)->get();
+        $chambres = Chambre::where('statut', 'Libre', 'Occupée')->get();
         return view('hospitalisations.edit', compact('hospitalisation', 'patients', 'chambres'));
     }
 
-    public function update(Request $request, Hospitalisation $hospitalisation)
+    public function update(Request $request)
     {
+
         $request->validate([
             'patient_id' => 'required|exists:patients,id',
             'chambre_id' => 'required|exists:chambres,id',
             'date_entree' => 'required|date',
             'nombre_jours' => 'required|integer|min:1',
-            'statut' => 'required|in:En cours,Terminé,Annulé',
+            // 'statut' => 'required|in:En cours,Terminé,Annulé',
             'observation' => 'nullable|string',
         ]);
 
-        $date_sortie = Carbon::parse($request->date_entree)->addDays((int)$request->nombre_jours);
+        $hospitalisation = Hospitalisation::find($request->id);
+        if (!$hospitalisation) {
+            return redirect()->route('hospitalisations.index')->with('error', 'Hospitalisation non trouvée.');
+        }
 
-        $hospitalisation->update([
-            'patient_id' => $request->patient_id,
-            'chambre_id' => $request->chambre_id,
-            'date_entree' => $request->date_entree,
-            'nombre_jours' => $request->nombre_jours,
-            'date_sortie_prevue' => $date_sortie,
-            'statut' => $request->statut,
-            'observation' => $request->observation,
-        ]);
+        $date_sortie = Carbon::parse($request->date_entree)->addDays((int)$request->nombre_jours);
+        // Vérifier si la chambre est déjà occupée
+        if ($hospitalisation->chambre_id != $request->chambre_id) {
+            $chambre = Chambre::find($request->chambre_id);
+
+            if ($chambre->statut !== 'Libre') {
+                return redirect()->back()->with('error', 'La chambre sélectionnée est déjà occupée.');
+            }
+        }
+
+            $hospitalisation->update([
+                'patient_id' => $request->patient_id,
+                'chambre_id' => $request->chambre_id,
+                'date_entree' => $request->date_entree,
+                'nombre_jours' => $request->nombre_jours,
+                'date_sortie_prevue' => $date_sortie,
+                'observation' => $request->observation,
+            ]);
 
         return redirect()->route('hospitalisations.index')->with('success', 'Hospitalisation mise à jour.');
     }
@@ -99,6 +112,9 @@ class HospitalisationController extends Controller
     public function destroy(Hospitalisation $hospitalisation)
     {
         $hospitalisation->delete();
+        $hospitalisation->chambre->update(['statut' => 'Libre']);
+        $hospitalisation->transaction()->delete(); // Suppression des transactions associées
+        $hospitalisation->patient->account?->debit($hospitalisation->total_payer ?? 0); // Mise à jour du compte patient
         return redirect()->route('hospitalisations.index')->with('success', 'Hospitalisation supprimée.');
     }
 

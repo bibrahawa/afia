@@ -178,7 +178,7 @@
             <i class="icon-arrow-right"></i>
           </li>
           <li class="nav-item">
-            <a href="{{ route('patient.index') }}">patients</a>
+            <a href="{{ route('patient.index') }}">patientes</a>
           </li>
         </ul>
       </div>
@@ -188,12 +188,12 @@
           <div class="card">
             <div class="card-header">
               <div class="d-flex align-items-center">
-                <h4 class="card-title">Liste des patients</h4>
+                <h4 class="card-title">Liste des patientes</h4>
                 <button
                   class="btn btn-primary btn-round ms-auto"
                   data-bs-toggle="modal"
                   data-bs-target="#addRowModal">
-                  <i class="fa fa-plus"></i> Ajouter un patient
+                  <i class="fa fa-plus"></i> Ajouter une patiente
                 </button>
               </div>
             </div>
@@ -204,9 +204,9 @@
                     <thead class="bg-primary text-white"> <!-- Ajout de couleur d'entête -->
                         <tr>
                             <th>ID</th>
-					        <th>Name</th>
-					        <th>Phone</th>
-					        <th>Address</th>
+					        <th>Nom</th>
+					        <th>Telephone</th>
+					        <th>Adresse</th>
 					        <th>Solde</th>
 					        <th>Action</th>
                         </tr>
@@ -214,9 +214,9 @@
                     <tfoot>
                         <tr>
                             <th>ID</th>
-					        <th>Name</th>
-					        <th>Phone</th>
-					        <th>Address</th>
+					        <th>Nom</th>
+					        <th>Telephone</th>
+					        <th>Adresse</th>
 					        <th>Solde</th>
 					        <th>Action</th>
                         </tr>
@@ -228,7 +228,7 @@
                                 <td>{{$patient->first_name}} {{$patient->middle_name}} {{$patient->last_name}}</td>
                                 <td>{{$patient->phone}}</td>
                                 <td>{{$patient->district}}, {{$patient->location}}</td>
-                                <td>{{$patient->account->balance ?? ""}}</td>
+                                <td>{{number_format($patient->account->balance) ?? ""}} GNF</td>
                                 <td>
                                     <a href="{{ route('patient.show', $patient->id) }}" class="btn btn-sm btn-primary"><i class="fa fa-eye"></i></a>
 
@@ -278,120 +278,145 @@
                         <div class="modal-content">
                             <div class="modal-header border-0">
                                 <h5 class="modal-title">
-                                    <span class="fw-mediumbold">Nouveau</span>
-                                    <span class="fw-light">Patient</span>
+                                    <span class="fw-mediumbold">Nouvelle</span>
+                                    <span class="fw-light">Patiente</span>
                                 </h5>
                                 <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
                                     <span aria-hidden="true">&times;</span>
                                 </button>
                             </div>
                             <div class="modal-body">
-                                <p class="small">Créez un nouveau patient en remplissant le formulaire ci-dessous.</p>
+                                <p class="small">Créez une nouvelle patiente en remplissant le formulaire ci-dessous.</p>
                                 <form id="addDepartmentForm" action="{{ route('patient.store') }}" method="POST">
                                     @csrf
                                     <div class="row">
-                                        <div class=" col-md-6 form-group">
-                                            <label>First Name:</label>
-                                            <input type="text" name="first_name" value="" class="form-control" required>
+                                        <div class="col-md-6 form-group">
+                                            <label>Prénom :</label>
+                                            <input type="text" name="first_name" class="form-control" placeholder="Entrez votre prénom" value="{{ old('first_name') }}" required>
+                                            @error('first_name')
+                                                <small class="text-danger">{{ $message }}</small>
+                                            @enderror
                                         </div>
-                                        {{-- <div class=" col-md-4 form-group">
-                                            <label>Middle Name:</label>
-                                            <input type="text" name="middle_name" value="" class="form-control">
+
+                                        <div class="col-md-6 form-group">
+                                            <label>Nom :</label>
+                                            <input type="text" name="last_name" class="form-control" placeholder="Entrez votre nom de famille" value="{{ old('last_name') }}" required>
+                                            @error('last_name')
+                                                <small class="text-danger">{{ $message }}</small>
+                                            @enderror
+                                        </div>
+
+                                        {{-- <div class="col-md-6 form-group">
+                                            <label>Email :</label>
+                                            <input type="email" name="email" class="form-control" placeholder="exemple@domaine.com" value="{{ old('email') }}">
+                                            @error('email')
+                                                <small class="text-danger">{{ $message }}</small>
+                                            @enderror
                                         </div> --}}
-                                        <div class=" col-md-6 form-group">
-                                            <label>Last Name:</label>
-                                            <input type="text" name="last_name" value="" class="form-control" required>
+
+                                        <div class="col-md-6 form-group">
+                                            <label>Téléphone :</label>
+                                            <input type="number" name="phone" class="form-control" placeholder="Entrez votre numéro de téléphone" value="{{ old('phone') }}" required>
+                                            @error('phone')
+                                                <small class="text-danger">{{ $message }}</small>
+                                            @enderror
                                         </div>
-                                        <div class=" col-md-6 form-group">
-                                            <label>Email:</label>
-                                            <input type="email" name="email" value="" class="form-control">
-                                        </div>
-                                        <div class=" col-md-6 form-group">
-                                            <label>Phone:</label>
-                                            <input type="number" name="phone" value="" class="form-control">
-                                        </div>
-                                        <div class=" col-md-6 form-group">
-                                            <label>Gender:</label>
+
+                                        <input type="hidden" name="gender" value="Femme">
+
+                                        {{-- <div class="col-md-6 form-group">
+                                            <label>Genre :</label>
                                             <select name="gender" class="form-control" required>
-                                                <option value="male">Male</option>
-                                                <option value="female">Female</option>
-                                                <option value="other">Other</option>
+                                                <option value="">-- Sélectionnez votre genre --</option>
+                                                <option value="Homme" {{ old('gender') == 'Homme' ? 'selected' : '' }}>Homme</option>
+                                                <option value="Femme" {{ old('gender') == 'Femme' ? 'selected' : '' }}>Femme</option>
+                                                <option value="Autre" {{ old('gender') == 'Autre' ? 'selected' : '' }}>Autre</option>
                                             </select>
-                                        </div>
-                                        <div class=" col-md-6 form-group">
-                                            <label>Marital Status:</label>
-                                            <select name="marital_status" class="form-control">
-                                                <option value="married">Married</option>
-                                                <option value="single">Single</option>
-                                                <option value="other">Other</option>
-                                            </select>
-                                        </div>
-                                        <div class=" col-md-6 form-group">
-                                            <label>Blood Group:</label>
-                                            <select name="blood_group" class="form-control">
-                                                <option>A+</option>
-                                                <option>A-</option>
-                                                <option>B+</option>
-                                                <option>B-</option>
-                                                <option>AB+</option>
-                                                <option>AB-</option>
-                                                <option>O+</option>
-                                                <option>O-</option>
-                                            </select>
-                                        </div>
-                                        <div class=" col-md-6 form-group">
-                                            <label>Date of Birth:</label>
-                                            <input type="date" name="birth_date" value="" class="form-control" id="nepaliDate5">
-                                        </div>
-                                        {{-- <div class=" col-md-6 form-group">
-                                            <label>Age:</label>
-                                            <input type="number" name="age" value="" class="form-control" required>
+                                            @error('gender')
+                                                <small class="text-danger">{{ $message }}</small>
+                                            @enderror
                                         </div> --}}
-                                        <div class=" col-md-6 form-group">
-                                            <label>Relative Name:</label>
-                                            <input type="text" name="relative_name" value="" class="form-control">
+
+                                        <div class="col-md-6 form-group">
+                                            <label>Situation matrimoniale :</label>
+                                            <select name="marital_status" class="form-control" required>
+                                                <option value="">-- Sélectionnez votre situation --</option>
+                                                <option value="Marié(e)" {{ old('marital_status') == 'Marié(e)' ? 'selected' : '' }}>Marié(e)</option>
+                                                <option value="Célibataire" {{ old('marital_status') == 'Célibataire' ? 'selected' : '' }}>Célibataire</option>
+                                                <option value="Autre" {{ old('marital_status') == 'Autre' ? 'selected' : '' }}>Autre</option>
+                                            </select>
+                                            @error('marital_status')
+                                                <small class="text-danger">{{ $message }}</small>
+                                            @enderror
                                         </div>
-                                        <div class=" col-md-6 form-group">
-                                            <label>Relative Phone:</label>
-                                            <input type="number" name="relative_phone" value="" class="form-control">
+
+                                        <div class="col-md-6 form-group">
+                                            <label>Groupe sanguin :</label>
+                                            <select name="blood_group" class="form-control" required>
+                                                <option value="">-- Sélectionnez votre groupe sanguin --</option>
+                                                @foreach(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] as $group)
+                                                    <option value="{{ $group }}" {{ old('blood_group') == $group ? 'selected' : '' }}>{{ $group }}</option>
+                                                @endforeach
+                                            </select>
+                                            @error('blood_group')
+                                                <small class="text-danger">{{ $message }}</small>
+                                            @enderror
                                         </div>
-                                        {{-- <div class=" col-md-6 form-group">
-                                            <label>Country:</label>
-                                            <input type="text" name="country" value="" class="form-control">
+
+                                        <div class="col-md-6 form-group">
+                                            <label>Age :</label>
+                                            <input type="number" name="age" class="form-control" placeholder="Age" value="{{ old('age') }}" required>
+                                            @error('age')
+                                                <small class="text-danger">{{ $message }}</small>
+                                            @enderror
                                         </div>
-                                        <div class=" col-md-6 form-group">
-                                            <label>State:</label>
-                                            <input type="text" name="state" value="" class="form-control">
-                                        </div> --}}
-                                        <div class=" col-md-6 form-group">
-                                            <label>District:</label>
-                                            <input type="text" name="district" value="" class="form-control">
+
+                                        <div class="col-md-6 form-group">
+                                            <label>Nom du proche :</label>
+                                            <input type="text" name="relative_name" class="form-control" placeholder="Nom d’un proche à contacter" value="{{ old('relative_name') }}">
+                                            @error('relative_name')
+                                                <small class="text-danger">{{ $message }}</small>
+                                            @enderror
                                         </div>
-                                        <div class=" col-md-6 form-group">
-                                            <label>Location:</label>
-                                            <textarea name="location" class="form-control" required rows="3"></textarea>
+
+                                        <div class="col-md-6 form-group">
+                                            <label>Téléphone du proche :</label>
+                                            <input type="number" name="relative_phone" class="form-control" placeholder="Numéro de téléphone du proche" value="{{ old('relative_phone') }}">
+                                            @error('relative_phone')
+                                                <small class="text-danger">{{ $message }}</small>
+                                            @enderror
                                         </div>
-                                        <div class=" col-md-6 form-group">
-                                            <label>Occupation:</label>
-                                            <textarea name="occupation" class="form-control" rows="3"></textarea>
+
+                                        <div class="col-md-6 form-group">
+                                            <label>Profession :</label>
+                                            <input type="text" name="occupation" class="form-control" placeholder="Votre profession" value="{{ old('occupation') }}" required>
+                                            @error('occupation')
+                                                <small class="text-danger">{{ $message }}</small>
+                                            @enderror
                                         </div>
-                                        <div class=" col-md-6 form-group">
-                                            <label>Description:</label>
-                                            <textarea name="description" class="form-control" rows="3"></textarea>
+
+                                        <div class="col-md-6 form-group">
+                                            <label>Localisation :</label>
+                                            <input type="text" name="location" class="form-control" placeholder="Adresse complète, quartier, ville..." value="{{ old('location') }}" required>
+                                            @error('location')
+                                                <small class="text-danger">{{ $message }}</small>
+                                            @enderror
                                         </div>
+
                                     </div>
+
                                 </form>
                             </div>
                             <div class="modal-footer border-0">
+                                <button type="button" class="btn btn-danger" data-bs-dismiss="modal">
+                                    Fermer
+                                </button>
+
                                 <button type="submit" id="addRowButton" class="btn btn-primary" form="addDepartmentForm">
                                     Ajouter
                                     <div class="spinner-border spinner-border-sm text-light" role="status" id="addLoader" style="display: none;">
                                         <span class="sr-only">Loading...</span>
                                     </div>
-                                </button>
-
-                                <button type="button" class="btn btn-danger" data-bs-dismiss="modal">
-                                    Fermer
                                 </button>
                             </div>
                         </div>
@@ -412,91 +437,111 @@
                                 </button>
                             </div>
                             <div class="modal-body">
-                                <form id='editDepartmentForm' action="" method="POST">
+                                <form id="editDepartmentForm" action="" method="POST">
                                     @csrf
                                     @method('PUT')
                                     <div class="row">
-
-                                        <input type="hidden" name="id"  id="edit_id">
-
-                                        <div class=" col-md-6 form-group">
-                                            <label>First Name:</label>
-                                            <input type="text" name="first_name" id="edit_first_name" class="form-control" required>
-                                        </div>
-                                        <div class=" col-md-6 form-group">
-                                            <label>Last Name:</label>
-                                            <input type="text" name="last_name" id="edit_last_name" class="form-control" required>
-                                        </div>
-                                        <div class=" col-md-6 form-group">
-                                            <label>Email:</label>
-                                            <input type="email" name="email" id="edit_email" class="form-control">
-                                        </div>
-                                        <div class=" col-md-6 form-group">
-                                            <label>Phone:</label>
-                                            <input type="number" name="phone" id="edit_phone" class="form-control">
-                                        </div>
-                                        <div class=" col-md-6 form-group">
-                                            <label>Gender:</label>
-                                            <select name="gender" id="edit_gender" class="form-control">
-                                                <option value="male" >Male</option>
-                                                <option value="female" >Female</option>
-                                                <option value="other" >Other</option>
-                                            </select>
-                                        </div>
-                                        <div class=" col-md-6 form-group">
-                                            <label>Marital Status:</label>
-                                            <select name="marital_status" id="edit_marital_status" class="form-control">
-                                                <option value="married">Married</option>
-                                                <option value="single">Single</option>
-                                                <option value="other">Other</option>
-                                            </select>
-                                        </div>
-                                        <div class=" col-md-6 form-group">
-                                            <label>Blood Group:</label>
-                                            <select name="blood_group" id="edit_blood_group" class="form-control">
-                                                <option value="">Select</option>
-                                                <option>A+</option>
-                                                <option>A-</option>
-                                                <option>B+</option>
-                                                <option>B-</option>
-                                                <option>AB+</option>
-                                                <option>AB-</option>
-                                                <option>O+</option>
-                                                <option>O-</option>
-                                            </select>
-                                        </div>
-                                        <div class=" col-md-6 form-group">
-                                            <label>Date of Birth:</label>
-                                            <input type="date" name="birth_date" id="edit_birth_date" class="form-control" id="nepaliDate5">
-                                        </div>
-                                        <div class=" col-md-6 form-group">
-                                            <label>Relative Name:</label>
-                                            <input type="text" name="relative_name" id="edit_relative_name" class="form-control">
-                                        </div>
-                                        <div class=" col-md-6 form-group">
-                                            <label>Relative Phone:</label>
-                                            <input type="number" name="relative_phone" id="edit_relative_phone" class="form-control">
-                                        </div>
-                                        <div class=" col-md-6 form-group">
-                                            <label>District:</label>
-                                            <input type="text" name="district" id="edit_district" class="form-control">
-                                        </div>
-                                        <div class=" col-md-6 form-group">
-                                            <label>Location:</label>
-                                            <textarea name="location" id="edit_location" class="form-control" required rows="3"></textarea>
-                                        </div>
-                                        <div class=" col-md-6 form-group">
-                                            <label>Occupation:</label>
-                                            <textarea name="occupation" id="edit_occupation" class="form-control" rows="3"></textarea>
-                                        </div>
+                                        <input type="hidden" name="id" id="edit_id" value="{{ $patient->id ?? '' }}">
                                         <div class="col-md-6 form-group">
-                                            <label>Description:</label>
-                                            <textarea name="description" id="edit_description" class="form-control" rows="3"></textarea>
+                                            <label>Prénom :</label>
+                                            <input type="text" name="first_name" id="edit_first_name" class="form-control" placeholder="Entrez votre prénom" value="{{ $patient->first_name ?? old('first_name') }}" required>
+                                            @error('first_name')
+                                                <small class="text-danger">{{ $message }}</small>
+                                            @enderror
+                                        </div>
+
+                                        <div class="col-md-6 form-group">
+                                            <label>Nom :</label>
+                                            <input type="text" name="last_name" id="edit_last_name" class="form-control" placeholder="Entrez votre nom de famille" value="{{ $patient->last_name ?? old('last_name') }}" required>
+                                            @error('last_name')
+                                                <small class="text-danger">{{ $message }}</small>
+                                            @enderror
+                                        </div>
+
+                                        <div class="col-md-6 form-group">
+                                            <label>Téléphone :</label>
+                                            <input type="number" name="phone" id="edit_phone" class="form-control" placeholder="Entrez votre numéro de téléphone" value="{{ $patient->phone ?? old('phone') }}" required>
+                                            @error('phone')
+                                                <small class="text-danger">{{ $message }}</small>
+                                            @enderror
+                                        </div>
+
+                                        <input type="hidden" name="gender" value="Femme">
+                                        {{-- Note: Le champ 'gender' est actuellement un input hidden. Si vous souhaitez le modifier via JS,
+                                             vous devrez le rendre visible (ex: <select>) et lui donner un id. --}}
+
+                                        <div class="col-md-6 form-group">
+                                            <label>Situation matrimoniale :</label>
+                                            <select name="marital_status" id="edit_marital_status" class="form-control" required>
+                                                <option value="">-- Sélectionnez votre situation --</option>
+                                                <option value="Marié(e)" {{ ($patient->marital_status ?? old('marital_status')) == 'Marié(e)' ? 'selected' : '' }}>Marié(e)</option>
+                                                <option value="Célibataire" {{ ($patient->marital_status ?? old('marital_status')) == 'Célibataire' ? 'selected' : '' }}>Célibataire</option>
+                                                <option value="Autre" {{ ($patient->marital_status ?? old('marital_status')) == 'Autre' ? 'selected' : '' }}>Autre</option>
+                                            </select>
+                                            @error('marital_status')
+                                                <small class="text-danger">{{ $message }}</small>
+                                            @enderror
+                                        </div>
+
+                                        <div class="col-md-6 form-group">
+                                            <label>Groupe sanguin :</label>
+                                            <select name="blood_group" id="edit_blood_group" class="form-control" required>
+                                                <option value="">-- Sélectionnez votre groupe sanguin --</option>
+                                                @foreach(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] as $group)
+                                                    <option value="{{ $group }}" {{ ($patient->blood_group ?? old('blood_group')) == $group ? 'selected' : '' }}>{{ $group }}</option>
+                                                @endforeach
+                                            </select>
+                                            @error('blood_group')
+                                                <small class="text-danger">{{ $message }}</small>
+                                            @enderror
+                                        </div>
+
+                                        <div class="col-md-6 form-group">
+                                            <label>Age :</label>
+                                            <input type="number" name="age" id="edit_age" class="form-control" placeholder="Age" value="{{ $patient->age ?? old('age') }}" required>
+                                            @error('age')
+                                                <small class="text-danger">{{ $message }}</small>
+                                            @enderror
+                                        </div>
+
+                                        <div class="col-md-6 form-group">
+                                            <label>Nom du proche :</label>
+                                            <input type="text" name="relative_name" id="edit_relative_name" class="form-control" placeholder="Nom d’un proche à contacter" value="{{ $patient->relative_name ?? old('relative_name') }}">
+                                            @error('relative_name')
+                                                <small class="text-danger">{{ $message }}</small>
+                                            @enderror
+                                        </div>
+
+                                        <div class="col-md-6 form-group">
+                                            <label>Téléphone du proche :</label>
+                                            <input type="number" name="relative_phone" id="edit_relative_phone" class="form-control" placeholder="Numéro de téléphone du proche" value="{{ $patient->relative_phone ?? old('relative_phone') }}">
+                                            @error('relative_phone')
+                                                <small class="text-danger">{{ $message }}</small>
+                                            @enderror
+                                        </div>
+
+                                        <div class="col-md-6 form-group">
+                                            <label>Profession :</label>
+                                            <input type="text" name="occupation" id="edit_occupation" class="form-control" placeholder="Votre profession" value="{{ $patient->occupation ?? old('occupation') }}" required>
+                                            @error('occupation')
+                                                <small class="text-danger">{{ $message }}</small>
+                                            @enderror
+                                        </div>
+
+                                        <div class="col-md-6 form-group">
+                                            <label>Localisation :</label>
+                                            <input type="text" name="location" id="edit_location" class="form-control" placeholder="Adresse complète, quartier, ville..." value="{{ $patient->location ?? old('location') }}" required>
+                                            @error('location')
+                                                <small class="text-danger">{{ $message }}</small>
+                                            @enderror
                                         </div>
                                     </div>
                                 </form>
                             </div>
+
                             <div class="modal-footer border-0">
+                                <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Fermer</button>
+
                                 <!-- Bouton pour la modification -->
                                 <button type="submit" class="btn btn-success" id="editRowButton" form="editDepartmentForm">
                                     Modifier
@@ -504,9 +549,6 @@
                                         <span class="sr-only">Loading...</span>
                                     </div>
                                 </button>
-
-                                <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Fermer</button>
-
                             </div>
                         </div>
                     </div>
@@ -606,7 +648,6 @@
         // Événement pour modifier un patient
         $(document).on('click', '.edit-button', function() {
             var patient = $(this).data('patient_update');
-
             // Mettre à jour le champ du modal
             $('#edit_id').val(patient.id);
             $('#edit_first_name').val(patient.first_name);

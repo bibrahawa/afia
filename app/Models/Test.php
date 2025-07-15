@@ -39,6 +39,9 @@ class Test extends Model
 		return $this->hasMany('App\Models\TestResult');
 	}
 
-
+    public function consultations()
+    {
+        return $this->belongsToMany(Consultation::class);
+    }
 
 }

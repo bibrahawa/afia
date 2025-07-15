@@ -49,8 +49,8 @@
                         <tr>
                             <th style="width: 10%">ID</th>
                             <th>Service</th>
-                            <th>Department</th>
-                            <th>Amount</th>
+                            <th>Departement</th>
+                            <th>Montant</th>
                             <th style="width: 10%">Actions</th>
                         </tr>
                     </thead>
@@ -58,47 +58,47 @@
                         <tr>
                             <th>ID</th>
 				            <th>Service</th>
-				            <th>Department</th>
-				            <th>Amount</th>
+				            <th>Departement</th>
+				            <th>Montant</th>
 				            <th>Actions</th>
                         </tr>
                     </tfoot>
-                    <tbody>
-                        @foreach($services as $service)
-                            <tr>
-                                <td>{{ $service->id}}</td>
-                                <td>{{ $service->name}}</td>
-                                <td>{{ $service->department->name}}</td>
-                                <td>{{ number_format($service->amount, 2)}}</td>
-                                <td>
-                                    <div class="form-button-action">
-                                        <!-- Modifier : Ajout des data-bs-toggle et data-bs-target -->
-                                        <button
-                                            type="button"
-                                            class="btn btn-warning btn-round btn-sm edit-button"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#editRowModal"
-                                            data-info="{{$service->id}},{{$service->name}},{{$service->department_id}},{{$service->amount}}"
-                                        >
-                                            <i class="fa fa-edit"></i>
-                                        </button>
+                        <tbody>
+                            @foreach($services as $service)
+                                <tr>
+                                    <td>{{ $service->id}}</td>
+                                    <td>{{ $service->name}}</td>
+                                    <td>{{ $service->department->name}}</td>
+                                    <td>{{ number_format($service->amount, 2)}}</td>
+                                    <td>
+                                        <div class="form-button-action">
+                                            <!-- Modifier : Ajout des data-bs-toggle et data-bs-target -->
+                                            <button
+                                                type="button"
+                                                class="btn btn-warning btn-round btn-sm edit-button"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#editRowModal"
+                                                data-info="{{$service->id}},{{$service->name}},{{$service->department_id}},{{$service->amount}}"
+                                            >
+                                                <i class="fa fa-edit"></i>
+                                            </button>
 
-                                        <!-- Supprimer : Ajout des data-bs-toggle et data-bs-target -->
-                                        <button
-                                            type="button"
-                                            class="btn btn-danger btn-round btn-sm delete-button"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#deleteRowModal"
-                                            data-id="{{$service->id}}"
-                                            data-name="{{$service->name}}"
-                                        >
-                                            <i class="fa fa-trash"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
+                                            <!-- Supprimer : Ajout des data-bs-toggle et data-bs-target -->
+                                            <button
+                                                type="button"
+                                                class="btn btn-danger btn-round btn-sm delete-button"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#deleteRowModal"
+                                                data-id="{{$service->id}}"
+                                                data-name="{{$service->name}}"
+                                            >
+                                                <i class="fa fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
                     </table>
                 </div>
 
@@ -109,7 +109,7 @@
                             <div class="modal-header border-0">
                                 <h5 class="modal-title">
                                     <span class="fw-mediumbold"> Nouveau</span>
-                                    <span class="fw-light"> service</span>
+                                    <span class="fw-light"> Service</span>
                                 </h5>
                                 <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
                                     <span aria-hidden="true">&times;</span>
@@ -122,7 +122,7 @@
                                     <div class="row">
 
                                         <div class="col-sm-12">
-                                            <div class="form-group form-group-default">
+                                            <div class="form-group">
                                                 <label>Nom du service</label>
                                                 <input id="name" name="name" type="text" class="form-control" placeholder="Entrez le nom" required/>
                                             </div>
@@ -131,7 +131,7 @@
                                         <div class="col-sm-6">
                                             <div class="form-group">
                                                 <label>Departement</label>
-                                                <select class="selectpicker" name="department_id" data-live-search="true">
+                                                <select class="form-control" name="department_id">
                                                     @foreach ($departments as $department)
                                                         <option value="{{$department->id}}">{{ $department->name }}</option>
                                                     @endforeach
@@ -141,7 +141,7 @@
 
                                         <div class="col-sm-6">
                                             <div class="form-group">
-                                                <label>Amount</label>
+                                                <label>Montant</label>
                                                 <div class="input-group">
                                                     <input type="text" name="amount" class="form-control" placeholder="Amount">
                                                     <span class="input-group-text">GNF</span>
@@ -188,17 +188,16 @@
                                     <div class="row">
                                         <input type="hidden" name="id" id="edit_id" value="">
                                         <div class="col-sm-12">
-                                            <div class="form-group form-group-default">
+                                            <div class="form-group">
                                                 <label>Nom du service</label>
                                                 <input id="edit_name" name="name" type="text" class="form-control" placeholder="Entrez le nom" required/>
                                             </div>
                                         </div>
 
-                                        <div class="col-sm-12">
+                                        <div class="col-sm-6">
                                             <div class="form-group">
-                                                <div class="form-group">
-                                                    <label>Departement</label>
-                                                    <select class="selectpicker" name="department_id" id="edit_department_id" data-live-search="true">
+                                                <label>Departement</label>
+                                                <select class="form-control" name="department_id" id="edit_department_id">
                                                     @foreach ($departments as $department)
                                                         <option value="{{$department->id}}">{{ $department->name }}</option>
                                                     @endforeach
@@ -206,9 +205,9 @@
                                             </div>
                                         </div>
 
-                                        <div class="col-sm-12">
+                                        <div class="col-sm-6">
                                             <div class="form-group">
-                                                <label>Amount</label>
+                                                <label>Montant</label>
                                                 <div class="input-group">
                                                     <input type="text" id="edit_amount" name="amount" class="form-control" aria-label="Amount (to the nearest dollar)">
                                                     <span class="input-group-text">GNF</span>

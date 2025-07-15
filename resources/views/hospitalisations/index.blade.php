@@ -109,7 +109,7 @@
                                             </button>
                                         </form>
 
-                                        @if ($hospitalisation->total_payer == 0)
+                                        @if($hospitalisation->total_payer == 0)
                                             &nbsp;&nbsp;
                                             <form action="{{ route('hospitalisations.payer', $hospitalisation->id) }}" method="GET"
                                                 onsubmit="return confirm('Voulez-vous payer cette hospitalisation ?')">
@@ -119,8 +119,6 @@
                                                 </button>
                                             </form>
                                         @endif
-
-
 
                                     </div>
                                 </td>
@@ -149,8 +147,8 @@
                                     @csrf
                                     <div class="row">
                                         <div class="col-sm-12">
-                                            <div class="form-group form-group-default">
-                                                <label class="block font-medium">Patient</label>
+                                            <div class="form-group">
+                                                <label class="form-label">Patient</label>
                                                 <select name="patient_id" class="form-control" required>
                                                     @foreach($patients as $patient)
                                                         <option value="{{ $patient->id }}">{{ $patient->first_name." ".$patient->last_name }}</option>
@@ -223,10 +221,11 @@
                                     <span aria-hidden="true">&times;</span>
                                 </button>
                             </div>
-                            <form id='editHospitalisationForm' action="#" method="POST">
+                            <form id='editHospitalisationForm' action="{{ route('hospitalisation.update') }}" method="POST">
                                 @csrf
-                                @method('POST')
+                                @method('PUT')
 
+                                <input type="hidden" name="id" id="edit_id">
                                 <div class="modal-body">
                                     <div class="row">
                                         <div class="col-sm-12">
@@ -302,11 +301,12 @@
         $(document).on('click', '.edit-button', function() {
             var hospitalisation = $(this).data('info');
             // Mettre à jour le champ du modal
-            $('#patient_id').val(hospitalisation.patient.first_name + " " + hospitalisation.patient.last_name);
-            $('#chambre_id').val(hospitalisation.chambre.numero);
+            $('#patient_id').val(hospitalisation.patient_id).find('option[value="' + hospitalisation.patient_id + '"]').prop('selected', true);
+            $('#chambre_id').val(hospitalisation.chambre_id).find('option[value="' + hospitalisation.chambre_id + '"]').prop('selected', true);
             $('#date_entree').val(hospitalisation.date_entree);
             $('#nombre_jours').val(hospitalisation.nombre_jours);
             $('#observation').val(hospitalisation.observation);
+            $('#edit_id').val(hospitalisation.id);
 
             // Afficher le modal
             $('#editRowModal').modal('show');

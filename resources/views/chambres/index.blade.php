@@ -194,15 +194,15 @@
                                     <span aria-hidden="true">&times;</span>
                                 </button>
                             </div>
-                            <form id='editChambreForm' action="#" method="POST">
+                            <form id='editChambreForm' action="{{ route('chambre.update') }}" method="POST">
                                 @csrf
-                                @method('POST')
-
+                                @method('PUT')
+                                <input type="hidden" name="id" id="edit_id">
                                 <div class="modal-body">
                                     <div class="row">
                                         <div class="col-sm-12">
                                             <div class="form-group form-group-default">
-                                                <label>Numéro :</label>
+                                                <label class="form-label required">Numéro :</label>
                                                 <input type="text" name="numero" id="numero" class="form-control" placeholder="Ex: 101, 102 .." required/>
                                             </div>
                                         </div>
@@ -272,6 +272,7 @@
             $('#type').val(chambre.type);
             $('#status').val(chambre.status);
             $('#prix_par_jour').val(chambre.prix_par_jour);
+            $('#edit_id').val(chambre.id);
 
             // Afficher le modal
             $('#editRowModal').modal('show');

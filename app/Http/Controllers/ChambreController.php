@@ -38,9 +38,9 @@ class ChambreController extends Controller
         return view('chambres.edit', compact('chambre'));
     }
 
-    public function update(Request $request, Chambre $chambre)
+    public function update(Request $request)
     {
-        dd($request->all());
+        $chambre = Chambre::find($request->id);
         $request->validate([
             'numero' => 'required|unique:chambres,numero,' . $chambre->id,
             'type' => 'required|string',
@@ -56,6 +56,7 @@ class ChambreController extends Controller
     public function destroy(Chambre $chambre)
     {
         $chambre->delete();
+        $chambre->hospitalisations()->delete();
         return redirect()->route('chambres.index')->with('success', 'Chambre supprimée.');
     }
 }

@@ -233,26 +233,120 @@ class ConsultationController extends Controller
         ]));
     }
 
-    public function edit($id){
+    public function edit($id)
+    {
+        $consultation = Consultation::with(['patient', 'services', 'tests', 'packages', 'medicaments'])->findOrFail($id);
         $patients = Patient::all();
-        $medecins = Employee::where('type', 'doctor')->get();
-        $departements = Department::all();
         $services = Service::all();
+        $tests = Test::all();
         $packages = Package::all();
         $medicaments = Medicament::all();
-        $tests = Test::all();
-        $consultation = Consultation::find($id);
-        return view('consultations.edit', compact([
-            'patients',
-            'medecins',
-            'departements',
-            'services',
-            'packages',
-            'medicaments',
-            'consultation',
-            'tests'
-        ]));
+
+        return view('consultations.edit', compact('consultation', 'patients', 'services', 'tests', 'packages', 'medicaments'));
     }
+
+    public function update(Request $request, $id)
+    {
+
+        // Validation principale
+        $validated = $request->validate([
+            'patient_id' => 'required|exists:patients,id',
+            'motif' => 'required|string',
+            'signes_cliniques' => 'nullable|string',
+            'diagnostic' => 'required|string',
+            'observation' => 'nullable|string',
+            'prochain_rdv' => 'nullable|date'
+        ]);
+
+        $consultation = Consultation::findOrFail($id);
+
+        // Préparation des données consultation
+        $data_for_consultation = $request->only([
+            'patient_id','motif', 'signes_cliniques', 'diagnostic', 'observation', 'prochain_rdv'
+        ]);
+        $user = auth()->user()->employee;
+        $data_for_consultation['medecin_id'] = $user->id;
+        $data_for_consultation['department_id'] = $user->department_id;
+
+        if ($request->signes_cliniques) {
+            $data_for_consultation['signes_cliniques'] = explode(',', $request->signes_cliniques);
+        }
+
+
+        $consultation->update($data_for_consultation);
+
+        // Mise à jour des liaisons
+        $consultation->medicaments()->sync($request->medicaments);
+        $consultation->services()->sync($request->services);
+        $consultation->packages()->sync($request->packages);
+        $consultation->tests()->sync($request->tests);
+
+        // Recharger les relations fraîchement modifiées
+        $consultation->load(['services', 'packages', 'tests', 'medicaments', 'transaction']);
+
+        // Calcul du montant total
+        $consultation_amount =
+            $consultation->services->sum('amount') +
+            $consultation->packages->sum('price') +
+            $consultation->tests->sum('amount') +
+            $consultation->medicaments->sum('amount');
+
+        // Calcul de la différence avec ancienne transaction
+        $ancienne_transaction = $consultation->transaction;
+        $ancien_montant = $ancienne_transaction?->sub_total ?? 0;
+        $difference = $consultation_amount - $ancien_montant;
+
+        // Mise à jour du compte patient (ajuste uniquement la différence)
+        if ($difference != 0) {
+            $accountID = TransactionService::mettreAJourCompte(
+                $request->patient_id,
+                Patient::class,
+                abs($difference),
+                $difference >= 0 ? 'credit' : 'debit'
+            );
+        } else {
+            $accountID = $ancienne_transaction?->account_id ?? null;
+        }
+
+        // Mise à jour ou création de la transaction liée
+        $consultation->transaction()->updateOrCreate(
+            [
+                'user_id'    => auth()->id(),
+                'account_id' => $accountID,
+                'patient_id' => $request->patient_id,
+                'description'=> $consultation->motif,
+                'tax_amount' => 0,
+                'discount'   => 0,
+            ],
+            [
+                'sub_total' => $consultation_amount,
+                'total' => $consultation_amount,
+            ]
+        );
+
+
+
+        // Marque la consultation comme facturée
+        $consultation->update(['est_facturee' => true]);
+
+        /**
+         * ✅ Ajout des antécédents médicaux ici
+         */
+        Antecedent::updateOrCreate(
+            ['patient_id' => $request->patient_id], // clé de recherche
+            [
+                'antecedents_medicaux'           => $request->antecedents_medicaux,
+                'antecedents_chirurgicaux'       => $request->antecedents_chirurgicaux,
+                'antecedents_gyneco_obstetricaux'=> $request->antecedents_gyneco_obstetricaux,
+                'antecedents_familiaux'          => $request->antecedents_familiaux,
+                'allergies'                      => $request->allergies,
+                'traitements_cours'              => $request->traitements_cours,
+            ]
+        );
+
+        return redirect()->route('consultation.index')->with('success', 'Consultation enregistrée.');
+    }
+
 
     public function facturer(Consultation $consultation)
     {
@@ -286,5 +380,37 @@ class ConsultationController extends Controller
 
         return response()->download($fullPath);
     }
+
+    public function destroy($id)
+    {
+        $consultation = Consultation::with(['transaction', 'services', 'tests', 'packages', 'medicaments'])->findOrFail($id);
+
+        // Récupérer la transaction associée
+        $transaction = $consultation->transaction;
+
+        if ($transaction) {
+            // ✅ Récupérer et ajuster le solde du compte
+            $account = $transaction->account;
+            if ($account) {
+                $account->balance -= $transaction->sub_total;
+                $account->save();
+            }
+
+            // ❌ Supprimer la transaction
+            $transaction->delete();
+        }
+
+        // 🔗 Détacher toutes les relations
+        $consultation->services()->detach();
+        $consultation->tests()->detach();
+        $consultation->packages()->detach();
+        $consultation->medicaments()->detach();
+
+        // 🗑️ Supprimer la consultation
+        $consultation->delete();
+
+        return redirect()->route('consultation.index')->with('success', 'Consultation supprimée avec succès.');
+    }
+
 
 }

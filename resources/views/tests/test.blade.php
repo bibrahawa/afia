@@ -48,16 +48,16 @@
                     <thead class="bg-primary text-white"> <!-- Ajout de couleur d'entête -->
                         <tr>
                             <th style="width: 10%">ID</th>
-                            <th>Name</th>
+                            <th>Nom</th>
 					        <th>Type</th>
-					        <td>Description</td>
+					        <td>Montant</td>
                             <th style="width: 10%">Actions</th>
                         </tr>
                     </thead>
                     <tfoot>
                         <tr>
                             <th>ID</th>
-				            <th>Name</th>
+				            <th>Nom</th>
 					        <th>Type</th>
 					        <td>Montant</td>
 				            <th>Actions</th>
@@ -109,30 +109,30 @@
                             <div class="modal-header border-0">
                                 <h5 class="modal-title">
                                     <span class="fw-mediumbold"> Nouveau</span>
-                                    <span class="fw-light"> test</span>
+                                    <span class="fw-light"> Examen</span>
                                 </h5>
                                 <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
                                     <span aria-hidden="true">&times;</span>
                                 </button>
                             </div>
                             <div class="modal-body">
-                                <p class="small">Créez un nouveau test en remplissant le formulaire ci-dessous.</p>
+                                <p class="small">Créez un examen en remplissant le formulaire ci-dessous.</p>
                                 <form id="addTestForm" action="{{ route('test.store') }}" method="POST">
                                     @csrf
                                     <div class="row">
 
                                         <div class="col-sm-6">
-                                            <div class="form-group form-group-default">
-                                                <label>Nom du test</label>
-                                                <input id="name" name="name" type="text" class="form-control" placeholder="Entrez le nom" required/>
+                                            <div class="form-group">
+                                                <label>Nom de l'examen</label>
+                                                <input name="name" type="text" class="form-control" placeholder="Entrez le nom" required />
                                             </div>
                                         </div>
 
                                         <div class="col-sm-6">
-                                            <div class="form-group form-group-default">
-                                                <label>Amount</label>
+                                            <div class="form-group">
+                                                <label>Montant</label>
                                                 <div class="input-group">
-                                                    <input type="text" name="amount" class="form-control" placeholder="Amount">
+                                                    <input type="number" name="amount" class="form-control" placeholder="Montant" required>
                                                     <span class="input-group-text">GNF</span>
                                                 </div>
                                             </div>
@@ -140,23 +140,23 @@
 
                                         <div class="col-sm-12">
                                             <div class="form-group">
-                                                <label class="form-label">Type :</label>
-                                                <select class="selectpicker" name="report_type" data-live-search="true">
-                                                    <option value="haematology">HÉMATOLOGIE</option>
-                                                    <option value="biochemistry">BIOCHIMIE</option>
-                                                    <option value="immunology">IMMUNOLOGIE</option>
-                                                    <option value="examination">EXAMEN</option>
-                                                    <option value="microbiology">MICROBIOLOGIE</option>
-                                                    <option value="stain">COLORATION</option>
-                                                    <option value="widal">TEST DE WIDAL</option>
+                                                <label>Type d'examen</label>
+                                                <select class="form-select" name="report_type">
+                                                    <option value="BIOCHIMIE">BIOCHIMIE</option>
+                                                    <option value="IMMUNOLOGIE">IMMUNOLOGIE</option>
+                                                    <option value="INFECTOLOGIE">INFECTOLOGIE</option>
+                                                    <option value="HEMATOLOGIE">HEMATOLOGIE</option>
+                                                    <option value="HEMOSTASE">HEMOSTASE</option>
+                                                    <option value="BACTERIOLOGIE">BACTERIOLOGIE</option>
+                                                    <option value="PARASITOLOGIE">PARASITOLOGIE</option>
                                                 </select>
                                             </div>
                                         </div>
 
                                         <div class="col-sm-12">
-                                            <div class="form-group form-group-default">
+                                            <div class="form-group">
                                                 <label>Description</label>
-                                                <textarea name='description' class="form-control" placeholder="Description"></textarea>
+                                                <textarea name="description" class="form-control" placeholder="Entrez une description"></textarea>
                                             </div>
                                         </div>
                                     </div>
@@ -183,11 +183,8 @@
                     <div class="modal-dialog" role="document">
                         <div class="modal-content">
                             <div class="modal-header border-0">
-                                <h5 class="modal-title">
-                                    <span class="fw-mediumbold"> Modifier</span>
-                                    <span class="fw-light"> test</span>
-                                </h5>
-                                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                                <h5 class="modal-title">Modifier l'examen</h5>
+                                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Fermer">
                                     <span aria-hidden="true">&times;</span>
                                 </button>
                             </div>
@@ -198,17 +195,17 @@
                                     <div class="row">
                                         <input type="hidden" id="edit_id" name="edit_id">
                                         <div class="col-sm-6">
-                                            <div class="form-group form-group-default">
-                                                <label>Nom du test</label>
-                                                <input id="edit_name" name="name" type="text" class="form-control" placeholder="Entrez le nom" required/>
+                                            <div class="form-group">
+                                                <label>Nom de l'examen</label>
+                                                <input id="edit_name" name="name" type="text" class="form-control" placeholder="Entrez le nom" required />
                                             </div>
                                         </div>
 
                                         <div class="col-sm-6">
-                                            <div class="form-group form-group-default">
-                                                <label>Amount</label>
+                                            <div class="form-group">
+                                                <label>Montant</label>
                                                 <div class="input-group">
-                                                    <input type="text" id="edit_amount" name="amount" class="form-control" placeholder="Amount">
+                                                    <input type="text" id="edit_amount" name="amount" class="form-control" placeholder="Montant">
                                                     <span class="input-group-text">GNF</span>
                                                 </div>
                                             </div>
@@ -216,35 +213,23 @@
 
                                         <div class="col-sm-12">
                                             <div class="form-group">
-                                                <label>Type :</label>
-                                                <select class="selectpicker" name="report_type" id="edit_report_type" data-live-search="true">
-                                                    <option value="haematology">HÉMATOLOGIE</option>
-                                                    <option value="biochemistry">BIOCHIMIE</option>
-                                                    <option value="immunology">IMMUNOLOGIE</option>
-                                                    <option value="examination">EXAMEN</option>
-                                                    <option value="microbiology">MICROBIOLOGIE</option>
-                                                    <option value="stain">COLORATION</option>
-                                                    <option value="widal">TEST DE WIDAL</option>
+                                                <label>Type d'examen</label>
+                                                <select class="form-control" name="report_type" id="edit_report_type">
+                                                    <option value="BIOCHIMIE">BIOCHIMIE</option>
+                                                    <option value="IMMUNOLOGIE">IMMUNOLOGIE</option>
+                                                    <option value="INFECTOLOGIE">INFECTOLOGIE</option>
+                                                    <option value="HEMATOLOGIE">HEMATOLOGIE</option>
+                                                    <option value="HEMOSTASE">HEMOSTASE</option>
+                                                    <option value="BACTERIOLOGIE">BACTERIOLOGIE</option>
+                                                    <option value="PARASITOLOGIE">PARASITOLOGIE</option>
                                                 </select>
                                             </div>
                                         </div>
 
-                                        {{-- <div class="col-sm-6">
-                                            <div class="form-group form-group-default">
-                                                <label>Service</label>
-                                                <select name="service_id" id="edit_service_id" class="form-control">
-                                                    <option disabled selected>Selectionnez un service</option>
-                                                    @foreach ($services as $service)
-                                                        <option value="{{$service->id}}">{{ $service->name }}</option>
-                                                    @endforeach
-                                                </select>
-                                            </div>
-                                        </div> --}}
-
                                         <div class="col-sm-12">
-                                            <div class="form-group form-group-default">
+                                            <div class="form-group">
                                                 <label>Description</label>
-                                                <textarea name='description' id="edit_description" class="form-control" placeholder="Description"></textarea>
+                                                <textarea name="description" id="edit_description" class="form-control" placeholder="Entrez une description"></textarea>
                                             </div>
                                         </div>
                                     </div>
@@ -252,7 +237,7 @@
                             <div class="modal-footer border-0">
                                 <!-- Bouton pour la modification -->
                                 <button type="submit" class="btn btn-success" id="editRowButton" form="editTestForm">
-                                    Modifier
+                                    Enregistrer les modifications
                                     <div class="spinner-border spinner-border-sm text-light" role="status" id="editLoader" style="display: none;">
                                         <span class="sr-only">Loading...</span>
                                     </div>
@@ -276,9 +261,9 @@
                             </div>
                             <div class="modal-body">
                                 <!-- Formulaire de suppression -->
-                                <form id="deleteTestForm" action="{{ route('test.delete', ['id' => '']) }}" method="POST">
+                                <form id="deleteTestForm" action="{{ route('test.delete') }}" method="POST">
                                     @csrf
-                                    @method('DELETE') <!-- Utiliser la méthode DELETE -->
+                                    @method('DELETE')
                                     <p id="test_name_to_delete"></p>
                                     <input type="hidden" id="delete_id" name="id">
                                 </form>
@@ -333,7 +318,6 @@
 
             // Mettre à jour l'action du formulaire de suppression avec l'ID du test
             $('#delete_id').val(id);
-            $('#deleteTestForm').attr('action', '/test/delete/' + id);
 
             // Afficher le modal de confirmation
             $('#deleteRowModal').modal('show');

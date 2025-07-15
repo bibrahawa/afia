@@ -87,13 +87,16 @@ class ServiceController extends Controller
 
       $service = Service::find($request->id);
 
-      if(count($service->service_sales) || count($service->tests)) {
+      $service->delete();
+      return back()->with('success', 'Service deleted successfully');
 
-        return back()->with('error', 'Service cannot be deleted...');
-      } else {
-        $service->delete();
-        return back()->with('success', 'Service deleted successfully');
-      }
+    //   if(count($service->consultations)) {
+
+    //     return back()->with('error', 'Service cannot be deleted...');
+    //   } else {
+    //     $service->delete();
+    //     return back()->with('success', 'Service deleted successfully');
+    //   }
 
 
     }

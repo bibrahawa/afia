@@ -141,7 +141,10 @@ Route::middleware(['auth'])->group(function() {
     Route::name('package.')->group(function() {
         Route::get('package', [PackageController::class, 'getIndex'])->name('index');
         Route::post('package', [PackageController::class, 'store'])->name('store');
-        Route::post('package/update', [PackageController::class, 'update'])->name('update');
+        Route::put('/package/update/{id}', [PackageController::class, 'update'])->name('update');
+        Route::get('/edit/{id}', [PackageController::class, 'edit'])->name('edit');
+
+        // Route::post('package/update', [PackageController::class, 'update'])->name('update');
         Route::post('package/test/delete', [PackageController::class, 'packageTestDelete'])->name('test.delete');
         Route::delete('package/delete/{id}', [PackageController::class, 'delete'])->name('delete');
         Route::post('package/sale', [PackageController::class, 'packageSale'])->name('sale');
@@ -180,7 +183,7 @@ Route::middleware(['auth'])->group(function() {
         Route::post('test/{id}/status', [TestController::class, 'statusChange'])->name('status');
         Route::post('test/add', [TestController::class, 'store'])->name('store');
         Route::post('test/edit', [TestController::class, 'edit'])->name('edit');
-        Route::post('test/delete', [TestController::class, 'delete'])->name('delete');
+        Route::delete('test/delete', [TestController::class, 'delete'])->name('delete');
     });
 
     // Gestion des références
@@ -258,8 +261,10 @@ Route::middleware(['auth'])->group(function() {
         return view('consultations.facture.facture_consultation');
     })->name('facture.consultation');
 
-    Route::resource('hospitalisations', HospitalisationController::class);
-    Route::resource('chambres', ChambreController::class);
+    Route::resource('hospitalisations', HospitalisationController::class)->except('update');
+    Route::put('hospitalisation/update', [HospitalisationController::class, 'update'])->name('hospitalisation.update');
+    Route::resource('chambres', ChambreController::class)->except('update');
+    Route::put('chambre/update', [ChambreController::class, 'update'])->name('chambre.update');
 
     Route::get('/hospitalisations/{hospitalisation}/payer', [
         HospitalisationController::class, 'payer'

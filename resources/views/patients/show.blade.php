@@ -103,7 +103,7 @@
                                             <td>{{ $consultation->department->name }}</td>
                                             <td>{{ $consultation->medecin->first_name." ".$consultation->medecin->last_name ?? '—' }}</td>
                                             <td>{{ Str::limit($consultation->motif, 30) }}</td>
-                                            <td>{{ number_format($consultation->transaction->total)." GNF" }}</td>
+                                            <td>{{ number_format($consultation->transaction->total ?? 0)." GNF" }}</td>
                                             <td>
                                                 <a href="{{ route('consultation.show', $consultation->id) }}" class="btn btn-sm btn-primary"><i class="fa fa-eye"></i></a>
                                                 <a href="{{ route('consultations.facturer', $consultation) }}" class="btn btn-sm btn-info"><i class="fa fa-file-invoice"></i></a>

@@ -114,7 +114,6 @@
                         <p>Employes</p>
                     </a>
                 </li>
-
                 <li class="nav-item {{ request()->routeIs('chambres.*') ? 'active' : '' }}">
                     <a href="{{ route('chambres.index') }}">
                         <i class="fas fa-bed"></i>

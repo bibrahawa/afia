@@ -31,13 +31,13 @@ class PackageController extends Controller
 	public function store(Request $request)
 	{
 
-        // dd($request->all());
 		$request->validate([
             'name' => 'required'
             ]);
 
 		$package['name'] = $request->name;
 		$package['description'] = $request->description;
+        $package['department_id'] = $request->department_id;
         $package['price'] = 0;
 
         if ($request->has('tests')) {
@@ -60,41 +60,54 @@ class PackageController extends Controller
 
 	}
 
-	public function update(Request $request)
+    public function edit($id){
+        $package = Package::find($id);
+        $departments = Department::all();
+        $tests = Test::all();
+        $services = Service::all();
+
+        return view('packages.edit', [
+            'package' => $package,
+            'departments' => $departments,
+            'tests' => $tests,
+            'services' => $services
+        ]);
+    }
+	public function update(Request $request, $id)
 	{
-		$package = Package::find($request->id);
+        $package = Package::find($request->id);
 		$data['name'] = $request->name;
 		$data['description'] = $request->description;
+		$data['department_id'] = $request->department_id;
 		$data['price'] = 0;
 
-        if ($request->has('test_id')) {
-            foreach ($request->test_id as $test) {
+
+        if ($request->has('tests')) {
+            foreach ($request->tests as $test) {
                 $data['price'] += Test::find($test)->amount;
             }
         }
 
-        if ($request->has('service_id')) {
-            foreach ($request->service_id as $service) {
+        if ($request->has('services')) {
+            foreach ($request->services as $service) {
                 $data['price'] += Service::find($service)->amount;
             }
         }
 
-
 		$package->update($data);
 
 		// Gérer les tests associés
-        if ($request->has('test_id')) {
-            $package->tests()->sync($request->input("test_id"));
+        if ($request->has('tests')) {
+            $package->tests()->sync($request->tests);
 		}
 
         // Gérer les services associés
-        if ($request->has('service_id')) {
-            $package->tests()->sync($request->input("service_id"));
+        if ($request->has('services')) {
+            $package->services()->sync($request->services);
 		}
 
-		return back()->with('success', 'Package Updated Successfully.');
-
-	}  //
+        return redirect()->route('package.index')->with('success', 'Package modifié avec succès');
+	}
 
 	public function packageTestDelete(Request $request)
 	{

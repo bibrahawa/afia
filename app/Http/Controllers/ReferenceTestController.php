@@ -36,7 +36,8 @@ class ReferenceTestController extends Controller
     public function delete(Request $request)
     {
 
-     //return $request->all();
+     return $request->all();
+
       $test = TestReference::find($request->id);
 
 

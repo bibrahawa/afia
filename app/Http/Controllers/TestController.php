@@ -51,12 +51,14 @@ class TestController extends Controller
 
     public function delete(Request $request)
     {
-       // return $request->all();
-        $test = Test::find($request->id);
-        if (count($test->test_reference) || count($test->test_reports) || count($test->test_examination) || count($test->test_antibiotics) || count($test->test_stain) ) {
+        $examen = Test::find($request->id);
+
+        if (count($examen->consultations)) {
             return back()->with('error', 'Test cannot be deleted...');
         }
-        $test->delete();
+
+        $examen->delete();
+
         return back()->with('success', 'Test successfully Deleted');
 
     }

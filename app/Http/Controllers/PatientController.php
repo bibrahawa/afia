@@ -36,13 +36,13 @@ class PatientController extends Controller
     {
 
         $data = $request->all();
-        $data['age'] = date('Y') - date('Y', strtotime($data['birth_date']));
+        // $data['age'] = date('Y') - date('Y', strtotime($data['birth_date']));
         $data['country'] = 'Guinee';
         $data['state'] = 'Conakry';
 
         $user = new User();
         $user->name = $request->first_name;
-        $user->email = $request->email;
+        $user->email = rand(100000, 999999) . $request->last_name . '@aprosafe.com';
         $user->password = "12345678";
 
         if($user->save()){
@@ -51,7 +51,7 @@ class PatientController extends Controller
             $user->assignRole('patient');
         }
 
-        return back()->with('success', 'Patient saved Successfully.');
+        return back()->with('success', 'Patiente enregistré avec succès.');
     }
 
     /**
@@ -130,10 +130,8 @@ class PatientController extends Controller
     {
         $patient = Patient::find($id);
         $data = $request->all();
-        $data['age'] = date('Y') - date('Y', strtotime($data['birth_date']));
         $patient->update($data);
-        return back()
-            ->with('success', 'Patient updated successfully');
+        return back()->with('success', 'Information de la patiente modifier avec succès.');
     }
 
     /**
@@ -145,11 +143,9 @@ class PatientController extends Controller
     public function destroy($id)
     {
         $patient = Patient::find($id);
-        if (count($patient->invoices) || count($patient->reports) || count($patient->packageSales) ) {
-            return back()->with('error', 'Patient cannot deleted...');
-        }
+        if (count($patient->consultations)) {
+            return back()->with('error', 'La patiente ne peut pas être supprimé...');        }
         $patient->delete();
-        return redirect()->route('patient.index')->with('success', 'Patient Deletetd Successfully');
-        //
+        return redirect()->route('patient.index')->with('success', 'La patiente est supprimé avec success');
     }
 }

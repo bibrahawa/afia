@@ -44,7 +44,7 @@
                             <th>#</th>
                             <th>Date</th>
                             <th>Département</th>
-                            <th>Médecin</th>
+                            {{-- <th>Médecin</th> --}}
                             <th>Patient</th>
                             <th>Motif</th>
                             <th>Actions</th>
@@ -55,7 +55,7 @@
                             <th>#</th>
                             <th>Date</th>
                             <th>Département</th>
-                            <th>Médecin</th>
+                            {{-- <th>Médecin</th> --}}
                             <th>Patient</th>
                             <th>Motif</th>
                             <th>Actions</th>
@@ -67,7 +67,7 @@
                                 <td>{{ $loop->iteration }}</td>
                                 <td>{{ $consultation->created_at->format('d/m/Y H:m:s') }}</td>
                                 <td>{{ $consultation->department->name }}</td>
-                                <td>{{ $consultation->medecin->first_name." ".$consultation->medecin->last_name ?? '—' }}</td>
+                                {{-- <td>{{ $consultation->medecin->first_name." ".$consultation->medecin->last_name ?? '—' }}</td> --}}
                                 <td>{{ $consultation->patient->first_name." ".$consultation->patient->last_name }}</td>
                                 <td>{{ Str::limit($consultation->motif, 30) }}</td>
                                 <td>
