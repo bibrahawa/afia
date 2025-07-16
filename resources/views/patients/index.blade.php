@@ -228,7 +228,7 @@
                                 <td>{{$patient->first_name}} {{$patient->middle_name}} {{$patient->last_name}}</td>
                                 <td>{{$patient->phone}}</td>
                                 <td>{{$patient->district}}, {{$patient->location}}</td>
-                                <td>{{number_format($patient->account->balance) ?? ""}} GNF</td>
+                                <td>{{number_format($patient->account?->balance) ?? ""}} GNF</td>
                                 <td>
                                     <a href="{{ route('patient.show', $patient->id) }}" class="btn btn-sm btn-primary"><i class="fa fa-eye"></i></a>
 

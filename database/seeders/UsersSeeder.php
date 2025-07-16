@@ -17,9 +17,9 @@ class UsersSeeder extends Seeder
      */
     public function run()
     {
+        Role::create(['name' => 'patiente']);
         $adminRole  = Role::find(1);
         $medecinRole = Role::create(['name' => 'medecin']);
-        $patientRole = Role::create(['name' => 'patiente']);
         $acceuilRole = Role::create(['name' => 'accueil']);
 
         $userAdmin = User::create([

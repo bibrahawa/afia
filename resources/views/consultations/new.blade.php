@@ -683,13 +683,13 @@
                             <div class="form-group">
                                 <label class="form-label">
                                     <i class="fas fa-user-circle text-primary"></i>
-                                    Sélectionner un Patient
+                                    Sélectionner une Patiente
                                     <span class="required-mark">*</span>
                                     <span class="status-badge status-required ms-2">Obligatoire</span>
                                 </label>
                                 <div class="select-wrapper">
                                     <select class="form-control" id="patient_id" name="patient_id" required>
-                                        <option value="">Choisir un patient...</option>
+                                        <option value="">Choisir une patiente...</option>
                                         @foreach ($patients as $patient)
                                             <option value="{{ $patient->id }}"> {{ $patient->first_name." ".$patient->middle_name." ".$patient->last_name." ".$patient->phone }} </option>
                                         @endforeach
