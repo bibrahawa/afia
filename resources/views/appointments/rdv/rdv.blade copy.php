@@ -27,7 +27,7 @@
             backdrop-filter: blur(10px);
             border-radius: 20px;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            max-width: 750px;
+            max-width: 700px;
             width: 100%;
             overflow: hidden;
             position: relative;
@@ -378,7 +378,7 @@
         }
 
         .btn {
-            padding: 14px 28px;
+            padding: 12px 24px;
             border: none;
             border-radius: 10px;
             font-size: 16px;
@@ -386,8 +386,6 @@
             cursor: pointer;
             transition: all 0.3s ease;
             flex: 1;
-            position: relative;
-            overflow: hidden;
         }
 
         .btn:disabled {
@@ -398,12 +396,11 @@
         .btn-primary {
             background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
             color: white;
-            box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
         }
 
         .btn-primary:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(79, 172, 254, 0.4);
+            box-shadow: 0 10px 20px rgba(79, 172, 254, 0.3);
         }
 
         .btn-secondary {
@@ -415,21 +412,12 @@
             background: #e0e0e0;
         }
 
-        .auth-container {
-            background: linear-gradient(135deg, #f8f9ff 0%, #e8f2ff 100%);
-            border-radius: 15px;
-            padding: 25px;
-            margin-bottom: 20px;
-            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.1);
-        }
-
         .auth-tabs {
             display: flex;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
             border-radius: 10px;
             overflow: hidden;
-            background: rgba(255, 255, 255, 0.7);
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            background: #f5f5f5;
         }
 
         .auth-tab {
@@ -439,44 +427,26 @@
             cursor: pointer;
             transition: all 0.3s ease;
             font-weight: 600;
-            position: relative;
         }
 
         .auth-tab.active {
             background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
             color: white;
-            transform: scale(1.02);
-            z-index: 1;
-        }
-
-        .auth-form {
-            background: white;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 3px 15px rgba(0, 0, 0, 0.1);
         }
 
         .appointment-summary {
             background: linear-gradient(135deg, #f8f9ff 0%, #e8f2ff 100%);
-            padding: 25px;
+            padding: 20px;
             border-radius: 15px;
-            margin-bottom: 25px;
-            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.1);
-            border: 1px solid rgba(79, 172, 254, 0.2);
-        }
-
-        .appointment-summary h3 {
-            color: #4facfe;
             margin-bottom: 20px;
-            font-size: 20px;
-            text-align: center;
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.1);
         }
 
         .summary-item {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 12px;
-            padding: 10px 0;
+            margin-bottom: 10px;
+            padding: 8px 0;
             border-bottom: 1px solid rgba(79, 172, 254, 0.1);
         }
 
@@ -488,11 +458,6 @@
         .summary-label {
             font-weight: 600;
             color: #4facfe;
-        }
-
-        .summary-value {
-            color: #333;
-            font-weight: 500;
         }
 
         .quick-date-selector {
@@ -529,28 +494,16 @@
             margin-bottom: 20px;
             border-radius: 10px;
             font-weight: 500;
-            animation: slideIn 0.3s ease;
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
         }
 
         .alert-success {
-            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            background: #d4edda;
             color: #155724;
             border: 1px solid #c3e6cb;
         }
 
         .alert-error {
-            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+            background: #f8d7da;
             color: #721c24;
             border: 1px solid #f5c6cb;
         }
@@ -558,58 +511,22 @@
         .loading {
             display: none;
             text-align: center;
-            padding: 30px;
-            background: rgba(255, 255, 255, 0.9);
-            border-radius: 15px;
-            margin: 20px 0;
+            padding: 20px;
         }
 
         .spinner {
             border: 4px solid #f3f3f3;
             border-top: 4px solid #4facfe;
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            width: 30px;
+            height: 30px;
             animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
+            margin: 0 auto 10px;
         }
 
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
-        }
-
-        .input-group {
-            position: relative;
-            margin-bottom: 20px;
-        }
-
-        .input-group input {
-            padding-right: 45px;
-        }
-
-        .input-icon {
-            position: absolute;
-            right: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #999;
-            font-size: 18px;
-        }
-
-        .password-toggle {
-            cursor: pointer;
-            transition: color 0.3s ease;
-        }
-
-        .password-toggle:hover {
-            color: #4facfe;
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
         }
 
         @media (max-width: 768px) {
@@ -618,7 +535,7 @@
             }
 
             .form-content {
-                padding: 25px;
+                padding: 20px;
             }
 
             .professional-grid {
@@ -635,6 +552,7 @@
             }
 
             .calendar-grid {
+                grid-template-columns: repeat(7, 1fr);
                 gap: 3px;
             }
 
@@ -652,8 +570,8 @@
                 flex-direction: column;
             }
 
-            .form-row {
-                grid-template-columns: 1fr;
+            .quick-date-selector {
+                justify-content: center;
             }
         }
     </style>
@@ -680,7 +598,7 @@
 
             <div class="loading" id="loading">
                 <div class="spinner"></div>
-                <p>Traitement en cours...</p>
+                <p>Chargement...</p>
             </div>
 
             <!-- Étape 1: Département et Professionnel -->
@@ -691,6 +609,7 @@
                     <label for="department">Département</label>
                     <select id="department" onchange="updateProfessionals()">
                         <option value="">Sélectionnez un département</option>
+                        <!-- Options seront chargées via AJAX -->
                     </select>
                 </div>
 
@@ -769,91 +688,96 @@
                 </div>
             </div>
 
-            <!-- Étape 4: Finalisation améliorée -->
+            <!-- Étape 4: Finalisation -->
             <div class="step" id="step-4">
                 <h2>Finaliser votre rendez-vous</h2>
 
                 <div class="appointment-summary">
-                    <h3>📋 Résumé de votre rendez-vous</h3>
+                    <h3>Résumé de votre rendez-vous</h3>
                     <div class="summary-item">
                         <span class="summary-label">Département:</span>
-                        <span class="summary-value" id="summary-department">-</span>
+                        <span id="summary-department">-</span>
                     </div>
                     <div class="summary-item">
                         <span class="summary-label">Professionnel:</span>
-                        <span class="summary-value" id="summary-professional">-</span>
+                        <span id="summary-professional">-</span>
                     </div>
                     <div class="summary-item">
                         <span class="summary-label">Motif:</span>
-                        <span class="summary-value" id="summary-reason">-</span>
+                        <span id="summary-reason">-</span>
                     </div>
                     <div class="summary-item">
                         <span class="summary-label">Date:</span>
-                        <span class="summary-value" id="summary-date">-</span>
+                        <span id="summary-date">-</span>
                     </div>
                     <div class="summary-item">
                         <span class="summary-label">Heure:</span>
-                        <span class="summary-value" id="summary-time">-</span>
+                        <span id="summary-time">-</span>
                     </div>
                 </div>
 
-                <div class="auth-container">
-                    <div class="auth-tabs">
-                        <div class="auth-tab active" onclick="showAuth('login')">
-                            🔑 Se connecter
-                        </div>
-                        <div class="auth-tab" onclick="showAuth('register')">
-                            ✨ Créer un compte
-                        </div>
+                @guest
+                <div class="auth-tabs">
+                    <div class="auth-tab active" onclick="showAuth('login')">Se connecter</div>
+                    <div class="auth-tab" onclick="showAuth('register')">Créer un compte</div>
+                </div>
+
+                <div id="login-form">
+                    <div class="form-group">
+                        <label for="login-email">Email</label>
+                        <input type="email" id="login-email" placeholder="votre.email@exemple.com">
                     </div>
-
-                    <div class="auth-form" id="login-form">
-                        <h3 style="margin-bottom: 20px; color: #4facfe; text-align: center;">Connexion</h3>
-
-                        <div class="input-group">
-                            <input type="text" id="login-name" class="form-control" placeholder="Nom d'utilisateur" required>
-                            <span class="input-icon">👤</span>
-                        </div>
-
-                        <div class="input-group">
-                            <input type="password" id="login-password" class="form-control" placeholder="Mot de passe" required>
-                            <span class="input-icon password-toggle" onclick="togglePassword('login-password')">👁️</span>
-                        </div>
-                    </div>
-
-                    <div class="auth-form" id="register-form" style="display: none;">
-                        <h3 style="margin-bottom: 20px; color: #4facfe; text-align: center;">Inscription</h3>
-
-                        <div class="input-group">
-                            <input type="text" id="register-name" class="form-control" placeholder="Nom d'utilisateur" required>
-                            <span class="input-icon">👤</span>
-                        </div>
-
-                        <div class="input-group">
-                            <input type="password" id="register-password" class="form-control" placeholder="Mot de passe" required>
-                            <span class="input-icon password-toggle" onclick="togglePassword('register-password')">👁️</span>
-                        </div>
-
-                        <div class="input-group">
-                            <input type="password" id="register-password-confirm" class="form-control" placeholder="Confirmer le mot de passe" required>
-                            <span class="input-icon password-toggle" onclick="togglePassword('register-password-confirm')">👁️</span>
-                        </div>
+                    <div class="form-group">
+                        <label for="login-password">Mot de passe</label>
+                        <input type="password" id="login-password" placeholder="••••••••">
                     </div>
                 </div>
+
+                <div id="register-form" style="display: none;">
+                    <div class="form-group">
+                        <label for="register-name">Nom complet</label>
+                        <input type="text" id="register-name" placeholder="Nom Prénom">
+                    </div>
+                    <div class="form-group">
+                        <label for="register-email">Email</label>
+                        <input type="email" id="register-email" placeholder="votre.email@exemple.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="register-phone">Téléphone</label>
+                        <input type="tel" id="register-phone" placeholder="06 12 34 56 78">
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password">Mot de passe</label>
+                        <input type="password" id="register-password" placeholder="••••••••">
+                    </div>
+                </div>
+                @endguest
+
+                @auth
+                    <div class="appointment-summary">
+                        <h3>Utilisateur connecté</h3>
+                        <div class="summary-item">
+                            <span class="summary-label">Nom:</span>
+                            <span>{{ Auth::user()->name }}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Email:</span>
+                            <span>{{ Auth::user()->email }}</span>
+                        </div>
+                    </div>
+                @endauth
             </div>
 
             <div class="buttons">
-                <button class="btn btn-secondary" id="prev-btn" onclick="previousStep()" style="display: none;">
-                    ← Précédent
-                </button>
-                <button class="btn btn-primary" id="next-btn" onclick="nextStep()">
-                    Suivant →
-                </button>
+                <button class="btn btn-secondary" id="prev-btn" onclick="previousStep()" style="display: none;">Précédent</button>
+                <button class="btn btn-primary" id="next-btn" onclick="nextStep()">Suivant</button>
             </div>
         </div>
     </div>
 
+
 <script>
+
     // Configuration Laravel
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     const baseUrl = '{{ url("/") }}';
@@ -869,22 +793,20 @@
     let departments = [];
     let professionals = [];
     let availableSlots = [];
-    let isProcessing = false;
 
     const months = [
         "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
         "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
     ];
 
-    // Fonction pour afficher les alertes avec animation
+    // Fonction pour afficher les alertes
     function showAlert(message, type = 'error') {
         const alertContainer = document.getElementById('alert-container');
         const alertClass = type === 'success' ? 'alert-success' : 'alert-error';
-        const icon = type === 'success' ? '✅' : '❌';
 
         alertContainer.innerHTML = `
             <div class="alert ${alertClass}">
-                ${icon} ${message}
+                ${message}
             </div>
         `;
 
@@ -896,14 +818,9 @@
     // Fonction pour afficher/masquer le loader
     function showLoading(show = true) {
         document.getElementById('loading').style.display = show ? 'block' : 'none';
-        isProcessing = show;
-
-        // Désactiver les boutons pendant le traitement
-        document.getElementById('next-btn').disabled = show;
-        document.getElementById('prev-btn').disabled = show;
     }
 
-    // Fonction pour faire des requêtes AJAX améliorée
+    // Fonction pour faire des requêtes AJAX
     async function makeRequest(url, options = {}) {
         const defaultOptions = {
             headers: {
@@ -920,27 +837,12 @@
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.message || data.error || 'Une erreur est survenue');
+                throw new Error(data.error || 'Une erreur est survenue');
             }
 
             return data;
         } catch (error) {
-            console.error('Erreur API:', error);
             throw error;
-        }
-    }
-
-    // Fonction pour basculer la visibilité du mot de passe
-    function togglePassword(inputId) {
-        const input = document.getElementById(inputId);
-        const icon = input.nextElementSibling;
-
-        if (input.type === 'password') {
-            input.type = 'text';
-            icon.textContent = '🙈';
-        } else {
-            input.type = 'password';
-            icon.textContent = '👁️';
         }
     }
 
@@ -962,7 +864,6 @@
                 select.appendChild(option);
             });
         } catch (error) {
-            showLoading(false);
             showAlert('Erreur lors du chargement des départements: ' + error.message);
         }
     }
@@ -984,11 +885,6 @@
             professionals = response;
             showLoading(false);
 
-            if (professionals.length === 0) {
-                grid.innerHTML = '<p style="text-align: center; color: #666; grid-column: 1/-1;">Aucun professionnel disponible dans ce département</p>';
-                return;
-            }
-
             professionals.forEach(prof => {
                 const card = document.createElement('div');
                 card.className = 'professional-card';
@@ -1000,7 +896,7 @@
                     <div class="professional-avatar">${initials}</div>
                     <div style="font-weight: 600; margin-bottom: 5px;">${name}</div>
                     <div style="color: #666; font-size: 14px; margin-bottom: 5px;">${prof.speciality || 'Spécialiste'}</div>
-                    <div style="color: #999; font-size: 12px;">${prof.working_day || 'Disponible'}</div>
+                    <div style="color: #999; font-size: 12px;">${prof.working_day}</div>
                 `;
                 grid.appendChild(card);
             });
@@ -1032,48 +928,48 @@
         const prevMonthLastDay = new Date(currentYear, currentMonth, 0).getDate();
 
         for (let i = firstDayWeek - 1; i >= 0; i--) {
-            const dayDiv = document.createElement('div');
-            dayDiv.className = 'calendar-day other-month';
-            dayDiv.textContent = prevMonthLastDay - i;
-            grid.appendChild(dayDiv);
+        const dayDiv = document.createElement('div');
+        dayDiv.className = 'calendar-day other-month';
+        dayDiv.textContent = prevMonthLastDay - i;
+        grid.appendChild(dayDiv);
         }
 
         // Ajouter les jours du mois en cours
         const today = new Date();
         for (let day = 1; day <= lastDay.getDate(); day++) {
-            const date = new Date(currentYear, currentMonth, day);
-            const dayDiv = document.createElement('div');
-            dayDiv.className = 'calendar-day';
-            dayDiv.textContent = day;
+        const date = new Date(currentYear, currentMonth, day);
+        const dayDiv = document.createElement('div');
+        dayDiv.className = 'calendar-day';
+        dayDiv.textContent = day;
 
-            if (date < today) {
-                dayDiv.classList.add('disabled');
-            } else {
-                dayDiv.onclick = () => selectDate(date, dayDiv);
-            }
+        if (date < today) {
+            dayDiv.classList.add('disabled');
+        } else {
+            dayDiv.onclick = () => selectDate(date, dayDiv);
+        }
 
-            if (date.toDateString() === today.toDateString()) {
-                dayDiv.classList.add('today');
-            }
+        if (date.toDateString() === today.toDateString()) {
+            dayDiv.classList.add('today');
+        }
 
-            grid.appendChild(dayDiv);
+        grid.appendChild(dayDiv);
         }
 
         // Compléter avec les jours du mois suivant
         const remainingDays = 42 - (firstDayWeek + lastDay.getDate());
         for (let i = 1; i <= remainingDays; i++) {
-            const dayDiv = document.createElement('div');
-            dayDiv.className = 'calendar-day other-month';
-            dayDiv.textContent = i;
-            grid.appendChild(dayDiv);
+        const dayDiv = document.createElement('div');
+        dayDiv.className = 'calendar-day other-month';
+        dayDiv.textContent = i;
+        grid.appendChild(dayDiv);
         }
     }
 
     // Sélectionner une date
     async function selectDate(date, element) {
         if (!selectedProfessionalId) {
-            showAlert('Veuillez d\'abord sélectionner un professionnel');
-            return;
+        showAlert('Veuillez d\'abord sélectionner un professionnel');
+        return;
         }
 
         document.querySelectorAll('.calendar-day').forEach(day => day.classList.remove('selected'));
@@ -1103,7 +999,7 @@
         container.innerHTML = '';
 
         if (availableSlots.length === 0) {
-            container.innerHTML = '<p style="text-align: center; color: #666; grid-column: 1/-1;">❌ Aucun créneau disponible pour cette date</p>';
+            container.innerHTML = '<p>Aucun créneau disponible pour cette date</p>';
             return;
         }
 
@@ -1127,11 +1023,11 @@
     function changeMonth(delta) {
         currentMonth += delta;
         if (currentMonth > 11) {
-            currentMonth = 0;
-            currentYear++;
+        currentMonth = 0;
+        currentYear++;
         } else if (currentMonth < 0) {
-            currentMonth = 11;
-            currentYear--;
+        currentMonth = 11;
+        currentYear--;
         }
         generateCalendar();
     }
@@ -1141,26 +1037,22 @@
         const today = new Date();
         let targetDate;
 
-        // Réinitialiser les boutons
-        document.querySelectorAll('.quick-date-btn').forEach(btn => btn.classList.remove('selected'));
-        event.target.classList.add('selected');
-
         switch (type) {
-            case 'today':
-                targetDate = today;
-                break;
-            case 'tomorrow':
-                targetDate = new Date(today);
-                targetDate.setDate(today.getDate() + 1);
-                break;
-            case 'thisWeek':
-                targetDate = new Date(today);
-                targetDate.setDate(today.getDate() + (6 - today.getDay()));
-                break;
-            case 'nextWeek':
-                targetDate = new Date(today);
-                targetDate.setDate(today.getDate() + 7);
-                break;
+        case 'today':
+            targetDate = today;
+            break;
+        case 'tomorrow':
+            targetDate = new Date(today);
+            targetDate.setDate(today.getDate() + 1);
+            break;
+        case 'thisWeek':
+            targetDate = new Date(today);
+            targetDate.setDate(today.getDate() + (6 - today.getDay()));
+            break;
+        case 'nextWeek':
+            targetDate = new Date(today);
+            targetDate.setDate(today.getDate() + 7);
+            break;
         }
 
         currentMonth = targetDate.getMonth();
@@ -1169,109 +1061,90 @@
 
         // Trouver et sélectionner la date dans le calendrier
         setTimeout(() => {
-            const days = document.querySelectorAll('.calendar-day:not(.other-month)');
-            const day = Array.from(days).find(d => parseInt(d.textContent) === targetDate.getDate());
-            if (day && !day.classList.contains('disabled')) {
-                selectDate(targetDate, day);
-            }
-        }, 100);
-    }
-
-    // Validation des données
-    function validateStep(step) {
-        switch (step) {
-            case 1:
-                if (!document.getElementById('department').value) {
-                    showAlert('Veuillez sélectionner un département');
-                    return false;
-                }
-                if (!selectedProfessional) {
-                    showAlert('Veuillez sélectionner un professionnel');
-                    return false;
-                }
-                break;
-            case 2:
-                if (!document.getElementById('reason').value) {
-                    showAlert('Veuillez sélectionner un motif de consultation');
-                    return false;
-                }
-                break;
-            case 3:
-                if (!selectedDate) {
-                    showAlert('Veuillez sélectionner une date');
-                    return false;
-                }
-                if (!selectedTime) {
-                    showAlert('Veuillez sélectionner une heure');
-                    return false;
-                }
-                break;
-            case 4:
-                const isLogin = document.getElementById('login-form').style.display !== 'none';
-                if (isLogin) {
-                    const name = document.getElementById('login-name').value.trim();
-                    const password = document.getElementById('login-password').value;
-
-                    if (!name) {
-                        showAlert('Veuillez saisir votre nom d\'utilisateur');
-                        return false;
-                    }
-                    if (!password) {
-                        showAlert('Veuillez saisir votre mot de passe');
-                        return false;
-                    }
-                } else {
-                    const name = document.getElementById('register-name').value.trim();
-                    const password = document.getElementById('register-password').value;
-                    const confirmPassword = document.getElementById('register-password-confirm').value;
-
-                    if (!name) {
-                        showAlert('Veuillez saisir votre nom d\'utilisateur');
-                        return false;
-                    }
-                    if (!password) {
-                        showAlert('Veuillez saisir un mot de passe');
-                        return false;
-                    }
-                    if (password.length < 6) {
-                        showAlert('Le mot de passe doit contenir au moins 6 caractères');
-                        return false;
-                    }
-                    if (password !== confirmPassword) {
-                        showAlert('Les mots de passe ne correspondent pas');
-                        return false;
-                    }
-                }
-                break;
+        const days = document.querySelectorAll('.calendar-day:not(.other-month)');
+        const day = Array.from(days).find(d => parseInt(d.textContent) === targetDate.getDate());
+        if (day) {
+            selectDate(targetDate, day);
         }
-        return true;
+        }, 0);
     }
 
-    // Navigation entre les étapes
+
     function nextStep() {
-        if (isProcessing) return;
+        if (currentStep === 1) {
+            if (!document.getElementById('department').value || !selectedProfessional) {
+                alert('Veuillez sélectionner un département et un professionnel.');
+                return;
+            }
+        } else if (currentStep === 2) {
+            if (!document.getElementById('reason').value) {
+                alert('Veuillez sélectionner un motif de consultation.');
+                return;
+            }
+        } else if (currentStep === 3) {
+            if (!selectedDate || !selectedTime) {
+                alert('Veuillez sélectionner une date et une heure.');
+                return;
+            }
+            updateSummary();
+        } else if (currentStep === 4) {
 
-        if (!validateStep(currentStep)) return;
+            if (!selectedProfessionalId || !selectedDate || !selectedTime) {
+                alert('Veuillez sélectionner un professionnel, une date et une heure.');
+                return;
+            }
 
-        if (currentStep === 4) {
-            // Finaliser le rendez-vous
-            finalizeAppointment();
+            const email = document.getElementById('login-email')?.value || document.getElementById('register-email')?.value;
+            const password = document.getElementById('login-password')?.value || document.getElementById('register-password')?.value;
+            if (!email || !password) {
+                alert('Veuillez entrer votre email et mot de passe.');
+                return;
+            }
+            // Authentification de l'utilisateur
+            authenticateUser(email, password)
+                .then(() => {
+                    // Enregistrer le rendez-vous après authentification réussie
+                    return saveAppointment();
+                })
+                .catch(error => {
+                    showAlert('Erreur: ' + error.message);
+                });
+            // Afficher un message de succès
+            updateSummary();
+            showAlert('Rendez-vous enregistré avec succès!', 'success');
+            // Réinitialiser les sélections
+            selectedProfessional = null;
+            selectedProfessionalId = null;
+            selectedDate = null;
+            selectedTime = null;
+            document.getElementById('department').value = '';
+            document.getElementById('reason').value = '';
+            document.querySelectorAll('.professional-card').forEach(card => card.classList.remove('selected'));
+            document.querySelectorAll('.calendar-day').forEach(day => day.classList.remove('selected'));
+            document.querySelectorAll('.time-slot').forEach(slot => slot.classList.remove('selected'));
+            // Réinitialiser les étapes
+            currentStep = 1;
+            updateSteps();
+            // Afficher un message de confirmation
+            document.getElementById('alert-container').innerHTML = `
+            <div class="alert alert-success">
+                Rendez-vous confirmé avec succès! Vous recevrez un email de confirmation.
+            </div>
+            `;
+            setTimeout(() => {
+                document.getElementById('alert-container').innerHTML = '';
+            }, 5000);
+            alert('Rendez-vous confirmé avec succès! Vous recevrez un email de confirmation.');
             return;
         }
 
         if (currentStep < 4) {
             currentStep++;
             updateSteps();
-
-            if (currentStep === 4) {
-                updateSummary();
-            }
         }
     }
 
     function previousStep() {
-        if (isProcessing) return;
-
         if (currentStep > 1) {
             currentStep--;
             updateSteps();
@@ -1298,15 +1171,7 @@
         }
 
         document.getElementById('prev-btn').style.display = currentStep === 1 ? 'none' : 'block';
-        const nextBtn = document.getElementById('next-btn');
-
-        if (currentStep === 4) {
-            nextBtn.innerHTML = '🎯 Confirmer le rendez-vous';
-            nextBtn.style.background = 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)';
-        } else {
-            nextBtn.innerHTML = 'Suivant →';
-            nextBtn.style.background = 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)';
-        }
+        document.getElementById('next-btn').textContent = currentStep === 4 ? 'Confirmer' : 'Suivant';
 
         if (currentStep === 3 && document.getElementById('calendar-grid').children.length === 0) {
             generateCalendar();
@@ -1327,150 +1192,100 @@
         document.getElementById('summary-time').textContent = selectedTime || '-';
     }
 
-    // Gestion de l'authentification
+    // Authentification
     function showAuth(type) {
         const loginForm = document.getElementById('login-form');
         const registerForm = document.getElementById('register-form');
-        const tabs = document.querySelectorAll('.auth-tab');
-
-        tabs.forEach(tab => tab.classList.remove('active'));
 
         if (type === 'login') {
             loginForm.style.display = 'block';
             registerForm.style.display = 'none';
-            tabs[0].classList.add('active');
         } else {
             loginForm.style.display = 'none';
             registerForm.style.display = 'block';
-            tabs[1].classList.add('active');
         }
     }
+    // Gestion des événements pour les onglets d'authentification
+    document.querySelectorAll('.auth-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            const type = tab.textContent.trim().toLowerCase();
+            showAuth(type);
+        });
+    });
 
-    // Authentification utilisateur
-    async function authenticateUser(name, password, isLogin = true) {
+    // Verification de l'authentification
+    async function authenticateUser(email, password, isLogin = true) {
         const url = isLogin ? `${baseUrl}/api/login` : `${baseUrl}/api/register`;
         const data = {
-            name: name,
-            password: password
+            email: email,
+            password: password,
+            name: isLogin ? undefined : document.getElementById('register-name').value,
+            phone: isLogin ? undefined : document.getElementById('register-phone').value
         };
-
         try {
+            showLoading(true);
             const response = await makeRequest(url, {
                 method: 'POST',
                 body: JSON.stringify(data)
             });
-
-            return response;
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    // Enregistrer le rendez-vous
-    async function saveAppointment(userId) {
-        const appointmentData = {
-            employee_id: selectedProfessionalId,
-            patient_id: userId,
-            appointment_date: selectedDate.toISOString().split('T')[0],
-            appointment_time: selectedTime,
-            reason: document.getElementById('reason').value,
-            description: document.getElementById('description').value || null
-        };
-
-        try {
-            const response = await makeRequest(`${baseUrl}/api/appointments`, {
-                method: 'POST',
-                body: JSON.stringify(appointmentData)
-            });
-
-            return response;
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    // Finaliser le rendez-vous
-    async function finalizeAppointment() {
-        try {
-            showLoading(true);
-
-            const isLogin = document.getElementById('login-form').style.display !== 'none';
-            const name = isLogin ?
-                document.getElementById('login-name').value.trim() :
-                document.getElementById('register-name').value.trim();
-            const password = isLogin ?
-                document.getElementById('login-password').value :
-                document.getElementById('register-password').value;
-
-            // Authentification
-            const response = await authenticateUser(name, password, isLogin);
-
-            if (response.error) {
-                throw new Error(response.message || 'Erreur d\'authentification');
-            }
-            // Mettre à jour le résumé avec les informations de l'utilisateur
-            const userId = response.patient.id;
-
-            // Enregistrement du rendez-vous
-            const appointmentResult = await saveAppointment(userId);
-
             showLoading(false);
 
-            // Afficher le succès
-            showAlert('🎉 Rendez-vous confirmé avec succès! Vous recevrez un email de confirmation.', 'success');
-
-            // Réinitialiser le formulaire après un délai
-            setTimeout(() => {
-                resetForm();
-            }, 3000);
-
+            if (isLogin) {
+                // Rediriger ou mettre à jour l'interface après la connexion
+                window.location.reload();
+            } else {
+                // Rediriger ou mettre à jour l'interface après l'inscription
+                showAlert('Inscription réussie ! Vous pouvez maintenant vous connecter.', 'success');
+                showAuth('login');
+            }
         } catch (error) {
             showLoading(false);
             showAlert(error.message);
         }
     }
 
-    // Réinitialiser le formulaire
-    function resetForm() {
-        currentStep = 1;
-        selectedProfessional = null;
-        selectedProfessionalId = null;
-        selectedDate = null;
-        selectedTime = null;
+    // enregistrer les informations du rendez-vous
+    async function saveAppointment() {
+        if (!selectedProfessionalId || !selectedDate || !selectedTime) {
+            showAlert('Veuillez sélectionner un professionnel, une date et une heure.');
+            return;
+        }
 
-        document.getElementById('department').value = '';
-        document.getElementById('reason').value = '';
-        document.getElementById('description').value = '';
-        document.getElementById('login-name').value = '';
-        document.getElementById('login-password').value = '';
-        document.getElementById('register-name').value = '';
-        document.getElementById('register-password').value = '';
-        document.getElementById('register-password-confirm').value = '';
+        const appointmentData = {
+            professional_id: selectedProfessionalId,
+            date: selectedDate,
+            time: selectedTime
+        };
 
-        document.querySelectorAll('.professional-card').forEach(card => card.classList.remove('selected'));
-        document.querySelectorAll('.calendar-day').forEach(day => day.classList.remove('selected'));
-        document.querySelectorAll('.time-slot').forEach(slot => slot.classList.remove('selected'));
-        document.querySelectorAll('.quick-date-btn').forEach(btn => btn.classList.remove('selected'));
+        try {
 
-        document.getElementById('professionals-grid').innerHTML = '';
-        document.getElementById('time-slots').innerHTML = '';
+            const response = await fetch('/api/appointments', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(appointmentData)
+            });
 
-        updateSteps();
-        showAuth('login');
+            if (!response.ok) {
+                throw new Error('Erreur lors de la création du rendez-vous.');
+            }
+
+            const result = await response.json();
+            showAlert('Rendez-vous créé avec succès !');
+            console.log(result);
+        } catch (error) {
+            showAlert(error.message);
+        }
     }
 
     // Initialisation
     document.addEventListener('DOMContentLoaded', () => {
         loadDepartments();
         generateCalendar();
-
-        // Gestion de la touche Entrée
-        document.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && !isProcessing) {
-                nextStep();
-            }
-        });
     });
-</script>
-</body>
-</html>
+
+
+    </script>

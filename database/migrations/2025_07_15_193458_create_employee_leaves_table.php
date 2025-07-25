@@ -17,7 +17,7 @@ return new class extends Migration
             $table->date('start_date');
             $table->date('end_date');
             $table->text('reason')->nullable();
-            $table->enum('type', ['vacation', 'sick', 'conference', 'other'])->default('vacation');
+            $table->enum('type', ['Vacance', 'Maladie', 'Conference', 'Autre'])->default('Vacance');
             $table->timestamps();
         });
     }

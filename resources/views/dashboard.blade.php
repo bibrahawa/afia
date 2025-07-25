@@ -30,7 +30,7 @@
                 <div class="col col-stats ms-3 ms-sm-0">
                   <div class="numbers">
                     <p class="card-category">Patiente</p>
-                    <h4 class="card-title">{{ $total_patient }}</h4>
+                    <h4 class="card-title">{{ $total_patient ?? 0 }}</h4>
                   </div>
                 </div>
               </div>

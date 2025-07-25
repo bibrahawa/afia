@@ -45,6 +45,17 @@ Route::get('rdv', function(){
     return view('appointments.rdv.rdv');
 });
 
+Route::get('medecin', function(){
+    return view('appointments.rdv.medecin');
+});
+
+Route::get('rdvpro', function(){
+    return view('appointments.rdv.rdvpro');
+});
+
+Route::get('dispo', function(){
+    return view('employees.appointment.disponibilite');
+});
 
 Route::get('val', function(){
     return view('dashboard');
@@ -52,6 +63,7 @@ Route::get('val', function(){
 
 // Routes d'authentification
 // Authentication Routes
+
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -81,6 +93,30 @@ Route::middleware(['auth'])->group(function() {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('backup', [HospitalController::class, 'backup'])->name('hospital.backup');
     Route::get('setting', [HospitalController::class, 'setting'])->name('hospital.setting');
+
+
+// Routes pour les employés (nécessite authentification)
+    Route::prefix('employee')->name('employee.')->group(function () {
+        // Dashboard principal
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+        // API Routes pour les rendez-vous
+        Route::get('/appointments', [DashboardController::class, 'appointments'])->name('appointments');
+        Route::post('/appointments/{id}/confirm', [DashboardController::class, 'confirmAppointment'])->name('appointments.confirm');
+        Route::post('/appointments/{id}/complete', [DashboardController::class, 'completeAppointment'])->name('appointments.complete');
+
+        // API Routes pour les disponibilités
+        Route::get('/availabilities', [DashboardController::class, 'availabilities'])->name('availabilities');
+        Route::post('/availabilities', [DashboardController::class, 'storeAvailability'])->name('availabilities.store');
+        Route::put('/availabilities', [DashboardController::class, 'updateAvailability'])->name('availabilities.update');
+        Route::delete('/availabilities/{id}', [DashboardController::class, 'destroyAvailability'])->name('availabilities.destroy');
+
+        // API Routes pour les congés
+        Route::get('/leaves', [DashboardController::class, 'leaves'])->name('leaves');
+        Route::put('/leaves/update', [DashboardController::class, 'updateLeave'])->name('leaves.update');
+        Route::post('/leaves', [DashboardController::class, 'storeLeave'])->name('leaves.store');
+        Route::delete('/leaves', [DashboardController::class, 'destroyLeaves'])->name('leaves.destroy');
+    });
 
     // Routes de configuration
     Route::post('change/password', [UserController::class, 'changePassword'])->name('change.password');
@@ -114,6 +150,7 @@ Route::middleware(['auth'])->group(function() {
 
     // Resources
     Route::resource('employee', EmployeeController::class);
+
     Route::get('employee/profile', [EmployeeController::class, 'profile'])->name('employee.profile');
     Route::resource('doctor', DoctorController::class);
     Route::resource('patient', PatientController::class);

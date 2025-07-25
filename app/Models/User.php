@@ -64,6 +64,11 @@ class User extends Authenticatable
         return $this->hasOne(Employee::class);
     }
 
+     public function patient()
+    {
+        return $this->hasOne(Patient::class);
+    }
+
 
     // public function permissions(){
     //     return $this->belongsToMany('App\Models\Permission', 'permission_role');

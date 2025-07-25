@@ -3,15 +3,18 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+
 
 class Employee extends Model
 {
 
+    use HasFactory;
 
 	protected $fillable =
 	[
         'first_name', 'middle_name', 'last_name', 'education', 'phone', 'description', 'certificate', 'speciality', 'address',
-        'type' , 'department_id', 'user_id','is_active', 'working_day', 'in_time', 'out_time'
+        'type' , 'department_id', 'user_id','is_active', 'working_day', 'in_time', 'out_time','is_active'
     ];
 
     protected $casts = [

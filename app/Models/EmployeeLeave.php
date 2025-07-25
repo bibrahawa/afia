@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class EmployeeLeave extends Model
 {
@@ -13,6 +14,7 @@ class EmployeeLeave extends Model
         'start_date',
         'end_date',
         'reason',
+        'status',
         'type'
     ];
 

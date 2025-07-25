@@ -38,9 +38,30 @@
                     <h4 class="text-section">Patiente</h4>
                 </li>
 
+                <li class="nav-item {{ request()->routeIs('employee.*') ? 'active' : '' }}">
+                    <a href="{{ route('employee.availabilities') }}">
+                        <i class="fas fa-calendar-check mr-3"></i>
+                        <p>Disponibilités</p>
+                    </a>
+                </li>
+
+                <li class="nav-item {{ request()->routeIs('employee.*') ? 'active' : '' }}">
+                    <a href="{{ route('employee.leaves') }}">
+                        <i class="fas fa-plane mr-3"></i>
+                        <p>Congés</p>
+                    </a>
+                </li>
+
+                <li class="nav-item {{ request()->routeIs('employee.*') ? 'active' : '' }}">
+                    <a href="{{ route('employee.appointments') }}">
+                        <i class="fas fa-calendar-alt mr-3"></i>
+                        <p>Rendez-vous</p>
+                    </a>
+                </li>
+
                 <li class="nav-item {{ request()->routeIs('patient.*') ? 'active' : '' }}">
                     <a href="{{ route('patient.index') }}">
-                        <i class="fas fa-user-injured"></i>
+                        <i class="fas fa-user"></i>
                         <p>Patiente</p>
                     </a>
                 </li>
@@ -155,7 +176,6 @@
                         <p>Rapport</p>
                     </a>
                 </li>
-
             </ul>
         </div>
     </div>
