@@ -38,22 +38,22 @@
                     <h4 class="text-section">Patiente</h4>
                 </li>
 
-                <li class="nav-item {{ request()->routeIs('employee.*') ? 'active' : '' }}">
-                    <a href="{{ route('employee.availabilities') }}">
+                <li class="nav-item {{ request()->routeIs('medecin.*') ? 'active' : '' }}">
+                    <a href="{{ route('medecin.availabilities') }}">
                         <i class="fas fa-calendar-check mr-3"></i>
                         <p>Disponibilités</p>
                     </a>
                 </li>
 
-                <li class="nav-item {{ request()->routeIs('employee.*') ? 'active' : '' }}">
-                    <a href="{{ route('employee.leaves') }}">
+                <li class="nav-item {{ request()->routeIs('medecin.*') ? 'active' : '' }}">
+                    <a href="{{ route('medecin.leaves') }}">
                         <i class="fas fa-plane mr-3"></i>
                         <p>Congés</p>
                     </a>
                 </li>
 
-                <li class="nav-item {{ request()->routeIs('employee.*') ? 'active' : '' }}">
-                    <a href="{{ route('employee.appointments') }}">
+                <li class="nav-item {{ request()->routeIs('medecin.*') ? 'active' : '' }}">
+                    <a href="{{ route('medecin.appointments') }}">
                         <i class="fas fa-calendar-alt mr-3"></i>
                         <p>Rendez-vous</p>
                     </a>

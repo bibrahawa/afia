@@ -48,7 +48,7 @@ class PatientController extends Controller
         if($user->save()){
             $data['user_id'] = $user->id;
             Patient::create($data);
-            $user->assignRole('patiente');
+            $user->assignRole('patient');
         }
 
         return back()->with('success', 'Patiente enregistré avec succès.');

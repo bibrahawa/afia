@@ -63,14 +63,14 @@
                                     </span>
 
                                     @if ($item['status'] === 'pending')
-                                        <form method="POST" action="{{ route('employee.appointments.confirm', $item['id']) }}">
+                                        <form method="POST" action="{{ route('medecin.appointments.confirm', $item['id']) }}">
                                             @csrf
                                             <button type="submit" class="px-3 py-1 bg-green-600 text-white rounded-md text-sm hover:bg-green-700">
                                                 Confirmer
                                             </button>
                                         </form>
                                     @elseif ($item['status'] === 'confirmed')
-                                        <form method="POST" action="{{ route('employee.appointments.complete', $item['id']) }}">
+                                        <form method="POST" action="{{ route('medecin.appointments.complete', $item['id']) }}">
                                             @csrf
                                             <button type="submit" class="px-3 py-1 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700">
                                                 Terminer
@@ -126,7 +126,7 @@
 
             $('#delete_availability_id').val(id);
             $('#availability_to_delete_text').text(`Voulez-vous vraiment supprimer la disponibilité du ${day} ?`);
-            $('#deleteAvailabilityForm').attr('action', `/employee/availabilities/${id}`);
+            $('#deleteAvailabilityForm').attr('action', `/medecin/availabilities/${id}`);
             $('#deleteAvailabilityModal').modal('show');
         });
 

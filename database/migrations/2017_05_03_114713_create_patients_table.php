@@ -19,8 +19,7 @@ class CreatePatientsTable extends Migration
             $table->string('first_name');
             $table->string('middle_name')->nullable();
             $table->string('last_name');
-            $table->integer('age');
-            $table->string('phone')->nullable();
+            $table->integer('age')->nullable();
             $table->enum('gender', array('Homme', 'Femme'));
             $table->string('birth_date')->nullable();
             $table->string('country')->default('Guinee');
@@ -31,7 +30,7 @@ class CreatePatientsTable extends Migration
             $table->string('description')->nullable();
             $table->string('relative_name')->nullable();
             $table->string('relative_phone')->nullable();
-            $table->string('marital_status');
+            $table->string('marital_status')->nullable();
             $table->enum('blood_group', array('A+','A-','B+','AB+','AB-','B-','O+','O-'))->nullable();
             $table->boolean('first_visit')->default(true);
             $table->timestamps();

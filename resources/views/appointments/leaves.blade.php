@@ -82,7 +82,7 @@
           {{-- Modal Ajouter un congé --}}
         <div class="modal fade" id="addRowModal" tabindex="-1" role="dialog" aria-hidden="true">
             <div class="modal-dialog" role="document">
-                <form method="POST" action="{{ route('employee.leaves.store') }}">
+                <form method="POST" action="{{ route('medecin.leaves.store') }}">
                 @csrf
                 <div class="modal-content">
                     <div class="modal-header border-0">
@@ -130,7 +130,7 @@
 
         <div class="modal fade" id="editLeaveModal" tabindex="-1" role="dialog">
             <div class="modal-dialog" role="document">
-                <form method="POST" action="{{ route('employee.leaves.update') }}">
+                <form method="POST" action="{{ route('medecin.leaves.update') }}">
                 @csrf
                 @method('PUT')
                 <input type="hidden" name="id" id="edit_leave_id">
@@ -180,7 +180,7 @@
 
         <div class="modal fade" id="deleteLeaveModal" tabindex="-1" role="dialog">
             <div class="modal-dialog" role="document">
-                <form method="post" id="deleteLeaveForm" action="{{ route('employee.leaves.destroy') }}">
+                <form method="post" id="deleteLeaveForm" action="{{ route('medecin.leaves.destroy') }}">
                     @csrf
                     @method('DELETE')
                     <input type="hidden" name="id" id="delete_leave_id">

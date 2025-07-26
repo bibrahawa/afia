@@ -27,11 +27,6 @@ return new class extends Migration
             $table->enum('status', ['pending', 'partial', 'paid', 'cancel'])->default('pending');
             $table->timestamps();
         });
-
-        Schema::table('paiements', function (Blueprint $table) {
-            $table->foreignId('transaction_id')->constrained()->onDelete('cascade');
-        });
-
     }
 
     /**

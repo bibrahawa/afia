@@ -226,7 +226,7 @@
                             <tr>
                                 <td>{{$patient->id}}</td>
                                 <td>{{$patient->first_name}} {{$patient->middle_name}} {{$patient->last_name}}</td>
-                                <td>{{$patient->phone}}</td>
+                                <td>{{$patient->user->phone}}</td>
                                 <td>{{$patient->district}}, {{$patient->location}}</td>
                                 <td>{{number_format($patient->account?->balance) ?? ""}} GNF</td>
                                 <td>
@@ -306,43 +306,14 @@
                                             @enderror
                                         </div>
 
-                                        {{-- <div class="col-md-6 form-group">
-                                            <label>Email :</label>
-                                            <input type="email" name="email" class="form-control" placeholder="exemple@domaine.com" value="{{ old('email') }}">
-                                            @error('email')
-                                                <small class="text-danger">{{ $message }}</small>
-                                            @enderror
-                                        </div> --}}
-
-                                        <div class="col-md-6 form-group">
-                                            <label>Téléphone :</label>
-                                            <input type="number" name="phone" class="form-control" placeholder="Entrez votre numéro de téléphone" value="{{ old('phone') }}" required>
-                                            @error('phone')
-                                                <small class="text-danger">{{ $message }}</small>
-                                            @enderror
-                                        </div>
-
                                         <input type="hidden" name="gender" value="Femme">
-
-                                        {{-- <div class="col-md-6 form-group">
-                                            <label>Genre :</label>
-                                            <select name="gender" class="form-control" required>
-                                                <option value="">-- Sélectionnez votre genre --</option>
-                                                <option value="Homme" {{ old('gender') == 'Homme' ? 'selected' : '' }}>Homme</option>
-                                                <option value="Femme" {{ old('gender') == 'Femme' ? 'selected' : '' }}>Femme</option>
-                                                <option value="Autre" {{ old('gender') == 'Autre' ? 'selected' : '' }}>Autre</option>
-                                            </select>
-                                            @error('gender')
-                                                <small class="text-danger">{{ $message }}</small>
-                                            @enderror
-                                        </div> --}}
 
                                         <div class="col-md-6 form-group">
                                             <label>Situation matrimoniale :</label>
                                             <select name="marital_status" class="form-control" required>
                                                 <option value="">-- Sélectionnez votre situation --</option>
-                                                <option value="Marié(e)" {{ old('marital_status') == 'Marié(e)' ? 'selected' : '' }}>Marié(e)</option>
-                                                <option value="Célibataire" {{ old('marital_status') == 'Célibataire' ? 'selected' : '' }}>Célibataire</option>
+                                                <option value="Marie" {{ old('marital_status') == 'Marie' ? 'selected' : '' }}>Marie</option>
+                                                <option value="Celibataire" {{ old('marital_status') == 'Celibataire' ? 'selected' : '' }}>Célibataire</option>
                                                 <option value="Autre" {{ old('marital_status') == 'Autre' ? 'selected' : '' }}>Autre</option>
                                             </select>
                                             @error('marital_status')
@@ -458,17 +429,7 @@
                                             @enderror
                                         </div>
 
-                                        <div class="col-md-6 form-group">
-                                            <label>Téléphone :</label>
-                                            <input type="number" name="phone" id="edit_phone" class="form-control" placeholder="Entrez votre numéro de téléphone" value="{{ $patient->phone ?? old('phone') }}" required>
-                                            @error('phone')
-                                                <small class="text-danger">{{ $message }}</small>
-                                            @enderror
-                                        </div>
-
                                         <input type="hidden" name="gender" value="Femme">
-                                        {{-- Note: Le champ 'gender' est actuellement un input hidden. Si vous souhaitez le modifier via JS,
-                                             vous devrez le rendre visible (ex: <select>) et lui donner un id. --}}
 
                                         <div class="col-md-6 form-group">
                                             <label>Situation matrimoniale :</label>

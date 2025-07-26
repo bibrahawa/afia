@@ -21,6 +21,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'phone',
         'status',
         'password'
         // 'role_id'
@@ -49,11 +50,6 @@ class User extends Authenticatable
         ];
     }
 
-    // public function scopeActive($query)
-    // {
-    //     return $query->where('active', 1);
-    // }
-
     public function role()
     {
         return $this->belongsTo('App\Models\Role');
@@ -64,9 +60,15 @@ class User extends Authenticatable
         return $this->hasOne(Employee::class);
     }
 
-     public function patient()
+    public function patient()
     {
         return $this->hasOne(Patient::class);
+    }
+
+    // hasRole
+    public function hasRole($roleName)
+    {
+        return $this->roles->contains('name', $roleName);
     }
 
 

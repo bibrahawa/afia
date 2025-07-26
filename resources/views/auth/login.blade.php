@@ -57,11 +57,21 @@
   <div class="login-container text-center">
     <img src="{{ asset('assets/img/logo.jpeg') }}" alt="Logo" class="mb-3" width="100">
     <h3 class="mb-3">Connexion</h3>
+
+    @if ($errors->any())
+        <div class="alert alert-danger">
+            @foreach ($errors->all() as $error)
+            <div>{{ $error }}</div>
+            @endforeach
+        </div>
+    @endif
+
+
     <form method="POST" action="{{ route('login') }}">
         @csrf
       <div class="mb-3 position-relative text-start">
-        <label for="name" class="form-label">Name</label>
-        <input type="text" name="name" :value="old('name')" class="form-control" id="name" placeholder="name" required>
+        <label for="phone" class="form-label">Téléphone</label>
+        <input type="text" name="phone" :value="old('phone')" class="form-control" id="phone" placeholder="Téléphone" required>
       </div>
       <div class="mb-3 position-relative text-start">
         <label for="password" class="form-label">Mot de passe</label>

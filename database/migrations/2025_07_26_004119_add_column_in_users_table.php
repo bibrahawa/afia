@@ -12,7 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->boolean('status')->default(true)->after('remember_token');
+            $table->timestamp('last_login_at')->nullable();
+            $table->integer('login_attempts')->default(0);
+            $table->timestamp('locked_until')->nullable();
+            $table->timestamp('phone_verified_at')->nullable();
         });
     }
 
@@ -22,7 +25,10 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('status');
+            $table->dropColumn('last_login_at');
+            $table->dropColumn('login_attempts');
+            $table->dropColumn('locked_until');
+            $table->dropColumn('phone_verified_at');
         });
     }
 };

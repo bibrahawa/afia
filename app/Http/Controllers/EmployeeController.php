@@ -53,11 +53,9 @@ class EmployeeController extends Controller
     {
 
         $request->validate(['department_id'=>'required|numeric']);
-        if (count($request->working_day)) {
-             $request['working_day'] = implode(',',$request->working_day);
-        }
-        //serialize($request->working_day);
+        
         $data = $request->all();
+        
         if($request->type == 'Doctor')
         {
             $data['first_name'] = 'DR '.$request->first_name;
@@ -86,8 +84,7 @@ class EmployeeController extends Controller
     {
         $employee = Employee::find($id);
         $departments = Department::get();
-        $working_day = explode(',', $employee->working_day);
-        return view('employees.edit', compact('employee', 'departments', 'working_day'));
+        return view('employees.edit', compact('employee', 'departments'));
     }
 
     /**
@@ -98,12 +95,9 @@ class EmployeeController extends Controller
      */
     public function update(Request $request, $id)
     {
-        //return $request->all();
 
         $employee = Employee::find ( $id );
-        if ($request->working_day) {
-            $request['working_day'] = implode(',',$request->working_day);
-        }
+        
         if($request->type == 'Doctor')
         {
             $request['first_name'] = 'DR.'.$request->first_name;
@@ -123,7 +117,7 @@ class EmployeeController extends Controller
             return back()->with('error', 'Doctor cannot be delete...');
         }
         $employee->delete();
-        return redirect()->route('employee.index')->with('success', 'Employee Deletetd Successfully');
+        return redirect()->route('employee.index')->with('success', 'Employee Deleted Successfully');
 
     }
 

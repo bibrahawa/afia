@@ -21,14 +21,10 @@ class CreateEmployeesTable extends Migration
             $table->string('middle_name')->nullable();
             $table->string('last_name');
             $table->string('address');
-            $table->string('phone');
             $table->string('education')->nullable();
             $table->string('description')->nullable();
             $table->string('certificate')->nullable();
             $table->string('speciality')->nullable();
-            $table->string('working_day')->nullable();
-            $table->string('in_time')->nullable();
-            $table->string('out_time')->nullable();
             $table->string('type')->nullable();
             $table->foreignId('department_id')->constrained()->onDelete('cascade');
             $table->boolean('is_active')->default(true);

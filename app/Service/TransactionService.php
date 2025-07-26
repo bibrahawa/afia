@@ -2,7 +2,6 @@
 
 namespace App\Service;
 
-use App\Models\Consultation;
 use App\Models\Transaction;
 use App\Models\Paiement;
 use App\Models\Account;

@@ -99,7 +99,7 @@ class LoginController extends Controller
         ]);
 
         // Assign the 'patiente' role to the user
-        $user->assignRole('patiente');
+        $user->assignRole('patient');
 
         // Optionally, you can log the user in after registration
         auth()->login($user);

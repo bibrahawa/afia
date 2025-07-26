@@ -32,13 +32,13 @@
             <div class="card-header">
               <div class="d-flex align-items-center">
                 <h4 class="card-title">Liste des employees</h4>
-                <button
+                {{-- <button
                   class="btn btn-primary btn-round ms-auto"
                   data-bs-toggle="modal"
                   data-bs-target="#addRowModal"
                 >
                   <i class="fa fa-plus"></i> Ajouter un employee
-                </button>
+                </button> --}}
               </div>
             </div>
 
@@ -50,9 +50,9 @@
                             <th>ID</th>
 					        <th>Name</th>
 					        <th>Contact</th>
-					        <th>Working Days</th>
+					        {{-- <th>Working Days</th>
 					        <th>In-time</th>
-					        <th>Out-time</th>
+					        <th>Out-time</th> --}}
 					        <th>Type</th>
                             <th style="width: 10%">Actions</th>
                         </tr>
@@ -62,9 +62,9 @@
                             <th>ID</th>
 					        <th>Name</th>
 					        <th>Contact</th>
-					        <th>Working Days</th>
+					        {{-- <th>Working Days</th>
 					        <th>In-time</th>
-					        <th>Out-time</th>
+					        <th>Out-time</th> --}}
 					        <th>Type</th>
                             <th>Actions</th>
                         </tr>
@@ -75,9 +75,9 @@
                                 <td>{{ $employee->id}}</td>
                                 <td>{{$employee->first_name}} {{$employee->middle_name}} {{$employee->last_name}}</td>
                                 <td>{{$employee->phone}}</td>
-                                <td>{{$employee->working_day}}</td>
+                                {{-- <td>{{$employee->working_day}}</td>
                                 <td>{{$employee->in_time}}</td>
-                                <td>{{$employee->out_time}}</td>
+                                <td>{{$employee->out_time}}</td> --}}
                                 <td>{{$employee->type}}</td>
                                 <td>
                                     <div class="form-button-action">
@@ -132,42 +132,14 @@
                                         <div class="col-sm-6">
                                             <div class="form-group form-group-default">
                                                 <label>First Name:</label>
-                                                <input id="first_name" name="first_name" type="text" class="form-control" placeholder="Entrez l'email" required/>
+                                                <input id="first_name" name="first_name" type="text" class="form-control" placeholder="Entrez votre prenom" required/>
                                             </div>
                                         </div>
 
                                         <div class="col-sm-6">
                                             <div class="form-group form-group-default">
                                                 <label>Last Name:</label>
-                                                <input id="last_name" name="last_name" type="text" class="form-control" placeholder="Entrez l'email" required/>
-                                            </div>
-                                        </div>
-
-                                        <div class="col-sm-6">
-                                            <div class="form-group form-group-default">
-                                                <label>Email</label>
-                                                <input id="email" name="email" type="email" class="form-control" placeholder="Entrez l'email" required/>
-                                            </div>
-                                        </div>
-
-                                        <div class="col-sm-6">
-                                            <div class="form-group form-group-default">
-                                                <label>Telephone</label>
-                                                <input id="phone" name="phone" type="phone" class="form-control" placeholder="Entrez votre numero" required/>
-                                            </div>
-                                        </div>
-
-                                        <div class="col-sm-6">
-                                            <div class="form-group form-group-default">
-                                                <label>In-Time:</label>
-                                                <input id="in_time" name="in_time" type="time" class="form-control timepicker" placeholder="Entrez votre numero" required/>
-                                            </div>
-                                        </div>
-
-                                        <div class="col-sm-6">
-                                            <div class="form-group form-group-default">
-                                                <label>Out-Time:</label>
-                                                <input id="out_time" name="out_time" type="time" class="form-control timepicker" placeholder="Entrez votre numero" required/>
+                                                <input id="last_name" name="last_name" type="text" class="form-control" placeholder="Entrez votre nom" required/>
                                             </div>
                                         </div>
 
@@ -175,13 +147,12 @@
                                             <div class="form-group form-group-default">
                                                 <label>Type:</label>
                                                 <select class="form-control" name="type" required>
-                                                    <option value="doctor">Doctor</option>
-                                                    <option value="laboratory">Laboratory</option>
-                                                    <option value="reception">Reception</option>
-                                                    <option value="pharmacy">Pharmacy</option>
-                                                    <option value="Accountant">Acountant</option>
-                                                    <option value="nurse">Nurse</option>
-                                                    <option value="other">Other</option>
+                                                    <option value="Docteur">Docteur</option>
+                                                    <option value="Laboratoire">Laboratoire</option>
+                                                    <option value="Secretaire">Secretaire</option>
+                                                    <option value="Comptable">Comptable</option>
+                                                    <option value="Infirmière">Infirmière</option>
+                                                    <option value="Autre">Autre</option>
                                                 </select>
                                             </div>
                                         </div>
@@ -227,28 +198,12 @@
                                             </div>
                                         </div>
 
-                                        <div class="col-sm-12">
+                                        <div class="col-sm-6">
                                             <div class="form-group form-group-default">
                                                 <label>Speciality:</label>
                                                 <textarea id="speciality" name="speciality" class="form-control" placeholder="Description"></textarea>
                                             </div>
                                         </div>
-
-                                        <div class="col-sm-12">
-                                            <div class="form-group">
-                                                <label>Jour ouvrable :</label>
-                                                <select class="selectpicker" name="working_day[]" data-live-search="true" multiple>
-                                                    <option>Lundi</option>
-                                                    <option>Mardi</option>
-                                                    <option>Mercredi</option>
-                                                    <option>Jeudi</option>
-                                                    <option>Vendredi</option>
-                                                    <option>Samedi</option>
-                                                    <option>Dimanche</option>
-                                                </select>
-                                            </div>
-                                        </div>
-
                                     </div>
                                 </form>
                             </div>
@@ -304,29 +259,8 @@
 
                                         <div class="col-sm-6">
                                             <div class="form-group form-group-default">
-                                                <label>Email</label>
-                                                <input id="edit_email" name="email" type="email" class="form-control" placeholder="Entrez l'email" required/>
-                                            </div>
-                                        </div>
-
-                                        <div class="col-sm-6">
-                                            <div class="form-group form-group-default">
                                                 <label>Telephone</label>
                                                 <input id="edit_phone" name="phone" type="phone" class="form-control" placeholder="Entrez votre numero" required/>
-                                            </div>
-                                        </div>
-
-                                        <div class="col-sm-6">
-                                            <div class="form-group form-group-default">
-                                                <label>In-Time:</label>
-                                                <input id="edit_in_time" name="in_time" type="time" class="form-control timepicker" placeholder="Entrez votre numero" required/>
-                                            </div>
-                                        </div>
-
-                                        <div class="col-sm-6">
-                                            <div class="form-group form-group-default">
-                                                <label>Out-Time:</label>
-                                                <input id="edit_out_time" name="out_time" type="time" class="form-control timepicker" placeholder="Entrez votre numero" required/>
                                             </div>
                                         </div>
 
@@ -334,13 +268,12 @@
                                             <div class="form-group">
                                                 <label>Type:</label>
                                                 <select class="form-control" name="type" id="edit_type" required>
-                                                    <option value="doctor">Doctor</option>
-                                                    <option value="laboratory">Laboratory</option>
-                                                    <option value="reception">Reception</option>
-                                                    <option value="pharmacy">Pharmacy</option>
-                                                    <option value="Accountant">Acountant</option>
-                                                    <option value="nurse">Nurse</option>
-                                                    <option value="other">Other</option>
+                                                    <option value="Docteur">Docteur</option>
+                                                    <option value="Laboratoire">Laboratoire</option>
+                                                    <option value="Secretaire">Secretaire</option>
+                                                    <option value="Comptable">Comptable</option>
+                                                    <option value="Infirmière">Infirmière</option>
+                                                    <option value="Autre">Autre</option>
                                                 </select>
                                             </div>
                                         </div>
@@ -390,21 +323,6 @@
                                             <div class="form-group form-group-default">
                                                 <label>Speciality:</label>
                                                 <textarea id="edit_speciality" name="speciality" class="form-control" placeholder="Description"></textarea>
-                                            </div>
-                                        </div>
-
-                                        <div class="col-sm-12">
-                                            <div class="form-group form-group-default">
-                                                <label>Jour ouvrable :</label>
-                                                <select class="selectpicker" name="working_day[]" id='edit_working_day' data-live-search="true" multiple>
-                                                    <option>Lundi</option>
-                                                    <option>Mardi</option>
-                                                    <option>Mercredi</option>
-                                                    <option>Jeudi</option>
-                                                    <option>Vendredi</option>
-                                                    <option>Samedi</option>
-                                                    <option>Dimanche</option>
-                                                </select>
                                             </div>
                                         </div>
 
@@ -479,18 +397,14 @@
             // Mettre à jour le champ du modal
             $('#edit_id').val(employee.id);
             $('#edit_first_name').val(employee.first_name);
-            $('#edit_last_name').val(employee.last_name);
-            $('#edit_email').val(employee.email);
+            $('#edit_last_name').val(employee.last_name);=
             $('#edit_phone').val(employee.phone);
-            $('#edit_in_time').val(employee.in_time);
-            $('#edit_out_time').val(employee.out_time);
             $('#edit_address').val(employee.address);
             $('#edit_education').val(employee.education);
             $('#edit_description').val(employee.description);
             $('#edit_certificate').val(employee.certificate);
             $('#edit_speciality').val(employee.speciality);
             $('#edit_type').val(employee.type);
-            $('#edit_working_day').val(employee.working_day);
             $('#edit_department_id').val(employee.department_id);
 
             $('#editEmployeForm').attr('action', '/employee/' + employee.id);

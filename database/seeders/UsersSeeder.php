@@ -17,19 +17,38 @@ class UsersSeeder extends Seeder
      */
     public function run()
     {
-        Role::create(['name' => 'patiente']);
-        $adminRole  = Role::find(1);
+        $adminRole  = Role::create(['name' => 'admin']);
         $medecinRole = Role::create(['name' => 'medecin']);
-        $acceuilRole = Role::create(['name' => 'accueil']);
+        $comptableRole = Role::create(['name' => 'comptable']);
+        $secretaireRole = Role::create(['name' => 'secretaire']);
+        $patientRole = Role::create(['name' => 'patient']);
 
         $userAdmin = User::create([
             'name'=> 'Admin',
-            'status' => true,
             'email' => 'admin@aprosafe.com',
+            'phone' => '622099672',
             'password' => 'Admin@01',
         ]);
 
-        Department::create([
+        $userMedecin = User::create([
+            'name' => 'binta',
+            'phone' => '625476844',
+            'email' => 'binta@aprosafe.com',
+            'password' => 'binta@01',
+        ]);
+
+        $usercomptable = User::create([
+            'name' => 'comptable',
+            'phone' => '625000000',
+            'email' => 'comptable@aprosafe.com',
+            'password' => 'comptable@01',
+        ]);
+
+        $userAdmin->assignRole($adminRole);
+        $userMedecin->assignRole($medecinRole);
+        $usercomptable->assignRole($comptableRole);
+
+        $department = Department::create([
             'name' => 'GYNECOLOGIE',
         ]);
 
@@ -38,23 +57,12 @@ class UsersSeeder extends Seeder
             'last_name'=> 'Admin',
             'user_id' => $userAdmin->id,
             'address' => 'Conakry, Guinea',
-            'phone' => '+224625476844',
             'education' => 'MBA',
             'description' => 'Administrator of the system',
             'certificate' => 'Admin Certificate',
             'speciality' => 'Genycologue',
-            'working_day' => 'Lundi,Mardi,Mercredi,Jeudi,Vendredi',
-            'in_time' => '08:00',
-            'out_time' => '20:00',
-            'type' => 'Docteur',
-            'department_id' => 1,
-        ]);
-
-        $userMedecin = User::create([
-            'name' => 'binta',
-            'status' => true,
-            'email' => 'binta@aprosafe.com',
-            'password' => 'binta@01',
+            'type' => 'admin',
+            'department_id' => $department->id,
         ]);
 
         Employee::create([
@@ -62,45 +70,26 @@ class UsersSeeder extends Seeder
             'last_name'=> 'Diallo',
             'user_id' => $userMedecin->id,
             'address' => 'Conakry, Guinea',
-            'phone' => '+224625476844',
             'education' => 'MBA',
             'description' => 'Administrator of the system',
             'certificate' => 'Admin Certificate',
             'speciality' => 'Genycologue',
-            'working_day' => 'Lundi,Mardi,Mercredi,Jeudi,Vendredi',
-            'in_time' => '08:00',
-            'out_time' => '20:00',
             'type' => 'Docteur',
-            'department_id' => 1,
-        ]);
-
-        $userAcceuil = User::create([
-            'name' => 'secretaire',
-            'status' => true,
-            'email' => 'secretaire@aprosafe.com',
-            'password' => 'secretaire@01',
+            'department_id' => $department->id,
         ]);
 
         Employee::create([
-            'first_name'=> 'Secretaire',
+            'first_name'=> 'comptable',
             'last_name'=> 'Aprosafe',
-            'user_id' => $userAcceuil->id,
+            'user_id' => $usercomptable->id,
             'address' => 'Conakry, Guinea',
-            'phone' => '+224625476844',
             'education' => 'MBA',
             'description' => 'Administrator of the system',
             'certificate' => 'Admin Certificate',
             'speciality' => 'Genycologue',
-            'working_day' => 'Lundi,Mardi,Mercredi,Jeudi,Vendredi, Samedi',
-            'in_time' => '08:00',
-            'out_time' => '20:00',
-            'type' => 'Secretaire',
-            'department_id' => 1,
+            'type' => 'comptable',
+            'department_id' => $department->id,
         ]);
-
-        $userAdmin->assignRole($adminRole);
-        $userMedecin->assignRole($medecinRole);
-        $userAcceuil->assignRole($acceuilRole);
 
     }
 }

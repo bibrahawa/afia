@@ -4,15 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-use App\Models\Antecedant;
-
 class Patient extends Model
 {
 
 
 	protected $fillable =
 	[
-        'first_name', 'middle_name', 'last_name', 'age', 'phone', 'gender', 'birth_date', 'country', 'state', 'district' , 'location' , 'occupation' ,
+        'first_name', 'middle_name', 'last_name', 'age', 'gender', 'birth_date', 'country', 'state', 'district' , 'location' , 'occupation' ,
         'description' , 'relative_name' , 'relative_phone' , 'marital_status', 'blood_group','user_id'
     ];
 
@@ -62,12 +60,17 @@ class Patient extends Model
 
     public function antecedant()
     {
-        return $this->hasOne("App\Models\Antecedent");
+        return $this->hasOne(Antecedent::class);
     }
 
     public function hospitalisations()
     {
         return $this->hasMany(Hospitalisation::class);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 
 }

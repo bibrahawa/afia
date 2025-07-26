@@ -18,10 +18,15 @@ use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
+
+    public function index (): View
+    {
+        return view('appointments.rdv.rdv');
+    }
     /**
      * Affiche le dashboard principal
      */
-    public function index(): View
+    public function admin(): View
     {
         // Optimisation : utiliser une seule requête avec count()
         $totalPatient = Patient::count();

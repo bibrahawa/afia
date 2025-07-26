@@ -6,7 +6,6 @@ use App\Models\Permission;
 use App\Models\Role;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Schema;
 
 class PermissionSeeder extends Seeder
 {
@@ -19,7 +18,7 @@ class PermissionSeeder extends Seeder
     {
         $count = 0;
 
-        $role = Role::create(['name' => 'admin']);
+        $role = Role::where('name', 'admin')->first();
 
         foreach (Route::getRoutes() as $route) {
             $name = $route->getName();
@@ -42,23 +41,5 @@ class PermissionSeeder extends Seeder
       * @param mixed $middleware Le middleware ou tableau de middlewares
       * @return bool
       */
-    // protected function routeHasAuthMiddleware($middleware): bool
-    // {
-    //     if (is_string($middleware)) {
-    //         return $middleware === 'auth';
-    //     }
 
-    //     if (is_array($middleware)) {
-    //         foreach ($middleware as $m) {
-    //             // Gestion des middleware sous forme de chaîne ou de tableau
-    //             if (is_string($m) && ($m === 'auth' || strpos($m, 'auth:') === 0)) {
-    //                 return true;
-    //             } elseif (is_array($m) && in_array('auth', $m)) {
-    //                 return true;
-    //             }
-    //         }
-    //     }
-
-    //     return false;
-    // }
 }

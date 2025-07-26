@@ -21,7 +21,7 @@
             <i class="icon-arrow-right"></i>
           </li>
           <li class="nav-item">
-            <a href="{{ route('department.index') }}">Department</a>
+            <a href="">disponibilités</a>
           </li>
         </ul>
       </div>
@@ -47,7 +47,7 @@
           <div class="card">
             <div class="card-header">
               <div class="d-flex align-items-center">
-                <h4 class="card-title">Liste des disponibilites</h4>
+                <h4 class="card-title">Liste des disponibilités</h4>
                 <button
                   class="btn btn-primary btn-round ms-auto"
                   data-bs-toggle="modal"
@@ -110,7 +110,7 @@
                                     <span aria-hidden="true">&times;</span>
                                 </button>
                             </div>
-                            <form action="{{ route('employee.availabilities.store') }}" method="POST" id="addAvailabilityForm">
+                            <form action="{{ route('medecin.availabilities.store') }}" method="POST" id="addAvailabilityForm">
                                 @csrf
                                 <div class="modal-body">
                                     <div class="form-group">
@@ -127,9 +127,9 @@
                                         </select>
                                     </div>
 
-                                    
 
-                                    
+
+
 
                                     <div class="row">
                                         <div class="form-group col-md-6">
@@ -174,7 +174,7 @@
                 <!-- Modal Edit Availability -->
                 <div class="modal fade" id="editAvailabilityModal" tabindex="-1" role="dialog" aria-hidden="true">
                 <div class="modal-dialog" role="document">
-                    <form method="POST" action="{{ route('employee.availabilities.update') }}" id="editAvailabilityForm">
+                    <form method="POST" action="{{ route('medecin.availabilities.update') }}" id="editAvailabilityForm">
                     @csrf
                     @method('PUT')
                     <div class="modal-content">
@@ -326,7 +326,7 @@
 
             $('#delete_availability_id').val(id);
             $('#availability_to_delete_text').text(`Voulez-vous vraiment supprimer la disponibilité du ${day} ?`);
-            $('#deleteAvailabilityForm').attr('action', `/employee/availabilities/${id}`);
+            $('#deleteAvailabilityForm').attr('action', `/medecin/availabilities/${id}`);
             $('#deleteAvailabilityModal').modal('show');
         });
 

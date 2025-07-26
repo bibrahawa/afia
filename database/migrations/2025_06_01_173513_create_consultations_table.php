@@ -14,8 +14,6 @@ return new class extends Migration
         Schema::create('consultations', function (Blueprint $table) {
             $table->id();
             $table->foreignId('patient_id')->constrained('patients')->onDelete('cascade');
-            // $table->bigInteger('service_id');
-            // $table->bigInteger('package_id');
             $table->text('motif');
             $table->json('signes_cliniques')->nullable();
             $table->text('diagnostic');
@@ -65,7 +63,12 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists(['consultations','consultation_service', 'consultation_package', 'consultation_test', 'consultation_medicament']);
+        Schema::dropIfExists('consultation_medicament');
+        Schema::dropIfExists('consultation_test');
+        Schema::dropIfExists('consultation_package');
+        Schema::dropIfExists('consultation_service');
+        Schema::dropIfExists('consultations');
     }
+
 
 };

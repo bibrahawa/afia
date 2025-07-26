@@ -1,9 +1,8 @@
 <?php
 
 use Illuminate\Http\Request;
-use App\Http\Controllers\DoctorApiController;
 use App\Http\Controllers\AppointmentController;
-use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\AuthController;
 
 /*
 |--------------------------------------------------------------------------
@@ -20,7 +19,6 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::get('days/{id}', [DoctorApiController::class, 'getDay']);
 
 Route::get('departments', [AppointmentController::class, 'getDepartments']);
 Route::get('professionals/{id}', [AppointmentController::class, 'getProfessionals']);
@@ -34,6 +32,6 @@ Route::get('appointments/slots/{id}/{date}/{time}/{duration}', [AppointmentContr
 Route::get('available-slots', [AppointmentController::class, 'getAvailableSlots']);
 Route::post('appointments', [AppointmentController::class, 'store']);
 
-Route::post('login', [LoginController::class, 'login']);
-Route::post('register', [LoginController::class, 'register']);
-Route::post('logout', [LoginController::class, 'logout'])->middleware('auth:api');
+Route::post('login', [AuthController::class, 'loginWithApi']);
+Route::post('register', [AuthController::class, 'register']);
+Route::post('logout', [AuthController::class, 'logout'])->middleware('auth:api');
