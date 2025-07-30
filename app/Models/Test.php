@@ -44,4 +44,9 @@ class Test extends Model
         return $this->belongsToMany(Consultation::class);
     }
 
+	public function coverage()
+    {
+        return $this->morphOne(InsuranceCoverage::class, 'coverageable');
+    }
+
 }

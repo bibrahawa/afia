@@ -61,7 +61,12 @@
     </script>
 
     @yield('style') {{-- Pour les styles spécifiques à une page --}}
-    {{-- @livewireStyles --}}
+    
+    <!-- jQuery EN PREMIER -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <script src="{{ asset("assets/js/plugin/jquery-scrollbar/jquery.scrollbar.min.js") }} "></script>
+    <script src="{{ asset("assets/js/plugin/jquery.sparkline/jquery.sparkline.min.js") }} "></script>
   </head>
   <body>
     <div class="wrapper">
@@ -104,14 +109,11 @@
       @include("layouts.config")
 
     </div>
-    <script src="{{ asset("assets/js/core/jquery-3.7.1.min.js") }} "></script>
-
+    
     <script src="{{ asset("assets/js/core/popper.min.js") }} "></script>
     <script src="{{ asset("assets/js/core/bootstrap.min.js") }} "></script>
 
-    <script src="{{ asset("assets/js/plugin/jquery-scrollbar/jquery.scrollbar.min.js") }} "></script>
     <script src="{{ asset("assets/js/plugin/chart.js/chart.min.js") }} "></script>
-    <script src="{{ asset("assets/js/plugin/jquery.sparkline/jquery.sparkline.min.js") }} "></script>
     <script src="{{ asset("assets/js/plugin/chart-circle/circles.min.js") }} "></script>
     <script src="{{ asset("assets/js/plugin/datatables/datatables.min.js") }} "></script>
     <script src="{{ asset("assets/js/plugin/bootstrap-notify/bootstrap-notify.min.js") }} "></script>
@@ -124,16 +126,17 @@
     <script src="{{ asset("assets/js/kaiadmin.min.js") }} "></script>
 
     <script>
+
       $(document).ready(function () {
-          // Initialisation de DataTables (assurez-vous que l'ID "add-row" est bien sur la table que vous voulez initialiser)
-          if ($("#add-row").length) { // Vérifie si l'élément existe avant d'initialiser
-              $("#add-row").DataTable({
-                  pageLength: 5,
-              });
+          const table = $('#add-row');
+          if (table.length && table.find('tbody tr').length) {
+              table.DataTable({ pageLength: 5 });
           }
+
           // Initialisation de Bootstrap Select
           $('.selectpicker').selectpicker();
       });
+
     </script>
 
     <script>
@@ -175,12 +178,9 @@
             @endif
         });
     </script>
-<script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    {{-- <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script> --}}
 
     @yield('script')
-
-    {{-- @livewireScripts
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script> --}}
 
   </body>
 </html>

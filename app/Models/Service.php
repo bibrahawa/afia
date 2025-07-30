@@ -25,6 +25,8 @@ class Service extends Model
         return $this->hasMany('App\Models\ServiceSale');
     }
 
-    
-    //
+    public function coverage()
+    {
+        return $this->morphOne(InsuranceCoverage::class, 'coverageable');
+    }
 }

@@ -35,6 +35,41 @@
                     <span class="sidebar-mini-icon">
                         <i class="fa fa-ellipsis-h"></i>
                     </span>
+                    <h4 class="text-section">Gestion d'assurance</h4>
+                </li>
+
+                <li class="nav-item {{ request()->routeIs('insurance-companies.*') ? 'active' : '' }}">
+                    <a href="{{ route('insurance-companies.index') }}">
+                        <i class="fas fa-user"></i>
+                        <p>Compagnie d'assurance</p>
+                    </a>
+                </li>
+
+                <li class="nav-item {{ request()->routeIs('insurance-coverages.*') ? 'active' : '' }}">
+                    <a href="{{ route('insurance-coverages.index') }}">
+                        <i class="fas fa-user"></i>
+                        <p>Couverture d'assurance</p>
+                    </a>
+                </li>
+
+                <li class="nav-item {{ request()->routeIs('insurance_patient.*') ? 'active' : '' }}">
+                    <a href="{{ route('insurance_patient.index') }}">
+                        <i class="fas fa-user"></i>
+                        <p>Assurance patients</p>
+                    </a>
+                </li>
+
+                <li class="nav-item {{ request()->routeIs('invoice.*') ? 'active' : '' }}">
+                    <a href="{{ route('invoice.index') }}">
+                        <i class="fas fa-user"></i>
+                        <p>Factures</p>
+                    </a>
+                </li>
+                
+                <li class="nav-section">
+                    <span class="sidebar-mini-icon">
+                        <i class="fa fa-ellipsis-h"></i>
+                    </span>
                     <h4 class="text-section">Patient</h4>
                 </li>
 

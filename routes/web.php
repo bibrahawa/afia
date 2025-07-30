@@ -7,7 +7,8 @@ use App\Http\Controllers\{
     PatientController, AppointmentController, PackageController,
     TestController, ReportController, AccountController, AuthController,
     ProfileController, ConsultationController, MedicamentController,
-    HospitalisationController, ChambreController
+    HospitalisationController, ChambreController, InsuranceClaimController, InsuranceCompanyController,
+    InsuranceCoverageController, InvoiceItemController, InvoicesController,PatientInsuranceController
 };
 
 // Authentification
@@ -156,7 +157,35 @@ Route::middleware('auth')->group(function () {
 
     Route::resource('chambres', ChambreController::class)->except('update');
     Route::put('chambre/update', [ChambreController::class, 'update'])->name('chambre.update');
-});
 
-// require __DIR__.'/auth.php';
+    // Gestion des assurances
+    Route::prefix('insurance')->group(function () {
+        Route::resource('insurance-companies', InsuranceCompanyController::class)->except(['create', 'edit', 'show', 'update']);
+        Route::put('insurance-companies/update', [InsuranceCompanyController::class, 'update'])->name('insurance-companies.update');
+        Route::delete('insurance-companies/delete', [InsuranceCompanyController::class, 'destroy'])->name('insurance-companies.destroy');
+        
+        Route::resource('insurance-coverages', InsuranceCoverageController::class)->except(['create', 'edit', 'show']);
+        Route::put('insurance-coverages/update', [InsuranceCoverageController::class, 'update'])->name('insurance-coverages.update');
+        Route::delete('insurance-coverages/delete', [InsuranceCoverageController::class, 'destroy'])->name('insurance-coverages.destroy');
+
+        Route::resource('insurance_patient', PatientInsuranceController::class)->except(['create', 'edit', 'show']);
+        Route::put('insurance_patient/update', [PatientInsuranceController::class, 'update'])->name('insurance_patient.update');
+        Route::delete('insurance_patient/delete', [PatientInsuranceController::class, 'destroy'])->name('insurance_patient.destroy');
+
+        // Routes pour les factures
+        Route::get('/invoice', [InvoicesController::class, 'index'])->name('invoice.index');
+        Route::post('/invoice/add', [InvoicesController::class, 'store'])->name('invoice.add');
+        Route::post('/invoice/update', [InvoicesController::class, 'update'])->name('invoice.update');
+        Route::delete('/invoice/delete/{id}', [InvoicesController::class, 'destroy'])->name('invoice.delete');
+        Route::get('/invoice/{id}/items', [InvoicesController::class, 'getItems']); // Pour AJAX
+
+        // Routes pour les éléments de facture
+        Route::get('/invoice/item', [InvoiceItemController::class, 'index'])->name('invoice.item.index');
+        Route::post('/invoice/item/add', [InvoiceItemController::class, 'store'])->name('invoice.item.add');
+        Route::post('/invoice/item/update', [InvoiceItemController::class, 'update'])->name('invoice.item.update');
+        Route::delete('/invoice/item/delete/{id}', [InvoiceItemController::class, 'destroy'])->name('invoice.item.delete');
+
+    });
+
+});
 

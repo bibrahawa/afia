@@ -25,7 +25,7 @@ return new class extends Migration
             $table->float('montant_payer')->default(0);
             $table->float('total');
             $table->enum('status', ['pending', 'partial', 'paid', 'cancel'])->default('pending');
-            $table->timestamps();
+            $table->timestamps(); 
         });
     }
 

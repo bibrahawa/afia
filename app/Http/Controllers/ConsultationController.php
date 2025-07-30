@@ -413,4 +413,224 @@ class ConsultationController extends Controller
     }
 
 
+    public function store_consultation(Request $request)
+    {
+        DB::beginTransaction();
+        
+        try {
+            // Validation principale
+            $validated = $request->validate([
+                'patient_id' => 'required|exists:patients,id',
+                'motif' => 'required|string',
+                'signes_cliniques' => 'nullable|string',
+                'diagnostic' => 'required|string',
+                'observation' => 'nullable|string',
+                'prochain_rdv' => 'nullable|date'
+            ]);
+
+            // Préparation des données consultation
+            $data_for_consultation = $request->only([
+                'patient_id','motif', 'signes_cliniques', 'diagnostic', 'observation', 'prochain_rdv'
+            ]);
+
+            $data_for_consultation['medecin_id'] = auth()->user()->employee->id;
+            $data_for_consultation['department_id'] = auth()->user()->employee->department_id;
+
+            if ($request->signes_cliniques) {
+                $data_for_consultation['signes_cliniques'] = explode(',', $request->signes_cliniques);
+            }
+
+            $consultation = Consultation::create($data_for_consultation);
+
+            // Liaison services, packages, examens, medicaments
+            $selectedItems = json_decode($request->selected_items, true);
+            $billingStatus = json_decode($request->billing_status, true);
+            $invoiceItems = []; // Pour stocker les éléments à facturer
+            
+            foreach ($selectedItems as $category => $items) {
+                $syncValues = [];
+
+                foreach ($items as $item) {
+                    // Construire la clé de billing_status
+                    $prefix = $category === 'examens' ? 'examen' : rtrim($category, 's');
+                    $billingKey = $prefix . '-' . $item['value'];
+                    $shouldBill = $billingStatus[$billingKey] ?? false;
+                    
+                    // Préparer les données pour sync avec pivot
+                    $syncValues[$item['value']] = [
+                        'facturer' => $shouldBill
+                    ];
+
+                    // Si l'item doit être facturé, l'ajouter aux éléments de facture
+                    if ($shouldBill) {
+                        $invoiceItems[] = [
+                            'category' => $category,
+                            'item_id' => $item['value'],
+                            'description' => $item['label'] ?? '',
+                            'unit_price' => 0, // Sera mis à jour après la sync
+                            'quantity' => 1
+                        ];
+                    }
+                }
+
+                // Synchroniser selon la catégorie
+                match ($category) {
+                    'medicaments' => $consultation->medicaments()->sync($syncValues),
+                    'services'    => $consultation->services()->sync($syncValues),
+                    'packages'    => $consultation->packages()->sync($syncValues),
+                    'examens'     => $consultation->tests()->sync($syncValues),
+                    default       => null
+                };
+            }
+
+            // Fichiers joints
+            if ($fichierIds = $request->input('fichiers_enregistres')) {
+                FichierPatient::whereIn('id', $fichierIds)->update(['used_by' => 'medecin']);
+            }
+
+            // Calcul montant consultation et mise à jour des prix dans invoiceItems
+            $consultation_amount = 0;
+            
+            foreach ($invoiceItems as &$invoiceItem) {
+                $model = null;
+                $amount = 0;
+                
+                switch ($invoiceItem['category']) {
+                    case 'services':
+                        $model = $consultation->services()->where('services.id', $invoiceItem['item_id'])->first();
+                        $amount = $model?->amount ?? 0;
+                        break;
+                    case 'packages':
+                        $model = $consultation->packages()->where('packages.id', $invoiceItem['item_id'])->first();
+                        $amount = $model?->price ?? 0;
+                        break;
+                    case 'examens':
+                        $model = $consultation->tests()->where('tests.id', $invoiceItem['item_id'])->first();
+                        $amount = $model?->amount ?? 0;
+                        break;
+                    case 'medicaments':
+                        $model = $consultation->medicaments()->where('medicaments.id', $invoiceItem['item_id'])->first();
+                        $amount = $model?->amount ?? 0;
+                        break;
+                }
+                
+                $invoiceItem['unit_price'] = $amount;
+                $invoiceItem['total_amount'] = $amount * $invoiceItem['quantity'];
+                $consultation_amount += $invoiceItem['total_amount'];
+            }
+
+            // Récupérer les informations d'assurance du patient
+            $patient = Patient::with('activeInsurance.company')->find($request->patient_id);
+            $patientInsurance = $patient->activeInsurance;
+            
+            // Calcul des montants assurance/patient
+            $insurance_amount = 0;
+            $patient_amount = $consultation_amount;
+            
+            if ($patientInsurance && $patientInsurance->is_active) {
+                $coverage_percentage = $patientInsurance->coverage_percentage ?? 0;
+                $insurance_amount = ($consultation_amount * $coverage_percentage) / 100;
+                $patient_amount = $consultation_amount - $insurance_amount;
+            }
+
+            // Mise à jour compte patient (seulement la part patient)
+            $accountID = TransactionService::mettreAJourCompte($request->patient_id, Patient::class, $patient_amount, 'credit');
+
+            // Création transaction
+            $transaction = $consultation->transaction()->create([
+                'user_id'         => auth()->id(),
+                'account_id'      => $accountID,
+                'patient_id'      => $request->patient_id,
+                'consultation_id' => $consultation->id,
+                'description'     => $consultation->motif,
+                'tax_amount'      => 0,
+                'discount'        => 0,
+                'sub_total'       => $consultation_amount
+            ]);
+
+            // ✅ Création de la facture
+            $invoice = $transaction->invoice()->create([
+                'transaction_id' => $transaction->id,
+                'insurance_company_id' => $patientInsurance?->company?->id,
+                'patient_insurance_id' => $patientInsurance?->id,
+                'total_amount' => $consultation_amount,
+                'patient_amount' => $patient_amount,
+                'insurance_amount' => $insurance_amount,
+                'insurance_status' => $insurance_amount > 0 ? 'pending' : null,
+                'patient_amount_status' => $patient_amount > 0 ? 'pending' : null,
+            ]);
+
+            // ✅ Création des éléments de facture détaillés
+            foreach ($invoiceItems as $item) {
+                $coverage_percentage_applied = null;
+                $insurance_covered_amount = 0;
+                $item_patient_amount = $item['total_amount'];
+                
+                if ($patientInsurance && $patientInsurance->is_active) {
+                    $coverage_percentage_applied = $patientInsurance->coverage_percentage ?? 0;
+                    $insurance_covered_amount = ($item['total_amount'] * $coverage_percentage_applied) / 100;
+                    $item_patient_amount = $item['total_amount'] - $insurance_covered_amount;
+                }
+
+                $invoice->items()->create([
+                    'coverage_type_type' => $this->getCoverageTypeModel($item['category']),
+                    'coverage_type_id' => $item['item_id'],
+                    'description' => $item['description'],
+                    'unit_price' => $item['unit_price'],
+                    'quantity' => $item['quantity'],
+                    'total_amount' => $item['total_amount'],
+                    'insurance_covered_amount' => $insurance_covered_amount,
+                    'patient_amount' => $item_patient_amount,
+                    'coverage_percentage_applied' => $coverage_percentage_applied,
+                ]);
+            }
+
+            // Marque la consultation comme facturée
+            $consultation->update(['est_facturee' => true]);
+
+            // Ajout des antécédents médicaux
+            Antecedent::updateOrCreate(
+                ['patient_id' => $request->patient_id],
+                [
+                    'antecedents_medicaux'           => $request->antecedents_medicaux,
+                    'antecedents_chirurgicaux'       => $request->antecedents_chirurgicaux,
+                    'antecedents_gyneco_obstetricaux'=> $request->antecedents_gyneco_obstetricaux,
+                    'antecedents_familiaux'          => $request->antecedents_familiaux,
+                    'allergies'                      => $request->allergies,
+                    'traitements_cours'              => $request->traitements_cours,
+                ]
+            );
+
+            // Mise à jour du statut de première visite
+            $updateNewVisit = Patient::find($request->patient_id);
+            $updateNewVisit->first_visit = false;
+            $updateNewVisit->save();
+
+            DB::commit();
+            
+            return redirect()->route('consultation.index')->with('success', 'Consultation et facture enregistrées avec succès.');
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['error' => 'Erreur lors de l\'enregistrement : ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Retourne le nom du modèle selon la catégorie pour la relation polymorphe
+     */
+    private function getCoverageTypeModel($category)
+    {
+        return match ($category) {
+            'services' => 'App\\Models\\Service',
+            'packages' => 'App\\Models\\Package', // Ajustez selon votre namespace
+            'examens' => 'App\\Models\\Test',
+            'medicaments' => 'App\\Models\\Medicament',
+            default => null
+        };
+    }
+
 }
