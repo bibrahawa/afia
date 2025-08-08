@@ -39,6 +39,11 @@ class Transaction extends Model
     {
         return $this->belongsTo(Account::class);
     }
+    
+    public function patient(): BelongsTo
+    {
+        return $this->belongsTo(Patient::class);
+    }
 
     protected static function booted()
     {
@@ -55,6 +60,6 @@ class Transaction extends Model
 
     public function invoice()
     {
-        return $this->hasOne(Invoices::class);
+        return $this->hasOne(Invoice::class);
     }
 }

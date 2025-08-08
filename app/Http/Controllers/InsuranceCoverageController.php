@@ -28,7 +28,6 @@ class InsuranceCoverageController extends Controller
             'insurance_company_id' => 'required|exists:insurance_companies,id',
             'coverageable_type' => 'required|string',
             'coverageable_id' => 'required|integer',
-            'coverage_percentage' => 'required|numeric|min:0|max:100',
             'valid_from' => 'required|date',
         ]);
 
@@ -54,7 +53,6 @@ class InsuranceCoverageController extends Controller
             'insurance_company_id' => 'required|exists:insurance_companies,id',
             'coverageable_type' => 'required|string',
             'coverageable_id' => 'required|integer',
-            'coverage_percentage' => 'required|numeric|min:0|max:100',
             'valid_from' => 'required|date',
         ]);
 

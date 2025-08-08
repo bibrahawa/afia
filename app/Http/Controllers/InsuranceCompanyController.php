@@ -21,9 +21,14 @@ class InsuranceCompanyController extends Controller
             'email' => 'nullable|email',
             'default_coverage_percentage' => 'nullable|numeric|min:0|max:100',
         ]);
-        
 
-        InsuranceCompany::create($request->all());
+
+        $data = $request->all();
+        if($data['default_coverage_percentage'] == null){
+            $data['default_coverage_percentage'] = 0;
+        }
+
+        InsuranceCompany::create($data);
         return back()->with('success', 'Compagnie créée avec succès.');
     }
 
@@ -38,7 +43,12 @@ class InsuranceCompanyController extends Controller
             'default_coverage_percentage' => 'nullable|numeric|min:0|max:100',
         ]);
 
-        $insuranceCompany->update($request->all());
+        $data = $request->all();
+        if($data['default_coverage_percentage'] == null){
+            $data['default_coverage_percentage'] = 0;
+        }
+
+        $insuranceCompany->update($data);
         return back()->with('success', 'Compagnie mise à jour.');
     }
 

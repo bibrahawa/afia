@@ -24,7 +24,7 @@ return new class extends Migration
             $table->float('discount')->default(0); // Réduction appliquée
             $table->float('montant_payer')->default(0);
             $table->float('total');
-            $table->enum('status', ['pending', 'partial', 'paid', 'cancel'])->default('pending');
+            $table->enum('status', ['pending', 'partial', 'approved', 'paid', 'cancel'])->default('pending'); //approved repesente le paiement du montant part patient.
             $table->timestamps(); 
         });
     }

@@ -14,6 +14,13 @@ use App\Models\EmployeeAvailability;
 use App\Models\EmployeeLeave;
 use App\Models\Appointment;
 use App\Models\AppointmentSlot;
+use App\Models\Chambre;
+use App\Models\Hospitalisation;
+use App\Models\Invoice;
+use App\Models\InsuranceClaim;
+use App\Models\InvoiceItem;
+use App\Models\Medicament;
+
 use Carbon\Carbon;
 
 class DashboardController extends Controller
@@ -28,13 +35,36 @@ class DashboardController extends Controller
      */
     public function admin(): View
     {
-        // Optimisation : utiliser une seule requête avec count()
-        $totalPatient = Patient::count();
-        $patientes = Patient::orderBy('id', 'desc')->paginate(5);
-        $consultations = Consultation::orderBy('id', 'desc')->get();
-        $transactions = Transaction::orderBy('id', 'desc')->get();
+        // Dans votre DashboardController
+        $rdv_today = Appointment::whereDate('created_at', today())->count();
+        $hospitalisations_active = Hospitalisation::where('statut', 'active')->count();
+        $chambres_libres = Chambre::where('statut', 'libre')->count();
+        $patients_assures = Patient::with('hasActiveInsurance')->count();
+        $factures_impayees = Invoice::where('insurance_status', 'pending')->count();
+        $montant_impaye = Invoice::where('insurance_status', 'pending')->sum('insurance_amount');
+        $medicaments_stock_faible = Medicament::count();
+        $reclamations_en_attente = InsuranceClaim::where('status', 'draft')->count();
+        $rdv_aujourdhui = Appointment::with(['patient', 'medecin'])->whereDate('created_at', today())->get();
 
-        return view('dashboard', compact('totalPatient', 'consultations', 'transactions', 'patientes'));
+        $total_patient = Patient::count();
+        $patientes = Patient::latest()->limit(5)->get();
+        $consultations = Consultation::latest()->limit(10)->get();
+        $transactions = Transaction::latest()->limit(10)->get();
+
+        return view('dashboard', compact('total_patient', 
+                                        'consultations', 
+                                        'transactions', 
+                                        'patientes',
+                                        'rdv_aujourdhui',
+                                        'rdv_today',
+                                        'hospitalisations_active',
+                                        'chambres_libres',
+                                        'patients_assures',
+                                        'factures_impayees',
+                                        'montant_impaye',
+                                        'medicaments_stock_faible',
+                                        'reclamations_en_attente'));
+                                        
     }
 
     /**

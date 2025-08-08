@@ -54,8 +54,8 @@
                         <th>Montant Total</th>
                         <th>Part Patient</th>
                         <th>Part Assurance</th>
-                        <th>Statut Assurance</th>
-                        <th>Statut Patient</th>
+                        {{-- <th>Statut Assurance</th>
+                        <th>Statut Patient</th> --}}
                         <th>N° Réclamation</th>
                         <th style="width: 12%">Action</th>
                         </tr>
@@ -69,8 +69,8 @@
                         <th>Montant Total</th>
                         <th>Part Patient</th>
                         <th>Part Assurance</th>
-                        <th>Statut Assurance</th>
-                        <th>Statut Patient</th>
+                        {{-- <th>Statut Assurance</th>
+                        <th>Statut Patient</th> --}}
                         <th>N° Réclamation</th>
                         <th>Action</th>
                         </tr>
@@ -88,10 +88,10 @@
                                     @endif
                                 </td>
                                 <td>{{ $invoice->insuranceCompany ? $invoice->insuranceCompany->name : 'Aucune' }}</td>
-                                <td>{{ number_format($invoice->total_amount, 0, ',', ' ') }} FCFA</td>
-                                <td>{{ number_format($invoice->patient_amount, 0, ',', ' ') }} FCFA</td>
-                                <td>{{ number_format($invoice->insurance_amount, 0, ',', ' ') }} FCFA</td>
-                                <td>
+                                <td>{{ number_format($invoice->total_amount, 0, ',', ' ') }} GNF</td>
+                                <td>{{ number_format($invoice->patient_amount, 0, ',', ' ') }} GNF</td>
+                                <td>{{ number_format($invoice->insurance_amount, 0, ',', ' ') }} GNF</td>
+                                {{-- <td>
                                     @if($invoice->insurance_status)
                                         <span class="badge badge-{{ $invoice->insurance_status == 'paid' ? 'success' : ($invoice->insurance_status == 'approved' ? 'info' : ($invoice->insurance_status == 'rejected' ? 'danger' : 'warning')) }}">
                                             {{ ucfirst($invoice->insurance_status) }}
@@ -108,7 +108,7 @@
                                     @else
                                         <span class="badge badge-secondary">N/A</span>
                                     @endif
-                                </td>
+                                </td> --}}
                                 <td>{{ $invoice->insurance_claim_number ?? 'N/A' }}</td>
                                 <td>
                                     <div class="form-button-action">
@@ -206,7 +206,7 @@
                             <div class="row">
                                 <div class="col-sm-4">
                                     <div class="form-group form-group-default">
-                                        <label>Montant total (FCFA)</label>
+                                        <label>Montant total (GNF)</label>
                                         <input
                                             id="total_amount"
                                             name="total_amount"
@@ -220,7 +220,7 @@
                                 </div>
                                 <div class="col-sm-4">
                                     <div class="form-group form-group-default">
-                                        <label>Part patient (FCFA)</label>
+                                        <label>Part patient (GNF)</label>
                                         <input
                                             id="patient_amount"
                                             name="patient_amount"
@@ -234,7 +234,7 @@
                                 </div>
                                 <div class="col-sm-4">
                                     <div class="form-group form-group-default">
-                                        <label>Part assurance (FCFA)</label>
+                                        <label>Part assurance (GNF)</label>
                                         <input
                                             id="insurance_amount"
                                             name="insurance_amount"
@@ -397,7 +397,7 @@
                                     <div class="row">
                                         <div class="col-sm-4">
                                             <div class="form-group form-group-default">
-                                                <label>Montant total (FCFA)</label>
+                                                <label>Montant total (GNF)</label>
                                                 <input
                                                     id="edit_total_amount"
                                                     name="total_amount"
@@ -410,7 +410,7 @@
                                         </div>
                                         <div class="col-sm-4">
                                             <div class="form-group form-group-default">
-                                                <label>Part patient (FCFA)</label>
+                                                <label>Part patient (GNF)</label>
                                                 <input
                                                     id="edit_patient_amount"
                                                     name="patient_amount"
@@ -422,7 +422,7 @@
                                         </div>
                                         <div class="col-sm-4">
                                             <div class="form-group form-group-default">
-                                                <label>Part assurance (FCFA)</label>
+                                                <label>Part assurance (GNF)</label>
                                                 <input
                                                     id="edit_insurance_amount"
                                                     name="insurance_amount"
@@ -628,7 +628,7 @@
             
             // Charger le contenu des éléments via AJAX
             $.ajax({
-                url: '/invoice/' + invoiceId + '/items',
+                url: '/insurance/invoice/' + invoiceId + '/items',
                 method: 'GET',
                 success: function(response) {
                     $('#invoice-items-content').html(response);

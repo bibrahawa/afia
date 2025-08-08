@@ -67,8 +67,8 @@
                                 <th style="width: 5%">ID</th>
                                 <th>Assurance</th>
                                 <th>Type</th>
-                                <th>Couverture</th>
-                                {{-- <th>Plafonds</th> --}}
+                                {{-- <th>Couverture</th> --}}
+                                <th>Plafonds</th>
                                 <th>Période</th>
                                 <th>Validité</th>
                                 <th>Statut</th>
@@ -80,8 +80,8 @@
                                 <th>ID</th>
                                 <th>Assurance</th>
                                 <th>Type</th>
-                                <th>Couverture</th>
-                                {{-- <th>Plafonds</th> --}}
+                                {{-- <th>Couverture</th> --}}
+                                <th>Plafonds</th>
                                 <th>Période</th>
                                 <th>Validité</th>
                                 <th>Statut</th>
@@ -98,15 +98,15 @@
                                             {{ class_basename($coverage->coverageable->name ?? $coverage->coverageable->nom) }}
                                         </span>
                                     </td>
-                                    <td>{{ $coverage->coverage_percentage }}%</td>
-                                    {{-- <td>
+                                    {{-- <td>{{ $coverage->coverage_percentage }}%</td> --}}
+                                    <td>
                                         @if($coverage->min_amount)
                                             Min: {{ number_format($coverage->min_amount, 2) }} F
                                         @endif
                                         @if($coverage->max_amount)
                                             Max: {{ number_format($coverage->max_amount, 2) }} F<br>
                                         @endif
-                                    </td> --}}
+                                    </td>
                                     <td>
                                         @if($coverage->max_usage_count)
                                             {{ $coverage->max_usage_count }} / {{ $coverage->usage_period }}
@@ -229,19 +229,19 @@
                                     </div>
 
                                     <div class="row">
-                                        <div class="col-sm-4">
+                                        {{-- <div class="col-sm-4">
                                             <div class="form-group form-group-default">
                                                 <label>Couverture (%) <span class="text-danger">*</span></label>
                                                 <input type="number" name="coverage_percentage" class="form-control" step="0.01" min="0" max="100" required>
                                             </div>
-                                        </div>
-                                        <div class="col-sm-4">
+                                        </div> --}}
+                                        <div class="col-sm-6">
                                             <div class="form-group form-group-default">
                                                 <label>Montant min (FG)</label>
                                                 <input type="number" name="min_amount" class="form-control" step="0.01" min="0">
                                             </div>
                                         </div>
-                                        <div class="col-sm-4">
+                                        <div class="col-sm-6">
                                             <div class="form-group form-group-default">
                                                 <label>Plafond (FG)</label>
                                                 <input type="number" name="max_amount" class="form-control" step="0.01" min="0">
@@ -364,19 +364,19 @@
                                 </div>
 
                                 <div class="row">
-                                    <div class="col-md-4">
+                                    {{-- <div class="col-md-4">
                                         <div class="form-group">
                                             <label class="fw-bold">Pourcentage de couverture :</label>
                                             <p id="view_coverage_percentage"></p>
                                         </div>
-                                    </div>
-                                    <div class="col-md-4">
+                                    </div> --}}
+                                    <div class="col-md-6">
                                         <div class="form-group">
                                             <label class="fw-bold">Montant minimum :</label>
                                             <p id="view_min_amount"></p>
                                         </div>
                                     </div>
-                                    <div class="col-md-4">
+                                    <div class="col-md-6">
                                         <div class="form-group">
                                             <label class="fw-bold">Plafond :</label>
                                             <p id="view_max_amount"></p>
@@ -503,19 +503,19 @@
                                     </div>
 
                                     <div class="row">
-                                        <div class="col-sm-4">
+                                        {{-- <div class="col-sm-4">
                                             <div class="form-group form-group-default">
                                                 <label>Pourcentage de couverture (%) <span class="text-danger">*</span></label>
                                                 <input type="number" id="edit_coverage_percentage" name="coverage_percentage" class="form-control" step="0.01" min="0" max="100" required>
                                             </div>
-                                        </div>
-                                        <div class="col-sm-4">
+                                        </div> --}}
+                                        <div class="col-sm-6">
                                             <div class="form-group form-group-default">
                                                 <label>Montant minimum (F)</label>
                                                 <input type="number" id="edit_min_amount" name="min_amount" class="form-control" step="0.01" min="0">
                                             </div>
                                         </div>
-                                        <div class="col-sm-4">
+                                        <div class="col-sm-6">
                                             <div class="form-group form-group-default">
                                                 <label>Plafond (F)</label>
                                                 <input type="number" id="edit_max_amount" name="max_amount" class="form-control" step="0.01" min="0">
@@ -696,7 +696,7 @@
             
             $('#view_insurance_company').text(details[1] || '-');
             $('#view_coverageable_type').text(details[2] || '-');
-            $('#view_coverage_percentage').text(details[3] ? details[3] + '%' : '-');
+            // $('#view_coverage_percentage').text(details[3] ? details[3] + '%' : '-');
             $('#view_min_amount').text(details[5] ? details[5] + ' F' : '-');
             $('#view_max_amount').text(details[4] ? details[4] + ' F' : '-');
             $('#view_usage_limit').text(
@@ -723,7 +723,7 @@
             $('#edit_id').val(details[0]);
             $('#edit_insurance_company_id').val(details[1]);
             $('#edit_coverageable_type').val(details[2]);
-            $('#edit_coverage_percentage').val(details[3]);
+            // $('#edit_coverage_percentage').val(details[3]);
             $('#edit_max_amount').val(details[4]);
             $('#edit_min_amount').val(details[5]);
             $('#edit_max_usage_count').val(details[6]);

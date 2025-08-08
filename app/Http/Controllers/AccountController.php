@@ -11,24 +11,22 @@ use App\Models\PackageSale;
 use App\Models\Package;
 use App\Models\Patient;
 use App\Models\Paiement;
+use App\Models\Consultation;
 
 class AccountController extends Controller
 {
    public function serviceReport(Request $request)
    {
 
-
-	   	$services = Service::get();
+        $services = Service::get();
         $user = '';
 
 	    if (count($request->all())) {
 
 	        if ($request->starting_date) {
 	            $starting_date = date('Y-m-d '.'00:00:00', strtotime($request->starting_date));
-
-	        }   else {
-	          //return'here';
-	              $starting_date = date('Y-m-d ' .'00:00:00', time());
+	        } else {
+	            $starting_date = date('Y-m-d ' .'00:00:00', time());
 	        }
 
 	        if ($request->ending_date) {
@@ -192,16 +190,15 @@ class AccountController extends Controller
                     'patients.first_name',
                     'patients.middle_name',
                     'patients.last_name',
-                    'patients.phone',
                     'patients.district',
                     'patients.location',
+                    'patients.amount_due as amount_due',
                     // Listez explicitement toutes les colonnes nécessaires
                     \DB::raw('SUM(transactions.total - transactions.montant_payer) as montant_du')
                 ])
                 ->join('transactions', 'patients.id', '=', 'transactions.patient_id')
                 ->whereIn('transactions.status', ['pending', 'partial'])
-                ->groupBy('patients.id', 'patients.first_name','patients.middle_name', 'patients.last_name', 'patients.phone', 'patients.district', 'patients.location')
-                ->having('montant_du', '>', 0)
+                ->groupBy('patients.id', 'patients.first_name','patients.middle_name', 'patients.last_name', 'patients.district', 'patients.location', 'patients.amount_due')
                 ->get();
 
         return view('patients.unpaid', compact('patientsDu'));
@@ -222,7 +219,7 @@ class AccountController extends Controller
        }
 
        $patient = Patient::find($request->patient_id);
-       $transactions = $patient->transactions()->whereIn('status', ['pending', 'partial'])->get();
+       $transactions = $patient->transactions->whereIn('status', ['pending', 'partial']);
 
        foreach ($transactions as $transaction) {
            if ($montant > 0) {
@@ -240,11 +237,11 @@ class AccountController extends Controller
                        $payer = $montant;
                        $montant = 0;
                     }
-                    // dd($montant);
+
                    // Calculer le montant réellement payé pour cette transaction
                    $montantPayePourCetteTransaction = ($montant >= $montantRestant) ? $montantRestant : $payer;
 
-                //    dd($montantPayePourCetteTransaction, $montantRestant, $montant, $payer);
+                    // dd($montantPayePourCetteTransaction, $montantRestant, $montant, $payer);
 
                    if ($transaction->save()) {
                        $paiement = new Paiement();
@@ -284,6 +281,5 @@ class AccountController extends Controller
 
        return redirect()->back()->with('success', 'Payment successful.');
    }
-
 
 }

@@ -26,8 +26,6 @@ class Package extends Model
         return $this->belongsToMany(Test::class, 'package_tests');
     }
 
-
-
     /**
      * Calculer automatiquement le montant total
      */
@@ -55,18 +53,6 @@ class Package extends Model
     public function scopeByDepartment($query, $departmentId)
     {
         return $query->where('department_id', $departmentId);
-    }
-
-    /**
-     * Boot method pour recalculer automatiquement le total
-     */
-    protected static function boot()
-    {
-        parent::boot();
-
-        static::saved(function ($package) {
-            // Optionnel: recalculer le total après sauvegarde
-        });
     }
 
 }

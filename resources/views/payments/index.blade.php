@@ -62,12 +62,11 @@
                     </tfoot>
                     <tbody>
                         @foreach($patientsDu as $patient)
-                            
                             <tr>
                                 <td>{{$patient->id}}</td>
-                                <td>{{$patient->getFullNameAttribute()}}</td>
+                                <td>{{$patient->first_name." ".$patient->middle_name." ".$patient->last_name}}</td>
                                 <td>{{$patient->phone}}</td>
-                                <td>{{$patient->getFullAddressAttribute()}}</td>
+                                <td>{{$patient->district."/".$patient->location}}</td>
                                 <td>{{number_format($patient->montant_du)." GNF"}}</td>
                                 <td>
                                     @if($patient->patientInsurances && $patient->patientInsurances->count() > 0)
@@ -123,45 +122,6 @@
                                                 <div class="alert alert-info">
                                                     <h6><i class="fas fa-info-circle"></i> Assurances enregistrées pour ce patient:</h6>
                                                     <div id="existingInsurancesList"></div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Détail des Actes -->
-                                    <div class="row mb-4">
-                                        <div class="col-12">
-                                            <div class="card border-0 shadow-sm">
-                                                <div class="card-header bg-light border-0 py-3">
-                                                    <h6 class="text-primary mb-0 fw-bold">
-                                                        <i class="fas fa-list-alt me-2"></i>Détail des Actes Médicaux
-                                                    </h6>
-                                                </div>
-                                                <div class="card-body p-0">
-                                                    <div class="table-responsive">
-                                                        <table class="table table-hover mb-0" id="actesTable">
-                                                            <thead class="bg-primary bg-opacity-10">
-                                                                <tr>
-                                                                    {{-- <th class="border-0 fw-semibold">Type</th> --}}
-                                                                    <th class="border-0 fw-semibold">Description</th>
-                                                                    <th class="border-0 fw-semibold text-end">Prix Unitaire</th>
-                                                                    <th class="border-0 fw-semibold text-center">Quantité</th>
-                                                                    <th class="border-0 fw-semibold text-end">Sous-total</th>
-                                                                    <th class="border-0 fw-semibold text-end">Après Assurance</th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody id="actesTableBody">
-                                                                <!-- Les actes seront chargés dynamiquement -->
-                                                            </tbody>
-                                                            <tfoot class="bg-light">
-                                                                <tr>
-                                                                    <td colspan="3" class="fw-bold text-end border-0">Total:</td>
-                                                                    <td class="fw-bold text-end border-0" id="totalOriginal">0 GNF</td>
-                                                                    <td class="fw-bold text-end border-0 text-primary" id="totalApresAssurance">0 GNF</td>
-                                                                </tr>
-                                                            </tfoot>
-                                                        </table>
-                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -295,7 +255,6 @@
     <script type="text/javascript">
         let currentPatient = null;
         let currentCalculation = null;
-        let patientActes = [];
 
         // Événement pour ouvrir le modal de paiement
         $(document).on('click', '.payer-button', function() {
@@ -317,9 +276,6 @@
 
         // Charger les assurances du patient
         function loadPatientInsurances(patientId) {
-            // Charger les actes des patients
-            loadPatientActes(patientId);
-
             $.ajax({
                 url: `/api/patient/${patientId}/insurances`,
                 method: 'GET',
@@ -337,107 +293,7 @@
                     displayNoInsuranceMessage();
                 }
             });
-
         }
-
-                // Charger les actes médicaux du patient
-        function loadPatientActes(patientId) {
-            $.ajax({
-                url: `/api/patient/${patientId}/actes`,
-                method: 'GET',
-                success: function(response) {
-                    if (response.success && response.actes.length > 0) {
-                        patientActes = response.actes;
-                        displayActesTable(response.actes);
-                    } else {
-                        displayEmptyActesTable();
-                    }
-                },
-                error: function() {
-                    displayEmptyActesTable();
-                }
-            });
-        }
-
-        // Afficher le tableau des actes
-        function displayActesTable(actes) {
-            let html = '';
-            let totalOriginal = 0;
-            
-            actes.forEach(function(acte) {
-                let badgeClass = getBadgeClassForType(acte.type);
-                let sousTotal = acte.prix_unitaire * acte.quantite;
-                totalOriginal += sousTotal;
-                
-                html += `
-                    <tr class="fade-in-up">
-                        <td>
-                            <div>
-                                <strong>${acte.nom}</strong>
-                                ${acte.description ? `<br><small class="text-muted">${acte.description}</small>` : ''}
-                            </div>
-                        </td>
-                        <td class="text-end fw-semibold">${numberFormat(acte.prix_unitaire)} GNF</td>
-                        <td class="text-center">
-                            <span class="badge bg-secondary">${acte.quantite}</span>
-                        </td>
-                        <td class="text-end fw-bold">${numberFormat(sousTotal)} GNF</td>
-                        <td class="text-end fw-bold text-primary" data-original="${sousTotal}">${numberFormat(sousTotal)} GNF</td>
-                    </tr>
-                `;
-            });
-            
-            $('#actesTableBody').html(html);
-            $('#totalOriginal').text(numberFormat(totalOriginal) + ' GNF');
-            $('#totalApresAssurance').text(numberFormat(totalOriginal) + ' GNF');
-        }
-
-        // Afficher tableau vide
-        function displayEmptyActesTable() {
-            let html = `
-                <tr>
-                    <td colspan="6" class="text-center py-4">
-                        <div class="text-muted">
-                            <i class="fas fa-info-circle fa-2x mb-2"></i>
-                            <br>Aucun acte médical enregistré pour cette consultation
-                        </div>
-                    </td>
-                </tr>
-            `;
-            $('#actesTableBody').html(html);
-            $('#totalOriginal').text('0 GNF');
-            $('#totalApresAssurance').text('0 GNF');
-        }
-
-        // Obtenir la classe CSS pour le badge selon le type d'acte
-        function getBadgeClassForType(type) {
-            const typeMap = {
-                'service': 'badge-service',
-                'consultation': 'badge-consultation',
-                'medicament': 'badge-medicament',
-                'médicament': 'badge-medicament',
-                'test': 'badge-test',
-                'examen': 'badge-test',
-                'analyse': 'badge-test'
-            };
-            return typeMap[type.toLowerCase()] || 'badge-service';
-        }
-
-        // Obtenir l'icône pour le type d'acte
-        function getActeIcon(type) {
-            const iconMap = {
-                'service': '🔧',
-                'consultation': '👨‍⚕️',
-                'medicament': '💊',
-                'médicament': '💊',
-                'test': '🔬',
-                'examen': '🔍',
-                'analyse': '📊'
-            };
-            return iconMap[type.toLowerCase()] || '📋';
-        }
-
-
 
         // Afficher les assurances existantes
         function displayExistingInsurances(insurances) {
@@ -555,14 +411,12 @@
                     _token: '{{ csrf_token() }}',
                     patient_id: currentPatient.id,
                     montant_original: currentPatient.montant_du,
-                    insurance_ids: selectedInsurances.map(ins => ins.id),
-                    actes: patientActes
+                    insurance_ids: selectedInsurances.map(ins => ins.id)
                 },
                 success: function(response) {
                     if (response.success) {
                         displayCoverageResult(response.calculation);
                         updateSelectedInsurancesInputs(selectedInsurances);
-                        updateActesTableWithInsurance(response.calculation.details, response.calculation.patient_amount);
                         currentCalculation = response.calculation;
                     }
                 },
@@ -572,25 +426,6 @@
                 }
             });
         });
-
-        // Mettre à jour le tableau des actes avec les montants après assurance
-        function updateActesTableWithInsurance(actesDetail, patientTotal) {
-            actesDetail.forEach(function(acte) {
-                let row = $(`#actesTableBody tr:contains('${acte.item_description}')`);
-                let apresAssuranceCell = row.find('td:last');
-                apresAssuranceCell.html(`${numberFormat(acte.patient_amount)} GNF`);
-                
-                // Animation de changement
-                apresAssuranceCell.addClass('bg-success bg-opacity-10').delay(2000).queue(function() {
-                    $(this).removeClass('bg-success bg-opacity-10');
-                    $(this).dequeue();
-                });
-            });
-            
-            // Mettre à jour le total après assurance
-            // let totalApresAssurance = actesDetail.reduce((sum, acte) => sum + acte.montant_patient, 0);
-            $('#totalApresAssurance').text(numberFormat(patientTotal) + ' GNF');
-        }
 
         // Afficher le résultat du calcul
         function displayCoverageResult(calculation) {

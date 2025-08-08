@@ -8,8 +8,21 @@ use App\Http\Controllers\{
     TestController, ReportController, AccountController, AuthController,
     ProfileController, ConsultationController, MedicamentController,
     HospitalisationController, ChambreController, InsuranceClaimController, InsuranceCompanyController,
-    InsuranceCoverageController, InvoiceItemController, InvoicesController,PatientInsuranceController
+    InsuranceCoverageController, InvoiceItemController, InvoicesController,PatientInsuranceController, PaymentController
 };
+
+
+Route::get('val', function(){
+    
+    $consultations = App\Models\Patient::find(2)->transactions()
+                                ->where('status', '!=', 'paid')
+                                ->where('status', '!=', 'approved')
+                                ->with('transactionable')
+                                ->get();
+
+    dd($consultations);
+
+});
 
 // Authentification
 Route::get('/', [DashboardController::class, 'index'])->name('rdv');
@@ -186,6 +199,26 @@ Route::middleware('auth')->group(function () {
         Route::delete('/invoice/item/delete/{id}', [InvoiceItemController::class, 'destroy'])->name('invoice.item.delete');
 
     });
+
+    // Routes existantes pour les patients
+    Route::resource('patient', PatientController::class);
+    
+    // Routes pour les paiements avec assurance
+    Route::get('/payment/{patient}', [PaymentController::class, 'showPaymentPage'])->name('payment.show');
+    Route::get('/payment/{patient}/{amount}/{assurance}', [PaymentController::class, 'calculateCoverage']);
+    Route::post('/payment/process', [PaymentController::class, 'processPayment'])->name('account.payer');
+    Route::post('/insurance/calculate', [PaymentController::class, 'calculateCoverage'])->name('insurance.calculate');
+    
+    // Routes pour la gestion des assurances
+    // Route::resource('insurance-companies', InsuranceCompanyController::class);
+    // Route::resource('patient-insurances', PatientInsuranceController::class);
+    // Route::resource('insurance-coverages', InsuranceCoverageController::class);
+    Route::resource('insurance-claims', InsuranceClaimController::class);
+    
+    // Routes pour les factures
+    Route::resource('invoices', InvoiceController::class);
+    Route::get('/invoices/{invoice}/print', [InvoiceController::class, 'print'])->name('invoices.print');
+
 
 });
 

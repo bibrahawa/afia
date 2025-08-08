@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('insurance_company_id')->constrained()->onDelete('cascade');
             $table->morphs('coverageable'); // service, medicament, examen, etc.
-            $table->decimal('coverage_percentage', 5, 2); // 80.00 pour 80%
+            // $table->decimal('coverage_percentage', 5, 2); // 80.00 pour 80%
             $table->decimal('max_amount', 10, 2)->nullable(); // Plafond global
             $table->decimal('min_amount', 10, 2)->nullable(); 
             $table->unsignedInteger('max_usage_count')->nullable(); // Nombre limite d’actes

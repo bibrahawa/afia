@@ -22,15 +22,15 @@
             </div>
         @endif
 
-        <form action="{{ route('insurance_claims.update', $insuranceClaim) }}" method="POST">
+        <form action="{{ route('insurance-claims.update', $insuranceClaim) }}" method="POST">
             @csrf
             @method('PUT')
 
-            @include('insurance_claims._form', ['insuranceClaim' => $insuranceClaim])
+            @include('insurance_claims.form', ['insuranceClaim' => $insuranceClaim])
 
             <div class="mt-6">
                 <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Mettre à jour la réclamation</button>
-                <a href="{{ route('insurance_claims.index') }}" class="ml-4 text-gray-600 hover:text-gray-900">Annuler</a>
+                <a href="{{ route('insurance-claims.index') }}" class="ml-4 text-gray-600 hover:text-gray-900">Annuler</a>
             </div>
         </form>
     </div>

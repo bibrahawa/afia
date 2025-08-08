@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('transaction_id')->constrained()->onDelete('cascade');
             $table->foreignId('insurance_company_id')->nullable()->constrained()->onDelete('set null');
             $table->foreignId('patient_insurance_id')->nullable()->constrained()->onDelete('set null');
-            $table->decimal('total_amount', 10, 2)->change(); // S'assurer que c'est bien décimal
+            $table->decimal('total_amount', 10, 2); // S'assurer que c'est bien décimal
             $table->decimal('patient_amount', 10, 2)->default(0); // Part patient
             $table->decimal('insurance_amount', 10, 2)->default(0); // Part assurance
             $table->enum('insurance_status', ['pending', 'submitted', 'approved', 'rejected', 'paid'])->nullable();

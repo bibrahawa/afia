@@ -2,6 +2,11 @@
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\AppointmentController;
+use App\Http\Controllers\Api\Api_PatientInsuranceController;
+use App\Http\Controllers\Api\Api_InsuranceCalculationController;
+use App\Http\Controllers\Api\Api_InsuranceVerificationController;
+use App\Http\Controllers\Api\Api_InsuranceCompanyController;
+use App\Http\Controllers\PatientController;
 use App\Http\Controllers\AuthController;
 
 /*
@@ -35,3 +40,20 @@ Route::post('appointments', [AppointmentController::class, 'store']);
 Route::post('login', [AuthController::class, 'loginWithApi']);
 Route::post('register', [AuthController::class, 'register']);
 Route::post('logout', [AuthController::class, 'logout'])->middleware('auth:api');
+
+// API pour récupérer les assurances d'un patient
+Route::get('/patient/{patient}/insurances', [Api_PatientInsuranceController::class, 'getPatientInsurances']);
+
+// API pour calculer la couverture d'assurance
+Route::post('/insurance/calculate-coverage', [Api_InsuranceCalculationController::class, 'calculateCoverage']);
+
+// API pour les compagnies d'assurance actives
+Route::get('/insurance-companies/active', [Api_InsuranceCompanyController::class, 'getActiveCompanies']);
+
+// API pour vérifier la validité d'une police d'assurance
+Route::post('/insurance/verify-policy', [Api_InsuranceVerificationController::class, 'verifyPolicy']);
+// Récupérer les actes médicaux d'un patient
+Route::get('/patient/{patient}/actes', [PatientController::class, 'getPatientActes']);
+    
+
+

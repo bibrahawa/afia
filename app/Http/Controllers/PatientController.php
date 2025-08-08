@@ -6,12 +6,16 @@ use Illuminate\Http\Request;
 use App\Models\Patient;
 use App\Models\User;
 use App\Models\Role;
+use App\Service\ConsultationItemService;
 
 class PatientController extends Controller
 {
-   public function __construct()
-    {
 
+    protected  $consultationItem;
+
+    public function __construct(ConsultationItemService $consultationItem)
+    {
+        $this->consultationItem = $consultationItem;
     }
 
     /**
@@ -24,6 +28,29 @@ class PatientController extends Controller
     {
         $patients = Patient::get();
         return view('patients.index' , compact('patients'));
+    }
+
+    /**
+     * Récupérer les actes médicaux d'un patient pour une consultation en attente
+     */
+    public function getPatientActes(Patient $patient)
+    {
+        try {
+            // Récupérer les actes de la consultation en cours (non payée)
+            $actes = $this->consultationItem->getActesFromPendingTransactions($patient);
+
+            return response()->json([
+                'success' => true,
+                'actes' => $actes
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la récupération des actes',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

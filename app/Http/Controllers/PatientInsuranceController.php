@@ -24,11 +24,18 @@ class PatientInsuranceController extends Controller
             'patient_id' => 'required|exists:patients,id',
             'insurance_company_id' => 'required|exists:insurance_companies,id',
             'policy_number' => 'required|string|max:100',
+            'coverage_percentage' => 'required|numeric|min:0|max:100',
             'start_date' => 'required|date',
             'annual_limit' => 'nullable|numeric',
         ]);
 
-        PatientInsurance::create($request->all());
+        $data = $request->all();
+
+        if(!isset($data->used_amount)){
+            $data['used_amount'] = 0;
+        }
+
+        PatientInsurance::create($data);
         return back()->with('success', 'Assurance enregistrée.');
     }
 
@@ -38,6 +45,7 @@ class PatientInsuranceController extends Controller
             'patient_id' => 'required|exists:patients,id',
             'insurance_company_id' => 'required|exists:insurance_companies,id',
             'policy_number' => 'required|string|max:100',
+            'coverage_percentage' => 'required|numeric|min:0|max:100',
             'start_date' => 'required|date',
             'annual_limit' => 'nullable|numeric',
         ]);

@@ -38,8 +38,8 @@
         </div>
 
         <div class="mt-6">
-            <a href="{{ route('insurance_claims.index') }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Retour à la liste</a>
-            <a href="{{ route('insurance_claims.edit', $insuranceClaim) }}" class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded ml-2">Modifier</a>
+            <a href="{{ route('insurance-claims.index') }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Retour à la liste</a>
+            <a href="{{ route('insurance-claims.edit', $insuranceClaim) }}" class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded ml-2">Modifier</a>
         </div>
     </div>
 </body>

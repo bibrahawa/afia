@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\InsuranceCompany;
-use App\Models\Invoices;
+use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\PatientInsurance;
 use App\Models\Transaction;
@@ -18,7 +18,7 @@ class InvoicesController extends Controller
      */
     public function index()
     {
-        $invoices = Invoices::with(['items', 'insuranceCompany', 'patientInsurance', 'transaction'])->get();
+        $invoices = Invoice::with(['items', 'insuranceCompany', 'patientInsurance', 'transaction'])->get();
         $transactions = Transaction::all();
         $insuranceCompanies = InsuranceCompany::all();
         $patientInsurances = PatientInsurance::all();
@@ -77,7 +77,7 @@ class InvoicesController extends Controller
         ]);
 
         DB::transaction(function () use ($request) {
-            $invoice = Invoices::create($request->except('items'));
+            $invoice = Invoice::create($request->except('items'));
 
             foreach ($request->input('items') as $itemData) {
                 // Assurez-vous que les modèles polymorphes existent et sont valides
@@ -240,7 +240,7 @@ class InvoicesController extends Controller
 
     public function getItems($id)
     {
-        $invoice = Invoices::with(['items', 'transaction.patient'])->findOrFail($id);
+        $invoice = Invoice::with(['items', 'transaction.patient'])->findOrFail($id);
         
         return view('partials.invoice-items', compact('invoice'));
     }

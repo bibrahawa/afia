@@ -51,6 +51,8 @@
                         <th>Patient</th>
                         <th>Compagnie</th>
                         <th>N°</th>
+                        <th>Couverture</th>
+
                         {{-- <th>Début</th> --}}
                         <th>Periode</th>
                         <th>Statut</th>
@@ -65,6 +67,7 @@
                         <th>Patient</th>
                         <th>Compagnie</th>
                         <th>N°</th>
+                        <th>Couverture</th>
                         <th>Validite</th>
                         <th>Statut</th>
                         {{-- <th>Plafond</th> --}}
@@ -79,8 +82,9 @@
                                 <td>{{ $insurance->patient->first_name }} {{ $insurance->patient->last_name }}</td>
                                 <td>{{ $insurance->insuranceCompany->name }}</td>
                                 <td>{{ $insurance->policy_number }}</td>
+                                <td>{{ $insurance->coverage_percentage }}</td>
                                 <td>
-                                {{ \Carbon\Carbon::parse($insurance->start_date)->format('d/m/Y') }} -
+                                    {{ \Carbon\Carbon::parse($insurance->start_date)->format('d/m/Y') }} -
                                         @if($insurance->end_date)
                                             <br>au {{ $insurance->end_date ? \Carbon\Carbon::parse($insurance->end_date)->format('d/m/Y') : 'N/A' }}
                                         @endif
@@ -100,7 +104,7 @@
                                             class="btn btn-warning btn-round btn-sm edit-button"
                                             data-bs-toggle="modal"
                                             data-bs-target="#editRowModal"
-                                            data-info="{{$insurance->id}},{{$insurance->patient_id}},{{$insurance->insurance_company_id}},{{$insurance->policy_number}},{{$insurance->start_date}},{{$insurance->end_date}},{{$insurance->status}},{{$insurance->annual_limit}},{{$insurance->used_amount}},{{$insurance->notes}}"
+                                            data-info="{{$insurance->id}},{{$insurance->patient_id}},{{$insurance->insurance_company_id}},{{$insurance->policy_number}},{{$insurance->start_date}},{{$insurance->end_date}},{{$insurance->status}},{{$insurance->annual_limit}},{{$insurance->used_amount}},{{$insurance->notes}}, {{$insurance->coverage_percentage}}"
                                         >
                                             <i class="fa fa-edit"></i>
                                         </button>
@@ -244,7 +248,13 @@
                                 </div>
                             </div>
                             <div class="row">
-                                <div class="col-sm-12">
+                                <div class="col-sm-6">
+                                    <div class="form-group form-group-default">
+                                        <label>Couverture (%) <span class="text-danger">*</span></label>
+                                        <input type="number" name="coverage_percentage" class="form-control" step="0.01" min="0" max="100" required>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
                                     <div class="form-group form-group-default">
                                         <label>Notes</label>
                                         <textarea
@@ -396,7 +406,13 @@
                                         </div>
                                     </div>
                                     <div class="row">
-                                        <div class="col-sm-12">
+                                        <div class="col-sm-6">
+                                            <div class="form-group form-group-default">
+                                                <label>Couverture (%) <span class="text-danger">*</span></label>
+                                                <input type="number" name="coverage_percentage" id="edit_coverage_percentage" class="form-control" step="0.01" min="0" max="100" required>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-6">
                                             <div class="form-group form-group-default">
                                                 <label>Notes</label>
                                                 <textarea
@@ -479,6 +495,7 @@
             var annualLimit = details[7];
             var usedAmount = details[8];
             var notes = details[9];
+            var coverage_percentage = details[10];
 
             // Mettre à jour les champs du modal
             $('#edit_id').val(id);
@@ -491,6 +508,7 @@
             $('#edit_annual_limit').val(annualLimit != 'null' ? annualLimit : '');
             $('#edit_used_amount').val(usedAmount);
             $('#edit_notes').val(notes != 'null' ? notes : '');
+            $('#edit_coverage_percentage').val(coverage_percentage);
 
             // Afficher le modal
             $('#editRowModal').modal('show');

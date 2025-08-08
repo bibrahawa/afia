@@ -156,6 +156,10 @@ class HospitalisationController extends Controller
                     'discount'        => 0,
                     'sub_total'       => $total,
                 ]);
+
+                $patient              = Patient::find($hospitalisation->patient->id);
+                $patient->amount_due  += $total;
+                $patient->update();
             }
         });
 

@@ -16,6 +16,7 @@ use App\Models\Package;
 use App\Models\Antecedent;
 use App\Models\FichierPatient;
 use App\Service\TransactionService;
+use DB;
 class ConsultationController extends Controller
 {
     public function __construct()
@@ -201,29 +202,32 @@ class ConsultationController extends Controller
         // Marque la consultation comme facturée
         $consultation->update(['est_facturee' => true]);
 
-        /**
-         * ✅ Ajout des antécédents médicaux ici
-         */
-        Antecedent::updateOrCreate(
-            ['patient_id' => $request->patient_id], // clé de recherche
-            [
-                'antecedents_medicaux'           => $request->antecedents_medicaux,
-                'antecedents_chirurgicaux'       => $request->antecedents_chirurgicaux,
-                'antecedents_gyneco_obstetricaux'=> $request->antecedents_gyneco_obstetricaux,
-                'antecedents_familiaux'          => $request->antecedents_familiaux,
-                'allergies'                      => $request->allergies,
-                'traitements_cours'              => $request->traitements_cours,
-            ]
-        );
+        $patient = Patient::find($request->patient_id);
+        $patient->first_visit = false;
+        $patient->amount_due += $consultation_amount;
+        $patient->save();
 
-        $updateNewVisit = Patient::find($request->patient_id);
-        $updateNewVisit->first_visit = false;
-        $updateNewVisit->save();
+        if(!$patient->antecedant->exists()){
+            
+            /**
+             * ✅ Ajout des antécédents médicaux ici
+             */
+            Antecedent::updateOrCreate(
+                ['patient_id' => $request->patient_id], // clé de recherche
+                [
+                    'antecedents_medicaux'           => $request->antecedents_medicaux,
+                    'antecedents_chirurgicaux'       => $request->antecedents_chirurgicaux,
+                    'antecedents_gyneco_obstetricaux'=> $request->antecedents_gyneco_obstetricaux,
+                    'antecedents_familiaux'          => $request->antecedents_familiaux,
+                    'allergies'                      => $request->allergies,
+                    'traitements_cours'              => $request->traitements_cours,
+                ]
+            );
+        }
 
 
         return redirect()->route('consultation.index')->with('success', 'Consultation enregistrée.');
     }
-
 
     public function show($id){
         $consultation = Consultation::find($id);
@@ -413,11 +417,12 @@ class ConsultationController extends Controller
     }
 
 
-    public function store_consultation(Request $request)
+    public function store_with_old(Request $request)
     {
+
         DB::beginTransaction();
         
-        try {
+        // try {
             // Validation principale
             $validated = $request->validate([
                 'patient_id' => 'required|exists:patients,id',
@@ -492,6 +497,7 @@ class ConsultationController extends Controller
             $consultation_amount = 0;
             
             foreach ($invoiceItems as &$invoiceItem) {
+               
                 $model = null;
                 $amount = 0;
                 
@@ -520,14 +526,13 @@ class ConsultationController extends Controller
             }
 
             // Récupérer les informations d'assurance du patient
-            $patient = Patient::with('activeInsurance.company')->find($request->patient_id);
+            $patient = Patient::with('activeInsurance.insuranceCompany')->find($request->patient_id);
             $patientInsurance = $patient->activeInsurance;
-            
             // Calcul des montants assurance/patient
             $insurance_amount = 0;
             $patient_amount = $consultation_amount;
             
-            if ($patientInsurance && $patientInsurance->is_active) {
+            if ($patientInsurance && $patientInsurance->status) {
                 $coverage_percentage = $patientInsurance->coverage_percentage ?? 0;
                 $insurance_amount = ($consultation_amount * $coverage_percentage) / 100;
                 $patient_amount = $consultation_amount - $insurance_amount;
@@ -551,14 +556,15 @@ class ConsultationController extends Controller
             // ✅ Création de la facture
             $invoice = $transaction->invoice()->create([
                 'transaction_id' => $transaction->id,
-                'insurance_company_id' => $patientInsurance?->company?->id,
+                'insurance_company_id' => $patientInsurance?->insurance_company_id,
                 'patient_insurance_id' => $patientInsurance?->id,
-                'total_amount' => $consultation_amount,
+                // 'total_amount' => $consultation_amount,
                 'patient_amount' => $patient_amount,
                 'insurance_amount' => $insurance_amount,
                 'insurance_status' => $insurance_amount > 0 ? 'pending' : null,
                 'patient_amount_status' => $patient_amount > 0 ? 'pending' : null,
             ]);
+
 
             // ✅ Création des éléments de facture détaillés
             foreach ($invoiceItems as $item) {
@@ -566,7 +572,7 @@ class ConsultationController extends Controller
                 $insurance_covered_amount = 0;
                 $item_patient_amount = $item['total_amount'];
                 
-                if ($patientInsurance && $patientInsurance->is_active) {
+                if ($patientInsurance && $patientInsurance->status) {
                     $coverage_percentage_applied = $patientInsurance->coverage_percentage ?? 0;
                     $insurance_covered_amount = ($item['total_amount'] * $coverage_percentage_applied) / 100;
                     $item_patient_amount = $item['total_amount'] - $insurance_covered_amount;
@@ -610,13 +616,13 @@ class ConsultationController extends Controller
             
             return redirect()->route('consultation.index')->with('success', 'Consultation et facture enregistrées avec succès.');
             
-        } catch (\Exception $e) {
-            DB::rollBack();
+        // } catch (\Exception $e) {
+        //     DB::rollBack();
             
-            return redirect()->back()
-                ->withInput()
-                ->withErrors(['error' => 'Erreur lors de l\'enregistrement : ' . $e->getMessage()]);
-        }
+        //     return redirect()->back()
+        //         ->withInput()
+        //         ->withErrors(['error' => 'Erreur lors de l\'enregistrement : ' . $e->getMessage()]);
+        // }
     }
 
     /**

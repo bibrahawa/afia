@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('patient_id')->constrained()->onDelete('cascade');
             $table->foreignId('insurance_company_id')->constrained()->onDelete('cascade');
+            $table->decimal('coverage_percentage', 5, 2); // 80.00 pour 80%
             $table->string('policy_number');
             $table->date('start_date');
             $table->date('end_date')->nullable();

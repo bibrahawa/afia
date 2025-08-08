@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Invoices extends Model
+class Invoice extends Model
 {
     use HasFactory;
 
@@ -36,17 +36,17 @@ class Invoices extends Model
 
     public function transaction(): BelongsTo
     {
-        return $this->belongsTo(Transaction::class); // Assure-toi que le modèle Transaction existe
+        return $this->belongsTo(Transaction::class); 
     }
 
     public function insuranceCompany(): BelongsTo
     {
-        return $this->belongsTo(InsuranceCompany::class); // Assure-toi que le modèle InsuranceCompany existe
+        return $this->belongsTo(InsuranceCompany::class);
     }
 
     public function patientInsurance(): BelongsTo
     {
-        return $this->belongsTo(PatientInsurance::class); // Assure-toi que le modèle PatientInsurance existe
+        return $this->belongsTo(PatientInsurance::class);
     }
     
     public function items(): HasMany
