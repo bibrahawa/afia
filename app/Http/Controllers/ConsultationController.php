@@ -14,14 +14,19 @@ use App\Models\Medicament;
 use App\Models\Test;
 use App\Models\Package;
 use App\Models\Antecedent;
+use App\Models\Invoice;
 use App\Models\FichierPatient;
 use App\Service\TransactionService;
+use App\Service\ConsultationService;
+use App\Service\InsuranceCalculationService;
 use DB;
 class ConsultationController extends Controller
 {
-    public function __construct()
+    protected $insuranceCalculation;
+
+    public function __construct(InsuranceCalculationService $insuranceCalculation)
     {
-        //
+        $this->insuranceCalculation = $insuranceCalculation;
     }
 
     public function index()
@@ -31,7 +36,6 @@ class ConsultationController extends Controller
             'consultations'
         ]));
     }
-
 
     public function create(Patient $patient, $id = null)
     {
@@ -55,6 +59,63 @@ class ConsultationController extends Controller
             'tests',
             'fichiersPatients'
         ]));
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'patient_id' => 'required|exists:patients,id',
+            'motif' => 'required|string',
+            'signes_cliniques' => 'nullable|string',
+            'diagnostic' => 'required|string',
+            'observation' => 'nullable|string',
+            'prochain_rdv' => 'nullable|date'
+        ]);
+
+        DB::beginTransaction();
+        
+        // try {
+
+            $consultation = Consultation::create([
+                ...$request->only(['patient_id', 'motif', 'diagnostic', 'observation', 'prochain_rdv']),
+                'medecin_id' => auth()->user()->employee->id,
+                'department_id' => auth()->user()->employee->department_id,
+                'signes_cliniques' => explode(',', $request->signes_cliniques)
+            ]);
+
+            ConsultationService::attachItems($consultation, json_decode($request->selected_items, true), json_decode($request->billing_status, true));
+
+            $consultation->load(['services', 'packages', 'tests', 'medicaments']);
+
+            $amount = ConsultationService::calculateAmount($consultation);
+
+            $accountID = ConsultationService::mettreAJourCompte($request->patient_id, Patient::class, $amount, 'credit');
+
+            $transaction = $consultation->transaction()->create([
+                'user_id'    => auth()->id(),
+                'account_id' => $accountID,
+                'patient_id' => $request->patient_id,
+                'description'=> $consultation->motif,
+                'tax_amount' => 0,
+                'discount'   => 0,
+                'sub_total'  => $amount,
+                'total'      => $amount
+            ]);
+
+            $consultation->update(['est_facturee' => true]);
+
+            $this->insuranceCalculation->createInvoiceForConsulation($request->patient_id, $transaction->id, $consultation);
+
+            Patient::find($request->patient_id)->credit($amount);
+
+            DB::commit();
+            
+            return redirect()->route('consultation.index')->with('success', 'Consultation enregistrée.');
+            
+        // } catch (\Exception $e) {
+        //     DB::rollback();
+        //     return redirect()->back()->with('error', 'Erreur lors du traitement: ' . $e->getMessage());
+        // }
     }
 
     public function facture($id){
@@ -118,7 +179,7 @@ class ConsultationController extends Controller
         return $result;
     }
 
-    public function store(Request $request)
+    public function store_old(Request $request)
     {
 
         // Validation principale
@@ -251,8 +312,6 @@ class ConsultationController extends Controller
 
     public function update(Request $request, $id)
     {
-
-        // Validation principale
         $validated = $request->validate([
             'patient_id' => 'required|exists:patients,id',
             'motif' => 'required|string',
@@ -262,93 +321,93 @@ class ConsultationController extends Controller
             'prochain_rdv' => 'nullable|date'
         ]);
 
-        $consultation = Consultation::findOrFail($id);
+        DB::beginTransaction();
+        
+        try {
+            $consultation = Consultation::findOrFail($id);
 
-        // Préparation des données consultation
-        $data_for_consultation = $request->only([
-            'patient_id','motif', 'signes_cliniques', 'diagnostic', 'observation', 'prochain_rdv'
-        ]);
-        $user = auth()->user()->employee;
-        $data_for_consultation['medecin_id'] = $user->id;
-        $data_for_consultation['department_id'] = $user->department_id;
+            $consultation->update([
+                ...$request->only(['patient_id', 'motif', 'diagnostic', 'observation', 'prochain_rdv']),
+                'medecin_id' => auth()->user()->employee->id,
+                'department_id' => auth()->user()->employee->department_id,
+                'signes_cliniques' => explode(',', $request->signes_cliniques)
+            ]);
 
-        if ($request->signes_cliniques) {
-            $data_for_consultation['signes_cliniques'] = explode(',', $request->signes_cliniques);
-        }
+            // Mise à jour des liaisons
+            $consultation->medicaments()->sync($request->medicaments);
+            $consultation->services()->sync($request->services);
+            $consultation->packages()->sync($request->packages);
+            $consultation->tests()->sync($request->tests);
+
+            $consultation->load(['services', 'packages', 'tests', 'medicaments']);
+
+            $newAmount = ConsultationService::calculateAmount($consultation);
+            // Calculer la différence AVANT updateOrCreate
+            $oldTransaction = $consultation->transaction;
+            $oldAmount = $oldTransaction?->sub_total ?? 0;
+            $diffAmount = $newAmount - $oldAmount;
+            
+            $patient = Patient::find($request->patient_id);
+            
+            // Gérer la différence seulement si elle existe
+            $accountID = null;
+            if ($diffAmount != 0) {
+                // Mettre à jour le compte avec la différence
+                $accountID = TransactionService::mettreAJourCompte(
+                    $request->patient_id,
+                    Patient::class,
+                    abs($diffAmount),
+                    $diffAmount >= 0 ? 'credit' : 'debit'
+                );
+            } else {
+                // Garder l'ancien account_id si pas de changement
+                $accountID = $oldTransaction?->account_id;
+            }
+
+            // ✅ CORRECTION 4: Mise à jour ou création de la transaction
+           $oldTransaction->update([
+                    'account_id' => $accountID,
+                    'patient_id' => $request->patient_id,
+                    'description'=> $consultation->motif,
+                    'sub_total'  => $newAmount,
+                    'total'      => $newAmount
+            ]);
+            $transaction = $oldTransaction;
 
 
-        $consultation->update($data_for_consultation);
-
-        // Mise à jour des liaisons
-        $consultation->medicaments()->sync($request->medicaments);
-        $consultation->services()->sync($request->services);
-        $consultation->packages()->sync($request->packages);
-        $consultation->tests()->sync($request->tests);
-
-        // Recharger les relations fraîchement modifiées
-        $consultation->load(['services', 'packages', 'tests', 'medicaments', 'transaction']);
-
-        // Calcul du montant total
-        $consultation_amount =
-            $consultation->services->sum('amount') +
-            $consultation->packages->sum('price') +
-            $consultation->tests->sum('amount') +
-            $consultation->medicaments->sum('amount');
-
-        // Calcul de la différence avec ancienne transaction
-        $ancienne_transaction = $consultation->transaction;
-        $ancien_montant = $ancienne_transaction?->sub_total ?? 0;
-        $difference = $consultation_amount - $ancien_montant;
-
-        // Mise à jour du compte patient (ajuste uniquement la différence)
-        if ($difference != 0) {
-            $accountID = TransactionService::mettreAJourCompte(
-                $request->patient_id,
-                Patient::class,
-                abs($difference),
-                $difference >= 0 ? 'credit' : 'debit'
+            // ✅ CORRECTION 5: Vérifier que la facture existe avant de la mettre à jour
+            $this->insuranceCalculation->updateInvoiceForConsultation(
+                $request->patient_id, 
+                $transaction->invoice->id, 
+                $consultation
             );
-        } else {
-            $accountID = $ancienne_transaction?->account_id ?? null;
+
+            $consultation->update(['est_facturee' => true]);
+
+            /**
+             * ✅ Modification de la partie des antécédents médicaux
+             */
+            Antecedent::updateOrCreate(
+                ['patient_id' => $request->patient_id], // Condition de recherche
+                [
+                    'antecedents_medicaux'           => $request->antecedents_medicaux,
+                    'antecedents_chirurgicaux'       => $request->antecedents_chirurgicaux,
+                    'antecedents_gyneco_obstetricaux'=> $request->antecedents_gyneco_obstetricaux,
+                    'antecedents_familiaux'          => $request->antecedents_familiaux,
+                    'allergies'                      => $request->allergies,
+                    'traitements_cours'              => $request->traitements_cours
+                ] // Données à mettre à jour/créer
+            );
+
+            DB::commit();
+            
+            return redirect()->route('consultation.index')->with('success', 'Consultation modifiée avec succès.');
+            
+        } catch (\Exception $e) {
+            DB::rollback();
+            \Log::error('Erreur lors de la mise à jour de consultation: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Erreur lors du traitement: ' . $e->getMessage());
         }
-
-        // Mise à jour ou création de la transaction liée
-        $consultation->transaction()->updateOrCreate(
-            [
-                'user_id'    => auth()->id(),
-                'account_id' => $accountID,
-                'patient_id' => $request->patient_id,
-                'description'=> $consultation->motif,
-                'tax_amount' => 0,
-                'discount'   => 0,
-            ],
-            [
-                'sub_total' => $consultation_amount,
-                'total' => $consultation_amount,
-            ]
-        );
-
-
-
-        // Marque la consultation comme facturée
-        $consultation->update(['est_facturee' => true]);
-
-        /**
-         * ✅ Ajout des antécédents médicaux ici
-         */
-        Antecedent::updateOrCreate(
-            ['patient_id' => $request->patient_id], // clé de recherche
-            [
-                'antecedents_medicaux'           => $request->antecedents_medicaux,
-                'antecedents_chirurgicaux'       => $request->antecedents_chirurgicaux,
-                'antecedents_gyneco_obstetricaux'=> $request->antecedents_gyneco_obstetricaux,
-                'antecedents_familiaux'          => $request->antecedents_familiaux,
-                'allergies'                      => $request->allergies,
-                'traitements_cours'              => $request->traitements_cours,
-            ]
-        );
-
-        return redirect()->route('consultation.index')->with('success', 'Consultation enregistrée.');
     }
 
 

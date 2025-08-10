@@ -71,7 +71,7 @@ class TransactionService
         return 'FAC-' . date('Y') . str_pad($nextId, 5, '0', STR_PAD_LEFT);
     }
 
-    public function paiementTransaction($patientId, $modePaiement, $amount, $description)
+    public function paiementTransaction($patient, $source, $amount, $description)
     {
 
         $montant = $amount;
@@ -80,10 +80,10 @@ class TransactionService
             return redirect()->back()->with('error', 'Please enter a valid amount.');
         }
 
-        $patient = Patient::find($patientId);
-        $transactions = $patient->transactions->whereIn('status', ['pending', 'partial']);
+        $transactions = $patient->getPendingAndPartialTransaction();
 
         foreach ($transactions as $transaction) {
+
             if ($montant > 0) {
                 $deja_payer = $transaction->montant_payer;
                 $total = $transaction->total;
@@ -95,9 +95,9 @@ class TransactionService
                         $deja_payer = $montantRestant;
                         $montant -= $montantRestant;
                     } else {
-                        $transaction->montant_payer += $montant;
-                        $deja_payer = $montant;
-                        $montant = 0;
+                            $transaction->montant_payer += $montant;
+                            $deja_payer = $montant;
+                            $montant = 0;
                         }
 
                     // Calculer le montant réellement payé pour cette transaction
@@ -108,7 +108,7 @@ class TransactionService
                         $paiement->user_id = auth()->user()->id;
                         $paiement->patient_id = $patient->id;
                         $paiement->transaction_id = $transaction->id;
-                        $paiement->source = $modePaiement;
+                        $paiement->source = $source;
                         $paiement->description = $description ?? "Paiement de la consultation par le patient";
                         $paiement->montant = $montantPayePourCetteTransaction; // Montant réel pour cette transaction
 
@@ -133,8 +133,119 @@ class TransactionService
             $account = $patient->account;
             $account->balance -= $montantTotalPaye;
             $account->save();
+
+            $patient->amount_due -= $montantTotalPaye;
+            $patient->save();
         }
 
         return $transactions;
     }
+
+    public function paiementPartPatientOrPartInsurance($patient, $source, $amountPatient, $amountInsurance, $descriptionPatient = null, $descriptionInsurance = null)
+    {
+        if (($amountPatient <= 0 && $amountInsurance <= 0)) {
+            return redirect()->back()->with('error', 'Please enter a valid amount.');
+        }
+
+        $transactions = $patient->getPendingAndPartialTransaction();
+
+        /** --------------------
+         *  1. PAIEMENT PATIENT
+         *  -------------------- */
+        $montantPatient = $amountPatient;
+        foreach ($transactions as $transaction) {
+            if ($montantPatient <= 0) break;
+
+            $dejaPayePatient = $transaction->patient_amount_paid ?? 0;
+            $partPatient = $transaction->patient_amount ?? $transaction->total;
+            $restantPatient = $partPatient - $dejaPayePatient;
+
+            if ($restantPatient > 0) {
+                $montantAPayer = min($montantPatient, $restantPatient);
+
+                $transaction->patient_amount_paid = $dejaPayePatient + $montantAPayer;
+                $transaction->montant_payer = ($transaction->montant_payer ?? 0) + $montantAPayer;
+                $transaction->save();
+
+                // Enregistrer le paiement patient
+                $paiement = new Paiement();
+                $paiement->user_id = auth()->id();
+                $paiement->patient_id = $patient->id;
+                $paiement->transaction_id = $transaction->id;
+                $paiement->source = $source;
+                $paiement->description = $descriptionPatient ?? "Paiement part patient";
+                $paiement->montant = $montantAPayer;
+                $paiement->save();
+
+                $montantPatient -= $montantAPayer;
+            }
+        }
+
+        /** --------------------
+         *  2. PAIEMENT ASSURANCE
+         *  -------------------- */
+        $montantAssurance = $amountInsurance;
+        foreach ($transactions as $transaction) {
+            if ($montantAssurance <= 0) break;
+
+            $dejaPayeAssurance = $transaction->insurance_amount_paid ?? 0;
+            $partAssurance = $transaction->insurance_amount ?? 0;
+            $restantAssurance = $partAssurance - $dejaPayeAssurance;
+
+            if ($restantAssurance > 0) {
+                $montantAPayer = min($montantAssurance, $restantAssurance);
+
+                $transaction->insurance_amount_paid = $dejaPayeAssurance + $montantAPayer;
+                $transaction->montant_payer = ($transaction->montant_payer ?? 0) + $montantAPayer;
+                $transaction->save();
+
+                // Enregistrer le paiement assurance
+                $paiement = new Paiement();
+                $paiement->user_id = auth()->id();
+                $paiement->patient_id = $patient->id;
+                $paiement->transaction_id = $transaction->id;
+                $paiement->source = "ASSURANCE"; // On peut mettre une constante
+                $paiement->description = $descriptionInsurance ?? "Paiement part assurance";
+                $paiement->montant = $montantAPayer;
+                $paiement->save();
+
+                $montantAssurance -= $montantAPayer;
+            }
+        }
+
+        /** --------------------
+         *  3. MISE À JOUR STATUTS
+         *  -------------------- */
+        foreach ($transactions as $transaction) {
+            $patientOk = ($transaction->patient_amount_paid >= ($transaction->patient_amount ?? 0));
+            $assuranceOk = ($transaction->insurance_amount_paid >= ($transaction->insurance_amount ?? 0));
+
+            if ($patientOk && $assuranceOk) {
+                $transaction->status = 'approved';
+            } elseif ($patientOk && !$assuranceOk) {
+                $transaction->status = 'waiting_insurance';
+            } elseif (!$patientOk && $assuranceOk) {
+                $transaction->status = 'waiting_patient';
+            } else {
+                $transaction->status = 'partial';
+            }
+            $transaction->save();
+        }
+
+        /** --------------------
+         *  4. DÉDUCTION SOLDE PATIENT
+         *  -------------------- */
+        $montantTotalPatientPaye = $amountPatient - $montantPatient;
+        if ($montantTotalPatientPaye > 0) {
+            $account = $patient->account;
+            $account->balance -= $montantTotalPatientPaye;
+            $account->save();
+
+            $patient->amount_due -= $montantTotalPatientPaye;
+            $patient->save();
+        }
+
+        return $transactions;
+    }
+
 }

@@ -564,7 +564,9 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div>  
+
+                    <input type="hidden" name="invoiceId" value="{{ $consultation?->transaction?->invoice?->id }}">
 
                     <!-- Action Buttons -->
                     <div class="action-buttons">

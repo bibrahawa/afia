@@ -6,14 +6,14 @@ use Illuminate\Http\Request;
 use App\Models\Patient;
 use App\Models\User;
 use App\Models\Role;
-use App\Service\ConsultationItemService;
+use App\Service\ConsultationService;
 
 class PatientController extends Controller
 {
 
     protected  $consultationItem;
 
-    public function __construct(ConsultationItemService $consultationItem)
+    public function __construct(ConsultationService $consultationItem)
     {
         $this->consultationItem = $consultationItem;
     }
@@ -37,7 +37,7 @@ class PatientController extends Controller
     {
         try {
             // Récupérer les actes de la consultation en cours (non payée)
-            $actes = $this->consultationItem->getActesFromPendingTransactions($patient);
+            $actes = $this->consultationItem->getActesAndHospitalisationFromPendingTransactions($patient);
 
             return response()->json([
                 'success' => true,

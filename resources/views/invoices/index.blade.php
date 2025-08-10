@@ -47,8 +47,8 @@
                     <table id="add-row" class="display table table-striped table-hover">
                     <thead class="bg-primary text-white">
                         <tr>
-                        <th style="width: 5%">ID</th>
-                        <th>Transaction</th>
+                        {{-- <th style="width: 5%">ID</th> --}}
+                        <th>No Transaction</th>
                         <th>Patient</th>
                         <th>Assurance</th>
                         <th>Montant Total</th>
@@ -56,14 +56,14 @@
                         <th>Part Assurance</th>
                         {{-- <th>Statut Assurance</th>
                         <th>Statut Patient</th> --}}
-                        <th>N° Réclamation</th>
+                        {{-- <th>N° Réclamation</th> --}}
                         <th style="width: 12%">Action</th>
                         </tr>
                     </thead>
                     <tfoot>
                         <tr>
-                        <th>ID</th>
-                        <th>Transaction</th>
+                        {{-- <th>ID</th> --}}
+                        <th>No Transaction</th>
                         <th>Patient</th>
                         <th>Assurance</th>
                         <th>Montant Total</th>
@@ -71,14 +71,14 @@
                         <th>Part Assurance</th>
                         {{-- <th>Statut Assurance</th>
                         <th>Statut Patient</th> --}}
-                        <th>N° Réclamation</th>
+                        {{-- <th>N° Réclamation</th> --}}
                         <th>Action</th>
                         </tr>
                     </tfoot>
                     <tbody>
                         @foreach($invoices as $invoice)
                             <tr>
-                                <td>{{ $invoice->id}}</td>
+                                {{-- <td>{{ $invoice->id}}</td> --}}
                                 <td>TXN-{{ $invoice->transaction_id }}</td>
                                 <td>
                                     @if($invoice->transaction && $invoice->transaction->patient)
@@ -109,7 +109,7 @@
                                         <span class="badge badge-secondary">N/A</span>
                                     @endif
                                 </td> --}}
-                                <td>{{ $invoice->insurance_claim_number ?? 'N/A' }}</td>
+                                {{-- <td>{{ $invoice->insurance_claim_number ?? 'N/A' }}</td> --}}
                                 <td>
                                     <div class="form-button-action">
                                         <button

@@ -219,7 +219,7 @@ class AccountController extends Controller
        }
 
        $patient = Patient::find($request->patient_id);
-       $transactions = $patient->transactions->whereIn('status', ['pending', 'partial']);
+       $transactions = $patient->getPendingAndPartialTransaction();
 
        foreach ($transactions as $transaction) {
            if ($montant > 0) {

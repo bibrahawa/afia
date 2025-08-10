@@ -4,27 +4,80 @@ namespace App\Service;
 
 use App\Models\Transaction;
 use App\Models\Paiement;
+use App\Models\Consultation;
 use App\Models\Account;
 use Illuminate\Support\Facades\DB;
 
-class ConsultationItemService
-{
-    public function getConsultationItems($transactions)
-    {
 
+class ConsultationService
+{
+    public static function attachItems(Consultation $consultation, array $selectedItems, array $billingStatus)
+    {
+        foreach ($selectedItems as $category => $items) {
+            $syncValues = [];
+            foreach ($items as $item) {
+                $prefix = $category === 'examens' ? 'examen' : rtrim($category, 's');
+                $billingKey = $prefix . '-' . $item['value'];
+                $syncValues[$item['value']] = [
+                    'facturer' => $billingStatus[$billingKey] ?? false
+                ];
+            }
+
+            match ($category) {
+                'medicaments' => $consultation->medicaments()->sync($syncValues),
+                'services'    => $consultation->services()->sync($syncValues),
+                'packages'    => $consultation->packages()->sync($syncValues),
+                'examens'     => $consultation->tests()->sync($syncValues),
+                default       => null
+            };
+        }
+    }
+
+    public static function mettreAJourCompte($owner_id, $owner_type, $montant, $type)
+    {
+        $account = Account::firstOrCreate([
+            'owner_id' => $owner_id,
+            'owner_type' => $owner_type,
+        ]);
+
+        if ($type === 'credit') {
+            $account->balance += $montant;
+        } elseif ($type === 'debit') {
+            $account->balance -= $montant;
+        }
+
+        $account->save();
+
+        return $account->id;
+    }
+
+    public static function calculateAmount(Consultation $consultation)
+    {
+        return
+            $consultation->services->sum('amount') +
+            $consultation->packages->sum('price') +
+            $consultation->tests->sum('amount') +
+            $consultation->medicaments->sum('amount');
+    }
+
+    private function getConsultationAndHospitalisationItems($patient)
+    {
+        
+        $transactions = $patient->getPendingAndPartialTransaction();
+       
         $items = [];
-        $actes = [];
         $totalAmount = 0;
 
-        $consultations = $transactions->map(function($query){
-            return $query->transactionable;
-        });
+        foreach ($transactions as $key => $transaction) {
 
-        foreach ($consultations as $consultation) {
+            $consultation = $transaction->transactionable;
 
+            if (!$consultation) continue;     
+            
             // Services
             foreach ($consultation->services ?? [] as $service) {
-                $items[] = [
+
+                $items[$key][] = [
                     'acte_type'   => 'App\\Models\\Service',
                     'acte_id'     => $service->id,
                     'description' => $service->name,
@@ -38,7 +91,8 @@ class ConsultationItemService
 
             // Packages
             foreach ($consultation->packages ?? [] as $package) {
-                $items[] = [
+
+                $items[$key][] = [
                     'acte_type'   => 'App\\Models\\Package',
                     'acte_id'     => $package->id,
                     'description' => $package->name,
@@ -52,7 +106,8 @@ class ConsultationItemService
 
             // Tests
             foreach ($consultation->tests ?? [] as $test) {
-                $items[] = [
+
+                $items[$key][] = [
                     'acte_type'   => 'App\\Models\\Test',
                     'acte_id'     => $test->id,
                     'description' => $test->name,
@@ -66,7 +121,8 @@ class ConsultationItemService
 
             // Médicaments
             foreach ($consultation->medicaments ?? [] as $medicament) {
-                $items[] = [
+
+                $items[$key][] = [
                     'acte_type'   => 'App\\Models\\Medicament',
                     'acte_id'     => $medicament->id,
                     'description' => $medicament->nom,
@@ -77,13 +133,32 @@ class ConsultationItemService
 
                 $totalAmount += $medicament->amount;
             }
+
+            // Hospitalisation
+            if($transaction->transactionable_type == "App\\Models\\Hospitalisation"){
+                $hospitalisations = [$consultation];
+                foreach ($hospitalisations as $hospitalisation) {
+
+                    $items[$key][] = [
+                        'acte_type'   => 'App\\Models\\Hospitalisation',
+                        'acte_id'     => $hospitalisation->id,
+                        'description' => $hospitalisation->date_entree." au ".$hospitalisation->date_sortie_effective,
+                        'unit_price'  => $hospitalisation->chambre->prix_par_jour,
+                        'quantity'    => $hospitalisation->nombre_jours,
+                        'total'       => $hospitalisation->total_payer,
+                    ];
+
+                    $totalAmount += $hospitalisation->total_payer;
+                }
+            }
+        
         }
 
         return [
             'items' => $items,
             'total_amount' => $totalAmount,
-            'actes' => $actes
         ];
+
     }
 
     public function getActesAndHospitalisationFromPendingTransactions($patient)
@@ -171,5 +246,7 @@ class ConsultationItemService
 
         return $actes;
     }
-
 }
+
+
+

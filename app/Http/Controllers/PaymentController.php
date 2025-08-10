@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Service\InsuranceCalculationService;
-use App\Service\ConsultationItemService;
+use App\Service\ConsultationService;
 use App\Service\TransactionService;
 use App\Models\Patient;
 use App\Models\Consultation;
@@ -17,7 +17,7 @@ class PaymentController extends Controller
 {
     protected $insuranceService, $consultationItem, $transactionPay;
 
-    public function __construct(InsuranceCalculationService $insuranceService, ConsultationItemService $consultationItem, TransactionService $transactionPay)
+    public function __construct(InsuranceCalculationService $insuranceService, ConsultationService $consultationItem, TransactionService $transactionPay)
     {
         $this->insuranceService = $insuranceService;
         $this->consultationItem = $consultationItem;
@@ -70,15 +70,10 @@ class PaymentController extends Controller
 
         $patient = Patient::find($patientId);
 
-        $consultations = $patient->transactions()
-                                ->where('status', '!=', 'paid')
-                                ->where('status', '!=', 'approved')
-                                ->with('transactionable')
-                                ->get()
-                                ->pluck('transactionable')
-                                ->filter();
-        
-        $result = $this->getConsultationItems($consultations);
+        // $consultations = $patient->getPendingAndPartialTransaction()
+                                            //   ->pluck('transactionable');
+
+        $result = $this->getConsultationAndHospitalisationItems($patient);
 
         $calculation = $this->insuranceService->calculateInsuranceCoverage($patientId, $result['items']);
 
@@ -118,7 +113,7 @@ class PaymentController extends Controller
             $couvertureTotal = 0;
             $assurancesUtilisees = [];
 
-            $actes = $this->consultationItem->getActesFromPendingTransactions($patient);
+            $actes = $this->consultationItem->getActesAndHospitalisationFromPendingTransactions($patient);
 
 
             $actesDetail = [];
@@ -196,17 +191,22 @@ class PaymentController extends Controller
         }
     }
 
-    private function getConsultationItems($consultations)
+    private function getConsultationAndHospitalisationItems($patient)
     {
+        
+        $transactions = $patient->getPendingAndPartialTransaction();
+       
         $items = [];
         $totalAmount = 0;
-        
-        foreach ($consultations as $consultation) {
-                
+
+        foreach ($transactions as $transaction) {
+
+            $consultation = $transaction->transactionable;
+
+            if (!$consultation) continue;     
+            
             // Services
             foreach ($consultation->services ?? [] as $service) {
-                $partAssurance = 0;
-                $partPatient = $service->amount;
 
                 $items[] = [
                     'acte_type'   => 'App\\Models\\Service',
@@ -222,8 +222,6 @@ class PaymentController extends Controller
 
             // Packages
             foreach ($consultation->packages ?? [] as $package) {
-                $partAssurance = 0;
-                $partPatient = $package->amount;
 
                 $items[] = [
                     'acte_type'   => 'App\\Models\\Package',
@@ -240,9 +238,6 @@ class PaymentController extends Controller
             // Tests
             foreach ($consultation->tests ?? [] as $test) {
 
-                $partAssurance = 0;
-                $partPatient = $test->amount;
-
                 $items[] = [
                     'acte_type'   => 'App\\Models\\Test',
                     'acte_id'     => $test->id,
@@ -258,9 +253,6 @@ class PaymentController extends Controller
             // Médicaments
             foreach ($consultation->medicaments ?? [] as $medicament) {
 
-                $partAssurance = 0;
-                $partPatient = $medicament->amount;
-
                 $items[] = [
                     'acte_type'   => 'App\\Models\\Medicament',
                     'acte_id'     => $medicament->id,
@@ -272,6 +264,25 @@ class PaymentController extends Controller
 
                 $totalAmount += $medicament->amount;
             }
+
+            // Hospitalisation
+            if($transaction->transactionable_type == "App\\Models\\Hospitalisation"){
+                $hospitalisations = [$consultation];
+                foreach ($hospitalisations as $hospitalisation) {
+
+                    $items[] = [
+                        'acte_type'   => 'App\\Models\\Hospitalisation',
+                        'acte_id'     => $hospitalisation->id,
+                        'description' => $hospitalisation->date_entree." au ".$hospitalisation->date_sortie_effective,
+                        'unit_price'  => $hospitalisation->chambre->prix_par_jour,
+                        'quantity'    => $hospitalisation->nombre_jours,
+                        'total'       => $hospitalisation->total_payer,
+                    ];
+
+                    $totalAmount += $hospitalisation->total_payer;
+                }
+            }
+        
         }
 
         return [
@@ -316,49 +327,26 @@ class PaymentController extends Controller
             $assurance_1 = $request->selected_insurances[0] ?? false;
             $assurance_2 = $request->selected_insurances[1] ?? false;
 
-            $this->transactionPay->paiementTransaction($request->patient_id, $request->source, $request->montant, $request->description);
+            $patient = Patient::find($request->patient_id);
+
             
             // Si il y a des assurances, créer la facture avec couverture
-            if ($request->use_insurance && ($assurance_1 || $assurance_2)) {
+            if ($request->use_insurance && ($assurance_1 || $assurance_2) && $request->part_insurance > 0) {
 
                 $insuranceCompanyIds = array_filter([$assurance_1, $assurance_2]);
-                // $transactions = Patient::find($request->patient_id)->transactions;
-
-                $transactions = Patient::find($request->patient_id)->transactions()
-                                ->where('status', '!=', 'paid')
-                                ->where('status', '!=', 'approved')
-                                ->with('transactionable')
-                                ->get();
-
-                // Alternative plus propre avec collection Laravel
-                $invoices = $transactions->map(function($transaction) use ($request, $insuranceCompanyIds) {
-                    // Vérifications
-                    if (!$transaction->transactionable) {
-                        return null;
-                    }
-                    
-                    $consultation = [$transaction->transactionable];
-                    $result = $this->getConsultationItems($consultation);
-
-                    if (empty($result['items'])) {
-                        return null;
-                    }
-                    
-                    try {
-                        return $this->insuranceService->createInvoiceWithInsurance(
-                            $transaction,
-                            $request->patient_id,
-                            $result['items'],
-                            $insuranceCompanyIds
-                        );
-                    } catch (\Exception $e) {
-                        \Log::error('Erreur création facture pour transaction ' . $transaction->id . ': ' . $e->getMessage());
-                        return null;
-                    }
-                })->filter(); 
-
-
+                
+                try {
+                    return $this->insuranceService->createInvoiceWithInsurance(
+                        $patient,
+                        $insuranceCompanyIds
+                    );
+                } catch (\Exception $e) {
+                    \Log::error('Erreur création facture pour transaction ' . $transaction->id . ': ' . $e->getMessage());
+                    return null;
+                }
             }
+
+            $this->transactionPay->paiementTransaction($patient, $request->source, $request->montant, $request->description);
 
             DB::commit();
             
@@ -369,6 +357,139 @@ class PaymentController extends Controller
             return redirect()->back()->with('error', 'Erreur lors du traitement: ' . $e->getMessage());
         }
     }
+
+    public function processPaymentPatientOrInsurance(Request $request)
+    {
+        $request->validate([
+            'patient_id'   => 'required|exists:patients,id',
+            'montant_patient' => 'nullable|numeric|min:0',
+            'montant_assurance' => 'nullable|numeric|min:0',
+            'source_patient' => 'nullable|string',
+            'source_assurance' => 'nullable|string',
+            'description_patient' => 'nullable|string',
+            'description_assurance' => 'nullable|string',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            $patient = Patient::findOrFail($request->patient_id);
+
+            $transactions = $patient->getPendingAndPartialTransaction();
+
+            // -------------------------
+            // 1. Paiement Part Patient
+            // -------------------------
+            $montantPatient = (float) $request->montant_patient;
+            if ($montantPatient > 0) {
+                foreach ($transactions as $transaction) {
+                    if ($montantPatient <= 0) break;
+
+                    $invoice = $transaction->invoice;
+                    if (!$invoice) continue;
+
+                    $restePatient = $invoice->patient_amount - $this->getPaidAmount($invoice->id, 'patient');
+                    if ($restePatient <= 0) continue;
+
+                    $montantAPayer = min($montantPatient, $restePatient);
+
+                    // Enregistrer le paiement patient
+                    $this->createPaiement($transaction, $patient, $request->source_patient ?? 'patient', $montantAPayer, $request->description_patient);
+
+                    // Mettre à jour la transaction et la facture
+                    $transaction->montant_payer += $montantAPayer;
+                    if (($restePatient - $montantAPayer) <= 0) {
+                        $invoice->patient_amount_status = 'paid';
+                        $transaction->status = 'approved'; // Patient réglé
+                    } else {
+                        $invoice->patient_amount_status = 'pending';
+                        $transaction->status = 'partial';
+                    }
+
+                    $invoice->save();
+                    $transaction->save();
+
+                    // Ajuster compte patient
+                    $account = $patient->account;
+                    $account->balance -= $montantAPayer;
+                    $account->save();
+
+                    $patient->amount_due -= $montantAPayer;
+                    $patient->save();
+
+                    $montantPatient -= $montantAPayer;
+                }
+            }
+
+            // -------------------------
+            // 2. Paiement Part Assurance
+            // -------------------------
+            $montantAssurance = (float) $request->montant_assurance;
+            if ($montantAssurance > 0) {
+                foreach ($transactions as $transaction) {
+                    if ($montantAssurance <= 0) break;
+
+                    $invoice = $transaction->invoice;
+                    if (!$invoice) continue;
+
+                    $resteAssurance = $invoice->insurance_amount - $this->getPaidAmount($invoice->id, 'ASSURANCE');
+                    if ($resteAssurance <= 0) continue;
+
+                    $montantAPayer = min($montantAssurance, $resteAssurance);
+
+                    // Enregistrer le paiement assurance
+                    $this->createPaiement($transaction, $patient, 'ASSURANCE', $montantAPayer, $request->description_assurance);
+
+                    // Mettre à jour la facture
+                    if (($resteAssurance - $montantAPayer) <= 0) {
+                        $invoice->insurance_status = 'paid';
+                    } else {
+                        $invoice->insurance_status = 'pending';
+                    }
+
+                    $invoice->save();
+
+                    $montantAssurance -= $montantAPayer;
+                }
+            }
+
+            DB::commit();
+
+            return redirect()->back()->with('success', 'Paiement traité avec succès');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Erreur lors du traitement: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Crée un paiement
+     */
+    private function createPaiement($transaction, $patient, $source, $montant, $description)
+    {
+        Paiement::create([
+            'user_id' => auth()->id(),
+            'patient_id' => $patient->id,
+            'transaction_id' => $transaction->id,
+            'source' => strtoupper($source),
+            'description' => $description,
+            'montant' => $montant,
+        ]);
+    }
+
+    /**
+     * Récupère le montant déjà payé par type (patient ou assurance)
+     */
+    private function getPaidAmount($invoiceId, $type)
+    {
+        return Paiement::whereHas('transaction.invoice', function($q) use ($invoiceId) {
+            $q->where('id', $invoiceId);
+        })
+        ->where('source', strtoupper($type))
+        ->sum('montant');
+    }
+
 
     
 }

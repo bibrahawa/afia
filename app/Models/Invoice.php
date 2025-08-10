@@ -34,9 +34,9 @@ class Invoice extends Model
         'insurance_payment_date' => 'date',
     ];
 
-    public function transaction(): BelongsTo
+    public function transaction()
     {
-        return $this->belongsTo(Transaction::class); 
+        return $this->belongsTo(Transaction::class, 'transaction_id');
     }
 
     public function insuranceCompany(): BelongsTo

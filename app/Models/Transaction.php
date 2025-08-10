@@ -57,9 +57,8 @@ class Transaction extends Model
             $transaction->total = $transaction->sub_total + $transaction->tax_amount - $transaction->discount;
         });
     }
-
     public function invoice()
     {
-        return $this->hasOne(Invoice::class);
+        return $this->hasOne(Invoice::class, 'transaction_id');
     }
 }

@@ -115,6 +115,8 @@
                                     @csrf
                                     <input type="hidden" name="patient_id" id="patient_id" value="">
                                     <input type="hidden" name="montant_original" id="montant_original" value="">
+                                    <input type="hidden" name="part_insurance" id="part_insurance" value="">
+                                    <input type="hidden" name="part_patient" id="part_patient" value="">
 
                                     <!-- Assurances existantes du patient -->
                                     <div id="existingInsurancesSection" style="display: none;">
@@ -384,6 +386,7 @@
                         <td class="text-end fw-bold">${numberFormat(sousTotal)} GNF</td>
                         <td class="text-end fw-bold text-primary" data-original="${sousTotal}">${numberFormat(sousTotal)} GNF</td>
                     </tr>
+                    <hr>
                 `;
             });
             
@@ -585,6 +588,7 @@
                     $(this).removeClass('bg-success bg-opacity-10');
                     $(this).dequeue();
                 });
+
             });
             
             // Mettre à jour le total après assurance
@@ -597,6 +601,9 @@
             $('#montantOriginalDisplay').text(numberFormat(calculation.total_amount) + ' GNF');
             $('#totalCouvertureDisplay').text(numberFormat(calculation.insurance_coverage) + ' GNF');
             $('#resteAPayerDisplay').text(numberFormat(calculation.patient_amount) + ' GNF');
+            
+            $('#part_insurance').val(calculation.insurance_coverage);
+            $('#part_patient').val(calculation.patient_amount);
             
             // Mettre à jour le montant à payer
             $('#montantAPayer').val(Math.round(calculation.patient_amount));
