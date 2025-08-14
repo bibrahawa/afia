@@ -8,7 +8,7 @@ use App\Http\Controllers\{
     TestController, ReportController, AccountController, AuthController,
     ProfileController, ConsultationController, MedicamentController,
     HospitalisationController, ChambreController, InsuranceClaimController, InsuranceCompanyController,
-    InsuranceCoverageController, InvoiceItemController, InvoicesController,PatientInsuranceController, PaymentController
+    InsuranceCoverageController, InvoiceItemController, InvoicesController,PatientInsuranceController, PaymentController, InsuranceBalanceController
 };
 
 
@@ -160,6 +160,7 @@ Route::middleware('auth')->group(function () {
 
     // Rapports
     Route::get('report', [ReportController::class, 'index'])->name('reports.index');
+    Route::post('report/actes', [ReportController::class, 'rapportActes'])->name('reports.actes');
     Route::post('service/report', [ReportController::class, 'service'])->name('service.report');
 
     // Hospitalisations & chambres
@@ -208,6 +209,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/payment/{patient}/{amount}/{assurance}', [PaymentController::class, 'calculateCoverage']);
     Route::post('/payment/process', [PaymentController::class, 'processPayment'])->name('account.payer');
     Route::post('/insurance/calculate', [PaymentController::class, 'calculateCoverage'])->name('insurance.calculate');
+    Route::get('/hospitalisation/{hospitalisation}/paiement', [PaymentController::class, 'paiementHospitalisation'])->name('hospitalisation.paiement');
     
     // Routes pour la gestion des assurances
     // Route::resource('insurance-companies', InsuranceCompanyController::class);
@@ -219,6 +221,31 @@ Route::middleware('auth')->group(function () {
     Route::resource('invoices', InvoiceController::class);
     Route::get('/invoices/{invoice}/print', [InvoiceController::class, 'print'])->name('invoices.print');
 
+
+    Route::prefix('insurance/balances')->name('insurance.balances.')->group(function() {
+    
+        // Liste des soldes des assurances
+        Route::get('/', [InsuranceBalanceController::class, 'index'])
+            ->name('index');
+        
+        // Détails d'une assurance spécifique
+        Route::get('/{insurance}', [InsuranceBalanceController::class, 'show'])
+            ->name('show');
+        
+        // Paiement individuel d'une facture
+        Route::post('/payment/{invoice}', [InsuranceBalanceController::class, 'processPayment'])
+            ->name('payment');
+        
+        // Paiement groupé
+        Route::post('/paiement', [InsuranceBalanceController::class, 'ProcessPaiement'])->name('paiement.insurance');
+        
+        // Export CSV
+        Route::get('/export/csv', [InsuranceBalanceController::class, 'export'])
+            ->name('export');
+            
+    });
+
+    Route::get('/rapport-clinique', [RapportCliniqueController::class, 'index'])->name('rapport-clinique.index');
 
 });
 

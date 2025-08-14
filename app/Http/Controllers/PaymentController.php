@@ -10,6 +10,7 @@ use App\Models\Patient;
 use App\Models\Consultation;
 use App\Models\InsuranceCompany;
 use App\Models\PatientInsurance;
+use App\Models\Hospitalisation;
 use App\Models\Transaction;
 use DB;
 
@@ -64,19 +65,16 @@ class PaymentController extends Controller
     public function calculateCoverage(Request $request)
     {
 
-        $patientId = $request->patient_id;
+        $transactionId = $request->transaction_id;
         // $montantOriginal = $request->montant_original;
         // $insuranceIds = $request->insurance_ids ?? [];
 
-        $patient = Patient::find($patientId);
+        $transaction = Transaction::find($transactionId);
 
-        // $consultations = $patient->getPendingAndPartialTransaction()
-                                            //   ->pluck('transactionable');
+        $result      = $this->insuranceService->getTransactionAndHospitalisationItems($transaction);
 
-        $result = $this->getConsultationAndHospitalisationItems($patient);
-
-        $calculation = $this->insuranceService->calculateInsuranceCoverage($patientId, $result['items']);
-
+        $calculation = $this->insuranceService->calculateInsuranceCoverage($request->patient_id, $result['items']);
+        
         return response()->json([
             'success' => true,
             'calculation' => $calculation
@@ -324,6 +322,54 @@ class PaymentController extends Controller
         
         try {
 
+            $montant = $request->montant;
+
+            if ($montant == 0 || $montant == null || $montant < 0) {
+                return redirect()->back()->with('error', 'Please enter a valid amount.');
+            }
+
+            $assurance_1            = $request->selected_insurances[0] ?? false;
+            $assurance_2            = $request->selected_insurances[1] ?? false;
+            $insuranceCompanyIds    = array_filter([$assurance_1, $assurance_2]);
+            $transaction            = Transaction::where('id',$request->transaction_id)->with('patient', 'invoice')->first();
+            
+            $this->transactionPay->paiementTransaction($request->source, $request->montant, $request->description, $transaction, $request->part_patient);
+            
+            // Si il y a des assurances, créer la facture avec couverture
+            if ($request->use_insurance && ($assurance_1 || $assurance_2) && $request->part_insurance > 0)
+                $this->insuranceService->updateInvoiceWithInsurance($insuranceCompanyIds, $transaction, $request->montant);
+
+            DB::commit();
+            
+            return redirect()->back()->with('success', 'Paiement traité avec succès');
+            
+        } catch (\Exception $e) {
+            DB::rollback();
+            return redirect()->back()->with('error', 'Erreur lors du traitement: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Traiter le paiement avec assurance
+     */
+    public function processPayment_old(Request $request)
+    {
+        $request->validate([
+            'patient_id' => 'required|exists:patients,id',
+            'montant' => 'required|numeric|min:0',
+            'source' => 'required|string',
+            'description' => 'nullable|string',
+            'has_insurance' => 'boolean',
+            'assurance_1' => 'nullable|exists:insurance_companies,id',
+            'police_1' => 'nullable|string',
+            'assurance_2' => 'nullable|exists:insurance_companies,id',
+            'police_2' => 'nullable|string'
+        ]);
+
+        DB::beginTransaction();
+        
+        try {
+
             $assurance_1 = $request->selected_insurances[0] ?? false;
             $assurance_2 = $request->selected_insurances[1] ?? false;
 
@@ -336,7 +382,7 @@ class PaymentController extends Controller
                 $insuranceCompanyIds = array_filter([$assurance_1, $assurance_2]);
                 
                 try {
-                    return $this->insuranceService->createInvoiceWithInsurance(
+                    return $this->insuranceService->updateInvoiceWithInsurance(
                         $patient,
                         $insuranceCompanyIds
                     );
@@ -350,6 +396,88 @@ class PaymentController extends Controller
 
             DB::commit();
             
+            return redirect()->back()->with('success', 'Paiement traité avec succès');
+            
+        } catch (\Exception $e) {
+            DB::rollback();
+            return redirect()->back()->with('error', 'Erreur lors du traitement: ' . $e->getMessage());
+        }
+    }
+
+/**
+ * Processes the payment for a specific invoice.
+ *
+ * @param Request $request The incoming request containing payment details.
+ * @param int $invoiceId The ID of the invoice to be paid.
+ * @return \Illuminate\Http\RedirectResponse Redirects back with a success message upon successful payment.
+ */
+
+    public function payInvoice(Request $request, $invoiceId)
+    {
+        $paymentData = $request->only(['payment_method', 'insurance_status', 'insurance_payment_date', 'insurance_claim_number', 'insurance_notes']);
+        dd($paymentData);
+        $this->insuranceService->processInvoicePayment($invoiceId, $paymentData);
+        return redirect()->back()->with('success', 'Paiement effectué avec succès.');
+    }
+
+    public function paiementHospitalisation(Hospitalisation $hospitalisation)
+    {
+        
+        try {
+            // Durée réelle
+            $dateDebut      = \Carbon\Carbon::parse($hospitalisation->date_entree);
+            $dateFin        = $hospitalisation->date_sortie_effective ?? now();
+            $nombreJours    = ceil($dateDebut->diffInDays($dateFin) ?: 1);
+
+            $prixJour = $hospitalisation->chambre->prix_par_jour;
+            $total = $prixJour * $nombreJours;
+
+            \DB::transaction(function () use (&$hospitalisation, $total, $nombreJours, $prixJour) {
+                $hospitalisation->load('patient', 'chambre');
+                
+                // Marquer comme libéré si pas déjà fait
+                if ($hospitalisation->status !== 'Terminé') {
+
+                    $hospitalisation->date_sortie_effective = now();
+                    $hospitalisation->total_payer = $total;
+                    $hospitalisation->statut = 'Terminé';
+                    $hospitalisation->save();
+
+                    // Libérer la chambre
+                    $hospitalisation->chambre->update(['statut' => 'Libre']);
+
+                    // Mise à jour compte patient
+                    $accountID = TransactionService::mettreAJourCompte(
+                        $hospitalisation->patient->id, 
+                        Patient::class, 
+                        $total, 
+                        'credit'
+                    );
+
+                    // Création transaction
+                    $transaction = $hospitalisation->transaction()->create([
+                        'user_id'         => auth()->id(),
+                        'account_id'      => $accountID,
+                        'patient_id'      => $hospitalisation->patient->id,
+                        'description'     => $hospitalisation->observation ?? 'Frais d\'hospitalisation',
+                        'tax_amount'      => 0,
+                        'discount'        => 0,
+                        'sub_total'       => $total,
+                        'total'           => $total
+                    ]);
+
+                    // CREATE INVOICE FOR HOSPITALISATION
+                    $this->insuranceService->createInvoiceForHospitalisation(
+                        $hospitalisation->patient->id,
+                        $transaction->id,
+                        $hospitalisation,
+                        $nombreJours,
+                        $prixJour,
+                        $total
+                    );
+                }
+            });
+
             return redirect()->back()->with('success', 'Paiement traité avec succès');
             
         } catch (\Exception $e) {

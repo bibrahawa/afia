@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Patient;
+use App\Models\Transaction;
 use App\Models\User;
 use App\Models\Role;
 use App\Service\ConsultationService;
@@ -33,11 +34,12 @@ class PatientController extends Controller
     /**
      * Récupérer les actes médicaux d'un patient pour une consultation en attente
      */
-    public function getPatientActes(Patient $patient)
+    public function getPatientActes($transactionId)
     {
         try {
-            // Récupérer les actes de la consultation en cours (non payée)
-            $actes = $this->consultationItem->getActesAndHospitalisationFromPendingTransactions($patient);
+            $transaction = Transaction::find($transactionId);
+            // Récupérer les actes de la transactions en cours (non payée)
+            $actes = $this->consultationItem->getActes($transaction);
 
             return response()->json([
                 'success' => true,

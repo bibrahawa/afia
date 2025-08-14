@@ -111,7 +111,7 @@
 
                                         @if($hospitalisation->total_payer == 0)
                                             &nbsp;&nbsp;
-                                            <form action="{{ route('hospitalisations.payer', $hospitalisation->id) }}" method="GET"
+                                            <form action="{{ route('hospitalisation.paiement', $hospitalisation->id) }}" method="GET"
                                                 onsubmit="return confirm('Voulez-vous payer cette hospitalisation ?')">
                                                 @csrf
                                                 <button class="btn btn-primary btn-round btn-sm">

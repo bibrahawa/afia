@@ -25,6 +25,24 @@ class Transaction extends Model
         'status'
     ];
 
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    // Scopes
+    public function scopeWithInsurance($query)
+    {
+        return $query->whereHas('invoice');
+    }
+
+    public function scopePendingInsurancePayment($query)
+    {
+        return $query->whereHas('invoice', function($q) {
+            $q->where('insurance_status', 'pending');
+        });
+    }
+
     public function transactionable(): MorphTo
     {
         return $this->morphTo();

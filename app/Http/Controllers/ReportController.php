@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Test;
 use App\Models\Service;
 use App\Models\Department;
+use App\Models\Transaction;
 use App\Models\Consultation;
 
 class ReportController extends Controller
@@ -19,7 +20,7 @@ class ReportController extends Controller
 
     }
 
-    public function service(Request $request)
+    public function services(Request $request)
     {
         // Validation des données
         $request->validate([
@@ -31,6 +32,8 @@ class ReportController extends Controller
             'to.after_or_equal' => 'La date de fin doit être supérieure ou égale à la date de début',
             'services.required' => 'Veuillez sélectionner au moins un service',
         ]);
+
+        dd($request->all());
 
         $departmentId = $request->get('department_id');
         $serviceIds = $request->get('services');
@@ -80,6 +83,112 @@ class ReportController extends Controller
             'from',
             'to',
         ));
+    }
+
+    public function rapportActes(Request $request)
+    {
+        // Validation des données
+        $request->validate([
+            'from' => 'required|date',
+            'to' => 'nullable|date',
+        ]);
+
+        $from = $request->get('from');
+        $to = $request->get('to') ?? date('Y-m-d');
+        
+        // Conversion des dates
+        $fromDate = \Carbon\Carbon::createFromFormat('Y-m-d', $from)->startOfDay();
+        $toDate = \Carbon\Carbon::createFromFormat('Y-m-d', $to)->endOfDay();
+        
+        // Récupération des transactions dans la période
+        $transactions = Transaction::with(['patient']) // Chargement des relations
+            ->whereBetween('created_at', [$fromDate, $toDate])
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        $rapports = [];
+        $soldeAccumule = 0; // Pour calculer le solde cumulé
+
+        foreach ($transactions as $transaction) {
+            $debit = $transaction->total ?? 0;
+            $credit = $transaction->montant_payer ?? 0;
+            $soldeLigne = $debit - $credit;
+            $soldeAccumule += $soldeLigne;
+
+            $rapports[] = [
+                'date' => $transaction->created_at->format('d/m/Y'),
+                'patient' => $transaction->patient ? $transaction->patient->getFullNameAttribute() : 'Patient inconnu',
+                'actes' => $this->getActes($transaction),
+                'debit' => $debit,
+                'credit' => $credit,
+                'solde' => $soldeAccumule, // Solde cumulé
+            ];
+        }
+
+        // Données pour la vue
+        $donnees = $rapports;
+        $date_debut = $fromDate->format('d/m/Y');
+        $date_fin = $toDate->format('d/m/Y');
+        $clinique_nom = config('app.name', 'Clinique Médicale'); // Nom depuis config
+
+        return view('reports.tools.rapport_actes', compact(
+            'donnees',
+            'date_debut',
+            'date_fin',
+            'clinique_nom',
+            'from',
+            'to'
+        ));
+    }
+
+    /**
+     * Méthode helper pour récupérer les actes d'une transaction
+     */
+    private function getActes($transaction)
+    {
+        $consultation = $transaction->transactionable;
+        $actes = [];
+        
+        // Vérifier les services
+        if ($consultation?->services?->count() > 0) {
+            $services = $consultation->services->pluck('name')->filter()->implode('| ');
+
+            if (!empty($services)) {
+                $actes[] = $services;
+            }
+        }
+
+        // Vérifier les packages
+        if ($consultation?->packages?->count() > 0) {
+            $packages = $consultation->packages->pluck('name')->filter()->implode('| ');
+            if (!empty($packages)) {
+                $actes[] = $packages;
+            }
+        }
+
+        // Vérifier les tests
+        if ($consultation?->tests?->count() > 0) {
+            $tests = $consultation->tests->pluck('name')->filter()->implode('| ');
+            if (!empty($tests)) {
+                $actes[] = $tests;
+            }
+        }
+
+        // Vérifier les médicaments
+        if ($consultation?->medicaments?->count() > 0) {
+            $medicaments = $consultation->medicaments->pluck('nom')->filter()->implode('| ');
+            if (!empty($medicaments)) {
+                $actes[] = $medicaments;
+            }
+        }
+
+        // Vérifier les hospitalisations
+        if ($consultation?->hospitalisations?->count() > 0) {
+            $actes[] = "Hospitalisation";
+        }
+
+        // Retourner les actes trouvés ou valeur par défaut
+        return implode(' | ', $actes);
     }
 
 }

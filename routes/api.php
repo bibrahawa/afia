@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\Api_InsuranceCalculationController;
 use App\Http\Controllers\Api\Api_InsuranceVerificationController;
 use App\Http\Controllers\Api\Api_InsuranceCompanyController;
 use App\Http\Controllers\PatientController;
+use App\Http\Controllers\InsuranceBalanceController;
 use App\Http\Controllers\AuthController;
 
 /*
@@ -53,7 +54,31 @@ Route::get('/insurance-companies/active', [Api_InsuranceCompanyController::class
 // API pour vérifier la validité d'une police d'assurance
 Route::post('/insurance/verify-policy', [Api_InsuranceVerificationController::class, 'verifyPolicy']);
 // Récupérer les actes médicaux d'un patient
-Route::get('/patient/{patient}/actes', [PatientController::class, 'getPatientActes']);
+Route::get('/patient/{transactionId}/actes', [PatientController::class, 'getPatientActes']);
+
+    
+// Obtenir le solde d'une assurance spécifique
+Route::get('/balance/{insurance}', function($insuranceId) {
+    $balance = DB::table('insurance_companies')
+        ->select([
+            'insurance_companies.id',
+            'insurance_companies.name',
+            'insurance_companies.code'
+        ])
+        ->selectRaw('
+            COALESCE(SUM(CASE WHEN invoices.insurance_status = "pending" THEN invoices.insurance_amount ELSE 0 END), 0) as montant_du,
+            COALESCE(SUM(CASE WHEN invoices.insurance_status = "approved" THEN invoices.insurance_amount ELSE 0 END), 0) as montant_paye
+        ')
+        ->leftJoin('invoices', 'insurance_companies.id', '=', 'invoices.insurance_company_id')
+        ->where('insurance_companies.id', $insuranceId)
+        ->groupBy('insurance_companies.id', 'insurance_companies.name', 'insurance_companies.code')
+        ->first();
+        
+    return response()->json($balance);
+})->name('balance');
+
+// Obtenir les factures impayées d'une assurance
+Route::get('insurance/pending-invoices/{insurance}',[InsuranceBalanceController::class, 'pendingInvoices'])->name('pending-invoices');
     
 
 

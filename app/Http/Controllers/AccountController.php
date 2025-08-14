@@ -10,6 +10,7 @@ use App\Models\Doctor;
 use App\Models\PackageSale;
 use App\Models\Package;
 use App\Models\Patient;
+use App\Models\Transaction;
 use App\Models\Paiement;
 use App\Models\Consultation;
 
@@ -185,23 +186,12 @@ class AccountController extends Controller
 
    public function factureNonPayer(){
 
-        $patientsDu = Patient::select([
-                    'patients.id',
-                    'patients.first_name',
-                    'patients.middle_name',
-                    'patients.last_name',
-                    'patients.district',
-                    'patients.location',
-                    'patients.amount_due as amount_due',
-                    // Listez explicitement toutes les colonnes nécessaires
-                    \DB::raw('SUM(transactions.total - transactions.montant_payer) as montant_du')
-                ])
-                ->join('transactions', 'patients.id', '=', 'transactions.patient_id')
-                ->whereIn('transactions.status', ['pending', 'partial'])
-                ->groupBy('patients.id', 'patients.first_name','patients.middle_name', 'patients.last_name', 'patients.district', 'patients.location', 'patients.amount_due')
-                ->get();
-
-        return view('patients.unpaid', compact('patientsDu'));
+    $transactionsDu = Transaction::whereIn('status', ['pending', 'partial'])
+                                ->with('patient', 'invoice')
+                                ->orderBy('created_at', 'DESC')
+                                ->get();
+                                
+        return view('invoices.unpaid', compact('transactionsDu'));
    }
 
    public function payer(Request $request)

@@ -30,64 +30,62 @@
 <div class="panel-body">
     <div class="row">
         <!-- Rapport Service -->
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card bg-primary text-white shadow-sm h-100">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="fas fa-users me-2"></i> Rapports par service</h5>
-                        <span class="badge bg-light text-dark">Paiement</span>
-                    </div>
-                    <div class="card-body text-center">
-                        <i class="fas fa-cubes fa-3x mb-3"></i>
-                        <h6 class="fw-bold">Rapports par service</h6>
-                        <small class="text-light">Paiement par service</small>
-                    </div>
-                    <div class="card-footer bg-transparent border-0">
-                        <a href="#" class="btn btn-light w-100 text-primary" data-bs-toggle="modal" data-bs-target="#ServiceModal">
-                            Voir rapport <i class="fas fa-arrow-right float-end"></i>
-                        </a>
-                    </div>
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card bg-primary text-white shadow-sm h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-users me-2"></i> Rapports par service</h5>
+                    <span class="badge bg-light text-dark">Paiement</span>
+                </div>
+                <div class="card-body text-center">
+                    <i class="fas fa-cubes fa-3x mb-3"></i>
+                    <h6 class="fw-bold">Rapports par service</h6>
+                    <small class="text-light">Paiement par service</small>
+                </div>
+                <div class="card-footer bg-transparent border-0">
+                    <a href="#" class="btn btn-light w-100 text-primary" data-bs-toggle="modal" data-bs-target="#ServiceModal">
+                        Voir rapport <i class="fas fa-arrow-right float-end"></i>
+                    </a>
                 </div>
             </div>
+        </div>
 
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card text-white shadow-sm h-100" style="background-color: #14205b;">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i> Rapports Paie</h5>
-                        <span class="badge bg-light text-dark">Paie</span>
-                    </div>
-                    <div class="card-body text-center">
-                        <i class="fas fa-chart-bar fa-3x mb-3"></i>
-                        <h6 class="fw-bold">Rapports Paie</h6>
-                        <small class="text-light">Statistiques de paie</small>
-                    </div>
-                    <div class="card-footer bg-transparent border-0">
-                        <a href="#" class="btn btn-light w-100 text-primary" data-bs-toggle="modal" data-bs-target="#paiesModal">
-                            Voir rapport <i class="fas fa-arrow-right float-end"></i>
-                        </a>
-                    </div>
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card text-white shadow-sm h-100" style="background-color: #14205b;">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i> Rapports Paie</h5>
+                    <span class="badge bg-light text-dark">Paie</span>
+                </div>
+                <div class="card-body text-center">
+                    <i class="fas fa-chart-bar fa-3x mb-3"></i>
+                    <h6 class="fw-bold">Rapports Paie</h6>
+                    <small class="text-light">Statistiques de paie</small>
+                </div>
+                <div class="card-footer bg-transparent border-0">
+                    <a href="#" class="btn btn-light w-100 text-primary" data-bs-toggle="modal" data-bs-target="#paiesModal">
+                        Voir rapport <i class="fas fa-arrow-right float-end"></i>
+                    </a>
                 </div>
             </div>
-
-
+        </div>
         <!-- Rapport Consultation -->
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card text-white shadow-sm h-100" style="background-color: #00db5b;">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="fas fa-cash-register me-2"></i> Consultation</h5>
-                        <span class="badge bg-light text-dark">Paiement</span>
-                    </div>
-                    <div class="card-body text-center">
-                        <i class="fas fa-cash-register fa-3x mb-3"></i>
-                        <h6 class="fw-bold">Rapports Consultation</h6>
-                        <small class="text-light">Revenus</small>
-                    </div>
-                    <div class="card-footer bg-transparent border-0">
-                        <a href="#" class="btn btn-light w-100 text-primary" data-bs-toggle="modal" data-bs-target="#comptabiliteModal">
-                            Voir rapport <i class="fas fa-arrow-right float-end"></i>
-                        </a>
-                    </div>
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card text-white shadow-sm h-100" style="background-color: #00db5b;">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-cash-register me-2"></i> Rapports des actes</h5>
+                    <span class="badge bg-light text-dark">Paiement</span>
+                </div>
+                <div class="card-body text-center">
+                    <i class="fas fa-cash-register fa-3x mb-3"></i>
+                    <h6 class="fw-bold">Rapports des actes</h6>
+                    <small class="text-light">Revenus</small>
+                </div>
+                <div class="card-footer bg-transparent border-0">
+                    <a href="#" class="btn btn-light w-100 text-primary" data-bs-toggle="modal" data-bs-target="#rapportActesModal">
+                        Voir rapport <i class="fas fa-arrow-right float-end"></i>
+                    </a>
                 </div>
             </div>
+        </div>
     </div>
 </div>
 
@@ -156,7 +154,6 @@
 </div>
 
 <!-- Gestion des examens -->
-
 <div class="modal fade" id="paiesModal" tabindex="-1" role="dialog" aria-labelledby="houseBillModalLabel" aria-hidden="true">
     <form action="#" method="POST">
         @csrf
@@ -206,14 +203,14 @@
 
 
 <!-- Gestion des consultations -->
-
-<div class="modal fade" id="comptabiliteModal" tabindex="-1" role="dialog" aria-labelledby="comptabiliteModalLabel" aria-hidden="true">
-    <form action="#" method="POST">
+<div class="modal fade" id="rapportActesModal" tabindex="-1" role="dialog" aria-labelledby="rapportActesModalLabel" aria-hidden="true">
+    <form action="{{ route('reports.actes')}}" method="POST">
         @csrf
-        <div class="modal-dialog modal-lg" role="document">
-            <div class="modal-content border-0 shadow-lg">
+        @method('POST')
+        <div class="modal-dialog modal-md" role="document">
+            <div class="modal-content border-0 shadow-md">
                 <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="comptabiliteModalLabel">📊 Rapport de Consultation</h5>
+                    <h5 class="modal-title" id="rapportActesModalLabel">📊 Rapport des actes</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body py-4 px-4">
@@ -229,7 +226,7 @@
                     <div class="row mb-3">
                         <label for="to" class="col-md-3 col-form-label fw-semibold">📅 À</label>
                         <div class="col-md-9">
-                            <input type="date" name="to" value="{{ Request::get('to') }}" class="form-control dateTime" placeholder="yyyy-mm-dd" required>
+                            <input type="date" name="to" value="{{ Request::get('to') }}" class="form-control dateTime" placeholder="yyyy-mm-dd">
                         </div>
                     </div>
                 </div>

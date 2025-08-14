@@ -74,14 +74,20 @@ class ConsultationController extends Controller
 
         DB::beginTransaction();
         
-        // try {
+        try {
+                $consultation = Consultation::create([
+                    ...$validated, // Utilisez $validated au lieu de $request->only()
+                    'medecin_id' => auth()->user()->employee->id,
+                    'department_id' => auth()->user()->employee->department_id,
+                    'signes_cliniques' => explode(',', $request->signes_cliniques)
+                ]);
 
-            $consultation = Consultation::create([
-                ...$request->only(['patient_id', 'motif', 'diagnostic', 'observation', 'prochain_rdv']),
-                'medecin_id' => auth()->user()->employee->id,
-                'department_id' => auth()->user()->employee->department_id,
-                'signes_cliniques' => explode(',', $request->signes_cliniques)
-            ]);
+            // $consultation = Consultation::create([
+            //     ...$request->only(['patient_id', 'motif', 'diagnostic', 'observation', 'prochain_rdv']),
+            //     'medecin_id' => auth()->user()->employee->id,
+            //     'department_id' => auth()->user()->employee->department_id,
+            //     'signes_cliniques' => explode(',', $request->signes_cliniques)
+            // ]);
 
             ConsultationService::attachItems($consultation, json_decode($request->selected_items, true), json_decode($request->billing_status, true));
 
@@ -90,11 +96,11 @@ class ConsultationController extends Controller
             $amount = ConsultationService::calculateAmount($consultation);
 
             $accountID = ConsultationService::mettreAJourCompte($request->patient_id, Patient::class, $amount, 'credit');
-
+            
             $transaction = $consultation->transaction()->create([
                 'user_id'    => auth()->id(),
                 'account_id' => $accountID,
-                'patient_id' => $request->patient_id,
+                'patient_id' => $validated['patient_id'],
                 'description'=> $consultation->motif,
                 'tax_amount' => 0,
                 'discount'   => 0,
@@ -106,16 +112,15 @@ class ConsultationController extends Controller
 
             $this->insuranceCalculation->createInvoiceForConsulation($request->patient_id, $transaction->id, $consultation);
 
-            Patient::find($request->patient_id)->credit($amount);
-
             DB::commit();
             
             return redirect()->route('consultation.index')->with('success', 'Consultation enregistrée.');
             
-        // } catch (\Exception $e) {
-        //     DB::rollback();
-        //     return redirect()->back()->with('error', 'Erreur lors du traitement: ' . $e->getMessage());
-        // }
+        } catch (\Exception $e) {
+            DB::rollback();
+            return redirect()->back()->with('error', 'Erreur lors du traitement: ' . $e->getMessage());
+        }
+        
     }
 
     public function facture($id){

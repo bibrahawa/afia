@@ -10,33 +10,49 @@ use App\Models\PatientInsurance;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\InsuranceClaim;
+use App\Service\ConsultationService;
 use Illuminate\Support\Facades\DB;
 
 
 class InsuranceCalculationService{
 
 
-    public function createInvoiceForConsulation($patientId, $transactionId, $consultation)
+    private ConsultationService $consultationItem;
+
+    public function __construct(ConsultationService $consultationItem)
+    {
+        $this->consultationItem = $consultationItem;
+    }
+
+    public function updateInvoiceWithInsurance($insuranceCompanyIds = [], $transaction, $amount)
     {
 
-        $itemCoverage = [];
+        DB::beginTransaction();
 
-        $items = $this->getConsultationItems($consultation);
-            
-        $calculation = $this->calculateInsuranceCoverage($patientId, $items['items']);
+        $invoice = $transaction->invoice;
 
-        // Créer la facture principale
-        $invoice = Invoice::create([
-            'transaction_id' => $transactionId,
-            'insurance_company_id' => null,
-            'total_amount' => $calculation['total_amount'],
-            'patient_amount' => $calculation['patient_amount'],
-            'insurance_amount' => $calculation['insurance_coverage'],
-            'insurance_status' => $calculation['insurance_coverage'] > 0 ? 'pending' : null,
-            'patient_amount_status' => 'pending'
-        ]);
+        $items = $this->getTransactionAndHospitalisationItems($transaction);
 
-         // Créer les nouveaux items
+        try {
+            // Calculer la couverture
+            $calculation = $this->calculateInsuranceCoverage($transaction->patient_id, $items['items']);
+
+            // Mettre à jour la facture principale
+            $invoice->update([
+                'transaction_id' => $transaction->id,
+                'insurance_company_id' => !empty($insuranceCompanyIds) ? $insuranceCompanyIds[0]['id'] : null,
+                'total_amount' => $calculation['total_amount'],
+                'patient_amount' => $calculation['patient_amount'],
+                'insurance_amount' => $calculation['insurance_coverage'],
+                'insurance_status' => $calculation['insurance_coverage'] > 0 ? 'approved' : null,
+                // 'patient_insurance_id' => $calculation['insurance_coverage'] > 0 ? 'approved' : null,
+                'patient_amount_status' => $transaction->montant_payer == $calculation['patient_amount'] ? 'paid' : 'pending'
+            ]);
+                
+            // Supprimer les anciens items
+            InvoiceItem::where('invoice_id', $invoice->id)->delete();
+                
+            // Créer les nouveaux items
             $details = $calculation['details'] ?: $items['items'];
             $data = $items['items'];
             foreach ($details as $index => $detail) {
@@ -57,6 +73,71 @@ class InsuranceCalculationService{
                 ]);
             }
 
+            // Mettre à jour les montants utilisés des assurances
+            if ($calculation['insurance_coverage'] > 0) {
+
+                foreach ($calculation['insurances_used'] as $insuranceUsed) {
+                    $patientInsurance = PatientInsurance::find($insuranceUsed['insurance_id']);
+                    if ($patientInsurance) {
+                        $patientInsurance->increment('used_amount', $insuranceUsed['total_covered']);
+                    }
+                }
+
+                // Créer les réclamations d'assurance si nécessaire
+                $this->createInsuranceClaims($invoice, $calculation['insurances_used'], $transaction->patient_id);
+            }
+
+            DB::commit();
+            
+            
+        } catch (\Exception $e) {
+            DB::rollback();
+            throw $e;
+        }
+        
+        return $invoice;
+    }
+
+
+    public function createInvoiceForConsulation($patientId, $transactionId, $consultation)
+    {
+
+        $itemCoverage = [];
+
+        $items = $this->getConsultationItems($consultation);
+            
+        $calculation = $this->calculateInsuranceCoverage($patientId, $items['items']);
+        // Créer la facture principale
+        $invoice = Invoice::create([
+            'transaction_id' => $transactionId,
+            // "patient_insurance_id" => $patientId ?? null,
+            'total_amount' => $calculation['total_amount'],
+            'patient_amount' => $calculation['patient_amount'],
+            'insurance_amount' => $calculation['insurance_coverage'],
+            'insurance_status' => $calculation['insurance_coverage'] > 0 ? 'pending' : null,
+            'patient_amount_status' => 'pending'
+        ]);
+
+         // Créer les nouveaux items
+        $details = $calculation['details'] ?: $items['items'];
+        $data = $items['items'];
+        foreach ($details as $index => $detail) {
+            $source = array_merge($item ?? [], $detail);
+            InvoiceItem::create([
+                'invoice_id'                   => $invoice->id,
+                'coverage_type_type'           => $source['acte_type'] ?? $data[$index]['acte_type'] ?? null,
+                'coverage_type_id'             => $source['acte_id'] ?? $data[$index]['acte_id'] ?? null,
+                'description'                  => $source['item_description'] ?? $source['description'] ?? '',
+                'unit_price'                   => (float)($source['unit_price'] ?? $data[$index]['unit_price'] ?? 0),
+                'quantity'                     => (int)($source['quantity'] ?? $data[$index]['quantity'] ?? 0),
+                'total_amount'                 => (float)($source['item_amount'] ?? $source['total'] ?? 0),
+                'insurance_covered_amount'     => (float)($source['insurance_amount'] ?? 0),
+                'patient_amount'               => (float)($source['patient_amount'] ?? $source['total'] ?? 0),
+                'coverage_percentage_applied'  => !empty($source['insurances_applied'])
+                    ? $this->getAverageCoveragePercentage($source['insurances_applied'])
+                    : 0
+            ]);
+        }
     }
 
     public function updateInvoiceForConsultation($patientId, $invoiceId, $consultation = null)
@@ -112,12 +193,121 @@ class InsuranceCalculationService{
     }
 
     /**
+     * Create invoice specifically for hospitalisation
+     */
+    public function createInvoiceForHospitalisation($patientId, $transactionId, $hospitalisation, $nombreJours, $prixJour, $total)
+    {
+        // Calculate insurance coverage for hospitalisation
+        $hospitalisationItems = [
+            [
+                'item_description' => 'Frais d\'hospitalisation - Chambre ' . $hospitalisation->chambre->numero,
+                'acte_type' => 'App\\Models\\Hospitalisation',
+                'acte_id' => $hospitalisation->id,
+                'unit_price' => $prixJour,
+                'quantity' => $nombreJours,
+                'total' => $total
+            ]
+        ]; 
+
+        $calculation = $this->calculateInsuranceCoverage($patientId, $hospitalisationItems);
+
+        // Create main invoice
+        $invoice = Invoice::create([
+            'transaction_id' => $transactionId,
+            // "patient_insurance_id" => $patientId ?? null,
+            'total_amount' => $calculation['total_amount'],
+            'patient_amount' => $calculation['patient_amount'],
+            'insurance_amount' => $calculation['insurance_coverage'],
+            'insurance_status' => $calculation['insurance_coverage'] > 0 ? 'pending' : null,
+            'patient_amount_status' => 'pending'
+        ]);
+
+        // Create invoice items
+        $details = $calculation['details'] ?: $hospitalisationItems;
+
+        foreach ($details as $detail) {
+            $source = array_merge($hospitalisationItems[0] ?? [], $detail);
+            
+            InvoiceItem::create([
+                'invoice_id'                  => $invoice->id,
+                'coverage_type_type'          => $source['acte_type'] ?? null,
+                'coverage_type_id'            => $source['acte_id'] ?? null,
+                'description'                 => $source['item_description'] ?? $source['description'] ?? 'Frais d\'hospitalisation',
+                'unit_price'                   => (float)($source['unit_price'] ?? $prixJour),
+                'quantity'                     => (int)($source['quantity'] ?? $nombreJours),
+                'total_amount'                 => (float)($source['item_amount'] ?? $source['total'] ?? $total),
+                'insurance_covered_amount'     => (float)($source['insurance_amount'] ?? 0),
+                'patient_amount'               => (float)($source['patient_amount'] ?? $source['total'] ?? $total),
+                'coverage_percentage_applied'  => !empty($source['insurances_applied'])
+                    ? $this->insuranceCalculation->getAverageCoveragePercentage($source['insurances_applied'])
+                    : 0
+            ]);
+        }
+
+        return $invoice;
+    }
+
+        /**
+     * Traite un paiement pour une facture donnée.
+     */
+    public function processInvoicePayment($patient, $insuranceCompanyIds, $transaction)
+    {    
+        $invoice = $transaction->invoice;
+
+        $invoice->update([
+            'status' => 'paid',
+            "insurance_company_id" => !empty($insuranceCompanyIds) ? $insuranceCompanyIds[0]['id'] : null,
+            "patient_insurance_id" => $patient->id,
+            'insurance_status' => 'approved',
+            'patient_amount_status' => 'paid',
+            'updated_at' => now()
+        ]);
+
+        $transaction = $invoice->consultation->transaction;
+        $transaction->update(['status' => 'paid']);
+
+        TransactionService::mettreAJourCompte(
+            $invoice->patient_id,
+            Patient::class,
+            $invoice->total_amount,
+            'debit'
+        );
+
+        // Mettre à jour les montants utilisés des assurances
+        foreach ($calculation['insurances_used'] as $insuranceUsed) {
+            $patientInsurance = PatientInsurance::find($insuranceUsed['insurance_id']);
+            if ($patientInsurance) {
+                $patientInsurance->increment('used_amount', $insuranceUsed['total_covered']);
+            }
+        }
+
+        // Créer les réclamations d'assurance si nécessaire
+        if ($calculation['insurance_coverage'] > 0) {
+            $this->createInsuranceClaims($invoice, $calculation['insurances_used'], $patient->id);
+        }
+
+        // Mettre à jour la transaction
+        $transaction = Transaction::find($item['transaction_id']);
+        
+        $totalAmount = $calculation['patient_amount'] + $calculation['insurance_coverage'];
+
+        if($totalAmount == $calculation['total_amount']){
+            $transaction->update(['status'=> 'approved']);
+        }else{
+            $transaction->update(['status'=> 'partial']);
+        }
+
+        DB::commit();
+
+        return $invoice;
+    }
+
+    /**
      * Calculer la couverture d'assurance pour une facture
      */
     public function calculateInsuranceCoverage($patientId, $items)
     {
         $activeInsurances = $this->getActivePatientInsurances($patientId);
-                
 
         if ($activeInsurances->isEmpty()) {
             return [
@@ -170,9 +360,9 @@ class InsuranceCalculationService{
      */
     private function calculateItemCoverage($item, $activeInsurances)
     {
-        $itemAmount = $item['total'];
-        $remainingAmount = $itemAmount;
-        $totalCovered = 0;
+        $itemAmount        = $item['total'];
+        $totalCovered      = 0;
+        $remainingAmount   = $itemAmount;
         $insurancesApplied = [];
 
         // Trier les assurances par priorité (vous pourriez ajouter un champ priority)
@@ -196,7 +386,7 @@ class InsuranceCalculationService{
                 $maxAmount = null;
             }
 
-            if ($coveragePercentage > 0) {
+            if($coveragePercentage > 0) {
                 // Calculer le montant couvert par cette assurance
                 $coveredAmount = ($remainingAmount * $coveragePercentage) / 100;
                 
@@ -216,9 +406,9 @@ class InsuranceCalculationService{
                     $remainingAmount -= $coveredAmount;
 
                     $insurancesApplied[] = [
-                        'insurance_id' => $patientInsurance->id,
+                        'insurance_id' => $patientInsurance->insuranceCompany->id,
                         'insurance_company' => $patientInsurance->insuranceCompany->name,
-                        'policy_number' => $patientInsurance->policy_number,
+                        'policy_number' => $patientInsurance->insuranceCompany->code,
                         'coverage_percentage' => $coveragePercentage,
                         'amount_covered' => $coveredAmount,
                         'remaining_after' => $remainingAmount
@@ -325,8 +515,7 @@ class InsuranceCalculationService{
      */
     private function getCoverageForItem($item, $patientInsurance)
     {
-        return $patientInsurance->insuranceCompany
-            ->getCoverageForService($item['acte_type'], $item['acte_id']);
+        return $patientInsurance->insuranceCompany->getCoverageForService($item['acte_type'], $item['acte_id'], $patientInsurance->insurance_company_id);
     }
 
     /**
@@ -519,72 +708,6 @@ class InsuranceCalculationService{
 
     }
 
-    // private function createInvoiceAndItemInvoice(){
-    //     try {
-    //         // Calculer la couverture
-    //         $calculation = $this->calculateInsuranceCoverage($patientId, $items);
-
-    //         // Créer la facture principale
-    //         $invoice = Invoice::create([
-    //             'transaction_id' => $transaction->id,
-    //             'insurance_company_id' => !empty($insuranceCompanyIds) ? $insuranceCompanyIds[0]['id'] : null,
-    //             'total_amount' => $calculation['total_amount'],
-    //             'patient_amount' => $calculation['patient_amount'],
-    //             'insurance_amount' => $calculation['insurance_coverage'],
-    //             'insurance_status' => $calculation['insurance_coverage'] > 0 ? 'pending' : null,
-    //             'patient_amount_status' => 'pending'
-    //         ]);
-
-    //         $totalAmount = $calculation['patient_amount'] + $calculation['insurance_coverage'];
-
-    //         if($totalAmount == $calculation['total_amount']){
-    //             $transaction->status == "approved";
-    //         }else{
-    //             $transaction->status == "partial";
-    //         }
-        
-    //         $transaction->update();
-
-    //         if($calculation['patient_amount'])
-
-    //         // Créer les items de facture
-    //         foreach ($calculation['details'] as $index => $detail) {
-    //             InvoiceItem::create([
-    //                 'invoice_id' => $invoice->id,
-    //                 'coverage_type_type' => $items[$index]['acte_type'],
-    //                 'coverage_type_id' => $items[$index]['acte_id'],
-    //                 'description' => $detail['item_description'],
-    //                 'unit_price' => $items[$index]['unit_price'],
-    //                 'quantity' => $items[$index]['quantity'],
-    //                 'total_amount' => $detail['item_amount'],
-    //                 'insurance_covered_amount' => $detail['insurance_amount'],
-    //                 'patient_amount' => $detail['patient_amount'],
-    //                 'coverage_percentage_applied' => $this->getAverageCoveragePercentage($detail['insurances_applied'])
-    //             ]);
-    //         }
-
-    //         // Mettre à jour les montants utilisés des assurances
-    //         foreach ($calculation['insurances_used'] as $insuranceUsed) {
-    //             $patientInsurance = PatientInsurance::find($insuranceUsed['insurance_id']);
-    //             if ($patientInsurance) {
-    //                 $patientInsurance->increment('used_amount', $insuranceUsed['total_covered']);
-    //             }
-    //         }
-
-    //         // Créer les réclamations d'assurance si nécessaire
-    //         if ($calculation['insurance_coverage'] > 0) {
-    //             $this->createInsuranceClaims($invoice, $calculation['insurances_used'], $patientId);
-    //         }
-
-    //         DB::commit();
-    //         return $invoice;
-            
-    //     } catch (\Exception $e) {
-    //         DB::rollback();
-    //         throw $e;
-    //     }
-    // }
-
     /**
      * Créer les réclamations d'assurance
      */
@@ -619,6 +742,93 @@ class InsuranceCalculationService{
         
         $totalPercentage = array_sum(array_column($insurancesApplied, 'coverage_percentage'));
         return $totalPercentage / count($insurancesApplied);
+    }
+
+    public function getTransactionAndHospitalisationItems($transaction)
+    {
+
+        $items = [];
+        $totalAmount = 0;
+
+        $consultation = $transaction->transactionable;
+        // Services
+        foreach ($consultation->services ?? [] as $service) {
+            $items[] = [
+                'acte_type'   => 'App\\Models\\Service',
+                'acte_id'     => $service->id,
+                'description' => $service->name,
+                'unit_price'  => $service->amount,
+                'quantity'    => 1,
+                'total'       => $service->amount,
+            ];
+
+            $totalAmount += $service->amount;
+        }
+
+        // Packages
+        foreach ($consultation->packages ?? [] as $package) {
+            $items[] = [
+                'acte_type'   => 'App\\Models\\Package',
+                'acte_id'     => $package->id,
+                'description' => $package->name,
+                'unit_price'  => $package->amount,
+                'quantity'    => 1,
+                'total'       => $package->amount,
+            ];
+
+            $totalAmount += $package->amount;
+        }
+
+        // Tests
+        foreach ($consultation->tests ?? [] as $test) {
+            $items[] = [
+                'acte_type'   => 'App\\Models\\Test',
+                'acte_id'     => $test->id,
+                'description' => $test->name,
+                'unit_price'  => $test->amount,
+                'quantity'    => 1,
+                'total'       => $test->amount,
+            ];
+
+            $totalAmount += $test->amount;
+        }
+
+        // Médicaments
+        foreach ($consultation->medicaments ?? [] as $medicament) {
+            $items[] = [
+                'acte_type'   => 'App\\Models\\Medicament',
+                'acte_id'     => $medicament->id,
+                'description' => $medicament->nom,
+                'unit_price'  => $medicament->amount,
+                'quantity'    => 1,
+                'total'       => $medicament->amount,
+            ];
+
+            $totalAmount += $medicament->amount;
+        }
+
+        // Hospitalisation
+        if($transaction->transactionable_type == "App\\Models\\Hospitalisation"){
+            $hospitalisations = $transaction->transactionnable;
+            foreach ($hospitalisations as $hospitalisation) {
+
+                $items[] = [
+                    'acte_type'   => 'App\\Models\\Hospitalisation',
+                    'acte_id'     => $hospitalisation->id,
+                    'description' => $hospitalisation->date_entree." au ".$hospitalisation->date_sortie_effective,
+                    'unit_price'  => $hospitalisation->chambre->prix_par_jour,
+                    'quantity'    => $hospitalisation->nombre_jours,
+                    'total'       => $hospitalisation->total_payer,
+                ];
+
+                $totalAmount += $hospitalisation->total_payer;
+            }
+        }
+
+        return [
+            'items' => $items,
+            'total_amount' => $totalAmount,
+        ];
     }
 
 }

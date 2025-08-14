@@ -125,6 +125,13 @@
                         <p>Paiements en attente</p>
                     </a>
                 </li>
+                
+                <li class="nav-item {{ request()->routeIs('insurance.balances*') ? 'active' : '' }}">
+                    <a href="{{ route('insurance.balances.index') }}">
+                        <i class="fas fa-clock"></i>
+                        <p>Soldes Assurances</p>
+                    </a>
+                </li>
 
                 <!-- RESSOURCES MÉDICALES -->
                 <li class="nav-section">

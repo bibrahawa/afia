@@ -66,10 +66,13 @@
                             <tr>
                             <th style="width: 5%">ID</th>
                             <th>Nom</th>
-                            <th>Code</th>
+                            {{-- <th>Code</th> --}}
                             <th>Contact</th>
                             <th>Téléphone</th>
-                            <th>Email</th>
+                            <th>Total</th>
+					        <th>Part Patient</th>
+					        <th>Montant Du</th>
+                            {{-- <th>Email</th> --}}
                             <th>Statut</th>
                             <th style="width: 10%">Action</th>
                             </tr>
@@ -78,20 +81,23 @@
                             <tr>
                             <th>ID</th>
                             <th>Nom</th>
-                            <th>Code</th>
+                            {{-- <th>Code</th> --}}
                             <th>Contact</th>
                             <th>Téléphone</th>
-                            <th>Email</th>
+                            <th>Total</th>
+					        <th>Part Patient</th>
+					        <th>Montant Du</th>
+                            {{-- <th>Email</th> --}}
                             <th>Statut</th>
                             <th>Action</th>
                             </tr>
                         </tfoot>
                         <tbody>
-                            @forelse($companies as $company)
+                            @forelse($companies as $index => $company)
                                 <tr>
-                                    <td>{{ $company->id }}</td>
+                                    <td>{{ ++$index }}</td>
                                     <td>{{ $company->name }}</td>
-                                    <td><span class="badge bg-secondary">{{ $company->code }}</span></td>
+                                    {{-- <td><span class="badge bg-secondary">{{ $company->code }}</span></td> --}}
                                     <td>{{ $company->contact_person ?: '-' }}</td>
                                     <td>
                                         @if($company->phone)
