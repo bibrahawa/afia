@@ -52,7 +52,7 @@ Route::post('/insurance/calculate-coverage', [Api_InsuranceCalculationController
 Route::get('/insurance-companies/active', [Api_InsuranceCompanyController::class, 'getActiveCompanies']);
 
 // API pour vérifier la validité d'une police d'assurance
-Route::post('/insurance/verify-policy', [Api_InsuranceVerificationController::class, 'verifyPolicy']);
+// Route::post('/insurance/verify-policy', [Api_InsuranceVerificationController::class, 'verifyPolicy']);
 // Récupérer les actes médicaux d'un patient
 Route::get('/patient/{transactionId}/actes', [PatientController::class, 'getPatientActes']);
 
