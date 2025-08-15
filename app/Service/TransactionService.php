@@ -231,9 +231,6 @@ class TransactionService
             $account = $patient->account;
             $account->balance -= $montantTotalPatientPaye;
             $account->save();
-
-            $patient->amount_due -= $montantTotalPatientPaye;
-            $patient->save();
         }
 
         return $transactions;

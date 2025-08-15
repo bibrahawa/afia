@@ -22,11 +22,53 @@ class UserController extends Controller
         return view('users.index', compact('users','roles'));
     }
 
-    public function listePermissions($id)
+    public function listePermissions_old($id)
     {
         $user = User::find($id);
         $permissions = Permission::all();
         return view('users.create_permissions', compact('user', 'permissions'));
+    }
+
+    // Dans votre contrôleur
+    public function listePermissions($id) {
+        
+        $user = User::findOrFail($id);
+        $permissions = Permission::all();
+
+        // Modules et leurs clés
+        $modulesConfig = [
+            'Dashboard & Configuration' => ['dashboard', 'backup', 'setting', 'hospital', 'tax', 'config'],
+            'Gestion Utilisateurs' => ['users'],
+            'Employés' => ['employee', 'medecin'],
+            'Structure' => ['department', 'service'],
+            'Patients & Consultations' => ['patient', 'consultation', 'appointment'],
+            'Médical' => ['medicament', 'package', 'test'],
+            'Comptabilité' => ['account', 'report', 'payment'],
+            'Hospitalisation' => ['hospitalisation', 'chambre'],
+            'Assurances' => ['insurance_company', 'insurance_coverage', 'patient_insurance', 'invoice', 'invoice_item', 'insurance_balance'],
+        ];
+
+        // Groupement des permissions par module
+        $modules = [];
+        foreach ($modulesConfig as $title => $keys) {
+            $modules[$title] = $permissions->filter(function ($perm) use ($keys) {
+                return collect($keys)->contains(fn($key) => str_starts_with($perm->name, $key . '.'));
+            });
+        }
+
+        // Profils prédéfinis (à ajuster selon ton besoin)
+        $rolePermissions = [
+            'medecin' => $this->getMedecinPermissions(),
+            'comptable' => $this->getComptablePermissions(),
+            'secretaire' => $this->getSecretairePermissions(),
+        ];
+
+        return view('users.create_permissions', [
+            'user' => $user,
+            'modules' => $modules,
+            'rolePermissions' => $rolePermissions,
+            'userPermissions' => $user->getPermissionNames()->toArray(),
+        ]);
     }
 
     public function assignPermissions(Request $request, $id)
@@ -170,4 +212,139 @@ class UserController extends Controller
             }
         }
     }
+
+    private function getMedecinPermissions(){
+        // MEDECIN - Permissions liées aux soins et consultations
+        return [
+            // Dashboard médecin
+            'dashboard.view', 'dashboard.medecin',
+            
+            // Gestion de ses activités médicales
+            'medecin.appointments', 'medecin.confirm_appointment', 'medecin.complete_appointment', 
+            'medecin.availabilities', 'medecin.leaves',
+            
+            // Patients - Lecture et ajout de fichiers
+            'patient.view', 'patient.add_file',
+            
+            // Consultations - Toutes les actions médicales
+            'consultation.view', 'consultation.create', 'consultation.edit', 'consultation.delete', 
+            'consultation.facture', 'consultation.ordonnance', 'consultation.medicament', 'consultation.examen',
+            
+            // Rendez-vous - Consulter uniquement
+            'appointment.view',
+            
+            // Médicaments - Consulter pour prescriptions
+            'medicament.view',
+            
+            // Tests - Prescrire et voir résultats
+            'test.view', 'test.status',
+            
+            // Hospitalisations - Médical uniquement
+            'hospitalisation.view', 'hospitalisation.create', 'hospitalisation.edit',
+            
+            // Départements et Services - Lecture
+            'department.view', 'service.view',
+            
+            // Chambres - Consulter disponibilité
+            'chambre.view',
+            
+            // Assurances patients - Lecture
+            'patient_insurance.view',
+        ];
+    } 
+    
+    private function getComptablePermissions(){
+        // COMPTABLE - Permissions financières et rapports
+        return [
+            // Dashboard
+            'dashboard.view',
+            
+            // Patients - Consultation pour facturation
+            'patient.view',
+            
+            // Consultations - Facturation uniquement
+            'consultation.view', 'consultation.facturer', 'consultation.facture', 'consultation.paiement',
+            
+            // Comptabilité - Toutes les actions financières
+            'account.facture', 'account.payer', 'account.service_report', 'account.opd_report', 'account.package_report',
+            
+            // Rapports - Tous les rapports
+            'report.view', 'report.actes', 'report.service',
+            
+            // Hospitalisations - Facturation
+            'hospitalisation.view', 'hospitalisation.payer', 'hospitalisation.facture',
+            
+            // Packages - Vente
+            'package.view', 'package.sale',
+            
+            // Médicaments - Consultation prix
+            'medicament.view',
+            
+            // Services - Consultation prix
+            'service.view',
+            
+            // Tests - Consultation prix
+            'test.view',
+            
+            // Assurances complètes - Gestion financière
+            'insurance_company.view', 'insurance_coverage.view',
+            'patient_insurance.view', 'patient_insurance.create', 'patient_insurance.edit',
+            
+            // Factures assurance - Toutes les actions
+            'invoice.view', 'invoice.create', 'invoice.edit', 'invoice.delete',
+            'invoice_item.view', 'invoice_item.create', 'invoice_item.edit', 'invoice_item.delete',
+            
+            // Paiements - Toutes les actions
+            'payment.view', 'payment.process', 'payment.calculate', 'payment.hospitalisation',
+            
+            // Soldes Assurance - Toutes les actions
+            'insurance_balance.view', 'insurance_balance.show', 'insurance_balance.payment', 'insurance_balance.export',
+        ];
+    }
+    
+    private function getSecretairePermissions(){
+        // SECRETAIRE - Permissions administratives et accueil
+        return [
+            // Dashboard
+            'dashboard.view',
+            
+            // Patients - Gestion complète (accueil)
+            'patient.view', 'patient.create', 'patient.edit', 'patient.add_file',
+            
+            // Rendez-vous - Gestion complète
+            'appointment.view', 'appointment.create', 'appointment.edit', 'appointment.delete',
+            
+            // Consultations - Programmation uniquement
+            'consultation.view', 'consultation.create',
+            
+            // Départements et Services - Lecture
+            'department.view', 'service.view',
+            
+            // Employés - Consultation
+            'employee.view', 'employee.profile',
+            
+            // Médicaments - Consultation
+            'medicament.view',
+            
+            // Packages - Consultation et vente
+            'package.view', 'package.sale',
+            
+            // Tests - Programmation
+            'test.view',
+            
+            // Hospitalisations - Admission
+            'hospitalisation.view', 'hospitalisation.create',
+            
+            // Chambres - Gestion disponibilité
+            'chambre.view',
+            
+            // Assurances patients - Vérification couverture
+            'insurance_company.view', 'insurance_coverage.view', 'patient_insurance.view',
+            
+            // Paiements - Consultation uniquement
+            'payment.view', 'payment.calculate',
+        ];
+    }
+
+
 }

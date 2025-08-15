@@ -11,7 +11,7 @@ class Patient extends Model
 	protected $fillable =
 	[
         'first_name', 'middle_name', 'last_name', 'age', 'gender', 'birth_date', 'country', 'state', 'district' , 'location' , 'occupation' ,
-        'description' , 'relative_name' , 'relative_phone' , 'marital_status', 'blood_group','user_id', 'amount_due'
+        'description' , 'relative_name' , 'relative_phone' , 'marital_status', 'blood_group','user_id'
     ];
 
 
@@ -185,18 +185,6 @@ class Patient extends Model
     public function scopeWithoutInsurance($query)
     {
         return $query->whereDoesntHave('activeInsurances');
-    }
-
-    public function credit($amount)
-    {
-        $this->amount_due = (float)$this->amount_due + (float)$amount;
-        $this->save();
-    }
-
-    public function debit($amount)
-    {
-        $this->amount_due = (float)$this->amount_due - (float)$amount;
-        $this->save();
     }
 
 }

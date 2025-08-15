@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\InsuranceCompany;
 use App\Models\Invoice;
+use App\Models\Paiement;
 use App\Models\Transaction;
 use Illuminate\Support\Facades\DB;
 
@@ -256,83 +257,89 @@ class InsuranceBalanceController extends Controller
     }
 
     public function ProcessPaiement(Request $request){
-        
-        dd($request->all());
-        
+
         $request->validate([
             'insurance_companies_id'   => 'required|exists:insurance_companies,id',
-            'patient_id'   => 'required|exists:patients,id',
-            'montant_assurance' => 'nullable|numeric|min:0',
-            'source_assurance' => 'nullable|string',
-            'description_assurance' => 'nullable|string',
+            'payment_date'   => 'nullable|date',
+            'montant' => 'nullable|numeric|min:0',
+            'notes' => 'nullable|string'
         ]);
 
         DB::beginTransaction();
 
-        try {
+        // try {
 
             $insurance = InsuranceCompany::findOrFail($request->insurance_companies_id);
             // Récupérer les factures avec pagination
             $invoices = Invoice::where('insurance_company_id', $insurance->id)
-                        ->with(['transaction.patient'])
-                        ->whereIn('insurance_status', ['approved', 'pending'])
-                        ->where('patient_amount_status', 'paid')
-                        ->orderBy('created_at', 'desc')
-                        ->get();
+                            ->with(['transaction.patient'])
+                            ->whereIn('insurance_status', ['approved', 'pending'])
+                            ->where('patient_amount_status', 'paid')
+                            ->orderBy('created_at', 'desc')
+                            ->get();
 
-            $transactions = $patient->getPendingAndPartialTransaction();
-
+            $montantAssurance = (float) $request->montant;
+            
             foreach($invoices as $key => $invoice) {
 
-                $montantAssurance = (float) $request->montant_assurance;
-
+                $transaction = $invoice->transaction;
+                
                 if ($montantAssurance > 0) {
-                    foreach ($transactions as $transaction) {
-                        if ($montantAssurance <= 0) break;
 
-                        $invoice = $transaction->invoice;
-                        if (!$invoice) continue;
+                    $resteAssurance = $invoice->insurance_amount - $this->getPaidAmount($transaction->id, 'remboursement');
+                    
+                    if ($resteAssurance <= 0) continue;
 
-                        $resteAssurance = $invoice->insurance_amount - $this->getPaidAmount($invoice->id, 'ASSURANCE');
-                        if ($resteAssurance <= 0) continue;
+                    $montantAPayer = min($montantAssurance, $resteAssurance);
 
-                        $montantAPayer = min($montantAssurance, $resteAssurance);
+                    // Enregistrer le paiement assurance
+                    $this->createPaiement($transaction, $transaction->patient_id, 'remboursement', $montantAPayer, $request->notes);
 
-                        // Enregistrer le paiement assurance
-                        $this->createPaiement($transaction, $patient, 'ASSURANCE', $montantAPayer, $request->description_assurance);
+                    // Mettre à jour la facture
+                    if (($resteAssurance - $montantAPayer) <= 0) {
+                        
+                        $invoice->insurance_status   = 'paid';
+                        
+                        $transaction->montant_payer += $montantAPayer;
+                        $transaction->status         = 'paid';
 
-                        // Mettre à jour la facture
-                        if (($resteAssurance - $montantAPayer) <= 0) {
-                            $invoice->insurance_status = 'paid';
-                        } else {
-                            $invoice->insurance_status = 'pending';
-                        }
+                    } else {
+                        $invoice->insurance_status   = 'approved';
 
-                        $invoice->save();
-
-                        $montantAssurance -= $montantAPayer;
+                        $transaction->montant_payer += $montantAPayer;
+                        $transaction->status         = 'approved';
                     }
+
+
+                    $invoice->save();
+                    $transaction->save();
+
+                    $montantAssurance -= $montantAPayer;
+
                 }
                 DB::commit();
             }
 
-        } catch (\Exception $e) {
-            DB::rollback();
-            return redirect()->back()->with('error', 'Erreur lors du traitement: ' . $e->getMessage());
-        }
+        return redirect()->back()->with('success', "Paiement groupé enregistré avec succès. Total: " . number_format($montantAPayer, 0, ',', ' ') . " FCFA");
+
+        // } catch (\Exception $e) {
+        //     DB::rollback();
+        //     return redirect()->back()->with('error', 'Erreur lors du traitement: ' . $e->getMessage());
+        // }
     }
 
 
     /**
      * Crée un paiement
      */
-    private function createPaiement($transaction, $patient, $source, $montant, $description)
+    private function createPaiement($transaction, $patientId, $source, $montant, $description)
     {
-        Paiement::create([
+       return Paiement::create([
             'user_id' => auth()->id(),
-            'patient_id' => $patient->id,
+            'patient_id' => $patientId,
             'transaction_id' => $transaction->id,
-            'source' => strtoupper($source),
+            // 'source' => strtoupper($source),
+            'type' => $source,
             'description' => $description,
             'montant' => $montant,
         ]);
@@ -341,13 +348,10 @@ class InsuranceBalanceController extends Controller
     /**
      * Récupère le montant déjà payé par type (patient ou assurance)
      */
-    private function getPaidAmount($invoiceId, $type)
+    private function getPaidAmount($transctionId, $type)
     {
-        return Paiement::whereHas('transaction.invoice', function($q) use ($invoiceId) {
-            $q->where('id', $invoiceId);
-        })
-        ->where('source', strtoupper($type))
-        ->sum('montant');
+        return Paiement::where('transaction_id', $transctionId)
+                        ->where('type', $type)->sum('montant');
     }
 
     /**

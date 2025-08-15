@@ -191,7 +191,7 @@
 <div class="modal fade" id="addNewPaiementModal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form action="#" method="post">
+            <form action="{{ route('insurance.balances.payment')}}" method="post">
                 @csrf
                 @method('POST')
                 <div class="modal-header">
@@ -203,6 +203,8 @@
                         <span>&times;</span>
                     </button>
                 </div>
+
+                <input type="hidden" name="insurance_companies_id" value="{{ $insurance->id }}">
                 
                 <div class="modal-body">
                     <div class="alert alert-info">

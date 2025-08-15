@@ -542,9 +542,6 @@ class PaymentController extends Controller
                     $account->balance -= $montantAPayer;
                     $account->save();
 
-                    $patient->amount_due -= $montantAPayer;
-                    $patient->save();
-
                     $montantPatient -= $montantAPayer;
                 }
             }

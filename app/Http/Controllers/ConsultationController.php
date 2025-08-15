@@ -270,7 +270,6 @@ class ConsultationController extends Controller
 
         $patient = Patient::find($request->patient_id);
         $patient->first_visit = false;
-        $patient->amount_due += $consultation_amount;
         $patient->save();
 
         if(!$patient->antecedant->exists()){

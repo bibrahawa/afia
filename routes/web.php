@@ -237,7 +237,7 @@ Route::middleware('auth')->group(function () {
             ->name('payment');
         
         // Paiement groupé
-        Route::post('/paiement', [InsuranceBalanceController::class, 'ProcessPaiement'])->name('paiement.insurance');
+        Route::post('/paiement', [InsuranceBalanceController::class, 'ProcessPaiement'])->name("payment");
         
         // Export CSV
         Route::get('/export/csv', [InsuranceBalanceController::class, 'export'])
