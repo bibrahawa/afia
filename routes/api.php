@@ -4,7 +4,6 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\Api\Api_PatientInsuranceController;
 use App\Http\Controllers\Api\Api_InsuranceCalculationController;
-use App\Http\Controllers\Api\Api_InsuranceVerificationController;
 use App\Http\Controllers\Api\Api_InsuranceCompanyController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\InsuranceBalanceController;
