@@ -12,23 +12,11 @@ use App\Http\Controllers\{
 };
 
 
-Route::get('val', function(){
-    
-    $consultations = App\Models\Patient::find(2)->transactions()
-                                ->where('status', '!=', 'paid')
-                                ->where('status', '!=', 'approved')
-                                ->with('transactionable')
-                                ->get();
-
-    dd($consultations);
-
-});
-
 // Authentification
 Route::get('/', [DashboardController::class, 'index'])->name('rdv');
 
 Route::middleware('guest')->group(function () {
-    Route::view('login', 'auth.login')->name('login');
+    Route::view('login', 'auth.login');
     Route::post('login', [AuthController::class, 'login'])->name('login');
 });
 
