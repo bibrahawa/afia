@@ -162,15 +162,15 @@ Route::middleware('auth')->group(function () {
 
     // Gestion des assurances
     Route::prefix('insurance')->group(function () {
-        Route::resource('insurance-companies', InsuranceCompanyController::class)->except(['create', 'edit', 'show', 'update']);
+        Route::resource('insurance-companies', InsuranceCompanyController::class)->except(['create', 'edit', 'show', 'update', 'delete']);
         Route::put('insurance-companies/update', [InsuranceCompanyController::class, 'update'])->name('insurance-companies.update');
         Route::delete('insurance-companies/delete', [InsuranceCompanyController::class, 'destroy'])->name('insurance-companies.destroy');
         
-        Route::resource('insurance-coverages', InsuranceCoverageController::class)->except(['create', 'edit', 'show']);
+        Route::resource('insurance-coverages', InsuranceCoverageController::class)->except(['create', 'edit', 'show', 'delete', 'update']);
         Route::put('insurance-coverages/update', [InsuranceCoverageController::class, 'update'])->name('insurance-coverages.update');
         Route::delete('insurance-coverages/delete', [InsuranceCoverageController::class, 'destroy'])->name('insurance-coverages.destroy');
 
-        Route::resource('insurance_patient', PatientInsuranceController::class)->except(['create', 'edit', 'show']);
+        Route::resource('insurance_patient', PatientInsuranceController::class)->except(['create', 'edit', 'show', 'delete', 'update']);
         Route::put('insurance_patient/update', [PatientInsuranceController::class, 'update'])->name('insurance_patient.update');
         Route::delete('insurance_patient/delete', [PatientInsuranceController::class, 'destroy'])->name('insurance_patient.destroy');
 
