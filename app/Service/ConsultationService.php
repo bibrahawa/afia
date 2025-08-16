@@ -4,6 +4,7 @@ namespace App\Service;
 
 use App\Models\Transaction;
 use App\Models\Paiement;
+use App\Models\InsuranceCoverage;
 use App\Models\Consultation;
 use App\Models\Account;
 use Illuminate\Support\Facades\DB;
@@ -58,6 +59,145 @@ class ConsultationService
             $consultation->packages->sum('price') +
             $consultation->tests->sum('amount') +
             $consultation->medicaments->sum('amount');
+    }
+
+    public function calculateAmountAndReturnItems($consultationItem, $isConsultation = true)
+    {
+        $items = [];
+        $totalAmount = 0;
+        $consultation = null;
+        $transaction = null;
+
+        if($isConsultation){
+            $consultation = $consultationItem;
+            $transaction = $consultationItem->transaction;
+            
+        }else{
+            $consultation = $consultationItem->transactionable;
+            $transaction = $consultationItem;
+        }
+
+        $insuranceId = $consultation->patient->activeInsurances()?->first()->insurance_company_id;
+        // Services
+        foreach ($consultation->services ?? [] as $service) {
+
+            $amount = $this->getAmount("App\\Models\\Service", $service->id, $insuranceId, $service);
+
+            $items[] = [
+                'acte_type'   => 'App\\Models\\Service',
+                'acte_id'     => $service->id,
+                'description' => $service->name,
+                'unit_price'  => $amount,
+                'quantity'    => 1,
+                'total'       => $amount,
+            ];
+
+            $totalAmount += $amount;
+        }
+
+        // Packages
+        foreach ($consultation->packages ?? [] as $package) {
+            $amount = $this->getAmount("App\\Models\\Package", $package->id, $insuranceId, $package);
+
+            $items[] = [
+                'acte_type'   => 'App\\Models\\Package',
+                'acte_id'     => $package->id,
+                'description' => $package->name,
+                'unit_price'  => $amount,
+                'quantity'    => 1,
+                'total'       => $amount,
+            ];
+
+            $totalAmount += $amount;
+        }
+
+        // Tests
+        foreach ($consultation->tests ?? [] as $test) {
+            $amount = $this->getAmount("App\\Models\\Test", $test->id, $insuranceId, $test);
+
+            $items[] = [
+                'acte_type'   => 'App\\Models\\Test',
+                'acte_id'     => $test->id,
+                'description' => $test->name,
+                'unit_price'  => $amount,
+                'quantity'    => 1,
+                'total'       => $amount,
+            ];
+
+            $totalAmount += $amount;
+        }
+
+        // Médicaments
+        foreach ($consultation->medicaments ?? [] as $medicament) {
+            $amount = $this->getAmount("App\\Models\\Medicament", $medicament->id, $insuranceId, $medicament);
+
+            $items[] = [
+                'acte_type'   => 'App\\Models\\Medicament',
+                'acte_id'     => $medicament->id,
+                'description' => $medicament->nom,
+                'unit_price'  => $amount,
+                'quantity'    => 1,
+                'total'       => $amount,
+            ];
+
+            $totalAmount += $amount;
+        }
+
+        if($transaction?->transactionable_type == "App\\Models\\Hospitalisation"){
+            
+            $hospitalisations = [$transaction->transactionnable];
+
+            foreach ($hospitalisations as $hospitalisation) {
+                
+                $amount = $this->getAmount("App\\Models\\Hospitalisation", $hospitalisation->id, $insuranceId, $hospitalisation);
+                
+                $items[] = [
+                    'acte_type'   => 'App\\Models\\Hospitalisation',
+                    'acte_id'     => $hospitalisation->id,
+                    'description' => $hospitalisation->date_entree." au ".$hospitalisation->date_sortie_effective,
+                    'unit_price' => $this->getAmount("App\\Models\\Hospitalisation", $hospitalisation->id, $insuranceId, $hospitalisation),
+                    'quantity'   => $hospitalisation->nombre_jours,
+                    'total'     => $this->getAmountHospitalisation("App\\Models\\Hospitalisation", $hospitalisation->id, $insuranceId, $hospitalisation),
+                ];
+
+                $totalAmount += $hospitalisation->total_payer;
+            }
+        }
+
+        return [
+            'items' => $items,
+            'total_amount' => $totalAmount,
+        ];
+    }
+
+    public static function calculateAmountWithAssurance(Consultation $consultation) {
+
+        $actes = [];
+        $totalAmount = 0;
+
+        $insuranceId = $consultation->patient->activeInsurances()?->first()->insurance_company_id;
+
+        // Services
+        foreach ($consultation->services ?? [] as $item) {
+            $totalAmount += getAmount("App\\Models\\Service", $item->id, $insuranceId, $item);
+        }
+
+        // Packages
+        foreach ($consultation->packages ?? [] as $item) {
+            $totalAmount += getAmount("App\\Models\\Package", $item->id, $insuranceId, $item);
+        }
+
+        // Tests
+        foreach ($consultation->tests ?? [] as $item) {
+            $totalAmount += getAmount("App\\Models\\Test", $item->id, $insuranceId, $item);
+        }
+        
+        // Médicaments
+        foreach ($consultation->medicaments ?? [] as $item) {
+            $totalAmount += getAmount("App\\Models\\Medicament", $item->id, $insuranceId, $item);
+        }
+
+        return $totalAmount;
     }
 
     private function getConsultationAndHospitalisationItems($patient)
@@ -253,14 +393,16 @@ class ConsultationService
 
         $consultation = $transaction->transactionable;
 
-            // Services
+        $insuranceId = $transaction->patient->activeInsurances()?->first()->insurance_company_id;
+
+        // Services
         foreach ($consultation->services ?? [] as $item) {
             $actes[] = [
                     'id' => $item->id,
                     'type' => 'Service',
                     'nom' => $item->name,
                     'description' => $item->name,
-                    'prix_unitaire' => $item->amount,
+                    'prix_unitaire' => $this->getAmount("App\\Models\\Service", $item->id, $insuranceId, $item),
                     'quantite' => 1,
                     'created_at' => $item->created_at
             ];
@@ -273,7 +415,7 @@ class ConsultationService
                     'type' => 'Package',
                     'nom' => $item->name,
                     'description' => $item->name,
-                    'prix_unitaire' => $item->amount,
+                    'prix_unitaire' => $this->getAmount("App\\Models\\Package", $item->id, $insuranceId, $item),
                     'quantite' => 1,
                     'created_at' => $item->created_at
             ];
@@ -286,7 +428,7 @@ class ConsultationService
                     'type' => 'Test',
                     'nom' => $item->name,
                     'description' => $item->name,
-                    'prix_unitaire' => $item->amount,
+                    'prix_unitaire' => $this->getAmount("App\\Models\\Test", $item->id, $insuranceId, $item),
                     'quantite' => 1,
                     'created_at' => $item->created_at
             ];
@@ -299,30 +441,71 @@ class ConsultationService
                     'type' => 'Medicament',
                     'nom' => $item->nom,
                     'description' => $item->nom,
-                    'prix_unitaire' => $item->amount,
+                    'prix_unitaire' => $this->getAmount("App\\Models\\Medicament", $item->id, $insuranceId, $item),
                     'quantite' => 1,
                     'created_at' => $item->created_at
             ];
         }
 
-            // Hospitalisations
+        // Hospitalisations
         if($transaction->transactionable_type == 'App\Models\Hospitalisation'){
             $items = [$consultation];
             foreach ($items as $item) {
+
                 $actes[] = [
                         'id' => $item->id,
                         'type' => 'Hospitalisation',
                         'nom' => "Hospitalisation",
                         'description' => $item->date_entree." au ".$item->date_sortie_effective,
-                        'prix_unitaire' => $item->chambre->prix_par_jour,
+                        'prix_unitaire' => $this->getAmount("App\\Models\\Hospitalisation", $item->id, $insuranceId, $item),
                         'quantite' => $item->nombre_jours,
-                        'total' => $item->total_payer,
+                        'total' => $this->getAmountHospitalisation("App\\Models\\Hospitalisation", $item->id, $insuranceId, $item),
                         'created_at' => $item->created_at
                 ];
             }
         }
 
         return $actes;
+    }
+
+    /**
+     * Returns the amount of a service item covered by the insurance, if any.
+     * Otherwise, returns the amount of the service item.
+     *
+     * @param string $serviceType The type of the service item.
+     * @param int $serviceId The ID of the service item.
+     * @param int $insuranceId The ID of the insurance company.
+     * @param mixed $acte The service item.
+     * @return float The amount of the service item covered by the insurance, if any. Otherwise, returns the amount of the service item.
+     */
+    private function getAmount($serviceType, $serviceId, $insuranceId, $acte){
+
+        $item = $this->getCoverageItem($serviceType, $serviceId, $insuranceId);
+
+        return (!empty($item))
+                ? $item->acte_price 
+                : $acte?->amount ?? $acte?->price ?? $acte->chambre->prix_par_jour;
+    }
+    
+    private function getAmountHospitalisation($serviceType, $serviceId, $insuranceId, $acte){
+        $item = $this->getCoverageItem($serviceType, $serviceId, $insuranceId);
+
+        return (!empty($item))
+                ? ($item->acte_price * $acte->nombre_jours) 
+                : $acte->total_payer;
+    }
+
+    private function getCoverageItem($serviceType, $serviceId, $insuranceId){
+        
+        return InsuranceCoverage::where('insurance_company_id', $insuranceId)
+                    ->where('coverageable_type', $serviceType)
+                    ->where('coverageable_id', $serviceId)
+                    ->where('status', 'active')
+                    ->where('valid_from', '<=', now())
+                    ->where(function($query) {
+                        $query->whereNull('valid_to')
+                            ->orWhere('valid_to', '>=', now());
+                    })->first();
     }
 }
 

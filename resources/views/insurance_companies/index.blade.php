@@ -69,9 +69,9 @@
                             {{-- <th>Code</th> --}}
                             <th>Contact</th>
                             <th>Téléphone</th>
-                            <th>Total</th>
-					        <th>Part Patient</th>
-					        <th>Montant Du</th>
+                            {{-- <th>Total</th> --}}
+					        {{-- <th>Part Patient</th> --}}
+					        {{-- <th>Montant Du</th> --}}
                             {{-- <th>Email</th> --}}
                             <th>Statut</th>
                             <th style="width: 10%">Action</th>
@@ -84,9 +84,9 @@
                             {{-- <th>Code</th> --}}
                             <th>Contact</th>
                             <th>Téléphone</th>
-                            <th>Total</th>
-					        <th>Part Patient</th>
-					        <th>Montant Du</th>
+                            {{-- <th>Total</th> --}}
+					        {{-- <th>Part Patient</th> --}}
+					        {{-- <th>Montant Du</th> --}}
                             {{-- <th>Email</th> --}}
                             <th>Statut</th>
                             <th>Action</th>
@@ -108,7 +108,7 @@
                                             -
                                         @endif
                                     </td>
-                                    <td>
+                                    {{-- <td>
                                         @if($company->email)
                                             <a href="mailto:{{ $company->email }}" class="text-decoration-none">
                                                 {{ $company->email }}
@@ -116,7 +116,7 @@
                                         @else
                                             -
                                         @endif
-                                    </td>
+                                    </td> --}}
                                     <td>
                                         @php
                                             $statusClass = match($company->status) {

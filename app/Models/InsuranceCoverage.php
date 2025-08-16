@@ -13,7 +13,7 @@ class InsuranceCoverage extends Model
         'insurance_company_id', 'coverageable_type', 'coverageable_id',
         'max_amount', 'min_amount', 'max_usage_count',
         'usage_period', 'coverage_amount_limit', 'conditions', 'valid_from',
-        'valid_to', 'requires_preauthorization', 'status'
+        'valid_to', 'requires_preauthorization', 'status', 'acte_price'
     ];
 
     protected $casts = [

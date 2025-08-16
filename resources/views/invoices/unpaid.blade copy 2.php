@@ -193,7 +193,7 @@
                                                                     <th class="border-0 fw-semibold">Description</th>
                                                                     <th class="border-0 fw-semibold text-end">Prix Unit.</th>
                                                                     <th class="border-0 fw-semibold text-center">Qté</th>
-                                                                    {{-- <th class="border-0 fw-semibold text-end">Sous-total</th> --}}
+                                                                    <th class="border-0 fw-semibold text-end">Sous-total</th>
                                                                     <th class="border-0 fw-semibold text-end">Remise</th>
                                                                     <th class="border-0 fw-semibold text-end">Net</th>
                                                                     <th class="border-0 fw-semibold text-end">Après Assurance</th>
@@ -205,7 +205,7 @@
                                                             <tfoot class="bg-light">
                                                                 <tr>
                                                                     <td colspan="3" class="fw-bold text-end border-0">Total:</td>
-                                                                    {{-- <td class="fw-bold text-end border-0" id="totalOriginal">0 GNF</td> --}}
+                                                                    <td class="fw-bold text-end border-0" id="totalOriginal">0 GNF</td>
                                                                     <td class="fw-bold text-end border-0 text-success" id="totalRemise">0 GNF</td>
                                                                     <td class="fw-bold text-end border-0 text-info" id="totalNet">0 GNF</td>
                                                                     <td class="fw-bold text-end border-0 text-primary" id="totalApresAssurance">0 GNF</td>
@@ -463,6 +463,7 @@
                         <td class="text-center">
                             <span class="badge bg-secondary">${acte.quantite}</span>
                         </td>
+                        <td class="text-end fw-bold sous-total">${numberFormat(sousTotal)} GNF</td>
                         <td class="text-end">
                             <div class="input-group input-group-sm">
                                 <input type="number" 

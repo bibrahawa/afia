@@ -200,9 +200,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/hospitalisation/{hospitalisation}/paiement', [PaymentController::class, 'paiementHospitalisation'])->name('hospitalisation.paiement');
     
     // Routes pour la gestion des assurances
-    // Route::resource('insurance-companies', InsuranceCompanyController::class);
-    // Route::resource('patient-insurances', PatientInsuranceController::class);
-    // Route::resource('insurance-coverages', InsuranceCoverageController::class);
     Route::resource('insurance-claims', InsuranceClaimController::class);
     
     // Routes pour les factures

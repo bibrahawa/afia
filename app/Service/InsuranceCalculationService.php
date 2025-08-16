@@ -31,12 +31,11 @@ class InsuranceCalculationService{
 
         $invoice = $transaction->invoice;
 
-        $items = $this->getTransactionAndHospitalisationItems($transaction);
+        $items = $this->consultationItem->calculateAmountAndReturnItems($transaction->transactionable);
 
         try {
             // Calculer la couverture
             $calculation = $this->calculateInsuranceCoverage($transaction->patient_id, $items['items']);
-
             // Mettre à jour la facture principale
             $invoice->update([
                 'transaction_id' => $transaction->id,
@@ -56,6 +55,7 @@ class InsuranceCalculationService{
             $details = $calculation['details'] ?: $items['items'];
             $data = $items['items'];
             foreach ($details as $index => $detail) {
+                
                 $source = array_merge($item ?? [], $detail);
                 InvoiceItem::create([
                     'invoice_id'                   => $invoice->id,
@@ -99,12 +99,12 @@ class InsuranceCalculationService{
     }
 
 
-    public function createInvoiceForConsulation($patientId, $transactionId, $consultation)
+    public function createInvoiceForConsulation($patientId, $transactionId, $consultation, $items)
     {
 
         $itemCoverage = [];
 
-        $items = $this->getConsultationItems($consultation);
+        // $items = $this->getConsultationItems($consultation);
             
         $calculation = $this->calculateInsuranceCoverage($patientId, $items['items']);
         // Créer la facture principale
@@ -325,12 +325,13 @@ class InsuranceCalculationService{
         $itemDetails = [];
 
         foreach ($items as $item) {
-            $itemTotal = $item['total'];
-            $totalAmount += $itemTotal;
+            
             
             $itemCoverage = $this->calculateItemCoverage($item, $activeInsurances);
             $totalInsuranceCoverage += $itemCoverage['insurance_amount'];
-            $itemDetails[] = $itemCoverage;
+            $itemTotal      = $itemCoverage['item_amount'];
+            $totalAmount   += $itemTotal;
+            $itemDetails[]  = $itemCoverage;
             
             // Collecter les assurances utilisées
             foreach ($itemCoverage['insurances_applied'] as $insurance) {
@@ -379,6 +380,10 @@ class InsuranceCalculationService{
                 $coveragePercentage = $patientInsurance->coverage_percentage;
                 // $coveragePercentage = $coverage->coverage_percentage;
                 $maxAmount = $coverage->coverage_amount_limit;
+
+                $remainingAmount = $coverage->acte_price;
+                $itemAmount      = $remainingAmount;
+
             }else {
                 // Utiliser le pourcentage par défaut de l'assurance
                 // $coveragePercentage = $patientInsurance->insuranceCompany->default_coverage_percentage;
@@ -426,7 +431,7 @@ class InsuranceCalculationService{
         ];
     }
 
-    public function getConsultationItems($consultation)
+    public function getConsultationItemsWithAmount($consultation)
     {
 
         $items = [];
@@ -486,6 +491,23 @@ class InsuranceCalculationService{
             ];
 
             $totalAmount += $medicament->amount;
+        }
+
+        if($consultation->transaction->transactionable_type == "App\\Models\\Hospitalisation"){
+            $hospitalisations = $consultation->transaction->transactionnable;
+            foreach ($hospitalisations as $hospitalisation) {
+
+                $items[] = [
+                    'acte_type'   => 'App\\Models\\Hospitalisation',
+                    'acte_id'     => $hospitalisation->id,
+                    'description' => $hospitalisation->date_entree." au ".$hospitalisation->date_sortie_effective,
+                    'unit_price'  => $hospitalisation->chambre->prix_par_jour,
+                    'quantity'    => $hospitalisation->nombre_jours,
+                    'total'       => $hospitalisation->total_payer,
+                ];
+
+                $totalAmount += $hospitalisation->total_payer;
+            }
         }
 
         return [

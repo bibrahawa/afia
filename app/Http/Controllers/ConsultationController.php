@@ -23,10 +23,12 @@ use DB;
 class ConsultationController extends Controller
 {
     protected $insuranceCalculation;
+    protected $consultationService;
 
-    public function __construct(InsuranceCalculationService $insuranceCalculation)
+    public function __construct(InsuranceCalculationService $insuranceCalculation, ConsultationService $consultationService)
     {
         $this->insuranceCalculation = $insuranceCalculation;
+        $this->consultationService = $consultationService;
     }
 
     public function index()
@@ -82,44 +84,38 @@ class ConsultationController extends Controller
                     'signes_cliniques' => explode(',', $request->signes_cliniques)
                 ]);
 
-            // $consultation = Consultation::create([
-            //     ...$request->only(['patient_id', 'motif', 'diagnostic', 'observation', 'prochain_rdv']),
-            //     'medecin_id' => auth()->user()->employee->id,
-            //     'department_id' => auth()->user()->employee->department_id,
-            //     'signes_cliniques' => explode(',', $request->signes_cliniques)
-            // ]);
+                ConsultationService::attachItems($consultation, json_decode($request->selected_items, true), json_decode($request->billing_status, true));
 
-            ConsultationService::attachItems($consultation, json_decode($request->selected_items, true), json_decode($request->billing_status, true));
+                $consultation->load(['services', 'packages', 'tests', 'medicaments']);
 
-            $consultation->load(['services', 'packages', 'tests', 'medicaments']);
+                $items  = $this->consultationService->calculateAmountAndReturnItems($consultation);
+                $amount = $items['total_amount'];
 
-            $amount = ConsultationService::calculateAmount($consultation);
-
-            $accountID = ConsultationService::mettreAJourCompte($request->patient_id, Patient::class, $amount, 'credit');
+                $accountID = ConsultationService::mettreAJourCompte($request->patient_id, Patient::class, $amount, 'credit');
             
-            $transaction = $consultation->transaction()->create([
-                'user_id'    => auth()->id(),
-                'account_id' => $accountID,
-                'patient_id' => $validated['patient_id'],
-                'description'=> $consultation->motif,
-                'tax_amount' => 0,
-                'discount'   => 0,
-                'sub_total'  => $amount,
-                'total'      => $amount
-            ]);
+                $transaction = $consultation->transaction()->create([
+                    'user_id'    => auth()->id(),
+                    'account_id' => $accountID,
+                    'patient_id' => $validated['patient_id'],
+                    'description'=> $consultation->motif,
+                    'tax_amount' => 0,
+                    'discount'   => 0,
+                    'sub_total'  => $amount,
+                    'total'      => $amount
+                ]);
 
-            $consultation->update(['est_facturee' => true]);
+                $consultation->update(['est_facturee' => true]);
 
-            $this->insuranceCalculation->createInvoiceForConsulation($request->patient_id, $transaction->id, $consultation);
+                $this->insuranceCalculation->createInvoiceForConsulation($request->patient_id, $transaction->id, $consultation, $items);
 
-            DB::commit();
+                DB::commit();
+                
+                return redirect()->route('consultation.index')->with('success', 'Consultation enregistrée.');
             
-            return redirect()->route('consultation.index')->with('success', 'Consultation enregistrée.');
-            
-        } catch (\Exception $e) {
-            DB::rollback();
-            return redirect()->back()->with('error', 'Erreur lors du traitement: ' . $e->getMessage());
-        }
+            } catch (\Exception $e) {
+                DB::rollback();
+                return redirect()->back()->with('error', 'Erreur lors du traitement: ' . $e->getMessage());
+            }
         
     }
 

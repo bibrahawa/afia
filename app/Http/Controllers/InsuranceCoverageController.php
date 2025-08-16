@@ -18,8 +18,9 @@ class InsuranceCoverageController extends Controller
         $services = \App\Models\Service::all();
         $medicaments = \App\Models\Medicament::all();
         $examens = \App\Models\Test::all();
+        $packages = \App\Models\Package::all();
 
-        return view('insurance_coverages.index', compact('coverages', 'insuranceCompanies', 'services', 'medicaments', 'examens'));
+        return view('insurance_coverages.index', compact('coverages', 'insuranceCompanies', 'services', 'medicaments', 'examens', 'packages'));
     }
 
     public function store(Request $request)
@@ -29,6 +30,7 @@ class InsuranceCoverageController extends Controller
             'coverageable_type' => 'required|string',
             'coverageable_id' => 'required|integer',
             'valid_from' => 'required|date',
+            'acte_price' => 'required|numeric|min:0'
         ]);
 
         $validated = $request->all();
@@ -54,6 +56,8 @@ class InsuranceCoverageController extends Controller
             'coverageable_type' => 'required|string',
             'coverageable_id' => 'required|integer',
             'valid_from' => 'required|date',
+            'acte_price' => 'required|numeric|min:0'
+
         ]);
 
         $insuranceCoverage = InsuranceCoverage::find($request->id);
