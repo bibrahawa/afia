@@ -24,13 +24,13 @@ class HandleAppointmentStatusChange
         switch ($newStatus) {
             case 'confirmed':
                 if ($oldStatus === 'pending') {
-                    SendAppointmentReminderJob::dispatch($appointment, 'confirmation')->delay(now()->addSeconds(5));
+                    SendAppointmentReminderJob::dispatch($appointment, 'confirmation')->delay(now()->addMinutes());
                 }
             break;
 
             case 'cancelled':
                 if (in_array($oldStatus, ['pending', 'confirmed'])) {
-                    SendAppointmentReminderJob::dispatch($appointment, 'cancellation')->delay(now()->addSeconds(5));
+                    SendAppointmentReminderJob::dispatch($appointment, 'cancellation')->delay(now()->addMinutes());
                 }
             break;
         }

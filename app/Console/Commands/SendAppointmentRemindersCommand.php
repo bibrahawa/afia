@@ -117,7 +117,7 @@ class SendAppointmentRemindersCommand extends Command
         foreach ($appointments as $appointment) {
             try {
 
-                SendAppointmentReminderJob::dispatchSync($appointment, $jobType);
+                SendAppointmentReminderJob::dispatch($appointment, $jobType)->delay(now()->addSeconds(2));
                 
                 // Marquer le rappel 24h comme envoyé
                 if ($type === '24h') {

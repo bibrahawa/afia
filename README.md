@@ -17,6 +17,8 @@
  *    * * * * * cd /path-to-your-project && php artisan schedule:run >> /dev/null 2>&1
 
  * * * * * cd /home/bibrah/Documents/PROJETS/PERSO/CLIENT/aprosafe && php artisan schedule:run >> /dev/null 2>&1
+
+ * * * * * cd /home/login/public_html/ton-projet && /usr/local/php8.2/bin/php artisan queue:work --stop-when-empty >> /dev/null 2>&1
  
  * 
  * 5. Variables d'environnement (.env):

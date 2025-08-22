@@ -17,7 +17,11 @@ return new class extends Migration
             $table->foreignId('patient_id')->constrained()->onDelete('cascade');
             $table->date('appointment_date');
             $table->time('appointment_time');
-            $table->enum('reason', ['consultation', 'controle', 'urgence', 'suivi', 'prevention', 'bilan', 'vaccination', 'autre']);
+
+            $table->enum('reason', ['consultation_gynecologie', 'consultation_desir_maternite', 'cpn', 'echographie_gynecologique', 
+                                    'echographie_obstetricale', 'interpretation_resultats', 'monnitoring_ovulation', 'pose_sterilet_gynecologie', 
+                                    'pose_implant', 'autre']);
+                                    
             $table->text('description')->nullable();
             $table->enum('status', ['pending', 'confirmed', 'cancelled', 'completed', 'no_show'])->default('pending');
             $table->text('notes')->nullable();

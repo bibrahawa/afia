@@ -107,15 +107,18 @@ class SendAppointmentReminderJob implements ShouldQueue
         $patientName = $appointment->patient->getFullNameAttribute();
         $doctorName = $appointment->employee->getFullNameAttribute();
         $appointmentDate = $appointment->getFormattedDateAttribute();
+        $appointmentTime = $appointment->appointment_datetime ? date('H:i', strtotime($appointment->appointment_datetime)) : '';
+
+        $clinicPhone = config('clinic.phone');
         
         $messages = [
-            'reminder_24h' => "Bonjour {$patientName}, rappel de votre rendez-vous avec Dr {$doctorName} demain ({$appointmentDate}). Merci de confirmer en répondant OUI ou d'annuler si nécessaire. Clinique Aprosafe.",
+            'reminder_24h' => "Bonjour {$patientName}, nous vous rappelons votre RDV avec Dr {$doctorName} demain ({$appointmentDate}). N'oubliez pas vos documents médicaux",
             
-            'reminder_2h' => "Rappel urgent {$patientName} : Votre RDV avec Dr {$doctorName} est dans 2h ({$appointmentDate}). N'oubliez pas d'apporter vos documents médicaux. Clinique Aprosafe.",
+            'reminder_2h' => "Rappel urgent {$patientName} : Votre RDV avec Dr {$doctorName} est dans 2h à {$appointmentTime}. Tel: {$clinicPhone}",
             
-            'confirmation' => "Confirmation {$patientName} : Votre rendez-vous avec Dr {$doctorName} le {$appointmentDate} est confirmé. Merci de votre confiance. Clinique Aprosafe.",
+            'confirmation' => "{$patientName} : Votre rendez-vous avec Dr {$doctorName} le {$appointmentDate} est confirmé. Arrivée conseillée 20min avant. Tel: {$clinicPhone}",
             
-            'cancellation' => "Annulation {$patientName} : Votre rendez-vous du {$appointmentDate} avec Dr {$doctorName} a été annulé. Veuillez nous contacter pour reporter. Clinique Aprosafe.",
+            'cancellation' => "Annulation {$patientName} : Votre RDV du {$appointmentDate} avec Dr {$doctorName} est annulé. Reprenez RDV via l'app ou appelez {$clinicPhone}",
             
             'rescheduling' => "Report {$patientName} : Votre rendez-vous avec Dr {$doctorName} a été reporté. Nouveau créneau : {$appointmentDate}. Merci de confirmer. Clinique Aprosafe."
         ];

@@ -60,11 +60,16 @@ class AppointmentController extends Controller
     public function store(Request $request)
     {
         
+        // |in:consultation_gynecologie', 'consultation_desir_maternite', 'cpn', 'echographie_gynecologique', 
+        //                             'echographie_obstetricale', 'interpretation_resultats', 'monnitoring_ovulation', 'pose_sterilet_gynecologie', 
+        //                             'pose_implant', 'autre
+
         $request->validate([
             'employee_id' => 'required|exists:employees,id',
             'appointment_date' => 'required|date|after_or_equal:today',
             'appointment_time' => 'required',
-            'reason' => 'required|in:consultation,controle,urgence,suivi,prevention,bilan,vaccination,autre',
+            'reason' => 'required|string|max:255',
+
             'description' => 'nullable|string|max:1000'
         ]);
 

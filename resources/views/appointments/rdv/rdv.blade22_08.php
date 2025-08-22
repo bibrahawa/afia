@@ -60,15 +60,13 @@
             <label for="reason">Motif principal</label>
             <select id="reason">
                 <option value="">Sélectionnez un motif</option>
-                <option value="consultation_gynecologie">Consultation gynécologie</option>
-                <option value="consultation_desir_maternite">Consultation pour désir de maternité</option>
-                <option value="cpn">Consultation pour suivi de maternité (CPN)</option>
-                <option value="echographie_gynecologique">Echographie gynécologique</option>
-                <option value="echographie_obstetricale">Echographie obstétricale</option>
-                <option value="interpretation_resultats">Interprétation des résultats</option>
-                <option value="monnitoring_ovulation">Monnitoring de l'ovulation</option>
-                <option value="pose_sterilet_gynecologie">Pose de Stérilet gynécologie</option>
-                <option value="pose_implant">Pose implant</option>
+                <option value="consultation">Consultation générale</option>
+                <option value="controle">Contrôle de routine</option>
+                <option value="urgence">Urgence</option>
+                <option value="suivi">Suivi médical</option>
+                <option value="prevention">Prévention</option>
+                <option value="bilan">Bilan de santé</option>
+                <option value="vaccination">Vaccination</option>
                 <option value="autre">Autre</option>
             </select>
         </div>
