@@ -8,7 +8,8 @@ use App\Http\Controllers\{
     TestController, ReportController, AccountController, AuthController,
     ProfileController, ConsultationController, MedicamentController,
     HospitalisationController, ChambreController, InsuranceClaimController, InsuranceCompanyController,
-    InsuranceCoverageController, InvoiceItemController, InvoicesController,PatientInsuranceController, PaymentController, InsuranceBalanceController
+    InsuranceCoverageController, InvoiceItemController, InvoicesController,PatientInsuranceController, 
+    PaymentController, InsuranceBalanceController, SmsController, SmsReportController
 };
 
 
@@ -28,6 +29,15 @@ Route::middleware('auth')->group(function () {
     // Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     // Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     // Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // Dans routes/web.php
+    Route::get('/sms/lists', [SmsController::class, 'smsLists'])->name('sms.lists');
+    Route::get('/sms/send', [SmsController::class, 'newSms'])->name('sms.new');
+    Route::post('/sms/send', [SmsController::class, 'send'])->name('sms.send');
+    Route::post('/sms/send-bulk', [SmsController::class, 'sendBulk'])->name('sms.send-bulk');
+
+    Route::get('/sms-report', [SmsReportController::class, 'index'])->name('admin.sms-report');
+    Route::post('/sms-report/resend-failed', [SmsReportController::class, 'resendFailed']);
 
     // Dashboard
     Route::get('/home', [DashboardController::class, 'admin'])->name('dashboard');

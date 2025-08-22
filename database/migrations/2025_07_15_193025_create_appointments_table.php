@@ -19,11 +19,12 @@ return new class extends Migration
             $table->time('appointment_time');
             $table->enum('reason', ['consultation', 'controle', 'urgence', 'suivi', 'prevention', 'bilan', 'vaccination', 'autre']);
             $table->text('description')->nullable();
-            $table->enum('status', ['pending', 'confirmed', 'cancelled', 'completed'])->default('pending');
+            $table->enum('status', ['pending', 'confirmed', 'cancelled', 'completed', 'no_show'])->default('pending');
             $table->text('notes')->nullable();
             $table->timestamp('confirmed_at')->nullable();
             $table->timestamp('cancelled_at')->nullable();
             $table->timestamps();
+            
         });
     }
 

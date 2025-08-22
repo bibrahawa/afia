@@ -14,7 +14,7 @@
             <p><strong class="font-semibold">Numéro de Réclamation:</strong> {{ $insuranceClaim->claim_number }}</p>
             <p><strong class="font-semibold">Facture ID:</strong> {{ $insuranceClaim->invoice_id }}</p>
             <p><strong class="font-semibold">Compagnie d'Assurance:</strong> {{ $insuranceClaim->insuranceCompany->name ?? 'N/A' }}</p>
-            <p><strong class="font-semibold">Patient:</strong> {{ $insuranceClaim->patient->name ?? 'N/A' }}</p>
+            <p><strong class="font-semibold">Patient:</strong> {{ $insuranceClaim->patient->getFullNameAttribute() ?? 'N/A' }}</p>
             <p><strong class="font-semibold">Montant Réclamé:</strong> {{ number_format($insuranceClaim->claimed_amount, 2) }}</p>
             <p><strong class="font-semibold">Montant Approuvé:</strong> {{ number_format($insuranceClaim->approved_amount, 2) ?? 'N/A' }}</p>
             <p><strong class="font-semibold">Montant Payé:</strong> {{ number_format($insuranceClaim->paid_amount, 2) }}</p>

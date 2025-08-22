@@ -16,9 +16,9 @@ use App\Models\Package;
 use App\Models\Antecedent;
 use App\Models\Invoice;
 use App\Models\FichierPatient;
-use App\Service\TransactionService;
-use App\Service\ConsultationService;
-use App\Service\InsuranceCalculationService;
+use App\Services\TransactionService;
+use App\Services\ConsultationService;
+use App\Services\InsuranceCalculationService;
 use DB;
 class ConsultationController extends Controller
 {
@@ -76,7 +76,7 @@ class ConsultationController extends Controller
 
         DB::beginTransaction();
         
-        try {
+        // try {
                 $consultation = Consultation::create([
                     ...$validated, // Utilisez $validated au lieu de $request->only()
                     'medecin_id' => auth()->user()->employee->id,
@@ -108,14 +108,37 @@ class ConsultationController extends Controller
 
                 $this->insuranceCalculation->createInvoiceForConsulation($request->patient_id, $transaction->id, $consultation, $items);
 
+                $patient = Patient::find($request->patient_id);
+                
+                $patient->first_visit = false;
+                $patient->save();
+
+                if(!$patient->antecedant()->exists()){
+                    
+                    /**
+                     * ✅ Ajout des antécédents médicaux ici
+                     */
+                    Antecedent::updateOrCreate(
+                        ['patient_id' => $request->patient_id], // clé de recherche
+                        [
+                            'antecedents_medicaux'           => $request->antecedents_medicaux,
+                            'antecedents_chirurgicaux'       => $request->antecedents_chirurgicaux,
+                            'antecedents_gyneco_obstetricaux'=> $request->antecedents_gyneco_obstetricaux,
+                            'antecedents_familiaux'          => $request->antecedents_familiaux,
+                            'allergies'                      => $request->allergies,
+                            'traitements_cours'              => $request->traitements_cours,
+                        ]
+                    );
+                }
+
                 DB::commit();
                 
                 return redirect()->route('consultation.index')->with('success', 'Consultation enregistrée.');
             
-            } catch (\Exception $e) {
-                DB::rollback();
-                return redirect()->back()->with('error', 'Erreur lors du traitement: ' . $e->getMessage());
-            }
+            // } catch (\Exception $e) {
+            //     DB::rollback();
+            //     return redirect()->back()->with('error', 'Erreur lors du traitement: ' . $e->getMessage());
+            // }
         
     }
 

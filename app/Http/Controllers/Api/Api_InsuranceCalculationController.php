@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api;
 use Illuminate\Http\Request;
 use App\Models\PatientInsurance;
 use App\Http\Controllers\Controller;
-use App\Service\InsuranceCalculationService;
+use App\Services\InsuranceCalculationService;
 
 
 class Api_InsuranceCalculationController extends Controller

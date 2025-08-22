@@ -20,6 +20,7 @@ use App\Models\Invoice;
 use App\Models\InsuranceClaim;
 use App\Models\InvoiceItem;
 use App\Models\Medicament;
+use App\Jobs\ProcessDoctorUnavailabilityJob;
 
 use Carbon\Carbon;
 
@@ -323,6 +324,16 @@ class DashboardController extends Controller
                 ->whereBetween('date', [$validated['start_date'], $validated['end_date']])
                 ->where('is_available', true) // Ne supprimer que les créneaux disponibles
                 ->delete();
+
+            // Marquer le médecin indisponible
+            $job = new ProcessDoctorUnavailabilityJob(
+                        auth()->id(),
+                        Carbon::parse($validated['start_date']),
+                        Carbon::parse($validated['end_date']),
+                        $validated['type']
+                    );
+
+            $job->handle();
 
             DB::commit();
             return redirect()->back()->with('success', 'Demande de congé soumise avec succès');

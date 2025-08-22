@@ -29,13 +29,22 @@ Route::get('departments', [AppointmentController::class, 'getDepartments']);
 Route::get('professionals/{id}', [AppointmentController::class, 'getProfessionals']);
 Route::get('appointments/slots', [AppointmentController::class, 'getAvailableSlots']);
 
-
 Route::get('appointments/slots/{id}', [AppointmentController::class, 'getAvailableSlotsByProfessional']);
 Route::get('appointments/slots/{id}/{date}', [AppointmentController::class, 'getAvailableSlotsByProfessionalAndDate']);
 Route::get('appointments/slots/{id}/{date}/{time}', [AppointmentController::class, 'getAvailableSlotsByProfessionalDateAndTime']);
 Route::get('appointments/slots/{id}/{date}/{time}/{duration}', [AppointmentController::class, 'getAvailableSlotsByProfessionalDateTimeAndDuration']);
 Route::get('available-slots', [AppointmentController::class, 'getAvailableSlots']);
 Route::post('appointments', [AppointmentController::class, 'store']);
+
+// Gestion des rendez-vous
+Route::post('/appointments/{appointment}/confirm', [AppointmentController::class, 'confirmAppointment']);
+Route::post('/appointments/{appointment}/cancel', [AppointmentController::class, 'cancelAppointment']);
+Route::post('/appointments/{appointment}/reschedule', [AppointmentController::class, 'rescheduleAppointment']);
+
+// Indisponibilité médecin (admin/médecins seulement)
+Route::post('/doctors/set-unavailability', [AppointmentController::class, 'setDoctorUnavailability'])
+    ->middleware('role:admin,doctor');
+
 
 Route::post('login', [AuthController::class, 'loginWithApi']);
 Route::post('register', [AuthController::class, 'register']);
@@ -55,7 +64,6 @@ Route::get('/insurance-companies/active', [Api_InsuranceCompanyController::class
 // Récupérer les actes médicaux d'un patient
 Route::get('/patient/{transactionId}/actes', [PatientController::class, 'getPatientActes']);
 
-    
 // Obtenir le solde d'une assurance spécifique
 Route::get('/balance/{insurance}', function($insuranceId) {
     $balance = DB::table('insurance_companies')

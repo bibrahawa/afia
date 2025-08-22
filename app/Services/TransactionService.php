@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Service;
+namespace App\Services;
 
 use App\Models\Transaction;
 use App\Models\Paiement;
@@ -109,9 +109,14 @@ class TransactionService
 
                     if ($paiement->save()) {
                         // Mettre à jour le statut de la transaction
-                        if ($transaction->montant_payer == $patient_amount) {
+                        if ($transaction->montant_payer == $patient_amount){
                             $transaction->status = 'approved';
-                        } else {
+                        }else if($transaction->montant_payer == $transaction->total){
+                            $transaction->status = 'paid';
+                            $transaction->invoice->update([
+                                'patient_amount_status' => 'paid'
+                            ]);
+                        }else{
                             $transaction->status = 'partial';
                         }
                         $transaction->save();

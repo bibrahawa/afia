@@ -43,7 +43,7 @@
             <option value="">Sélectionner un patient</option>
             @foreach ($patients as $patient)
                 <option value="{{ $patient->id }}" {{ old('patient_id', $insuranceClaim->patient_id ?? '') == $patient->id ? 'selected' : '' }}>
-                    {{ $patient->name }} (ID: {{ $patient->id }})
+                    {{ $patient->getFullNameAttribute() }} (ID: {{ $patient->id }})
                 </option>
             @endforeach
         </select>

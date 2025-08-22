@@ -32,7 +32,7 @@ class AppointmentSlot extends Model
     public function appointment()
     {
         return $this->hasOne(Appointment::class, 'employee_id', 'employee_id')
-            ->where('appointment_date', $this->date)
-            ->where('appointment_time', $this->time);
+                            ->where('appointment_date', $this->date)
+                            ->where('appointment_time', $this->time);
     }
 }

@@ -55,4 +55,9 @@ class Package extends Model
         return $query->where('department_id', $departmentId);
     }
 
+    public function coverage()
+    {
+        return $this->morphOne(InsuranceCoverage::class, 'coverageable');
+    }
+
 }

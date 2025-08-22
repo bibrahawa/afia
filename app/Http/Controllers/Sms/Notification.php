@@ -1,3 +1,6 @@
+<?php
+
+
 // ==================== INSTALLATION ET CONFIGURATION ====================
 
 /**
@@ -15,9 +18,6 @@
  * 
  * 4. Configuration cron (ajouter à crontab):
  *    * * * * * cd /path-to-your-project && php artisan schedule:run >> /dev/null 2>&1
-
- * * * * * cd /home/bibrah/Documents/PROJETS/PERSO/CLIENT/aprosafe && php artisan schedule:run >> /dev/null 2>&1
- 
  * 
  * 5. Variables d'environnement (.env):
  *    NIMBA_SMS_API_KEY=votre_clé_api
@@ -31,12 +31,6 @@
  * 7. Commandes utiles:
  *    # Test manuel des rappels
  *    php artisan appointments:send-reminders --type=24h --dry-run
-
-    # Commandes pour débugger les queues
-    php artisan queue:work --once  # Traiter un job et s'arrêter
-    php artisan queue:listen       # Écouter en continu
-    php artisan queue:failed       # Voir les jobs échoués
-    php artisan queue:clear
  *    
  *    # Test d'envoi SMS
  *    php artisan sms:test "+224123456789" "Test message"
@@ -50,10 +44,7 @@
  * - Dashboard admin à /admin/sms-report
  * - Métriques via les modèles AppointmentSmsLog
  * - Alertes en cas d'échec répétés (à implémenter selon besoins)
- **/
-
-//php artisan storage:link
-//mkdir -p storage/app/public/factures
+ */
 
 // Architecture technique :
 

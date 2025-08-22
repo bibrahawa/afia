@@ -7,7 +7,7 @@ use App\Models\Patient;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Models\Role;
-use App\Service\ConsultationService;
+use App\Services\ConsultationService;
 
 class PatientController extends Controller
 {
@@ -37,6 +37,7 @@ class PatientController extends Controller
     public function getPatientActes($transactionId)
     {
         try {
+            
             $transaction = Transaction::find($transactionId);
             // Récupérer les actes de la transactions en cours (non payée)
             $actes = $this->consultationItem->getActes($transaction);

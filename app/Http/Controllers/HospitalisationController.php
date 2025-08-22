@@ -8,7 +8,7 @@ use App\Models\Chambre;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
-use App\Service\TransactionService;
+use App\Services\TransactionService;
 
 class HospitalisationController extends Controller
 {
@@ -49,9 +49,9 @@ class HospitalisationController extends Controller
             'date_entree' => $request->date_entree,
             'nombre_jours' => $request->nombre_jours,
             'date_sortie_prevue' => $date_sortie,
-            'observation' => $request->observation,
+            'observation' => $request->observation
         ]);
-
+        
         // Marquer la chambre comme occupée
         Chambre::find($request->chambre_id)->update(['statut' => 'Occupée']);
 
@@ -118,13 +118,14 @@ class HospitalisationController extends Controller
         return redirect()->route('hospitalisations.index')->with('success', 'Hospitalisation supprimée.');
     }
 
-
     public function payer(Hospitalisation $hospitalisation)
     {
         // Durée réelle
         $dateDebut = \Carbon\Carbon::parse($hospitalisation->date_entree);
         $dateFin = $hospitalisation->date_sortie_effective ?? now();
         $nombreJours = ceil($dateDebut->diffInDays($dateFin) ?: 1);
+
+        dd($nombreJours);
 
         $prixJour = $hospitalisation->chambre->prix_par_jour;
         $total = $prixJour * $nombreJours;
@@ -194,6 +195,5 @@ class HospitalisationController extends Controller
 
         return $pdf->stream("Facture-{$factureNo}.pdf");
     }
-
 
 }

@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Service\InsuranceCalculationService;
-use App\Service\ConsultationService;
-use App\Service\TransactionService;
+use App\Services\InsuranceCalculationService;
+use App\Services\ConsultationService;
+use App\Services\TransactionService;
 use App\Models\Patient;
 use App\Models\Consultation;
 use App\Models\InsuranceCompany;
@@ -320,7 +320,7 @@ class PaymentController extends Controller
 
         DB::beginTransaction();
         
-        try {
+        // try {
 
             $montant = $request->montant;
 
@@ -343,10 +343,10 @@ class PaymentController extends Controller
             
             return redirect()->back()->with('success', 'Paiement traité avec succès');
             
-        } catch (\Exception $e) {
-            DB::rollback();
-            return redirect()->back()->with('error', 'Erreur lors du traitement: ' . $e->getMessage());
-        }
+        // } catch (\Exception $e) {
+        //     DB::rollback();
+        //     return redirect()->back()->with('error', 'Erreur lors du traitement: ' . $e->getMessage());
+        // }
     }
     
     /**
@@ -415,7 +415,6 @@ class PaymentController extends Controller
     public function payInvoice(Request $request, $invoiceId)
     {
         $paymentData = $request->only(['payment_method', 'insurance_status', 'insurance_payment_date', 'insurance_claim_number', 'insurance_notes']);
-        dd($paymentData);
         $this->insuranceService->processInvoicePayment($invoiceId, $paymentData);
         return redirect()->back()->with('success', 'Paiement effectué avec succès.');
     }
@@ -424,6 +423,9 @@ class PaymentController extends Controller
     {
         
         try {
+
+            DB::beginTransaction();
+
             // Durée réelle
             $dateDebut      = \Carbon\Carbon::parse($hospitalisation->date_entree);
             $dateFin        = $hospitalisation->date_sortie_effective ?? now();
@@ -432,51 +434,31 @@ class PaymentController extends Controller
             $prixJour = $hospitalisation->chambre->prix_par_jour;
             $total = $prixJour * $nombreJours;
 
-            \DB::transaction(function () use (&$hospitalisation, $total, $nombreJours, $prixJour) {
-                $hospitalisation->load('patient', 'chambre');
+            // CREATE INVOICE FOR HOSPITALISATION
+            $invoice = $this->insuranceService->createInvoiceForHospitalisation(
+                            $hospitalisation->patient->id,
+                            $hospitalisation,
+                            $nombreJours,
+                            $prixJour,
+                            $total
+                        );
+
+            // Marquer comme libéré si pas déjà fait
+            if ($hospitalisation->status !== 'Terminé') {
+
+                $hospitalisation->date_sortie_effective = now();
+                $hospitalisation->nombre_jours = $nombreJours;
+                $hospitalisation->total_payer = $invoice['total_amount'];
+                $hospitalisation->statut = 'Terminé';
+                $hospitalisation->save();
+
+                // Libérer la chambre
+                $hospitalisation->chambre->update(['statut' => 'Libre']);
                 
-                // Marquer comme libéré si pas déjà fait
-                if ($hospitalisation->status !== 'Terminé') {
+            }
 
-                    $hospitalisation->date_sortie_effective = now();
-                    $hospitalisation->total_payer = $total;
-                    $hospitalisation->statut = 'Terminé';
-                    $hospitalisation->save();
+            DB::commit();
 
-                    // Libérer la chambre
-                    $hospitalisation->chambre->update(['statut' => 'Libre']);
-
-                    // Mise à jour compte patient
-                    $accountID = TransactionService::mettreAJourCompte(
-                        $hospitalisation->patient->id, 
-                        Patient::class, 
-                        $total, 
-                        'credit'
-                    );
-
-                    // Création transaction
-                    $transaction = $hospitalisation->transaction()->create([
-                        'user_id'         => auth()->id(),
-                        'account_id'      => $accountID,
-                        'patient_id'      => $hospitalisation->patient->id,
-                        'description'     => $hospitalisation->observation ?? 'Frais d\'hospitalisation',
-                        'tax_amount'      => 0,
-                        'discount'        => 0,
-                        'sub_total'       => $total,
-                        'total'           => $total
-                    ]);
-
-                    // CREATE INVOICE FOR HOSPITALISATION
-                    $this->insuranceService->createInvoiceForHospitalisation(
-                        $hospitalisation->patient->id,
-                        $transaction->id,
-                        $hospitalisation,
-                        $nombreJours,
-                        $prixJour,
-                        $total
-                    );
-                }
-            });
 
             return redirect()->back()->with('success', 'Paiement traité avec succès');
             

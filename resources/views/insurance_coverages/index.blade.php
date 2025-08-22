@@ -95,7 +95,7 @@
                                     <td>{{ $coverage->insuranceCompany->name }}</td>
                                     <td>
                                         <span class="badge bg-secondary">
-                                            {{ class_basename($coverage->coverageable->name ?? $coverage->coverageable->nom) }}
+                                            {{ class_basename($coverage->coverageable->name ?? $coverage->coverageable->nom ?? $coverage->coverageable->getFullNameAttribute()) }}
                                         </span>
                                     </td>
                                     <td>{{ number_format($coverage->acte_price) }} GNF</td> {{-- $coverage->acte_price }}</td>
@@ -204,6 +204,7 @@
                                                         data-selected-text-format="count" title="Sélectionner un ou plusieurs actes">
                                                     
                                                     <option selected>Sélectionner un acte</option>
+
                                                     <optgroup label="Services">
                                                         @foreach ($services as $service)
                                                             <option value="{{ $service->id}}" data-type="Service">{{$service->name}} </option>
@@ -228,6 +229,11 @@
                                                         @endforeach
                                                     </optgroup>
 
+                                                    <optgroup label="Chambres">
+                                                        @foreach ($chambres as $chambre)
+                                                            <option value="{{ $chambre->id}}" data-type="Chambre">{{$chambre->getFullNameAttribute()}} </option>
+                                                        @endforeach
+                                                    </optgroup>
 
                                                 </select>
                                             </div>
@@ -501,6 +507,18 @@
                                                     <optgroup label="Examens">
                                                         @foreach ($examens as $test)
                                                             <option value="{{ $test->id}}" data-type="Test">{{$test->name}} </option>
+                                                        @endforeach
+                                                    </optgroup>
+
+                                                    <optgroup label="Package">
+                                                        @foreach ($packages as $package)
+                                                            <option value="{{ $package->id}}" data-type="Package">{{$package->name}} </option>
+                                                        @endforeach
+                                                    </optgroup>
+
+                                                     <optgroup label="Chambres">
+                                                        @foreach ($chambres as $chambre)
+                                                            <option value="{{ $chambre->id}}" data-type="Chambre">{{$chambre->getFullNameAttribute()}} </option>
                                                         @endforeach
                                                     </optgroup>
                                                 </select>

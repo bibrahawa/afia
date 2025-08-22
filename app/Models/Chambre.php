@@ -17,5 +17,15 @@ class Chambre extends Model
     public function hospitalisations(): HasMany {
         return $this->hasMany(Hospitalisation::class);
     }
+
+    public function coverage()
+    {
+        return $this->morphOne(InsuranceCoverage::class, 'coverageable');
+    }
+
+    public function getFullNameAttribute()
+    {
+        return $this->type . '-' . $this->numero;
+    }
 }
 

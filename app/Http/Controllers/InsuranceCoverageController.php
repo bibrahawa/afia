@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\InsuranceCoverage;
 use App\Models\InsuranceCompany;
 use App\Models\Medicament;
+use App\Models\Package;
 use App\Models\Service;
+use App\Models\Chambre;
 use App\Models\Test;
 use Illuminate\Http\Request;
 
@@ -15,12 +17,13 @@ class InsuranceCoverageController extends Controller
     {
         $coverages = InsuranceCoverage::with('insuranceCompany', 'coverageable')->latest()->get();
         $insuranceCompanies = InsuranceCompany::all();
-        $services = \App\Models\Service::all();
-        $medicaments = \App\Models\Medicament::all();
-        $examens = \App\Models\Test::all();
-        $packages = \App\Models\Package::all();
+        $services = Service::all();
+        $medicaments = Medicament::all();
+        $examens = Test::all();
+        $packages = Package::all();
+        $chambres = Chambre::all();
 
-        return view('insurance_coverages.index', compact('coverages', 'insuranceCompanies', 'services', 'medicaments', 'examens', 'packages'));
+        return view('insurance_coverages.index', compact('coverages', 'insuranceCompanies', 'services', 'medicaments', 'examens', 'packages', 'chambres'));
     }
 
     public function store(Request $request)
@@ -41,6 +44,10 @@ class InsuranceCoverageController extends Controller
             $validated['coverageable_type'] = Medicament::class;
         }else if($validated['coverageable_type'] == 'Test'){
             $validated['coverageable_type'] = Test::class;
+        }else if($validated['coverageable_type'] == 'Package'){
+            $validated['coverageable_type'] = Package::class;
+        }else if($validated['coverageable_type'] == 'Chambre'){
+            $validated['coverageable_type'] = Chambre::class;
         }
 
         InsuranceCoverage::create($validated);

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Service;
+namespace App\Services;
 
 use App\Models\Transaction;
 use App\Models\Paiement;
@@ -10,7 +10,7 @@ use App\Models\PatientInsurance;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\InsuranceClaim;
-use App\Service\ConsultationService;
+use App\Services\ConsultationService;
 use Illuminate\Support\Facades\DB;
 
 
@@ -44,8 +44,8 @@ class InsuranceCalculationService{
                 'patient_amount' => $calculation['patient_amount'],
                 'insurance_amount' => $calculation['insurance_coverage'],
                 'insurance_status' => $calculation['insurance_coverage'] > 0 ? 'approved' : null,
-                // 'patient_insurance_id' => $calculation['insurance_coverage'] > 0 ? 'approved' : null,
                 'patient_amount_status' => $transaction->montant_payer == $calculation['patient_amount'] ? 'paid' : 'pending'
+                // 'patient_insurance_id' => $calculation['insurance_coverage'] > 0 ? 'approved' : null,
             ]);
                 
             // Supprimer les anciens items
@@ -195,14 +195,14 @@ class InsuranceCalculationService{
     /**
      * Create invoice specifically for hospitalisation
      */
-    public function createInvoiceForHospitalisation($patientId, $transactionId, $hospitalisation, $nombreJours, $prixJour, $total)
+    public function createInvoiceForHospitalisation($patientId, $hospitalisation, $nombreJours, $prixJour, $total)
     {
         // Calculate insurance coverage for hospitalisation
         $hospitalisationItems = [
             [
-                'item_description' => 'Frais d\'hospitalisation - Chambre ' . $hospitalisation->chambre->numero,
-                'acte_type' => 'App\\Models\\Hospitalisation',
-                'acte_id' => $hospitalisation->id,
+                'description' => 'Frais d\'hospitalisation - Chambre ' . $hospitalisation->chambre->numero,
+                'acte_type' => 'App\\Models\\Chambre',
+                'acte_id' => $hospitalisation->chambre_id,
                 'unit_price' => $prixJour,
                 'quantity' => $nombreJours,
                 'total' => $total
@@ -210,10 +210,30 @@ class InsuranceCalculationService{
         ]; 
 
         $calculation = $this->calculateInsuranceCoverage($patientId, $hospitalisationItems);
+        
+        // Mise à jour compte patient
+        $accountID = TransactionService::mettreAJourCompte(
+            $hospitalisation->patient->id, 
+            Patient::class, 
+            $calculation['total_amount'], 
+            'credit'
+        );
+        
+        // Création transaction
+        $transaction = $hospitalisation->transaction()->create([
+            'user_id'         => auth()->id(),
+            'account_id'      => $accountID,
+            'patient_id'      => $hospitalisation->patient->id,
+            'description'     => $hospitalisation->observation ?? 'Frais d\'hospitalisation - Chambre ' . $hospitalisation->chambre->numero,
+            'tax_amount'      => 0,
+            'discount'        => 0,
+            'sub_total'       => $calculation['total_amount'],
+            'total'           => $calculation['total_amount']
+        ]);
 
         // Create main invoice
         $invoice = Invoice::create([
-            'transaction_id' => $transactionId,
+            'transaction_id' => $transaction->id,
             // "patient_insurance_id" => $patientId ?? null,
             'total_amount' => $calculation['total_amount'],
             'patient_amount' => $calculation['patient_amount'],
@@ -239,7 +259,7 @@ class InsuranceCalculationService{
                 'insurance_covered_amount'     => (float)($source['insurance_amount'] ?? 0),
                 'patient_amount'               => (float)($source['patient_amount'] ?? $source['total'] ?? $total),
                 'coverage_percentage_applied'  => !empty($source['insurances_applied'])
-                    ? $this->insuranceCalculation->getAverageCoveragePercentage($source['insurances_applied'])
+                    ? $this->getAverageCoveragePercentage($source['insurances_applied'])
                     : 0
             ]);
         }
@@ -326,8 +346,8 @@ class InsuranceCalculationService{
 
         foreach ($items as $item) {
             
-            
             $itemCoverage = $this->calculateItemCoverage($item, $activeInsurances);
+
             $totalInsuranceCoverage += $itemCoverage['insurance_amount'];
             $itemTotal      = $itemCoverage['item_amount'];
             $totalAmount   += $itemTotal;
@@ -374,14 +394,13 @@ class InsuranceCalculationService{
             if ($remainingAmount <= 0) break;
 
             $coverage = $this->getCoverageForItem($item, $patientInsurance);
-            
             if ($coverage) {
                 // Recuperer le pourcentage de l'assurance du patient
                 $coveragePercentage = $patientInsurance->coverage_percentage;
                 // $coveragePercentage = $coverage->coverage_percentage;
                 $maxAmount = $coverage->coverage_amount_limit;
 
-                $remainingAmount = $coverage->acte_price;
+                $remainingAmount = $coverage->acte_price * $item['quantity'];
                 $itemAmount      = $remainingAmount;
 
             }else {
@@ -494,12 +513,12 @@ class InsuranceCalculationService{
         }
 
         if($consultation->transaction->transactionable_type == "App\\Models\\Hospitalisation"){
-            $hospitalisations = $consultation->transaction->transactionnable;
+            $hospitalisations = $consultation->transaction->transactionable;
             foreach ($hospitalisations as $hospitalisation) {
 
                 $items[] = [
                     'acte_type'   => 'App\\Models\\Hospitalisation',
-                    'acte_id'     => $hospitalisation->id,
+                    'acte_id'     => $hospitalisation->chambre_id,
                     'description' => $hospitalisation->date_entree." au ".$hospitalisation->date_sortie_effective,
                     'unit_price'  => $hospitalisation->chambre->prix_par_jour,
                     'quantity'    => $hospitalisation->nombre_jours,
@@ -709,7 +728,7 @@ class InsuranceCalculationService{
 
                     $items[] = [
                         'acte_type'     => 'App\\Models\\Hospitalisation',
-                        'acte_id'       => $hospitalisation->id,
+                        'acte_id'       => $hospitalisation->chambre_id,
                         'description'   => $hospitalisation->date_entree." au ".$hospitalisation->date_sortie_effective,
                         'unit_price'    => $hospitalisation->chambre->prix_par_jour,
                         'quantity'      => $hospitalisation->nombre_jours,
@@ -831,12 +850,12 @@ class InsuranceCalculationService{
 
         // Hospitalisation
         if($transaction->transactionable_type == "App\\Models\\Hospitalisation"){
-            $hospitalisations = $transaction->transactionnable;
+            $hospitalisations = [$transaction->transactionable];
             foreach ($hospitalisations as $hospitalisation) {
 
                 $items[] = [
-                    'acte_type'   => 'App\\Models\\Hospitalisation',
-                    'acte_id'     => $hospitalisation->id,
+                    'acte_type'   => 'App\\Models\\Chambre',
+                    'acte_id'     => $hospitalisation->chambre_id,
                     'description' => $hospitalisation->date_entree." au ".$hospitalisation->date_sortie_effective,
                     'unit_price'  => $hospitalisation->chambre->prix_par_jour,
                     'quantity'    => $hospitalisation->nombre_jours,

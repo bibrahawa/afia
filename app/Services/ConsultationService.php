@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Service;
+namespace App\Services;
 
 use App\Models\Transaction;
 use App\Models\Paiement;
@@ -77,7 +77,7 @@ class ConsultationService
             $transaction = $consultationItem;
         }
 
-        $insuranceId = $consultation->patient->activeInsurances()?->first()->insurance_company_id;
+        $insuranceId = $consultation->patient->activeInsurances()?->first()?->insurance_company_id;
         // Services
         foreach ($consultation->services ?? [] as $service) {
 
@@ -145,19 +145,17 @@ class ConsultationService
 
         if($transaction?->transactionable_type == "App\\Models\\Hospitalisation"){
             
-            $hospitalisations = [$transaction->transactionnable];
+            $hospitalisations = [$transaction->transactionable];
 
             foreach ($hospitalisations as $hospitalisation) {
-                
-                $amount = $this->getAmount("App\\Models\\Hospitalisation", $hospitalisation->id, $insuranceId, $hospitalisation);
-                
+                                
                 $items[] = [
-                    'acte_type'   => 'App\\Models\\Hospitalisation',
-                    'acte_id'     => $hospitalisation->id,
+                    'acte_type'   => 'App\\Models\\Chambre',
+                    'acte_id'     => $hospitalisation->chambre_id,
                     'description' => $hospitalisation->date_entree." au ".$hospitalisation->date_sortie_effective,
-                    'unit_price' => $this->getAmount("App\\Models\\Hospitalisation", $hospitalisation->id, $insuranceId, $hospitalisation),
+                    'unit_price' => $this->getAmount("App\\Models\\Chambre", $hospitalisation->chambre_id, $insuranceId, $hospitalisation),
                     'quantity'   => $hospitalisation->nombre_jours,
-                    'total'     => $this->getAmountHospitalisation("App\\Models\\Hospitalisation", $hospitalisation->id, $insuranceId, $hospitalisation),
+                    'total'     => $this->getAmountHospitalisation("App\\Models\\Chambre", $hospitalisation->chambre_id, $insuranceId, $hospitalisation),
                 ];
 
                 $totalAmount += $hospitalisation->total_payer;
@@ -281,7 +279,7 @@ class ConsultationService
 
                     $items[$key][] = [
                         'acte_type'   => 'App\\Models\\Hospitalisation',
-                        'acte_id'     => $hospitalisation->id,
+                        'acte_id'     => $hospitalisation->chambre_id,
                         'description' => $hospitalisation->date_entree." au ".$hospitalisation->date_sortie_effective,
                         'unit_price'  => $hospitalisation->chambre->prix_par_jour,
                         'quantity'    => $hospitalisation->nombre_jours,
@@ -367,17 +365,17 @@ class ConsultationService
 
              // Hospitalisations
             if($transaction->transactionable_type == 'App\Models\Hospitalisation'){
-                $items = [$consultation];
-                foreach ($items as $item) {
+                $hospitalisations = [$transaction->transactionable];
+                foreach ($hospitalisations as $hospitalisation) {
                     $actes[] = [
-                            'id' => $item->id,
+                            'id' => $hospitalisation->chambre_id,
                             'type' => 'Hospitalisation',
                             'nom' => "Hospitalisation",
-                            'description' => $item->date_entree." au ".$item->date_sortie_effective,
-                            'prix_unitaire' => $item->chambre->prix_par_jour,
-                            'quantite' => $item->nombre_jours,
-                            'total' => $item->total_payer,
-                            'created_at' => $item->created_at
+                            'description' => $hospitalisation->date_entree." au ".$hospitalisation->date_sortie_effective,
+                            'prix_unitaire' => $this->getAmount("App\\Models\\Chambre", $hospitalisation->chambre_id, $insuranceId, $hospitalisation),
+                            'quantite' => $hospitalisation->nombre_jours,
+                            'total' => $this->getAmountHospitalisation("App\\Models\\Chambre", $hospitalisation->chambre_id, $insuranceId, $hospitalisation),
+                            'created_at' => $hospitalisation->created_at
                     ];
                 }
             }
@@ -393,10 +391,11 @@ class ConsultationService
 
         $consultation = $transaction->transactionable;
 
-        $insuranceId = $transaction->patient->activeInsurances()?->first()->insurance_company_id;
+        $insuranceId = $transaction->patient->activeInsurances()?->first()?->insurance_company_id;
 
         // Services
         foreach ($consultation->services ?? [] as $item) {
+            
             $actes[] = [
                     'id' => $item->id,
                     'type' => 'Service',
@@ -449,18 +448,18 @@ class ConsultationService
 
         // Hospitalisations
         if($transaction->transactionable_type == 'App\Models\Hospitalisation'){
-            $items = [$consultation];
-            foreach ($items as $item) {
+            $hospitalisations = [$transaction->transactionable];
+            foreach ($hospitalisations as $hospitalisation) {
 
                 $actes[] = [
-                        'id' => $item->id,
+                        'id' => $hospitalisation->chambre_id,
                         'type' => 'Hospitalisation',
                         'nom' => "Hospitalisation",
-                        'description' => $item->date_entree." au ".$item->date_sortie_effective,
-                        'prix_unitaire' => $this->getAmount("App\\Models\\Hospitalisation", $item->id, $insuranceId, $item),
-                        'quantite' => $item->nombre_jours,
-                        'total' => $this->getAmountHospitalisation("App\\Models\\Hospitalisation", $item->id, $insuranceId, $item),
-                        'created_at' => $item->created_at
+                        'description' => $hospitalisation->date_entree." au ".$hospitalisation->date_sortie_effective,
+                        'prix_unitaire' => $this->getAmount("App\\Models\\Chambre", $hospitalisation->chambre_id, $insuranceId, $hospitalisation),
+                        'quantite' => $hospitalisation->nombre_jours,
+                        'total' => $this->getAmountHospitalisation("App\\Models\\Chambre", $hospitalisation->chambre_id, $insuranceId, $hospitalisation),
+                        'created_at' => $hospitalisation->created_at
                 ];
             }
         }

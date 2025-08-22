@@ -42,7 +42,7 @@
                                 <td class="py-2 px-4 border-b text-center">{{ $claim->claim_number }}</td>
                                 <td class="py-2 px-4 border-b text-center">{{ $claim->invoice_id }}</td>
                                 <td class="py-2 px-4 border-b text-center">{{ $claim->insuranceCompany->name ?? 'N/A' }}</td>
-                                <td class="py-2 px-4 border-b text-center">{{ $claim->patient->name ?? 'N/A' }}</td>
+                                <td class="py-2 px-4 border-b text-center">{{ $claim->patient->getFullNameAttribute() ?? 'N/A' }}</td>
                                 <td class="py-2 px-4 border-b text-center">{{ number_format($claim->claimed_amount, 2) }}</td>
                                 <td class="py-2 px-4 border-b text-center">{{ ucfirst($claim->status) }}</td>
                                 <td class="py-2 px-4 border-b text-center">

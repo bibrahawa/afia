@@ -227,6 +227,21 @@
                     </a>
                 </li>
 
+                <li class="nav-item {{ request()->routeIs('sms.*') ? 'active' : '' }}">
+                    <a href="{{ route('sms.lists') }}">
+                        <i class="fas fa-user-cog"></i>
+                        <p>Message Lists</p>
+                    </a>
+                </li>
+
+
+                <li class="nav-item {{ request()->routeIs('sms.*') ? 'active' : '' }}">
+                    <a href="{{ route('sms.new') }}">
+                        <i class="fas fa-user-cog"></i>
+                        <p>New Sms</p>
+                    </a>
+                </li>
+
                 <li class="nav-item {{ request()->routeIs('reports.*') ? 'active' : '' }}">
                     <a href="{{ route('reports.index') }}">
                         <i class="fas fa-chart-bar"></i>
