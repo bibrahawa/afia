@@ -45,7 +45,7 @@ class DashboardController extends Controller
         $montant_impaye = Invoice::where('insurance_status', 'pending')->sum('insurance_amount');
         $medicaments_stock_faible = Medicament::count();
         $reclamations_en_attente = InsuranceClaim::where('status', 'draft')->count();
-        $rdv_aujourdhui = Appointment::with(['patient', 'medecin'])->whereDate('created_at', today())->get();
+        $rdv_aujourdhui = Appointment::with(['patient', 'employee'])->whereDate('created_at', today())->get();
 
         $total_patient = Patient::count();
         $patientes = Patient::latest()->limit(5)->get();

@@ -12,16 +12,19 @@ use Illuminate\Support\Facades\DB;
 
 class ConsultationService
 {
-    public static function attachItems(Consultation $consultation, array $selectedItems, array $billingStatus)
+    public static function attachItems(Consultation $consultation, array $selectedItems)
     {
         foreach ($selectedItems as $category => $items) {
             $syncValues = [];
+
             foreach ($items as $item) {
-                $prefix = $category === 'examens' ? 'examen' : rtrim($category, 's');
-                $billingKey = $prefix . '-' . $item['value'];
-                $syncValues[$item['value']] = [
-                    'facturer' => $billingStatus[$billingKey] ?? false
-                ];
+                if ($category === "medicaments") {
+                    // pivot avec quantité
+                    $syncValues[$item['id']] = ['quantity' => $item['quantity']];
+                } else {
+                    // simple pivot
+                    $syncValues[] = $item['id'];
+                }
             }
 
             match ($category) {
@@ -33,6 +36,7 @@ class ConsultationService
             };
         }
     }
+
 
     public static function mettreAJourCompte($owner_id, $owner_type, $montant, $type)
     {
@@ -130,17 +134,16 @@ class ConsultationService
         // Médicaments
         foreach ($consultation->medicaments ?? [] as $medicament) {
             $amount = $this->getAmount("App\\Models\\Medicament", $medicament->id, $insuranceId, $medicament);
-
             $items[] = [
                 'acte_type'   => 'App\\Models\\Medicament',
                 'acte_id'     => $medicament->id,
                 'description' => $medicament->nom,
                 'unit_price'  => $amount,
-                'quantity'    => 1,
-                'total'       => $amount,
+                'quantity'    => $medicament->pivot->quantity,
+                'total'       => $amount * $medicament->pivot->quantity,
             ];
 
-            $totalAmount += $amount;
+            $totalAmount += $amount * $medicament->pivot->quantity;
         }
 
         if($transaction?->transactionable_type == "App\\Models\\Hospitalisation"){

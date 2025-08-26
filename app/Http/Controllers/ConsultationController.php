@@ -15,10 +15,13 @@ use App\Models\Test;
 use App\Models\Package;
 use App\Models\Antecedent;
 use App\Models\Invoice;
+use App\Models\Appointment;
 use App\Models\FichierPatient;
+use App\Models\AppointmentSlot;
 use App\Services\TransactionService;
 use App\Services\ConsultationService;
 use App\Services\InsuranceCalculationService;
+use Carbon\Carbon;
 use DB;
 class ConsultationController extends Controller
 {
@@ -74,9 +77,10 @@ class ConsultationController extends Controller
             'prochain_rdv' => 'nullable|date'
         ]);
 
+
         DB::beginTransaction();
         
-        // try {
+        try {
                 $consultation = Consultation::create([
                     ...$validated, // Utilisez $validated au lieu de $request->only()
                     'medecin_id' => auth()->user()->employee->id,
@@ -84,11 +88,12 @@ class ConsultationController extends Controller
                     'signes_cliniques' => explode(',', $request->signes_cliniques)
                 ]);
 
-                ConsultationService::attachItems($consultation, json_decode($request->selected_items, true), json_decode($request->billing_status, true));
+                ConsultationService::attachItems($consultation, json_decode($request->selected_items, true));
 
                 $consultation->load(['services', 'packages', 'tests', 'medicaments']);
 
                 $items  = $this->consultationService->calculateAmountAndReturnItems($consultation);
+
                 $amount = $items['total_amount'];
 
                 $accountID = ConsultationService::mettreAJourCompte($request->patient_id, Patient::class, $amount, 'credit');
@@ -109,7 +114,7 @@ class ConsultationController extends Controller
                 $this->insuranceCalculation->createInvoiceForConsulation($request->patient_id, $transaction->id, $consultation, $items);
 
                 $patient = Patient::find($request->patient_id);
-                
+
                 $patient->first_visit = false;
                 $patient->save();
 
@@ -131,14 +136,31 @@ class ConsultationController extends Controller
                     );
                 }
 
+                // Créer le rendez-vous
+                $appointment = Appointment::create([
+                    'employee_id' => auth()->user()->employee->id,
+                    'patient_id' => $request->patient_id,
+                    'appointment_date' => Carbon::parse($request->prochain_rdv)->format('Y-m-d'),
+                    'appointment_time' => Carbon::parse($request->prochain_rdv)->format('H:i:s'),
+                    'reason' => "autre",
+                    'description' => "Reservation de rendez vous pris direction avec le medecin",
+                    'status' => 'confirmed'
+                ]);
+
+                // Marquer le slot comme indisponible
+                AppointmentSlot::where('employee_id', auth()->user()->employee->id)
+                    ->where('date', Carbon::parse($request->prochain_rdv)->format('Y-m-d'))
+                    ->where('time', Carbon::parse($request->prochain_rdv)->format('H:i:s'))
+                    ->update(['is_available' => false]);
+
                 DB::commit();
                 
                 return redirect()->route('consultation.index')->with('success', 'Consultation enregistrée.');
             
-            // } catch (\Exception $e) {
-            //     DB::rollback();
-            //     return redirect()->back()->with('error', 'Erreur lors du traitement: ' . $e->getMessage());
-            // }
+            } catch (\Exception $e) {
+                DB::rollback();
+                return redirect()->back()->with('error', 'Erreur lors du traitement: ' . $e->getMessage());
+            }
         
     }
 

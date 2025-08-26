@@ -2,42 +2,30 @@
 
 @section('content')
 <style>
-
+    /* Amélioration impression */
     @media print {
-        .no-print {
-            display: none !important;
-        }
-        .card {
-            page-break-inside: avoid;
-            margin-bottom: 20px;
-            box-shadow: none !important;
-            border: 1px solid #dee2e6 !important;
-        }
-        .page-break {
-            page-break-after: always;
-        }
+        .no-print { display: none !important; }
+        body { font-size: 12px; }
+        .card { page-break-inside: avoid; border: 1px solid #ccc; box-shadow: none !important; }
+        .card-header { background: #f8f9fa !important; color: #000 !important; }
+        table { border-collapse: collapse; width: 100%; }
+        table th, table td { border: 1px solid #ddd; padding: 6px; }
     }
 
-    .info-item {
-        margin-bottom: 15px;
-    }
+    /* Général */
+    .info-label { font-size: 12px; font-weight: 600; color: #495057; text-transform: uppercase; }
+    .info-value { font-size: 14px; font-weight: 500; color: #212529; }
 
-    .info-label {
-        font-size: 12px;
+    /* Card header */
+    .card-header { display: flex; align-items: center; }
+    .card-header i { margin-right: 8px; }
+
+    /* Table custom */
+    .table thead th {
+        background: #f1f3f5;
         font-weight: 600;
-        color: #6c757d;
         text-transform: uppercase;
-        margin-bottom: 5px;
-    }
-
-    .info-value {
-        font-size: 14px;
-        font-weight: 500;
-        color: #212529;
-    }
-
-    .section-icon {
-        margin-right: 8px;
+        font-size: 12px;
     }
 </style>
 
@@ -193,15 +181,8 @@
                                     <div class="info-label">Examen(s)</div>
                                     <div class="info-value">
                                         @foreach ($consultation->tests as $examen)
-                                            <span class="badge {{ $examen->pivot->facturer ? 'badge-warning' : 'badge-secondary' }} mr-1">
-                                                {{ $examen->name }}
-                                                <span class="ml-1">
-                                                    @if ($examen->pivot->facturer)
-                                                        {{ " = ".number_format($examen->amount) }} GNF
-                                                    @else
-                                                        Hors Clinique
-                                                    @endif
-                                                </span>
+                                            <span class="badge badge-warning mr-1">
+                                                {{ $examen->name." = ".number_format($examen->amount) }} GNF
                                             </span>
                                         @endforeach
                                     </div>
@@ -211,15 +192,8 @@
                                     <div class="info-label">Prescription(s)</div>
                                     <div class="info-value">
                                         @foreach ($consultation->medicaments as $medicament)
-                                            <span class="badge {{ $medicament->pivot->facturer ? 'badge-warning' : 'badge-secondary' }} mr-1">
-                                                {{ $medicament->nom." = " }}
-                                                <span class="ml-1">
-                                                    @if ($medicament->pivot->facturer)
-                                                        {{ number_format($medicament->amount) }} GNF
-                                                    @else
-                                                        Hors Clinique
-                                                    @endif
-                                                </span>
+                                            <span class="badge badge-secondary mr-1">
+                                                {{ $medicament->nom." = ".number_format($medicament->amount) }} GNF
                                             </span>
                                         @endforeach
                                     </div>

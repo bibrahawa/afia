@@ -14,16 +14,15 @@ return new class extends Migration
         Schema::create('consultations', function (Blueprint $table) {
             $table->id();
             $table->foreignId('patient_id')->constrained('patients')->onDelete('cascade');
+            $table->foreignId('medecin_id')->constrained('employees')->onDelete('cascade');
+            $table->foreignId('department_id')->constrained('departments')->onDelete('cascade');
             $table->text('motif');
             $table->json('signes_cliniques')->nullable();
             $table->text('diagnostic');
             $table->text('observation')->nullable();
             $table->dateTime('prochain_rdv')->nullable();
 
-            $table->foreignId('department_id')->constrained('departments')->onDelete('cascade');
-            $table->foreignId('medecin_id')->constrained('employees')->onDelete('cascade');
-            $table->foreignId('prochain_medecin')->nullable()->constrained('employees')->onDelete('cascade');
-
+            // $table->foreignId('prochain_medecin')->nullable()->constrained('employees')->onDelete('cascade');
             $table->boolean('est_facturee')->default(false);
             $table->timestamps();
         });
@@ -32,6 +31,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('consultation_id')->constrained()->onDelete('cascade');
             $table->foreignId('service_id')->constrained()->onDelete('cascade');
+            $table->integer('quantity')->default(1);
             $table->timestamps();
         });
 
@@ -39,6 +39,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('consultation_id')->constrained()->onDelete('cascade');
             $table->foreignId('package_id')->constrained()->onDelete('cascade');
+            $table->integer('quantity')->default(1);
             $table->timestamps();
         });
 
@@ -46,6 +47,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('consultation_id')->constrained()->onDelete('cascade');
             $table->foreignId('test_id')->constrained()->onDelete('cascade');
+            $table->integer('quantity')->default(1);
             $table->timestamps();
         });
 
@@ -53,6 +55,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('consultation_id')->constrained()->onDelete('cascade');
             $table->foreignId('medicament_id')->constrained()->onDelete('cascade');
+            $table->integer('quantity')->default(1);
             $table->timestamps();
         });
 

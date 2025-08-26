@@ -17,12 +17,7 @@ class InsuranceBalanceController extends Controller
     {
         // 1) Récupère les assurances actives
         $companies = InsuranceCompany::where('status', 'active')
-            ->get(['id','name','code','status']);
-
-        if ($companies->isEmpty()) {
-            $rows = collect();
-            return view('insurance.balances', compact('rows'));
-        }
+                                    ->get(['id','name','code','status']);
 
         // 2) Récupère les factures liées (seulement les colonnes utiles)
         $invoices = Invoice::whereIn('insurance_company_id', $companies->pluck('id'))
