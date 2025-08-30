@@ -15,6 +15,7 @@ use App\Models\Test;
 use App\Models\Package;
 use App\Models\Antecedent;
 use App\Models\Invoice;
+use App\Models\Hospital;
 use App\Models\Appointment;
 use App\Models\FichierPatient;
 use App\Models\AppointmentSlot;
@@ -37,6 +38,7 @@ class ConsultationController extends Controller
     public function index()
     {
         $consultations = Consultation::latest()->paginate(10);
+
         return view('consultations.index', compact([
             'consultations'
         ]));
@@ -89,6 +91,12 @@ class ConsultationController extends Controller
                 ]);
 
                 ConsultationService::attachItems($consultation, json_decode($request->selected_items, true));
+
+                // Fichiers joints
+                // if ($fichierIds = $request->input('fichiers_enregistres')) {
+                //     FichierPatient::whereIn('id', $fichierIds)->update(['used_by' => 'medecin']);
+                //     $consultation->fichiers()->sync($fichierIds);
+                // }
 
                 $consultation->load(['services', 'packages', 'tests', 'medicaments']);
 
@@ -152,6 +160,7 @@ class ConsultationController extends Controller
                     ->where('date', Carbon::parse($request->prochain_rdv)->format('Y-m-d'))
                     ->where('time', Carbon::parse($request->prochain_rdv)->format('H:i:s'))
                     ->update(['is_available' => false]);
+                    
 
                 DB::commit();
                 
@@ -174,11 +183,12 @@ class ConsultationController extends Controller
     }
 
     public function facture_ordonnance($id){
+        
         $consultation = Consultation::findOrFail($id);
+        $hopital = Hopital::first();
 
-        // Génération du PDF
-        return view('consultations.facture.facture_ordonnance', compact([
-            'consultation'
+        return view('consultations.facture.new_ordonnance', compact([
+            'consultation', 'hopital'
         ]));
     }
 
@@ -337,9 +347,10 @@ class ConsultationController extends Controller
 
     public function show($id){
         $consultation = Consultation::find($id);
+        $hopital = Hospital::first();
 
         return view('consultations.show', compact([
-            'consultation'
+            'consultation', 'hopital'
         ]));
     }
 
@@ -355,6 +366,33 @@ class ConsultationController extends Controller
         return view('consultations.edit', compact('consultation', 'patients', 'services', 'tests', 'packages', 'medicaments'));
     }
 
+    /**
+     * Synchroniser les médicaments avec les quantités
+     */
+    public function syncMedicamentsWithQuantities(array $medicaments, array $quantities = [])
+    {
+        $syncData = [];
+        
+        foreach ($medicaments as $medicamentId) {
+            $medicament = Medicament::find($medicamentId);
+            if ($medicament) {
+                $quantity = $quantities[$medicamentId] ?? 1;
+                $unitPrice = $medicament->amount;
+                $totalPrice = $unitPrice * $quantity;
+
+                $syncData[$medicamentId] = [
+                    'quantity' => $quantity,
+                    'unit_price' => $unitPrice,
+                    'total_price' => $totalPrice,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ];
+            }
+        }
+
+        $this->medicaments()->sync($syncData);
+    }
+
     public function update(Request $request, $id)
     {
         $validated = $request->validate([
@@ -366,10 +404,14 @@ class ConsultationController extends Controller
             'prochain_rdv' => 'nullable|date'
         ]);
 
+
         DB::beginTransaction();
         
         try {
+
             $consultation = Consultation::findOrFail($id);
+
+            ConsultationService::updateProchainRdvAppoitments($consultation, $request->prochain_rdv);
 
             $consultation->update([
                 ...$request->only(['patient_id', 'motif', 'diagnostic', 'observation', 'prochain_rdv']),
@@ -378,15 +420,37 @@ class ConsultationController extends Controller
                 'signes_cliniques' => explode(',', $request->signes_cliniques)
             ]);
 
+            $syncData = [];
+
+            $quantities = $request->medicament_quantities ?? [];
+        
+            foreach ($request->medicaments as $medicamentId) {
+                if ($medicamentId) {
+                    $quantity = $quantities[$medicamentId] ?? 1;
+                    $syncData[$medicamentId] = [
+                        'quantity' => $quantity,
+                    ];
+                }
+            }
+
             // Mise à jour des liaisons
-            $consultation->medicaments()->sync($request->medicaments);
+            $consultation->medicaments()->sync($syncData);
             $consultation->services()->sync($request->services);
             $consultation->packages()->sync($request->packages);
             $consultation->tests()->sync($request->tests);
 
-            $consultation->load(['services', 'packages', 'tests', 'medicaments']);
+            // Fichiers joints
+            // if ($fichierIds = $request->input('fichiers_enregistres')) {
+            //     FichierPatient::whereIn('id', $fichierIds)->update(['used_by' => 'medecin']);
+            //     $consultation->fichiers()->sync($fichierIds);
+            // }
 
-            $newAmount = ConsultationService::calculateAmount($consultation);
+            $consultation->load(['services', 'packages', 'tests', 'medicaments']);
+            
+            $items  = $this->consultationService->calculateAmountAndReturnItems($consultation);
+
+            $newAmount = $items['total_amount'];
+
             // Calculer la différence AVANT updateOrCreate
             $oldTransaction = $consultation->transaction;
             $oldAmount = $oldTransaction?->sub_total ?? 0;
@@ -410,13 +474,14 @@ class ConsultationController extends Controller
             }
 
             // ✅ CORRECTION 4: Mise à jour ou création de la transaction
-           $oldTransaction->update([
+            $oldTransaction->update([
                     'account_id' => $accountID,
                     'patient_id' => $request->patient_id,
                     'description'=> $consultation->motif,
                     'sub_total'  => $newAmount,
                     'total'      => $newAmount
             ]);
+
             $transaction = $oldTransaction;
 
 
@@ -424,7 +489,8 @@ class ConsultationController extends Controller
             $this->insuranceCalculation->updateInvoiceForConsultation(
                 $request->patient_id, 
                 $transaction->invoice->id, 
-                $consultation
+                $consultation,
+                $items
             );
 
             $consultation->update(['est_facturee' => true]);

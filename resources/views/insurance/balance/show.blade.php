@@ -50,6 +50,12 @@
                                     <i class="fas fa-arrow-left mr-1"></i>
                                     Retour
                                 </a>
+                                @if($invoices->isNotEmpty())
+                                    <button type="button" class="btn btn-success" onclick="exportToExcel()">
+                                        <i class="fas fa-file-excel mr-1"></i>
+                                        Exporter Excel
+                                    </button>
+                                @endif
                                 @if($stats['factures_impayees'] > 0)
                                     <button type="button" class="btn btn-success"
                                         data-bs-toggle="modal"
@@ -156,23 +162,6 @@
                                     </tbody>
                                 </table>
                             </div>
-                            <!-- Boutons de paiement groupé -->
-                            <div class="row mt-3">
-                                <div class="col-12">
-                                    <div class="selected-summary d-none">
-                                        <div class="alert alert-info">
-                                            <strong>
-                                                <span id="selected-count">0</span> facture(s) sélectionnée(s)
-                                            </strong>
-                                            - Montant total: <strong id="selected-total">0 GNF</strong>
-                                        </div>
-                                        <button type="button" class="btn btn-success" onclick="openGroupPaymentModal()">
-                                            <i class="fas fa-money-bill-wave mr-1"></i>
-                                            Effectuer le paiement groupé
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
                         @else
                             <div class="text-center py-5">
                                 <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
@@ -220,19 +209,23 @@
                             class="form-control" value="{{ date('Y-m-d') }}" required>
                     </div>
                     
-                    {{-- <div class="form-group">
-                        <label for="claim_number_group">Numéro de réclamation</label>
-                        <input type="text" name="claim_number" id="claim_number_group" 
-                            class="form-control" placeholder="Ex: CLM-2025-001">
-                    </div> --}}
+                    <div class="form-group">
+                        <label for="globalDiscount">Remise globale (%)</label>
+                        <input type="number" name="globalDiscount" id="globalDiscount" class="form-control" 
+                            min="0" step="0.01" max="100" placeholder="Ex: 2">
+                        <small class="text-muted">Saisissez le pourcentage de remise (0-100%)</small>
+                    </div>
+
+                    <input type="hidden" name="totalRemise" id="totalRemise" value="0">
 
                     <div class="form-group form-group-default">
                         <label>Montant à payer par {{ $insurance->name }}</label>
                         <div class="input-group">
-                            <input type="number" name="montant" id="montantAPayer" class="form-control" placeholder="montant" required min="0" step="0.01" value="{{$stats['montant_du']}}">
+                            <input type="number" name="montant" id="montantAPayer" class="form-control" 
+                                placeholder="montant" required min="0" step="0.01" value="{{$stats['montant_du']}}">
                             <span class="input-group-text">GNF</span>
                         </div>
-                        <small class="text-muted">Ce montant est calculé automatiquement</small>
+                        <small class="text-muted">Ce montant est calculé automatiquement selon la remise appliquée</small>
                     </div>
 
                     <div class="form-group">
@@ -259,125 +252,172 @@
 
 @endsection
 
-@section('scripts')
+@section('script')
+<!-- Inclure SheetJS pour l'export Excel -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
 <script>
-let selectedInvoices = [];
 
-function openPaymentModal(invoiceId, amount) {
-    document.getElementById('payment_amount').value = amount;
-    document.getElementById('paymentForm').action = `/insurance/balances/payment/${invoiceId}`;
-    $('#paymentModal').modal('show');
+
+// Fonction d'export Excel
+function exportToExcel() {
+    // Données de base
+    const companyName = "{{ $insurance->name }}";
+    const today = new Date().toLocaleDateString('fr-FR');
+    
+    // Créer les données pour l'export
+    const exportData = [];
+    
+    // En-tête principal
+    exportData.push(['SOCIETE: ' + companyName.toUpperCase()]);
+    exportData.push([]);
+    
+    // En-têtes du tableau
+    exportData.push([
+        'DATE',
+        'NOMS ASSURES PRINCIPAUX', 
+        'BENEFICIAIRE',
+        'N° CARTE',
+        'NATURE PRESTATION',
+        'MONTANT PRESTATION',
+        'REPARTITION',
+        '',
+        ''
+    ]);
+    
+    // Sous-en-têtes pour la répartition
+    exportData.push([
+        '', '', '', '', '', '', 'Part assures', 'Part assureurs'
+    ]);
+    
+    // Données des factures
+    @foreach($invoices as $invoice)
+    exportData.push([
+        '{{ $invoice->created_at->format("d/m/Y") }}',
+        '{{ $invoice->transaction->patient ? $invoice->transaction->patient->getFullNameAttribute() : "N/A" }}',
+        '{{ $invoice->transaction->patient ? $invoice->transaction->patient->getFullNameAttribute() : "N/A" }}',
+        'N/A', // N° carte - à adapter selon vos données
+        '{{ str_replace("'", "\'", $invoice->transaction->description) }}',
+        '{{ number_format($invoice->insurance_amount + ($invoice->patient_amount ?? 0), 0, ",", " ") }} GNF',
+        '0 GNF', // Part assurés
+        '{{ number_format($invoice->insurance_amount, 0, ",", " ") }} GNF'
+    ]);
+    @endforeach
+    
+    // Ligne vide
+    exportData.push([]);
+    
+    // Total global
+    exportData.push([
+        '', '', '', '', 'TOTAL GLOBAL', 
+        '{{ number_format($stats["montant_du"], 0, ",", " ") }} GNF',
+        '0 GNF',
+        '{{ number_format($stats["montant_du"], 0, ",", " ") }} GNF'
+    ]);
+    
+    // Ligne vide
+    exportData.push([]);
+    
+    // Net à payer
+    exportData.push([
+        '', '', '', '', 'NET A PAYER', '', '', '{{ number_format($stats["montant_du"], 0, ",", " ") }} GNF'
+    ]);
+    
+    // Créer le workbook
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(exportData);
+    
+    // Style pour l'en-tête principal
+    ws['A1'] = { 
+        v: 'SOCIETE: ' + companyName.toUpperCase(), 
+        t: 's', 
+        s: { 
+            font: { bold: true, sz: 14 },
+            alignment: { horizontal: 'center' },
+            fill: { fgColor: { rgb: 'CCCCCC' } }
+        }
+    };
+    
+    // Fusionner les cellules de l'en-tête
+    ws['!merges'] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 8 } }, // Ligne société
+        { s: { r: 2, c: 6 }, e: { r: 2, c: 8 } }   // Répartition
+    ];
+    
+    // Définir la largeur des colonnes
+    ws['!cols'] = [
+        { wch: 12 }, // DATE
+        { wch: 25 }, // NOMS ASSURES
+        { wch: 25 }, // BENEFICIAIRE
+        { wch: 12 }, // N° CARTE
+        { wch: 20 }, // NATURE
+        { wch: 15 }, // MONTANT
+        { wch: 12 }, // Part assurés
+        { wch: 15 }  // Part assureurs
+    ];
+    
+    // Ajouter la feuille au workbook
+    XLSX.utils.book_append_sheet(wb, ws, 'Factures Impayées');
+    
+    // Générer le nom du fichier
+    const filename = `Factures_Impayees_${companyName.replace(/[^a-zA-Z0-9]/g, '_')}_${today.replace(/\//g, '-')}.xlsx`;
+    
+    // Télécharger le fichier
+    XLSX.writeFile(wb, filename);
 }
 
-function toggleAllCheckboxes() {
-    const selectAll = document.getElementById('select-all');
-    const checkboxes = document.querySelectorAll('.invoice-checkbox');
-    
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = selectAll.checked;
-    });
-    
-    updateSelectedSummary();
-}
+// Calcul automatique de la remise - VERSION CORRIGÉE
+document.addEventListener("DOMContentLoaded", function() {
+    const discountInput = document.getElementById("globalDiscount");
+    const totalAfterDiscountInput = document.getElementById("montantAPayer");
 
-function updateSelectedSummary() {
-    const checkboxes = document.querySelectorAll('.invoice-checkbox:checked');
-    const selectedSummary = document.querySelector('.selected-summary');
-    
-    if (checkboxes.length > 0) {
-        selectedSummary.classList.remove('d-none');
+    // Montant de base récupéré depuis PHP
+    const baseAmount = parseFloat("{{ $stats['montant_du'] }}") || 0;
+
+    function updatePaymentAmount() {
+        let discountPercent = parseFloat(discountInput.value) || 0;
+
+        // Validation des limites
+        if (discountPercent < 0) {
+            discountPercent = 0;
+            discountInput.value = 0;
+        }
+        if (discountPercent > 100) {
+            discountPercent = 100;
+            discountInput.value = 100;
+        }
+
+        // Calcul du montant après remise
+        const discountAmount = (baseAmount * discountPercent) / 100;
+        const finalAmount = baseAmount - discountAmount;
+
+        // Mise à jour du champ total remise
+        $('#totalRemise').val(Math.round(discountAmount));
+
+        // Mise à jour du champ montant à payer
+        totalAfterDiscountInput.value = Math.round(finalAmount);
         
-        let total = 0;
-        const invoiceIds = [];
-        
-        checkboxes.forEach(checkbox => {
-            const row = checkbox.closest('tr');
-            const amountText = row.querySelector('td:nth-child(6)').textContent.trim();
-            const amount = parseInt(amountText.replace(/[^\d]/g, ''));
-            total += amount;
-            invoiceIds.push(checkbox.value);
-        });
-        
-        document.getElementById('selected-count').textContent = checkboxes.length;
-        document.getElementById('selected-total').textContent = new Intl.NumberFormat('fr-FR').format(total) + ' GNF';
-        
-        selectedInvoices = invoiceIds;
-    } else {
-        selectedSummary.classList.add('d-none');
-        selectedInvoices = [];
+        // Mise à jour du résumé en temps réel
+        const summaryElement = document.getElementById('group-summary');
+        if (summaryElement) {
+            const discountText = discountPercent > 0 ? 
+                `<br><span class="text-success">Remise appliquée: ${discountPercent}% (-${new Intl.NumberFormat('fr-FR').format(Math.round(discountAmount))} GNF)</span>` : '';
+            
+            summaryElement.innerHTML = `
+                <strong>{{ $stats['total_factures'] ?? 0 }} facture(s)</strong><br>
+                <strong>Montant original: ${new Intl.NumberFormat('fr-FR').format(baseAmount)} GNF</strong>
+                ${discountText}
+                <br><strong class="text-primary">Montant à payer: ${new Intl.NumberFormat('fr-FR').format(Math.round(finalAmount))} GNF</strong>
+            `;
+        }
     }
-}
 
-function openGroupPaymentModal() {
-    
-    if (selectedInvoices.length === 0) {
-        alert('Veuillez sélectionner au moins une facture.');
-        return;
-    }
-    
-    const checkboxes = document.querySelectorAll('.invoice-checkbox:checked');
-    let total = 0;
-    
-    checkboxes.forEach(checkbox => {
-        const row = checkbox.closest('tr');
-        const amountText = row.querySelector('td:nth-child(6)').textContent.trim();
-        const amount = parseInt(amountText.replace(/[^\d]/g, ''));
-        total += amount;
-    });
-    
-    document.getElementById('group-summary').innerHTML = `
-        <strong>${selectedInvoices.length} facture(s) sélectionnée(s)</strong><br>
-        <strong>Montant total: ${new Intl.NumberFormat('fr-FR').format(total)} GNF</strong>
-    `;
-    
-    $('#groupPaymentModal').modal('show');
-}
+    // Écouter les changements sur le champ remise
+    discountInput.addEventListener("input", updatePaymentAmount);
+    discountInput.addEventListener("change", updatePaymentAmount);
 
-function submitGroupPayment() {
-    const form = document.getElementById('groupPaymentForm');
-    
-    // Ajouter les champs du modal au formulaire
-    const paymentDate = document.getElementById('payment_date_group').value;
-    const claimNumber = document.getElementById('claim_number_group').value;
-    const notes = document.getElementById('notes_group').value;
-    
-    // Créer les champs cachés
-    const paymentDateInput = document.createElement('input');
-    paymentDateInput.type = 'hidden';
-    paymentDateInput.name = 'payment_date';
-    paymentDateInput.value = paymentDate;
-    form.appendChild(paymentDateInput);
-    
-    if (claimNumber) {
-        const claimNumberInput = document.createElement('input');
-        claimNumberInput.type = 'hidden';
-        claimNumberInput.name = 'claim_number';
-        claimNumberInput.value = claimNumber;
-        form.appendChild(claimNumberInput);
-    }
-    
-    if (notes) {
-        const notesInput = document.createElement('input');
-        notesInput.type = 'hidden';
-        notesInput.name = 'notes';
-        notesInput.value = notes;
-        form.appendChild(notesInput);
-    }
-    
-    form.submit();
-}
-
-function selectAllInvoices() {
-    document.getElementById('select-all').checked = true;
-    toggleAllCheckboxes();
-}
-
-// Écouteur d'événements pour les checkboxes individuelles
-document.addEventListener('DOMContentLoaded', function() {
-    const checkboxes = document.querySelectorAll('.invoice-checkbox');
-    checkboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', updateSelectedSummary);
-    });
+    // Calcul initial au chargement
+    updatePaymentAmount();
 });
 </script>
 @endsection

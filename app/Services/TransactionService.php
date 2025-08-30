@@ -89,7 +89,7 @@ class TransactionService
                     $transaction->montant_payer += $montantRestant;
                     $deja_payer = $montantRestant;
                     $montant -= $montantRestant;
-                } else {
+                }else{
                         $transaction->montant_payer += $montant;
                         $deja_payer = $montant;
                         $montant = 0;
@@ -120,7 +120,6 @@ class TransactionService
                             $transaction->status = 'partial';
                         }
                         $transaction->save();
-
                     }
                 }
             }

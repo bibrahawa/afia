@@ -11,4 +11,8 @@ class FichierPatient extends Model
     public function patient() {
         return $this->belongsTo(Patient::class);
     }
+
+    public function consultation() {
+        return $this->belongsTo(Consultation::class);
+    }
 }

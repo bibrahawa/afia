@@ -7,7 +7,10 @@ use App\Models\Paiement;
 use App\Models\InsuranceCoverage;
 use App\Models\Consultation;
 use App\Models\Account;
+use App\Models\Appointment;
+use App\Models\AppointmentSlot;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 
 class ConsultationService
@@ -56,13 +59,123 @@ class ConsultationService
         return $account->id;
     }
 
+    public static function appliedDiscount($transaction, $actes){
+
+        $typeMap = [
+            'Service' => 'App\\Models\\Service',
+            'Test' => 'App\\Models\\Test',
+            'Medicament' => 'App\\Models\\Medicament',
+            'Package' => 'App\\Models\\Package',
+            'Hospitalisation' => 'App\\Models\\Hospitalisation'
+        ];
+
+        \DB::transaction(function () use ($actes, $typeMap, $transaction) {
+           
+            $invoice = $transaction->invoice;
+            $subTotal = 0;
+            $insuranceTotal = 0;
+            $patientTotal = 0;
+            $discountTotal = 0;
+
+            foreach ($actes as $type => $items) {
+                $modelClass = $typeMap[$type] ?? null;
+
+                if (!$modelClass) {
+                    continue;
+                }
+
+                foreach ($items as $id => $discount) {
+                    // Récupère la ligne
+                    $invoiceItem = $invoice->items
+                        ->where('coverage_type_type', $modelClass)
+                        ->where('coverage_type_id', $id)
+                        ->first();
+
+                    if ($invoiceItem) {
+                        // Calcul du nouveau patient_amount
+                        $invoiceItem->discount = $discount;
+                        $invoiceItem->save();
+                        $invoiceItem->reCalculerApresReduction();
+                    }
+
+                    $discountTotal  += $invoiceItem->discount;
+                    $subTotal       += $invoiceItem->total_amount;
+                    $insuranceTotal += $invoiceItem->insurance_covered_amount;
+                    $patientTotal   += $invoiceItem->patient_amount;
+                    
+                }
+            }
+
+            // Mise a jour de l'invoice
+            $invoice->insurance_amount = $insuranceTotal;
+            $invoice->patient_amount   = $patientTotal;
+            $invoice->total_amount     = $subTotal;
+            $invoice->save();
+
+            // Mise à jour de la transaction
+            $transaction->sub_total   = $subTotal + $discountTotal;
+            $transaction->discount    = $discountTotal;
+            $transaction->total       = $subTotal;
+            $transaction->save();
+
+            // Mettre à jour le statut de la transaction
+            if ($transaction->montant_payer == $invoice->patient_amount && $invoice->assuinsurance_amount > 0){
+                $transaction->status = 'approved';
+            }else if($transaction->montant_payer == $transaction->total){
+                $transaction->status = 'paid';
+                $invoice->update([
+                    'patient_amount_status' => 'paid'
+                ]);
+            }else{
+                $transaction->status = 'partial';
+            }
+            $transaction->save();
+            
+            $account = $transaction->patient->account;
+            $account->balance -= $discountTotal;
+            $account->save();
+
+        });
+
+    }
+
     public static function calculateAmount(Consultation $consultation)
     {
         return
             $consultation->services->sum('amount') +
             $consultation->packages->sum('price') +
             $consultation->tests->sum('amount') +
-            $consultation->medicaments->sum('amount');
+            $consultation->medicaments->sum(function($med){
+                return $med->pivot->quantity * $med->amount;
+            });
+    }
+
+    public static function updateProchainRdvAppoitments($consultation, $nouveau_prochain_rdv)
+    {
+        DB::transaction(function () use ($consultation, $nouveau_prochain_rdv) {
+
+            $ancien_prochain_rdv = $consultation->prochain_rdv;
+            // Créer le rendez-vous
+            Appointment::where('employee_id', $consultation->medecin_id)->where('patient_id', $consultation->patient_id)
+                ->where('appointment_date', Carbon::parse($ancien_prochain_rdv)->format('Y-m-d'))
+                ->where('appointment_time', Carbon::parse($ancien_prochain_rdv)->format('H:i:s'))
+                ->update([
+                    'appointment_date' => Carbon::parse($nouveau_prochain_rdv)->format('Y-m-d'),
+                    'appointment_time' => Carbon::parse($nouveau_prochain_rdv)->format('H:i:s')
+                ]);
+
+                // Marquer le slot comme indisponible
+                AppointmentSlot::where('employee_id', $consultation->medecin_id)
+                    ->where('date', Carbon::parse($ancien_prochain_rdv)->format('Y-m-d'))
+                    ->where('time', Carbon::parse($ancien_prochain_rdv)->format('H:i:s'))
+                    ->update(['is_available' => true]);
+
+                // Marquer le slot comme indisponible
+                AppointmentSlot::where('employee_id', $consultation->medecin_id)
+                    ->where('date', Carbon::parse($nouveau_prochain_rdv)->format('Y-m-d'))
+                    ->where('time', Carbon::parse($nouveau_prochain_rdv)->format('H:i:s'))
+                    ->update(['is_available' => false]);
+        });
     }
 
     public function calculateAmountAndReturnItems($consultationItem, $isConsultation = true)
@@ -195,7 +308,7 @@ class ConsultationService
         
         // Médicaments
         foreach ($consultation->medicaments ?? [] as $item) {
-            $totalAmount += getAmount("App\\Models\\Medicament", $item->id, $insuranceId, $item);
+            $totalAmount += getAmount("App\\Models\\Medicament", $item->id, $insuranceId, $item) * $item->pivot->quantity;
         }
 
         return $totalAmount;
@@ -268,11 +381,11 @@ class ConsultationService
                     'acte_id'     => $medicament->id,
                     'description' => $medicament->nom,
                     'unit_price'  => $medicament->amount,
-                    'quantity'    => 1,
-                    'total'       => $medicament->amount,
+                    'quantity'    => $medicament->pivot->quantity,
+                    'total'       => $medicament->amount * $medicament->pivot->quantity,
                 ];
 
-                $totalAmount += $medicament->amount;
+                $totalAmount += $medicament->amount * $medicament->pivot->quantity;
             }
 
             // Hospitalisation
@@ -444,7 +557,7 @@ class ConsultationService
                     'nom' => $item->nom,
                     'description' => $item->nom,
                     'prix_unitaire' => $this->getAmount("App\\Models\\Medicament", $item->id, $insuranceId, $item),
-                    'quantite' => 1,
+                    'quantite' => $item->pivot->quantity,
                     'created_at' => $item->created_at
             ];
         }
@@ -480,7 +593,7 @@ class ConsultationService
      * @param mixed $acte The service item.
      * @return float The amount of the service item covered by the insurance, if any. Otherwise, returns the amount of the service item.
      */
-    private function getAmount($serviceType, $serviceId, $insuranceId, $acte){
+    public function getAmount($serviceType, $serviceId, $insuranceId, $acte){
 
         $item = $this->getCoverageItem($serviceType, $serviceId, $insuranceId);
 

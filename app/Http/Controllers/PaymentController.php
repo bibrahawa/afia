@@ -256,11 +256,11 @@ class PaymentController extends Controller
                     'acte_id'     => $medicament->id,
                     'description' => $medicament->nom,
                     'unit_price'  => $medicament->amount,
-                    'quantity'    => 1,
-                    'total'       => $medicament->amount,
+                    'quantity'    => $medicament->pivot->quantity,
+                    'total'       => $medicament->amount * $medicament->pivot->quantity,
                 ];
 
-                $totalAmount += $medicament->amount;
+                $totalAmount += $medicament->amount * $medicament->pivot->quantity;
             }
 
             // Hospitalisation
@@ -320,7 +320,7 @@ class PaymentController extends Controller
 
         DB::beginTransaction();
         
-        // try {
+        try {
 
             $montant = $request->montant;
 
@@ -331,22 +331,37 @@ class PaymentController extends Controller
             $assurance_1            = $request->selected_insurances[0] ?? false;
             $assurance_2            = $request->selected_insurances[1] ?? false;
             $insuranceCompanyIds    = array_filter([$assurance_1, $assurance_2]);
-            $transaction            = Transaction::where('id',$request->transaction_id)->with('patient', 'invoice')->first();
-            
+            $transaction = Transaction::where('id',$request->transaction_id)->with('patient', 'invoice')->first();
+
             $this->transactionPay->paiementTransaction($request->source, $request->montant, $request->description, $transaction, $request->part_patient);
             
             // Si il y a des assurances, créer la facture avec couverture
             if ($request->use_insurance && ($assurance_1 || $assurance_2) && $request->part_insurance > 0)
                 $this->insuranceService->updateInvoiceWithInsurance($insuranceCompanyIds, $transaction, $request->montant);
+            
+            if(!$this->isCustomArrayEmpty($request->actes))
+                ConsultationService::appliedDiscount($transaction, $request->actes);
 
             DB::commit();
             
             return redirect()->back()->with('success', 'Paiement traité avec succès');
             
-        // } catch (\Exception $e) {
-        //     DB::rollback();
-        //     return redirect()->back()->with('error', 'Erreur lors du traitement: ' . $e->getMessage());
-        // }
+        } catch (\Exception $e) {
+            DB::rollback();
+            return redirect()->back()->with('error', 'Erreur lors du traitement: ' . $e->getMessage());
+        }
+    }
+
+    private function isCustomArrayEmpty(array $data): bool
+    {
+        foreach ($data as $items) {
+            foreach ($items as $val) {
+                if ((int) $val > 0) {
+                    return false; // trouvé une valeur valide
+                }
+            }
+        }
+        return true; // toutes les valeurs sont à 0
     }
     
     /**

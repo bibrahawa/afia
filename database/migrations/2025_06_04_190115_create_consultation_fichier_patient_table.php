@@ -11,11 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('fichier_consultations', function (Blueprint $table) {
+        Schema::create('consultation_fichier_patient', function (Blueprint $table) {
             $table->id();
             $table->foreignId('consultation_id')->constrained()->onDelete('cascade');
-            $table->string('nom_fichier');
-            $table->string('chemin');
+            $table->foreignId('fichier_patient_id')->constrained()->onDelete('cascade');
             $table->timestamps();
         });
     }
@@ -25,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('fichier_consultations');
+        Schema::dropIfExists('consultation_fichier_patient');
     }
 };

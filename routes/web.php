@@ -12,6 +12,10 @@ use App\Http\Controllers\{
     PaymentController, InsuranceBalanceController, SmsController, SmsReportController
 };
 
+Route::get('new', function(){
+    return view('consultations.facture.bilan_hormonale');
+});
+
 
 // Authentification
 Route::get('/', [DashboardController::class, 'index'])->name('rdv');
@@ -228,8 +232,8 @@ Route::middleware('auth')->group(function () {
             ->name('show');
         
         // Paiement individuel d'une facture
-        Route::post('/payment/{invoice}', [InsuranceBalanceController::class, 'processPayment'])
-            ->name('payment');
+        // Route::post('/payment/{invoice}', [InsuranceBalanceController::class, 'processPayment'])
+        //     ->name('payment');
         
         // Paiement groupé
         Route::post('/paiement', [InsuranceBalanceController::class, 'ProcessPaiement'])->name("payment");

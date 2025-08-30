@@ -56,7 +56,7 @@ class Consultation extends Model
 
     public function fichiers()
     {
-        return $this->hasMany(FichierConsultation::class);
+        return $this->hasMany(FichierPatient::class);
     }
 }
 

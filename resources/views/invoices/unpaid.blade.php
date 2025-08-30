@@ -1,5 +1,86 @@
 @extends('layouts.backend')
 
+@section('style')
+
+    <style>
+        .fade-in-up {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-check:checked + .btn-outline-success {
+            background-color: #28a745;
+            border-color: #28a745;
+            color: white;
+        }
+        
+        .btn-check:checked + .btn-outline-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+            color: white;
+        }
+        
+        .btn-check:checked + .btn-outline-warning {
+            background-color: #ffc107;
+            border-color: #ffc107;
+            color: #212529;
+        }
+        
+        .input-group-sm .form-control {
+            font-size: 0.875rem;
+        }
+        
+        .badge {
+            font-size: 0.75em;
+        }
+        
+        .table th {
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        
+        .table td {
+            font-size: 0.875rem;
+            vertical-align: middle;
+        }
+        
+        .card-header h6 {
+            font-weight: 600;
+        }
+        
+        .alert {
+            border: none;
+            border-radius: 0.375rem;
+        }
+        
+        .btn-sm {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.875rem;
+        }
+        
+        .modal-xl {
+            max-width: 1200px;
+        }
+        
+        @media (max-width: 768px) {
+            .modal-xl {
+                max-width: 95%;
+                margin: 1rem auto;
+            }
+            
+            .table-responsive {
+                font-size: 0.8rem;
+            }
+            
+            .btn-group .btn {
+                font-size: 0.75rem;
+                padding: 0.25rem 0.5rem;
+            }
+        }
+    </style>
+@endsection
+
 @section('content')
 
 <div class="container">
@@ -155,9 +236,9 @@
                                                         <i class="fas fa-list-alt me-2"></i>Détail des Actes Médicaux
                                                     </h6>
                                                     <div class="d-flex gap-2">
-                                                        <button type="button" class="btn btn-outline-success btn-sm" id="applyGlobalDiscountBtn">
+                                                        {{-- <button type="button" class="btn btn-outline-success btn-sm" id="applyGlobalDiscountBtn">
                                                             <i class="fas fa-percent"></i> Remise globale
-                                                        </button>
+                                                        </button> --}}
                                                         <button type="button" class="btn btn-outline-info btn-sm" id="recalculateBtn">
                                                             <i class="fas fa-sync"></i> Recalculer
                                                         </button>
@@ -165,7 +246,7 @@
                                                 </div>
                                                 <div class="card-body p-0">
                                                     <!-- Remise globale (masquée par défaut) -->
-                                                    <div id="globalDiscountSection" class="p-3 bg-light border-bottom" style="display: none;">
+                                                    {{-- <div id="globalDiscountSection" class="p-3 bg-light border-bottom" style="display: none;">
                                                         <div class="row align-items-center">
                                                             <div class="col-md-6">
                                                                 <label class="form-label">Type de remise globale:</label>
@@ -184,19 +265,19 @@
                                                                 </button>
                                                             </div>
                                                         </div>
-                                                    </div>
+                                                    </div> --}}
 
                                                     <div class="table-responsive">
                                                         <table class="table table-hover mb-0" id="actesTable">
                                                             <thead class="bg-primary bg-opacity-10">
                                                                 <tr>
                                                                     <th class="border-0 fw-semibold">Description</th>
-                                                                    <th class="border-0 fw-semibold text-end">Prix Unit.</th>
+                                                                    <th class="border-0 fw-semibold text-center">Prix Unit.</th>
                                                                     <th class="border-0 fw-semibold text-center">Qté</th>
-                                                                    {{-- <th class="border-0 fw-semibold text-end">Sous-total</th> --}}
-                                                                    <th class="border-0 fw-semibold text-end">Remise</th>
-                                                                    <th class="border-0 fw-semibold text-end">Net</th>
-                                                                    <th class="border-0 fw-semibold text-end">Après Assurance</th>
+                                                                    <th class="border-0 fw-semibold text-center">Sous-total</th>
+                                                                    <th class="border-0 fw-semibold text-center remise">Remise</th>
+                                                                    <th class="border-0 fw-semibold text-center remise">Net a payer</th>
+                                                                    <th class="border-0 fw-semibold text-center apres_assurance">Après Assurance</th>
                                                                 </tr>
                                                             </thead>
                                                             <tbody id="actesTableBody">
@@ -205,10 +286,10 @@
                                                             <tfoot class="bg-light">
                                                                 <tr>
                                                                     <td colspan="3" class="fw-bold text-end border-0">Total:</td>
-                                                                    {{-- <td class="fw-bold text-end border-0" id="totalOriginal">0 GNF</td> --}}
-                                                                    <td class="fw-bold text-end border-0 text-success" id="totalRemise">0 GNF</td>
-                                                                    <td class="fw-bold text-end border-0 text-info" id="totalNet">0 GNF</td>
-                                                                    <td class="fw-bold text-end border-0 text-primary" id="totalApresAssurance">0 GNF</td>
+                                                                    <td class="fw-bold text-center border-0" id="totalOriginal">0 GNF</td>
+                                                                    <td class="fw-bold text-center border-0 text-success remise" id="totalRemise">0 GNF</td>
+                                                                    <td class="fw-bold text-center border-0 text-info remise" id="totalNet">0 GNF</td>
+                                                                    <td class="fw-bold text-center border-0 text-primary apres_assurance" id="totalApresAssurance">0 GNF</td>
                                                                 </tr>
                                                             </tfoot>
                                                         </table>
@@ -386,15 +467,21 @@
                             patientInsurances = response.insurances.filter(ins => ins.status === 'active');
                             displayQuickInsurances(patientInsurances);
                             $('#insuranceQuickSection').show();
+                            $('.remise').hide();
+                            $('.apres_assurance').show();
                         } else {
                             patientInsurances = [];
                             $('#insuranceQuickSection').hide();
+                            $('.apres_assurance').hide();
+                            $('.remise').show();
                         }
                         resolve();
                     },
                     error: function() {
                         patientInsurances = [];
                         $('#insuranceQuickSection').hide();
+                        $('.remise').hide();
+                        $('.apres_assurance').hide();
                         resolve();
                     }
                 });
@@ -459,25 +546,27 @@
                                 ${acte.description ? `<br><small class="text-muted">${acte.description}</small>` : ''}
                             </div>
                         </td>
-                        <td class="text-end fw-semibold">${numberFormat(acte.prix_unitaire)} GNF</td>
+                        <td class="text-center fw-semibold">${numberFormat(acte.prix_unitaire)} GNF</td>
                         <td class="text-center">
                             <span class="badge bg-secondary">${acte.quantite}</span>
                         </td>
-                        <td class="text-end">
+                        <td class="text-center fw-bold text-success montant-original">${numberFormat(sousTotal)} GNF</td>
+                        <td class="text-center remise">
                             <div class="input-group input-group-sm">
                                 <input type="number" 
-                                       class="form-control form-control-sm text-end remise-input" 
+                                       class="form-control form-control-sm text-center remise-input" 
                                        min="0" 
                                        max="${sousTotal}" 
                                        step="0.01"
                                        value="0"
+                                       name="actes[${acte.type}][${acte.id}]"
                                        data-acte-index="${index}"
                                        placeholder="0">
                                 <span class="input-group-text">GNF</span>
                             </div>
                         </td>
-                        <td class="text-end fw-bold text-info montant-net">${numberFormat(sousTotal)} GNF</td>
-                        <td class="text-end fw-bold text-primary montant-assurance">${numberFormat(sousTotal)} GNF</td>
+                        <td class="text-center fw-bold text-info montant-net remise">${numberFormat(sousTotal)} GNF</td>
+                        <td class="text-center fw-bold text-primary montant-assurance apres_assurance">${numberFormat(sousTotal)} GNF</td>
                     </tr>
                 `;
             });
@@ -870,82 +959,4 @@
         });
 
     </script>
-
-    <style>
-        .fade-in-up {
-            opacity: 0;
-            transform: translateY(20px);
-            transition: all 0.3s ease;
-        }
-        
-        .btn-check:checked + .btn-outline-success {
-            background-color: #28a745;
-            border-color: #28a745;
-            color: white;
-        }
-        
-        .btn-check:checked + .btn-outline-primary {
-            background-color: #007bff;
-            border-color: #007bff;
-            color: white;
-        }
-        
-        .btn-check:checked + .btn-outline-warning {
-            background-color: #ffc107;
-            border-color: #ffc107;
-            color: #212529;
-        }
-        
-        .input-group-sm .form-control {
-            font-size: 0.875rem;
-        }
-        
-        .badge {
-            font-size: 0.75em;
-        }
-        
-        .table th {
-            font-size: 0.875rem;
-            font-weight: 600;
-        }
-        
-        .table td {
-            font-size: 0.875rem;
-            vertical-align: middle;
-        }
-        
-        .card-header h6 {
-            font-weight: 600;
-        }
-        
-        .alert {
-            border: none;
-            border-radius: 0.375rem;
-        }
-        
-        .btn-sm {
-            padding: 0.375rem 0.75rem;
-            font-size: 0.875rem;
-        }
-        
-        .modal-xl {
-            max-width: 1200px;
-        }
-        
-        @media (max-width: 768px) {
-            .modal-xl {
-                max-width: 95%;
-                margin: 1rem auto;
-            }
-            
-            .table-responsive {
-                font-size: 0.8rem;
-            }
-            
-            .btn-group .btn {
-                font-size: 0.75rem;
-                padding: 0.25rem 0.5rem;
-            }
-        }
-    </style>
 @endsection

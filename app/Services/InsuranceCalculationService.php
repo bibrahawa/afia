@@ -29,10 +29,11 @@ class InsuranceCalculationService{
 
         DB::beginTransaction();
 
+        
         $invoice = $transaction->invoice;
-
+        
         $items = $this->consultationItem->calculateAmountAndReturnItems($transaction->transactionable);
-
+        
         try {
             // Calculer la couverture
             $calculation = $this->calculateInsuranceCoverage($transaction->patient_id, $items['items']);
@@ -72,6 +73,18 @@ class InsuranceCalculationService{
                         : 0
                 ]);
             }
+            
+            // Mettre a jour le total de la transaction et faire la difference au niveau du compte accounts
+            $diffAmount = $transaction->total - $calculation['total_amount'];
+            $account = $transaction->patient->account;
+            $account->balance -= $diffAmount;
+
+            $account->save();
+
+            $transaction->update([
+                'total' => $calculation['total_amount'],
+                'sub_total' => $calculation['total_amount']
+            ]);
 
             // Mettre à jour les montants utilisés des assurances
             if ($calculation['insurance_coverage'] > 0) {
@@ -140,7 +153,7 @@ class InsuranceCalculationService{
         }
     }
 
-    public function updateInvoiceForConsultation($patientId, $invoiceId, $consultation = null)
+    public function updateInvoiceForConsultation($patientId, $invoiceId, $consultation = null, $items)
     {
         try {
             // Récupérer la facture existante
@@ -148,7 +161,7 @@ class InsuranceCalculationService{
             
             // Si une consultation est fournie, recalculer les items
             if ($consultation) {
-                $items = $this->getConsultationItems($consultation);
+
                 $calculation = $this->calculateInsuranceCoverage($patientId, $items['items']);
                 
                 // Mettre à jour la facture principale
@@ -476,12 +489,12 @@ class InsuranceCalculationService{
                 'acte_type'   => 'App\\Models\\Package',
                 'acte_id'     => $package->id,
                 'description' => $package->name,
-                'unit_price'  => $package->amount,
+                'unit_price'  => $package->price,
                 'quantity'    => 1,
-                'total'       => $package->amount,
+                'total'       => $package->price,
             ];
 
-            $totalAmount += $package->amount;
+            $totalAmount += $package->price;
         }
 
         // Tests
@@ -505,11 +518,11 @@ class InsuranceCalculationService{
                 'acte_id'     => $medicament->id,
                 'description' => $medicament->nom,
                 'unit_price'  => $medicament->amount,
-                'quantity'    => 1,
-                'total'       => $medicament->amount,
+                'quantity'    => $medicament->pivot->quantity,
+                'total'       => $medicament->amount * $medicament->pivot->quantity,
             ];
 
-            $totalAmount += $medicament->amount;
+            $totalAmount += $medicament->amount * $medicament->pivot->quantity;
         }
 
         if($consultation->transaction->transactionable_type == "App\\Models\\Hospitalisation"){
@@ -680,13 +693,13 @@ class InsuranceCalculationService{
                     'acte_type'   => 'App\\Models\\Package',
                     'acte_id'     => $package->id,
                     'description' => $package->name,
-                    'unit_price'  => $package->amount,
+                    'unit_price'  => $package->price,
                     'quantity'    => 1,
                     'transaction_id'    => $transaction->id,
-                    'total'       => $package->amount,
+                    'total'       => $package->price,
                 ];
 
-                $totalAmount += $package->amount;
+                $totalAmount += $package->price;
             }
 
             // Tests
@@ -713,12 +726,12 @@ class InsuranceCalculationService{
                     'acte_id'     => $medicament->id,
                     'description' => $medicament->nom,
                     'unit_price'  => $medicament->amount,
-                    'quantity'    => 1,
-                    'transaction_id'    => $transaction->id,
-                    'total'       => $medicament->amount,
+                    'transaction_id' => $transaction->id,
+                    'quantity'    => $medicament->pivot->quantity,
+                    'total'       => $medicament->amount * $medicament->pivot->quantity,
                 ];
 
-                $totalAmount += $medicament->amount;
+                $totalAmount += $medicament->amount * $medicament->pivot->quantity;
             }
 
             // Hospitalisation
@@ -812,12 +825,12 @@ class InsuranceCalculationService{
                 'acte_type'   => 'App\\Models\\Package',
                 'acte_id'     => $package->id,
                 'description' => $package->name,
-                'unit_price'  => $package->amount,
+                'unit_price'  => $package->price,
                 'quantity'    => 1,
-                'total'       => $package->amount,
+                'total'       => $package->price,
             ];
 
-            $totalAmount += $package->amount;
+            $totalAmount += $package->price;
         }
 
         // Tests
@@ -841,11 +854,11 @@ class InsuranceCalculationService{
                 'acte_id'     => $medicament->id,
                 'description' => $medicament->nom,
                 'unit_price'  => $medicament->amount,
-                'quantity'    => 1,
-                'total'       => $medicament->amount,
+                'quantity'    => $medicament->pivot->quantity,
+                'total'       => $medicament->amount * $medicament->pivot->quantity,
             ];
 
-            $totalAmount += $medicament->amount;
+            $totalAmount += $medicament->amount * $medicament->pivot->quantity;
         }
 
         // Hospitalisation

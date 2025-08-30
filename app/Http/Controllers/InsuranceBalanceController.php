@@ -257,15 +257,17 @@ class InsuranceBalanceController extends Controller
             'insurance_companies_id'   => 'required|exists:insurance_companies,id',
             'payment_date'   => 'nullable|date',
             'montant' => 'nullable|numeric|min:0',
+            'totalRemise' => 'required|numeric|min:0',
             'notes' => 'nullable|string'
         ]);
 
         DB::beginTransaction();
 
-        // try {
+        try {
 
             $insurance = InsuranceCompany::findOrFail($request->insurance_companies_id);
-            // Récupérer les factures avec pagination
+           
+            // Récupérer les factures
             $invoices = Invoice::where('insurance_company_id', $insurance->id)
                             ->with(['transaction.patient'])
                             ->whereIn('insurance_status', ['approved', 'pending'])
@@ -274,7 +276,7 @@ class InsuranceBalanceController extends Controller
                             ->get();
 
             $montantAssurance = (float) $request->montant;
-            
+
             foreach($invoices as $key => $invoice) {
 
                 $transaction = $invoice->transaction;
@@ -308,19 +310,26 @@ class InsuranceBalanceController extends Controller
 
                     $invoice->save();
                     $transaction->save();
+                    
+                    //Mettre a jour le compte accounts
+                    $account = $transaction->patient->account;
+                    $account->balance -= $montantAPayer;
+                    $account->save();
 
                     $montantAssurance -= $montantAPayer;
 
                 }
-                DB::commit();
+
             }
 
-        return redirect()->back()->with('success', "Paiement groupé enregistré avec succès. Total: " . number_format($montantAPayer, 0, ',', ' ') . " FCFA");
+            DB::commit();
 
-        // } catch (\Exception $e) {
-        //     DB::rollback();
-        //     return redirect()->back()->with('error', 'Erreur lors du traitement: ' . $e->getMessage());
-        // }
+        return redirect()->back()->with('success', "Paiement groupé enregistré avec succès. Total: " . number_format($montantAssurance, 0, ',', ' ') . " GNF");
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            return redirect()->back()->with('error', 'Erreur lors du traitement: ' . $e->getMessage());
+        }
     }
 
 

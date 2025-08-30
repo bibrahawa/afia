@@ -19,6 +19,7 @@ class InvoiceItem extends Model
         'unit_price',
         'quantity',
         'total_amount',
+        'discount',
         'insurance_covered_amount',
         'patient_amount',
         'coverage_percentage_applied',
@@ -42,5 +43,22 @@ class InvoiceItem extends Model
     {
         return $this->morphTo();
     }
+
+    public function reCalculerApresReduction()
+    {
+        // Sous-total brut
+        $sousTotal = $this->unit_price * $this->quantity;
+
+        // Réduction ligne (si applicable)
+        $totalApresDiscount = $sousTotal - $this->discount;
+        
+        $patientAmount   = $this->patient_amount - $this->discount;
+        // Mise à jour de la ligne
+        $this->total_amount = $totalApresDiscount;
+        $this->patient_amount = $patientAmount;
+
+        $this->save();
+    }
+
 
 }
