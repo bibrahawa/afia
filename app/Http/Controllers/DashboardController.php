@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\View\View;
+
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -26,14 +26,14 @@ use \Carbon\Carbon;
 class DashboardController extends Controller
 {
 
-    public function index (): View
+    public function index ()
     {
         return view('appointments.rdv.rdv');
     }
     /**
      * Affiche le dashboard principal
      */
-    public function admin(): View
+    public function admin()
     {
         // Dans votre DashboardController
         $rdv_today = Appointment::whereDate('appointment_date', today())->count();
@@ -70,7 +70,7 @@ class DashboardController extends Controller
     /**
      * Dashboard professionnel
      */
-    public function indexProfessionel(): View
+    public function indexProfessionel()
     {
         $professional = auth()->user();
         return view('professional.dashboard', compact('professional'));
@@ -79,7 +79,7 @@ class DashboardController extends Controller
     /**
      * Récupère les rendez-vous
      */
-    public function appointments(Request $request): View
+    public function appointments(Request $request)
     {
         // Suppression des données de démonstration - utilisation des vraies données
         $appointments = Appointment::where('employee_id', auth()->id())
@@ -146,7 +146,7 @@ class DashboardController extends Controller
     /**
      * Récupère les disponibilités
      */
-    public function availabilities(): View
+    public function availabilities()
     {
         $availabilities = EmployeeAvailability::where('employee_id', auth()->id())
             ->orderBy('day_of_week')
@@ -273,7 +273,7 @@ class DashboardController extends Controller
     /**
      * Récupère les congés
      */
-    public function leaves(): View
+    public function leaves()
     {
         $leaves = EmployeeLeave::where('employee_id', auth()->id())
             ->orderBy('start_date', 'desc')

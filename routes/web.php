@@ -12,17 +12,6 @@ use App\Http\Controllers\{
     PaymentController, InsuranceBalanceController, SmsController, SmsReportController
 };
 
-Route::get('/test-permission', function() {
-    
-    $user = auth()->user();
-
-    return [
-        'user' => $user->name,
-        'roles' => $user->roles->pluck('name'),
-        'permissions' => $user->getAllPermissions()->pluck('name'),
-        'can_view_patient' => $user->can('patient.view'),
-    ];
-})->middleware('auth');
 
 Route::get('new', function(){
     return view('consultations.facture.bilan_hormonale');
