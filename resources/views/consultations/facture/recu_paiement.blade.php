@@ -297,27 +297,27 @@
                         <tr>
                             <td>Consultation médicale</td>
                             <td>{{ $consultation->department->name }} - Dr. {{ $consultation->medecin->last_name }}</td>
-                            <td style="text-align: right;">{{ number_format($consultation->total * 0.2, 0, ',', ' ') }} FCFA</td>
+                            <td style="text-align: right;">{{ number_format($consultation->total * 0.2, 0, ',', ' ') }} GNF</td>
                         </tr>
                         @foreach ($consultation->services as $service)
                         <tr>
                             <td>Service médical</td>
                             <td>{{ $service->name }}</td>
-                            <td style="text-align: right;">{{ number_format($service->prix ?? ($consultation->total * 0.4 / count($consultation->services)), 0, ',', ' ') }} FCFA</td>
+                            <td style="text-align: right;">{{ number_format($service->prix ?? ($consultation->total * 0.4 / count($consultation->services)), 0, ',', ' ') }} GNF</td>
                         </tr>
                         @endforeach
                         @foreach ($consultation->packages as $package)
                         <tr>
                             <td>Package médical</td>
                             <td>{{ $package->name }}</td>
-                            <td style="text-align: right;">{{ number_format($package->prix ?? ($consultation->total * 0.4 / count($consultation->packages)), 0, ',', ' ') }} FCFA</td>
+                            <td style="text-align: right;">{{ number_format($package->prix ?? ($consultation->total * 0.4 / count($consultation->packages)), 0, ',', ' ') }} GNF</td>
                         </tr>
                         @endforeach
                     </tbody>
                 </table>
 
                 <div class="payment-total">
-                    Total: {{ number_format($consultation->total, 0, ',', ' ') }} FCFA
+                    Total: {{ number_format($consultation->total, 0, ',', ' ') }} GNF
                 </div>
 
                 <div class="payment-method">

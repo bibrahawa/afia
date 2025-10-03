@@ -32,13 +32,13 @@
             <div class="card-header">
               <div class="d-flex align-items-center">
                 <h4 class="card-title">Liste des factures</h4>
-                <button
+                {{-- <button
                   class="btn btn-primary btn-round ms-auto"
                   data-bs-toggle="modal"
                   data-bs-target="#addRowModal"
                 >
                   <i class="fa fa-plus"></i> Nouvelle facture
-                </button>
+                </button> --}}
               </div>
             </div>
 
@@ -123,7 +123,7 @@
                                             <i class="fa fa-list"></i>
                                         </button>
 
-                                        <button
+                                        {{-- <button
                                             type="button"
                                             class="btn btn-warning btn-round btn-sm edit-button"
                                             data-bs-toggle="modal"
@@ -131,9 +131,9 @@
                                             data-info="{{$invoice->id}},{{$invoice->transaction_id}},{{$invoice->insurance_company_id}},{{$invoice->patient_insurance_id}},{{$invoice->total_amount}},{{$invoice->patient_amount}},{{$invoice->insurance_amount}},{{$invoice->insurance_status}},{{$invoice->patient_amount_status}},{{$invoice->insurance_submission_date}},{{$invoice->insurance_payment_date}},{{$invoice->insurance_claim_number}},{{ str_replace(',', '|', $invoice->insurance_notes ?? '') }}"
                                         >
                                             <i class="fa fa-edit"></i>
-                                        </button>
+                                        </button> --}}
 
-                                        <button
+                                        {{-- <button
                                             type="button"
                                             class="btn btn-danger btn-round btn-sm delete-button"
                                             data-bs-toggle="modal"
@@ -142,7 +142,7 @@
                                             data-name="Facture #{{$invoice->id}} - TXN-{{$invoice->transaction_id}}"
                                         >
                                             <i class="fa fa-trash"></i>
-                                        </button>
+                                        </button> --}}
                                     </div>
                                 </td>
                             </tr>

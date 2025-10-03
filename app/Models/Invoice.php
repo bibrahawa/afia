@@ -64,11 +64,12 @@ class Invoice extends Model
         if ($this->patient_amount_status === 'paid') {
             $this->transaction->update(['status' => 'completed']);
         }
+
     }
 
     public function getFormattedInsuranceAmountAttribute()
     {
-        return number_format($this->insurance_amount, 0, ',', ' ') . ' FCFA';
+        return number_format($this->insurance_amount, 0, ',', ' ') . ' GNF';
     }
 
     public function transaction()

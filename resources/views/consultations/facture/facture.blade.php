@@ -321,14 +321,14 @@
                             <td>Consultation médicale</td>
                             <td>{{ $consultation->department->name }}</td>
                             <td>Consultation standard</td>
-                            <td style="text-align: right;">{{ number_format($consultation->total * 0.2, 0, ',', ' ') }} FCFA</td>
+                            <td style="text-align: right;">{{ number_format($consultation->total * 0.2, 0, ',', ' ') }} GNF</td>
                         </tr>
                         @foreach ($consultation->services as $service)
                         <tr>
                             <td>Service médical</td>
                             <td>{{ $consultation->department->name }}</td>
                             <td>{{ $service->name }}</td>
-                            <td style="text-align: right;">{{ number_format($service->prix ?? ($consultation->total * 0.4 / count($consultation->services)), 0, ',', ' ') }} FCFA</td>
+                            <td style="text-align: right;">{{ number_format($service->prix ?? ($consultation->total * 0.4 / count($consultation->services)), 0, ',', ' ') }} GNF</td>
                         </tr>
                         @endforeach
                         @foreach ($consultation->packages as $package)
@@ -336,7 +336,7 @@
                             <td>Package</td>
                             <td>{{ $consultation->department->name }}</td>
                             <td>{{ $package->name }}</td>
-                            <td style="text-align: right;">{{ number_format($package->prix ?? ($consultation->total * 0.4 / count($consultation->packages)), 0, ',', ' ') }} FCFA</td>
+                            <td style="text-align: right;">{{ number_format($package->prix ?? ($consultation->total * 0.4 / count($consultation->packages)), 0, ',', ' ') }} GNF</td>
                         </tr>
                         @endforeach
                     </tbody>
@@ -348,15 +348,15 @@
         <div class="totals-section">
             <div class="total-row">
                 <div class="total-label">Total HT:</div>
-                <div class="total-value">{{ number_format($consultation->total * 0.85, 0, ',', ' ') }} FCFA</div>
+                <div class="total-value">{{ number_format($consultation->total * 0.85, 0, ',', ' ') }} GNF</div>
             </div>
             <div class="total-row">
                 <div class="total-label">TVA (18%):</div>
-                <div class="total-value">{{ number_format($consultation->total * 0.15, 0, ',', ' ') }} FCFA</div>
+                <div class="total-value">{{ number_format($consultation->total * 0.15, 0, ',', ' ') }} GNF</div>
             </div>
             <div class="total-row grand-total">
                 <div class="total-label">Total TTC:</div>
-                <div class="total-value">{{ number_format($consultation->total, 0, ',', ' ') }} FCFA</div>
+                <div class="total-value">{{ number_format($consultation->total, 0, ',', ' ') }} GNF</div>
             </div>
             <div class="total-row">
                 <div class="total-label">Mode de paiement:</div>

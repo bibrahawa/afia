@@ -21,8 +21,7 @@ use App\Models\InsuranceClaim;
 use App\Models\InvoiceItem;
 use App\Models\Medicament;
 use App\Jobs\ProcessDoctorUnavailabilityJob;
-
-use Carbon\Carbon;
+use \Carbon\Carbon;
 
 class DashboardController extends Controller
 {
@@ -37,15 +36,15 @@ class DashboardController extends Controller
     public function admin(): View
     {
         // Dans votre DashboardController
-        $rdv_today = Appointment::whereDate('created_at', today())->count();
+        $rdv_today = Appointment::whereDate('appointment_date', today())->count();
         $hospitalisations_active = Hospitalisation::where('statut', 'active')->count();
         $chambres_libres = Chambre::where('statut', 'libre')->count();
         $patients_assures = Patient::with('hasActiveInsurance')->count();
-        $factures_impayees = Invoice::where('insurance_status', 'pending')->count();
-        $montant_impaye = Invoice::where('insurance_status', 'pending')->sum('insurance_amount');
+        $factures_impayees = Invoice::whereIn('insurance_status', ['pending', 'approved'])->count();
+        $montant_impaye = Invoice::whereIn('insurance_status', ['pending', 'approved'])->sum('insurance_amount');
         $medicaments_stock_faible = Medicament::count();
         $reclamations_en_attente = InsuranceClaim::where('status', 'draft')->count();
-        $rdv_aujourdhui = Appointment::with(['patient', 'employee'])->whereDate('created_at', today())->get();
+        $rdv_aujourdhui = Appointment::with(['patient', 'employee'])->whereDate('appointment_date', today())->get();
 
         $total_patient = Patient::count();
         $patientes = Patient::latest()->limit(5)->get();
@@ -178,7 +177,8 @@ class DashboardController extends Controller
         }
 
         DB::beginTransaction();
-        // try {
+
+        try {
             // Créer la disponibilité
             $availability = EmployeeAvailability::create([
                 'employee_id' => auth()->id(),
@@ -192,11 +192,11 @@ class DashboardController extends Controller
             DB::commit();
             return redirect()->back()->with('success', 'Disponibilité et créneaux créés avec succès');
 
-        // } catch (\Exception $e) {
-        //     DB::rollBack();
-        //     Log::error('Erreur création disponibilité: ' . $e->getMessage());
-        //     return redirect()->back()->with('error', 'Erreur lors de la création de la disponibilité');
-        // }
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Erreur création disponibilité: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Erreur lors de la création de la disponibilité');
+        }
     }
 
     /**
@@ -282,9 +282,10 @@ class DashboardController extends Controller
         return view('appointments.leaves', compact('leaves'));
     }
 
-    /**
-     * Crée une demande de congé
-     */
+    // ===============================================
+    // VERSION COMPLÈTE AVEC TOUTES LES FONCTIONS
+    // ===============================================
+
     public function storeLeave(Request $request): RedirectResponse
     {
         $validated = $request->validate([
@@ -294,60 +295,47 @@ class DashboardController extends Controller
             'reason' => 'nullable|string|max:500'
         ]);
 
-        // Vérifier les conflits avec d'autres congés
-        $conflictingLeave = EmployeeLeave::where('employee_id', auth()->id())
-            ->where('status', '!=', 'rejected')
-            ->where(function ($query) use ($validated) {
-                $query->whereBetween('start_date', [$validated['start_date'], $validated['end_date']])
-                      ->orWhereBetween('end_date', [$validated['start_date'], $validated['end_date']])
-                      ->orWhere(function ($q) use ($validated) {
-                          $q->where('start_date', '<=', $validated['start_date'])
-                            ->where('end_date', '>=', $validated['end_date']);
-                      });
-            })->first();
+        $startDate = Carbon::parse($validated['start_date']);
+        $endDate = Carbon::parse($validated['end_date']);
 
-        if ($conflictingLeave) {
+        // Vérifier les conflits
+        if ($this->hasConflictingLeave($startDate, $endDate, auth()->id())) {
             return redirect()->back()->with('error', 'Un congé existe déjà pour cette période');
         }
 
         DB::beginTransaction();
+        
         try {
-            // Créer la demande de congé
+
             $leave = EmployeeLeave::create([
                 'employee_id' => auth()->id(),
-                ...$validated,
-                'status' => 'pending'
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+                'type' => $validated['type'],
+                'reason' => $validated['reason'],
+                'status' => 'pending',
             ]);
 
-            // Supprimer les créneaux pendant la période de congé
-            AppointmentSlot::where('employee_id', auth()->id())
-                ->whereBetween('date', [$validated['start_date'], $validated['end_date']])
-                ->where('is_available', true) // Ne supprimer que les créneaux disponibles
-                ->delete();
+            $deletedCount = $this->deleteSlotsForPeriod($startDate, $endDate, auth()->id());
 
-            // Marquer le médecin indisponible
-            $job = new ProcessDoctorUnavailabilityJob(
-                        auth()->id(),
-                        Carbon::parse($validated['start_date']),
-                        Carbon::parse($validated['end_date']),
-                        $validated['type']
-                    );
-
-            $job->handle();
+            // Job optionnel
+            dispatch(new ProcessDoctorUnavailabilityJob(
+                auth()->id(),
+                $startDate,
+                $endDate,
+                $validated['type']
+            ));
 
             DB::commit();
-            return redirect()->back()->with('success', 'Demande de congé soumise avec succès');
+            return redirect()->back()->with('success', "Congé créé. {$deletedCount} créneaux supprimés.");
 
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Erreur création congé: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Erreur lors de la soumission de la demande');
+            return redirect()->back()->with('error', 'Erreur lors de la création');
         }
     }
 
-    /**
-     * Met à jour une demande de congé
-     */
     public function updateLeave(Request $request): RedirectResponse
     {
         $validated = $request->validate([
@@ -360,58 +348,46 @@ class DashboardController extends Controller
 
         DB::beginTransaction();
         try {
+
             $leave = EmployeeLeave::findOrFail($request->id);
 
-            // Vérifier les permissions
             if ($leave->employee_id !== auth()->id()) {
-                return redirect()->back()->with('error', 'Vous n\'êtes pas autorisé à modifier ce congé');
+                return redirect()->back()->with('error', 'Non autorisé');
             }
 
-            // Vérifier que le congé peut encore être modifié
             if (in_array($leave->status, ['approved', 'rejected'])) {
                 return redirect()->back()->with('error', 'Ce congé ne peut plus être modifié');
             }
 
-            // Restaurer les créneaux de rendez-vous pour la période
-            $availability = EmployeeAvailability::where('employee_id', auth()->id())
-                                                ->where('day_of_week',
-                                                    ucfirst(Carbon::parse($leave->start_date)->locale('fr-FR')->isoFormat('dddd')))
-                                                ->first();
+            // Restaurer les créneaux de l'ancienne période
+            $restoredCount = $this->restoreSlotsForPeriod(
+                $leave->start_date,
+                $leave->end_date,
+                auth()->id()
+            );
 
-            if ($availability) {
-                $start = Carbon::createFromFormat('H:i', $availability['start_time']->format('H:i'));
-                $end = Carbon::createFromFormat('H:i', $availability['end_time']->format('H:i'));
-                $duration = (int)$availability['slot_duration'];
+            // Mettre à jour le congé
+            $leave->update([
+                'type' => $validated['type'],
+                'start_date' => $validated['start_date'],
+                'end_date' => $validated['end_date'],
+                'reason' => $validated['reason'],
+            ]);
 
-                while ($start <= $end) {
-                    AppointmentSlot::create([
-                        'employee_id' => auth()->id(),
-                        'date' => $leave->start_date->format('Y-m-d'),
-                        'time' => $start->format('H:i'),
-                        'is_available' => true
-                    ]);
-
-                    $start->addMinutes($duration);
-                }
-            }
-
-            $leave->update($validated);
-
-
-            // Supprimer les créneaux pendant la nouvelle période
-            AppointmentSlot::where('employee_id', auth()->id())
-                ->whereBetween('date', [$validated['start_date'], $validated['end_date']])
-                ->where('is_available', true)
-                ->delete();
-
+            // Supprimer les créneaux de la nouvelle période
+            $deletedCount = $this->deleteSlotsForPeriod(
+                $validated['start_date'],
+                $validated['end_date'],
+                auth()->id()
+            );
 
             DB::commit();
-            return redirect()->back()->with('success', 'Demande de congé mise à jour avec succès');
+            return redirect()->back()->with('success', "Congé mis à jour. {$restoredCount} créneaux restaurés, {$deletedCount} supprimés.");
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Erreur mise à jour congé: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Erreur lors de la mise à jour de la demande');
+            Log::error('Erreur: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Erreur lors de la mise à jour');
         }
     }
 
@@ -421,9 +397,10 @@ class DashboardController extends Controller
     public function destroyLeaves(Request $request): RedirectResponse
     {
         DB::beginTransaction();
-        try {
-            $leave = EmployeeLeave::findOrFail($request->input('id'));
 
+        // try {
+            $leave = EmployeeLeave::findOrFail($request->input('id'));
+            
             // Vérifier les permissions
             if ($leave->employee_id !== auth()->id()) {
                 return redirect()->back()->with('error', 'Vous n\'êtes pas autorisé à supprimer ce congé');
@@ -433,40 +410,37 @@ class DashboardController extends Controller
             if ($leave->status === 'approved' && $leave->start_date <= now()) {
                 return redirect()->back()->with('error', 'Un congé déjà approuvé et commencé ne peut être supprimé');
             }
+            
+            // Restaurer les créneaux de la période du congé
+            $restoredCount = $this->restoreSlotsForPeriod(
+                $leave->start_date,
+                $leave->end_date,
+                auth()->id()
+            );
 
-            // Restaurer les créneaux de rendez-vous pour la période
-            $availability = EmployeeAvailability::where('employee_id', auth()->id())
-                                                ->where('day_of_week',
-                                                    ucfirst(Carbon::parse($leave->start_date)->locale('fr-FR')->isoFormat('dddd')))
-                                                ->first();
-
-            if ($availability) {
-                $start = Carbon::createFromFormat('H:i', $availability['start_time']->format('H:i'));
-                $end = Carbon::createFromFormat('H:i', $availability['end_time']->format('H:i'));
-                $duration = (int)$availability['slot_duration'];
-
-                while ($start <= $end) {
-                    AppointmentSlot::create([
-                        'employee_id' => auth()->id(),
-                        'date' => $leave->start_date->format('Y-m-d'),
-                        'time' => $start->format('H:i'),
-                        'is_available' => true
-                    ]);
-
-                    $start->addMinutes($duration);
-                }
-            }
-
+            // Supprimer le congé
             $leave->delete();
 
             DB::commit();
-            return redirect()->back()->with('success', 'Congé supprimé avec succès');
+            
+            Log::info("Congé supprimé - Créneaux restaurés", [
+                'leave_id' => $leave->id,
+                'employee_id' => auth()->id(),
+                'period' => $leave->start_date->format('Y-m-d H:i') . ' à ' . $leave->end_date->format('Y-m-d H:i'),
+                'restored_slots' => $restoredCount
+            ]);
+            
+            return redirect()->back()->with('success', "Congé supprimé avec succès. {$restoredCount} créneaux restaurés.");
 
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Erreur suppression congé: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Erreur lors de la suppression du congé');
-        }
+        // } catch (\Exception $e) {
+        //     DB::rollBack();
+        //     Log::error('Erreur suppression congé', [
+        //         'message' => $e->getMessage(),
+        //         'trace' => $e->getTraceAsString(),
+        //         'employee_id' => auth()->id()
+        //     ]);
+        //     return redirect()->back()->with('error', 'Erreur lors de la suppression du congé: ' . $e->getMessage());
+        // }
     }
 
     /**
@@ -541,5 +515,131 @@ class DashboardController extends Controller
         ];
 
         return $days[$day] ?? 'Monday';
+    }
+
+        // Fonction helper réutilisable
+    private function restoreSlotsForPeriod($startDate, $endDate, $employeeId): int
+    {
+        $start = Carbon::parse($startDate);
+        $end = Carbon::parse($endDate);
+        $restoredCount = 0;
+        $currentDate = $start->copy()->startOfDay();
+
+        while ($currentDate <= $end->endOfDay()) {
+            $dayName = ucfirst($currentDate->locale('fr')->isoFormat('dddd'));
+            
+            $availability = EmployeeAvailability::where('employee_id', $employeeId)
+                                                ->where('day_of_week', $dayName)
+                                                ->where('is_active', true)
+                                                ->first();
+
+            if ($availability) {
+                $startTime = Carbon::createFromFormat('H:i', $availability->start_time->format('H:i'));
+                $endTime = Carbon::createFromFormat('H:i', $availability->end_time->format('H:i'));
+                $duration = (int)$availability->slot_duration;
+                
+                if ($currentDate->isSameDay($start)) {
+                    $leaveStart = Carbon::parse($startDate);
+                    $startTime = $startTime->max(Carbon::createFromFormat('H:i', $leaveStart->format('H:i')));
+                }
+                
+                if ($currentDate->isSameDay($end)) {
+                    $leaveEnd = Carbon::parse($endDate);
+                    $endTime = $endTime->min(Carbon::createFromFormat('H:i', $leaveEnd->format('H:i')));
+                }
+                
+                $slotTime = $startTime->copy();
+                while ($slotTime <= $endTime) {
+                    $slot = AppointmentSlot::firstOrCreate([
+                        'employee_id' => $employeeId,
+                        'date' => $currentDate->format('Y-m-d'),
+                        'time' => $slotTime->format('H:i:s'),
+                    ], [
+                        'is_available' => true
+                    ]);
+                    
+                    if ($slot->wasRecentlyCreated) $restoredCount++;
+                    $slotTime->addMinutes($duration);
+                }
+            }
+            
+            $currentDate->addDay();
+        }
+        
+        return $restoredCount;
+    }
+
+    private function deleteSlotsForPeriod($startDate, $endDate, $employeeId): int
+    {
+        $start = Carbon::parse($startDate);
+        $end = Carbon::parse($endDate);
+        $deletedCount = 0;
+        $currentDate = $start->copy()->startOfDay();
+
+        while ($currentDate <= $end->endOfDay()) {
+            $dayName = ucfirst($currentDate->locale('fr')->isoFormat('dddd'));
+            
+            $availability = EmployeeAvailability::where('employee_id', $employeeId)
+                                                ->where('day_of_week', $dayName)
+                                                ->where('is_active', true)
+                                                ->first();
+
+            if ($availability) {
+                $startTime  = Carbon::createFromFormat('H:i', $availability->start_time->format('H:i'));
+                $endTime    = Carbon::createFromFormat('H:i', $availability->end_time->format('H:i'));
+                $duration   = (int)$availability->slot_duration;
+                
+                if ($currentDate->isSameDay($start)) {
+                    $leaveStart = Carbon::parse($startDate);
+                    $startTime = $startTime->max(Carbon::createFromFormat('H:i', $leaveStart->format('H:i')));
+                }
+                
+                if ($currentDate->isSameDay($end)) {
+                    $leaveEnd = Carbon::parse($endDate);
+                    $endTime = $endTime->min(Carbon::createFromFormat('H:i', $leaveEnd->format('H:i')));
+                }
+
+                dd($startTime, $endTime);
+                
+                $slotTime = $startTime->copy();
+                while ($slotTime <= $endTime) {
+                    $deleted = AppointmentSlot::where('employee_id', $employeeId)
+                                            ->where('date', $currentDate->format('Y-m-d'))
+                                            ->where('time', $slotTime->format('H:i:s'))
+                                            ->where('is_available', true)
+                                            ->delete();
+                    
+                    $deletedCount += $deleted;
+                    $slotTime->addMinutes($duration);
+                }
+            }
+            
+            $currentDate->addDay();
+        }
+        
+        return $deletedCount;
+    }
+
+    /**
+     * Vérifie s'il existe un congé en conflit pour la période donnée
+     */
+    private function hasConflictingLeave($startDate, $endDate, $employeeId, $excludeLeaveId = null): bool
+    {
+        $query = EmployeeLeave::where('employee_id', $employeeId)
+            ->where('status', '!=', 'rejected')
+            ->where(function ($q) use ($startDate, $endDate) {
+                $q->whereBetween('start_date', [$startDate, $endDate])
+                ->orWhereBetween('end_date', [$startDate, $endDate])
+                ->orWhere(function ($q2) use ($startDate, $endDate) {
+                    $q2->where('start_date', '<=', $startDate)
+                        ->where('end_date', '>=', $endDate);
+                });
+            });
+        
+        if ($excludeLeaveId) {
+            $query->where('id', '!=', $excludeLeaveId);
+        }
+        
+        return $query->exists();
     }
 }

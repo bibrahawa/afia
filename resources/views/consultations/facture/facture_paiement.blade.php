@@ -272,13 +272,13 @@
                         <tr>
                             <td>Consultation</td>
                             <td>CONS-2024-001</td>
-                            <td>23,600 FCFA</td>
+                            <td>23,600 GNF</td>
                             <td>PAYÉ</td>
                         </tr>
                         <tr>
                             <td>Examens laboratoire</td>
                             <td>EXAM-2024-001</td>
-                            <td>24,780 FCFA</td>
+                            <td>24,780 GNF</td>
                             <td>PAYÉ</td>
                         </tr>
                     </tbody>
@@ -289,15 +289,15 @@
                 <div class="total-box">
                     <div class="total-row">
                         <span>Montant reçu:</span>
-                        <span>48,380 FCFA</span>
+                        <span>48,380 GNF</span>
                     </div>
                     <div class="total-row">
                         <span>Monnaie rendue:</span>
-                        <span>0 FCFA</span>
+                        <span>0 GNF</span>
                     </div>
                     <div class="total-row">
                         <span>TOTAL PAYÉ:</span>
-                        <span>48,380 FCFA</span>
+                        <span>48,380 GNF</span>
                     </div>
                 </div>
             </div>

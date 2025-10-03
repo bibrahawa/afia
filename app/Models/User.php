@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -10,7 +9,6 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, HasRoles;
 
     /**
@@ -23,8 +21,7 @@ class User extends Authenticatable
         'email',
         'phone',
         'status',
-        'password'
-        // 'role_id'
+        'password',
     ];
 
     /**
@@ -50,11 +47,7 @@ class User extends Authenticatable
         ];
     }
 
-    public function role()
-    {
-        return $this->belongsTo('App\Models\Role');
-    }
-
+    // Relations
     public function employee()
     {
         return $this->hasOne(Employee::class);
@@ -64,25 +57,4 @@ class User extends Authenticatable
     {
         return $this->hasOne(Patient::class);
     }
-
-    // hasRole
-    public function hasRole($roleName)
-    {
-        return $this->roles->contains('name', $roleName);
-    }
-
-
-    // public function permissions(){
-    //     return $this->belongsToMany('App\Models\Permission', 'permission_role');
-    // }
-
-    // public function hasPermission($permissionName)
-    // {
-    //     // Votre logique de vérification de permission
-    //     return $this->permissions()->where('name', $permissionName)->exists() ||
-    //            $this->roles->flatMap(function ($role) {
-    //                return $role->permissions;
-    //            })->where('name', $permissionName)->isNotEmpty();
-    // }
-
 }

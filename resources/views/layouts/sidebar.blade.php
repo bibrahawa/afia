@@ -26,7 +26,7 @@
             <ul class="nav nav-secondary">
                 <!-- DASHBOARD -->
                 <li class="nav-item {{ request()->is('/') ? 'active' : '' }}">
-                    <a href="{{ url('/home') }}" class="collapsed" aria-expanded="false">
+                    <a href="{{ url('/home') }}">
                         <i class="fas fa-home"></i>
                         <p>Dashboard</p>
                     </a>
@@ -37,17 +37,17 @@
                     <span class="sidebar-mini-icon">
                         <i class="fa fa-ellipsis-h"></i>
                     </span>
-                    <h4 class="text-section">Gestion des Patients</h4>
+                    <h4 class="text-section">Patients</h4>
                 </li>
 
                 <li class="nav-item {{ request()->routeIs('patient.*') ? 'active' : '' }}">
                     <a href="{{ route('patient.index') }}">
                         <i class="fas fa-user-injured"></i>
-                        <p>Patients</p>
+                        <p>Liste des patients</p>
                     </a>
                 </li>
 
-                <li class="nav-item {{ request()->routeIs('medecin.*') ? 'active' : '' }}">
+                <li class="nav-item {{ request()->routeIs('medecin.*') && request()->routeIs('*.appointments') ? 'active' : '' }}">
                     <a href="{{ route('medecin.appointments') }}">
                         <i class="fas fa-calendar-alt"></i>
                         <p>Rendez-vous</p>
@@ -68,77 +68,41 @@
                     </a>
                 </li>
 
-                <!-- GESTION DES ASSURANCES -->
+                <!-- PERSONNEL MÉDICAL -->
                 <li class="nav-section">
                     <span class="sidebar-mini-icon">
                         <i class="fa fa-ellipsis-h"></i>
                     </span>
-                    <h4 class="text-section">Gestion des Assurances</h4>
+                    <h4 class="text-section">Personnel</h4>
                 </li>
 
-                <li class="nav-item {{ request()->routeIs('insurance-companies.*') ? 'active' : '' }}">
-                    <a href="{{ route('insurance-companies.index') }}">
-                        <i class="fas fa-building"></i>
-                        <p>Compagnies d'assurance</p>
+                <li class="nav-item {{ request()->routeIs('employee.*') ? 'active' : '' }}">
+                    <a href="{{ route('employee.index') }}">
+                        <i class="fas fa-users"></i>
+                        <p>Employés</p>
                     </a>
                 </li>
 
-                <li class="nav-item {{ request()->routeIs('insurance-coverages.*') ? 'active' : '' }}">
-                    <a href="{{ route('insurance-coverages.index') }}">
-                        <i class="fas fa-shield-alt"></i>
-                        <p>Couvertures d'assurance</p>
+                <li class="nav-item {{ request()->routeIs('medecin.*') && request()->routeIs('*.availabilities') ? 'active' : '' }}">
+                    <a href="{{ route('medecin.availabilities') }}">
+                        <i class="fas fa-calendar-check"></i>
+                        <p>Disponibilités</p>
                     </a>
                 </li>
 
-                <li class="nav-item {{ request()->routeIs('insurance_patient.*') ? 'active' : '' }}">
-                    <a href="{{ route('insurance_patient.index') }}">
-                        <i class="fas fa-user-shield"></i>
-                        <p>Assurance patients</p>
+                <li class="nav-item {{ request()->routeIs('medecin.*') && request()->routeIs('*.leaves') ? 'active' : '' }}">
+                    <a href="{{ route('medecin.leaves') }}">
+                        <i class="fas fa-plane"></i>
+                        <p>Congés & Absences</p>
                     </a>
                 </li>
 
-                <li class="nav-item {{ request()->routeIs('insurance-claims.*') ? 'active' : '' }}">
-                    <a href="{{ route('insurance-claims.index') }}">
-                        <i class="fas fa-file-medical"></i>
-                        <p>Réclamations</p>
-                    </a>
-                </li>
-
-                <!-- FACTURATION & COMPTABILITÉ -->
+                <!-- RESSOURCES & SERVICES -->
                 <li class="nav-section">
                     <span class="sidebar-mini-icon">
                         <i class="fa fa-ellipsis-h"></i>
                     </span>
-                    <h4 class="text-section">Facturation & Comptabilité</h4>
-                </li>
-
-                <li class="nav-item {{ request()->routeIs('invoice.*') ? 'active' : '' }}">
-                    <a href="{{ route('invoice.index') }}">
-                        <i class="fas fa-file-invoice-dollar"></i>
-                        <p>Factures</p>
-                    </a>
-                </li>
-
-                <li class="nav-item {{ request()->routeIs('account.*') ? 'active' : '' }}">
-                    <a href="{{ route('account.facture') }}">
-                        <i class="fas fa-clock"></i>
-                        <p>Paiements en attente</p>
-                    </a>
-                </li>
-                
-                <li class="nav-item {{ request()->routeIs('insurance.balances*') ? 'active' : '' }}">
-                    <a href="{{ route('insurance.balances.index') }}">
-                        <i class="fas fa-clock"></i>
-                        <p>Soldes Assurances</p>
-                    </a>
-                </li>
-
-                <!-- RESSOURCES MÉDICALES -->
-                <li class="nav-section">
-                    <span class="sidebar-mini-icon">
-                        <i class="fa fa-ellipsis-h"></i>
-                    </span>
-                    <h4 class="text-section">Ressources Médicales</h4>
+                    <h4 class="text-section">Ressources & Services</h4>
                 </li>
 
                 <li class="nav-item {{ request()->routeIs('department.*') ? 'active' : '' }}">
@@ -152,6 +116,13 @@
                     <a href="{{ route('service.index') }}">
                         <i class="fas fa-cogs"></i>
                         <p>Services médicaux</p>
+                    </a>
+                </li>
+
+                <li class="nav-item {{ request()->routeIs('chambres.*') ? 'active' : '' }}">
+                    <a href="{{ route('chambres.index') }}">
+                        <i class="fas fa-bed"></i>
+                        <p>Chambres</p>
                     </a>
                 </li>
 
@@ -176,69 +147,98 @@
                     </a>
                 </li>
 
-                <li class="nav-item {{ request()->routeIs('chambres.*') ? 'active' : '' }}">
-                    <a href="{{ route('chambres.index') }}">
-                        <i class="fas fa-bed"></i>
-                        <p>Chambres</p>
-                    </a>
-                </li>
-
-                <!-- GESTION DU PERSONNEL -->
+                <!-- ASSURANCES -->
                 <li class="nav-section">
                     <span class="sidebar-mini-icon">
                         <i class="fa fa-ellipsis-h"></i>
                     </span>
-                    <h4 class="text-section">Gestion du Personnel</h4>
+                    <h4 class="text-section">Assurances</h4>
                 </li>
 
-                <li class="nav-item {{ request()->routeIs('employee.*') ? 'active' : '' }}">
-                    <a href="{{ route('employee.index') }}">
-                        <i class="fas fa-users"></i>
-                        <p>Employés</p>
+                <li class="nav-item {{ request()->routeIs('insurance-companies.*') ? 'active' : '' }}">
+                    <a href="{{ route('insurance-companies.index') }}">
+                        <i class="fas fa-building"></i>
+                        <p>Compagnies</p>
                     </a>
                 </li>
 
-                <li class="nav-item {{ request()->routeIs('medecin.*') && request()->routeIs('*.availabilities') ? 'active' : '' }}">
-                    <a href="{{ route('medecin.availabilities') }}">
-                        <i class="fas fa-calendar-check"></i>
-                        <p>Disponibilités médecins</p>
+                <li class="nav-item {{ request()->routeIs('insurance-coverages.*') ? 'active' : '' }}">
+                    <a href="{{ route('insurance-coverages.index') }}">
+                        <i class="fas fa-shield-alt"></i>
+                        <p>Couvertures</p>
                     </a>
                 </li>
 
-                <li class="nav-item {{ request()->routeIs('medecin.*') && request()->routeIs('*.leaves') ? 'active' : '' }}">
-                    <a href="{{ route('medecin.leaves') }}">
-                        <i class="fas fa-plane"></i>
-                        <p>Congés & Absences</p>
+                <li class="nav-item {{ request()->routeIs('insurance_patient.*') ? 'active' : '' }}">
+                    <a href="{{ route('insurance_patient.index') }}">
+                        <i class="fas fa-user-shield"></i>
+                        <p>Patients assurés</p>
                     </a>
                 </li>
 
-                <!-- ADMINISTRATION SYSTÈME -->
+                <li class="nav-item {{ request()->routeIs('insurance.balances*') ? 'active' : '' }}">
+                    <a href="{{ route('insurance.balances.index') }}">
+                        <i class="fas fa-balance-scale"></i>
+                        <p>Soldes</p>
+                    </a>
+                </li>
+
+                <!-- FACTURATION -->
                 <li class="nav-section">
                     <span class="sidebar-mini-icon">
                         <i class="fa fa-ellipsis-h"></i>
                     </span>
-                    <h4 class="text-section">Administration Système</h4>
+                    <h4 class="text-section">Facturation</h4>
+                </li>
+
+                <li class="nav-item {{ request()->routeIs('invoice.*') ? 'active' : '' }}">
+                    <a href="{{ route('invoice.index') }}">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                        <p>Factures</p>
+                    </a>
+                </li>
+
+                <li class="nav-item {{ request()->routeIs('account.*') ? 'active' : '' }}">
+                    <a href="{{ route('account.facture') }}">
+                        <i class="fas fa-clock"></i>
+                        <p>Paiements en attente</p>
+                    </a>
+                </li>
+
+                <!-- COMMUNICATION -->
+                <li class="nav-section">
+                    <span class="sidebar-mini-icon">
+                        <i class="fa fa-ellipsis-h"></i>
+                    </span>
+                    <h4 class="text-section">Communication</h4>
+                </li>
+
+                <li class="nav-item {{ request()->routeIs('sms.lists') ? 'active' : '' }}">
+                    <a href="{{ route('sms.lists') }}">
+                        <i class="fas fa-list"></i>
+                        <p>Listes de messages</p>
+                    </a>
+                </li>
+
+                <li class="nav-item {{ request()->routeIs('sms.new') ? 'active' : '' }}">
+                    <a href="{{ route('sms.new') }}">
+                        <i class="fas fa-sms"></i>
+                        <p>Nouveau SMS</p>
+                    </a>
+                </li>
+
+                <!-- ADMINISTRATION -->
+                <li class="nav-section">
+                    <span class="sidebar-mini-icon">
+                        <i class="fa fa-ellipsis-h"></i>
+                    </span>
+                    <h4 class="text-section">Administration</h4>
                 </li>
 
                 <li class="nav-item {{ request()->routeIs('users.*') ? 'active' : '' }}">
                     <a href="{{ route('users.index') }}">
                         <i class="fas fa-user-cog"></i>
                         <p>Utilisateurs</p>
-                    </a>
-                </li>
-
-                <li class="nav-item {{ request()->routeIs('sms.*') ? 'active' : '' }}">
-                    <a href="{{ route('sms.lists') }}">
-                        <i class="fas fa-user-cog"></i>
-                        <p>Message Lists</p>
-                    </a>
-                </li>
-
-
-                <li class="nav-item {{ request()->routeIs('sms.*') ? 'active' : '' }}">
-                    <a href="{{ route('sms.new') }}">
-                        <i class="fas fa-user-cog"></i>
-                        <p>New Sms</p>
                     </a>
                 </li>
 
@@ -255,22 +255,119 @@
 <!-- End Sidebar -->
 
 <style>
-/* Styles pour le menu actif */
-.nav-item.active a {
-    background: linear-gradient(90deg, rgba(255, 149, 0, 0.1) 0%, transparent 100%);
-    color: #ff9500 !important;
-    border-left: 3px solid #ff9500;
-    font-weight: 600;
-}
+    /* Styles pour le menu actif */
+    .nav-item.active a {
+        background: linear-gradient(90deg, rgba(255, 149, 0, 0.1) 0%, transparent 100%);
+        color: #ff9500 !important;
+        border-left: 3px solid #ff9500;
+        font-weight: 600;
+    }
 
-.nav-item a {
-    border-left: 3px solid transparent;
-    transition: all 0.3s ease;
-}
+    .nav-item a {
+        border-left: 3px solid transparent;
+        transition: all 0.3s ease;
+        padding: 12px 20px;
+    }
 
-.nav-item a:hover {
-    background: #f8f9fa;
-    color: #ff9500;
-    border-left-color: #ff9500;
-}
+    .nav-item a:hover {
+        background: rgba(255, 149, 0, 0.05);
+        color: #ff9500;
+        border-left-color: #ff9500;
+    }
+
+    /* Sections du menu */
+    .nav-section {
+        margin-top: 20px;
+        padding-top: 15px;
+        border-top: 1px solid #f0f0f0;
+    }
+
+    .nav-section:first-of-type {
+        margin-top: 10px;
+        border-top: none;
+    }
+
+    .text-section {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #999;
+        padding: 0 20px;
+        margin-bottom: 8px;
+    }
+
+    /* Icônes */
+    .nav-item i {
+        width: 24px;
+        text-align: center;
+        margin-right: 12px;
+        font-size: 16px;
+    }
+
+    /* Scroll personnalisé */
+    .sidebar-wrapper.scrollbar-inner {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 149, 0, 0.3) transparent;
+    }
+
+    .sidebar-wrapper.scrollbar-inner::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .sidebar-wrapper.scrollbar-inner::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .sidebar-wrapper.scrollbar-inner::-webkit-scrollbar-thumb {
+        background-color: rgba(255, 149, 0, 0.3);
+        border-radius: 3px;
+    }
+
+    .sidebar-wrapper.scrollbar-inner::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(255, 149, 0, 0.5);
+    }
 </style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const sidebar = document.querySelector('.sidebar-wrapper');
+        
+        if (!sidebar) return;
+        
+        // Restaurer la position du scroll
+        const savedScrollPosition = sessionStorage.getItem('sidebarScrollPosition');
+        if (savedScrollPosition) {
+            sidebar.scrollTop = parseInt(savedScrollPosition);
+        }
+        
+        // Sauvegarder avant de quitter
+        window.addEventListener('beforeunload', function() {
+            sessionStorage.setItem('sidebarScrollPosition', sidebar.scrollTop);
+        });
+        
+        // Sauvegarder lors du clic
+        const navLinks = document.querySelectorAll('.nav-item a');
+        navLinks.forEach(link => {
+            link.addEventListener('click', function() {
+                sessionStorage.setItem('sidebarScrollPosition', sidebar.scrollTop);
+            });
+        });
+        
+        // Scroller vers l'élément actif au chargement
+        const activeItem = document.querySelector('.nav-item.active');
+        if (activeItem) {
+            setTimeout(() => {
+                const itemPosition = activeItem.offsetTop;
+                const sidebarHeight = sidebar.clientHeight;
+                const itemHeight = activeItem.clientHeight;
+                const scrollPosition = itemPosition - (sidebarHeight / 2) + (itemHeight / 2);
+                
+                sidebar.scrollTo({
+                    top: scrollPosition,
+                    behavior: 'smooth'
+                });
+            }, 100);
+        }
+    });
+</script>

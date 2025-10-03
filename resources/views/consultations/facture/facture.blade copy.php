@@ -34,7 +34,7 @@
 
 <p class="mt-4">Signature patient</p>
 
-<p class="mt-4">Montant total : {{ $consultation->total }} FCFA</p>
+<p class="mt-4">Montant total : {{ $consultation->total }} GNF</p>
 <p class="mt-4">Mode de paiement : {{ $consultation->mode_paiement }}</p>
 <p class="mt-4">Statut : {{ $consultation->statut }}</p>
 // <p class="mt-4">Date de paiement : {{ $consultation->date_paiement }}</p>

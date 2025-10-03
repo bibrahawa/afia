@@ -363,26 +363,26 @@
                         <tr>
                             <td>Numération Formule Sanguine</td>
                             <td class="code-cell">NFS</td>
-                            <td class="price-cell">8,000 FCFA</td>
-                            <td class="price-cell">8,000 FCFA</td>
+                            <td class="price-cell">8,000 GNF</td>
+                            <td class="price-cell">8,000 GNF</td>
                         </tr>
                         <tr>
                             <td>Glycémie à jeun</td>
                             <td class="code-cell">GLY</td>
-                            <td class="price-cell">3,000 FCFA</td>
-                            <td class="price-cell">3,000 FCFA</td>
+                            <td class="price-cell">3,000 GNF</td>
+                            <td class="price-cell">3,000 GNF</td>
                         </tr>
                         <tr>
                             <td>Créatinine</td>
                             <td class="code-cell">CREA</td>
-                            <td class="price-cell">4,000 FCFA</td>
-                            <td class="price-cell">4,000 FCFA</td>
+                            <td class="price-cell">4,000 GNF</td>
+                            <td class="price-cell">4,000 GNF</td>
                         </tr>
                         <tr>
                             <td>Transaminases (ALAT/ASAT)</td>
                             <td class="code-cell">TGO/TGP</td>
-                            <td class="price-cell">6,000 FCFA</td>
-                            <td class="price-cell">6,000 FCFA</td>
+                            <td class="price-cell">6,000 GNF</td>
+                            <td class="price-cell">6,000 GNF</td>
                         </tr>
                     </tbody>
                 </table>
@@ -392,15 +392,15 @@
                 <div class="total-card">
                     <div class="total-row">
                         <span>Sous-total:</span>
-                        <span>21,000 FCFA</span>
+                        <span>21,000 GNF</span>
                     </div>
                     <div class="total-row">
                         <span>TVA (18%):</span>
-                        <span>3,780 FCFA</span>
+                        <span>3,780 GNF</span>
                     </div>
                     <div class="total-row final">
                         <span>MONTANT TOTAL:</span>
-                        <span class="amount">24,780 FCFA</span>
+                        <span class="amount">24,780 GNF</span>
                     </div>
                 </div>
             </div>

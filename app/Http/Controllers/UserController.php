@@ -29,70 +29,6 @@ class UserController extends Controller
         return view('users.create_permissions', compact('user', 'permissions'));
     }
 
-    // Dans votre contrôleur
-    public function listePermissions($id) {
-        
-        $user = User::findOrFail($id);
-        $permissions = Permission::all();
-
-        // Modules et leurs clés
-        $modulesConfig = [
-            'Dashboard & Configuration' => ['dashboard', 'backup', 'setting', 'hospital', 'tax', 'config'],
-            'Gestion Utilisateurs' => ['users'],
-            'Employés' => ['employee', 'medecin'],
-            'Structure' => ['department', 'service'],
-            'Patients & Consultations' => ['patient', 'consultation', 'appointment'],
-            'Médical' => ['medicament', 'package', 'test'],
-            'Comptabilité' => ['account', 'report', 'payment'],
-            'Hospitalisation' => ['hospitalisation', 'chambre'],
-            'Assurances' => ['insurance_company', 'insurance_coverage', 'patient_insurance', 'invoice', 'invoice_item', 'insurance_balance'],
-        ];
-
-        // Groupement des permissions par module
-        $modules = [];
-        foreach ($modulesConfig as $title => $keys) {
-            $modules[$title] = $permissions->filter(function ($perm) use ($keys) {
-                return collect($keys)->contains(fn($key) => str_starts_with($perm->name, $key . '.'));
-            });
-        }
-
-        // Profils prédéfinis (à ajuster selon ton besoin)
-        $rolePermissions = [
-            'medecin' => $this->getMedecinPermissions(),
-            'comptable' => $this->getComptablePermissions(),
-            'secretaire' => $this->getSecretairePermissions(),
-        ];
-
-        return view('users.create_permissions', [
-            'user' => $user,
-            'modules' => $modules,
-            'rolePermissions' => $rolePermissions,
-            'userPermissions' => $user->getPermissionNames()->toArray(),
-        ]);
-    }
-
-    public function assignPermissions(Request $request, $id)
-    {
-
-        try {
-            $user = User::findOrFail($id);
-        
-            // Récupérer uniquement les champs nécessaires (en ignorant _token et autres)
-            $permissions = collect($request->except('_token'))->mapWithKeys(fn($value, $key) => [str_replace('_', '.', $key) => (bool) $value]);
-        
-            $newPermissions = $permissions->filter()->keys();
-        
-            $user->syncPermissions($newPermissions);
-        
-            return redirect()->back()->with('success', 'Permissions mises à jour');
-        } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Erreur : ' . $e->getMessage());
-        }
-        
-        
-
-        return redirect()->route('users.index',compact('user'))->withSucces('permissions ajouté avec succès.');;
-    }
 
     public function create()
     {
@@ -213,138 +149,199 @@ class UserController extends Controller
         }
     }
 
-    private function getMedecinPermissions(){
-        // MEDECIN - Permissions liées aux soins et consultations
+    public function assignPermissions(Request $request, $id)
+    {
+        try {
+            $user = User::findOrFail($id);
+            
+            // Permissions
+            $permissions = $request->input('permissions', []);
+            $user->syncPermissions($permissions);
+            
+            // Rôles (si vous avez un champ roles[] dans le formulaire)
+            if ($request->has('roles')) {
+                $roles = $request->input('roles', []);
+                $user->syncRoles($roles);
+            }
+            
+            // Effacer le cache
+            app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+            
+            return redirect()->route('users.index')
+                ->with('success', 'Les permissions de ' . $user->name . ' ont été mises à jour avec succès. (' . count($permissions) . ' permissions assignées)');
+                
+        } catch (\Exception $e) {
+            \Log::error('Erreur assignPermissions: ' . $e->getMessage());
+            
+            return redirect()->back()
+                ->with('error', 'Erreur lors de la mise à jour des permissions : ' . $e->getMessage())
+                ->withInput();
+        }
+    }
+
+    public function listePermissions($id) 
+    {
+        $user = User::findOrFail($id);
+        
+        // Configuration des modules et leurs préfixes
+        $modulesConfig = [
+            'Dashboard & Configuration' => ['dashboard', 'backup', 'setting'],
+            'Configuration Hôpital' => ['hospital', 'tax', 'config'],
+            'Gestion Utilisateurs' => ['users'],
+            'Employés' => ['employee'],
+            'Espace Médecin' => ['medecin'],
+            'Structure' => ['department', 'service'],
+            'Patients' => ['patient'],
+            'Consultations' => ['consultation'],
+            'Rendez-vous' => ['appointment'],
+            'Pharmacie' => ['medicament'],
+            'Packages & Tests' => ['package', 'test'],
+            'Comptabilité' => ['account', 'payment'],
+            'Rapports' => ['report'],
+            'Hospitalisation' => ['hospitalisation', 'chambre'],
+            'Assurances' => [
+                'insurance_company', 
+                'insurance_coverage', 
+                'patient_insurance'
+            ],
+            'Factures Assurance' => ['invoice', 'invoice_item', 'insurance_balance'],
+        ];
+
+        // Récupérer toutes les permissions
+        $allPermissions = Permission::orderBy('name')->get();
+
+        // Grouper les permissions par module
+        $modules = [];
+        $assignedPermissions = []; // Pour suivre les permissions déjà assignées
+
+        foreach ($modulesConfig as $moduleName => $prefixes) {
+            $modulePermissions = $allPermissions->filter(function ($permission) use ($prefixes, &$assignedPermissions) {
+                // Vérifier si la permission correspond à un des préfixes
+                foreach ($prefixes as $prefix) {
+                    if (str_starts_with($permission->name, $prefix . '.')) {
+                        // Marquer comme assignée pour éviter les doublons
+                        if (!in_array($permission->id, $assignedPermissions)) {
+                            $assignedPermissions[] = $permission->id;
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            });
+
+            // N'ajouter le module que s'il contient des permissions
+            if ($modulePermissions->isNotEmpty()) {
+                $modules[$moduleName] = $modulePermissions;
+            }
+        }
+
+        // Ajouter les permissions non catégorisées (si il y en a)
+        $uncategorizedPermissions = $allPermissions->filter(function ($permission) use ($assignedPermissions) {
+            return !in_array($permission->id, $assignedPermissions);
+        });
+
+        if ($uncategorizedPermissions->isNotEmpty()) {
+            $modules['Autres'] = $uncategorizedPermissions;
+        }
+
+        // Profils prédéfinis des rôles
+        $rolePermissions = [
+            'admin' => $this->getAdminPermissions(),
+            'medecin' => $this->getMedecinPermissions(),
+            'comptable' => $this->getComptablePermissions(),
+            'secretaire' => $this->getSecretairePermissions(),
+        ];
+
+        // Permissions actuelles de l'utilisateur
+        $userPermissions = $user->getAllPermissions()->pluck('name')->toArray();
+        $userRoles = $user->roles->pluck('name')->toArray();
+
+        return view('users.create_permissions', [
+            'user' => $user,
+            'modules' => $modules,
+            'rolePermissions' => $rolePermissions,
+            'userPermissions' => $userPermissions,
+            'userRoles' => $userRoles,
+            'totalPermissions' => $allPermissions->count(),
+            'userPermissionsCount' => count($userPermissions),
+        ]);
+    }
+
+    /**
+     * Retourner les permissions du rôle Admin
+     */
+    private function getAdminPermissions()
+    {
+        return Permission::all()->pluck('name')->toArray();
+    }
+
+    /**
+     * Retourner les permissions du rôle Médecin
+     */
+    private function getMedecinPermissions()
+    {
         return [
-            // Dashboard médecin
             'dashboard.view', 'dashboard.medecin',
-            
-            // Gestion de ses activités médicales
-            'medecin.appointments', 'medecin.confirm_appointment', 'medecin.complete_appointment', 
+            'medecin.appointments', 'medecin.confirm_appointment', 'medecin.complete_appointment',
             'medecin.availabilities', 'medecin.leaves',
-            
-            // Patients - Lecture et ajout de fichiers
             'patient.view', 'patient.add_file',
-            
-            // Consultations - Toutes les actions médicales
-            'consultation.view', 'consultation.create', 'consultation.edit', 'consultation.delete', 
+            'consultation.view', 'consultation.create', 'consultation.edit', 'consultation.delete',
             'consultation.facture', 'consultation.ordonnance', 'consultation.medicament', 'consultation.examen',
-            
-            // Rendez-vous - Consulter uniquement
             'appointment.view',
-            
-            // Médicaments - Consulter pour prescriptions
             'medicament.view',
-            
-            // Tests - Prescrire et voir résultats
             'test.view', 'test.status',
-            
-            // Hospitalisations - Médical uniquement
             'hospitalisation.view', 'hospitalisation.create', 'hospitalisation.edit',
-            
-            // Départements et Services - Lecture
             'department.view', 'service.view',
-            
-            // Chambres - Consulter disponibilité
             'chambre.view',
-            
-            // Assurances patients - Lecture
             'patient_insurance.view',
         ];
-    } 
-    
-    private function getComptablePermissions(){
-        // COMPTABLE - Permissions financières et rapports
+    }
+
+    /**
+     * Retourner les permissions du rôle Comptable
+     */
+    private function getComptablePermissions()
+    {
         return [
-            // Dashboard
             'dashboard.view',
-            
-            // Patients - Consultation pour facturation
             'patient.view',
-            
-            // Consultations - Facturation uniquement
             'consultation.view', 'consultation.facturer', 'consultation.facture', 'consultation.paiement',
-            
-            // Comptabilité - Toutes les actions financières
             'account.facture', 'account.payer', 'account.service_report', 'account.opd_report', 'account.package_report',
-            
-            // Rapports - Tous les rapports
             'report.view', 'report.actes', 'report.service',
-            
-            // Hospitalisations - Facturation
             'hospitalisation.view', 'hospitalisation.payer', 'hospitalisation.facture',
-            
-            // Packages - Vente
             'package.view', 'package.sale',
-            
-            // Médicaments - Consultation prix
-            'medicament.view',
-            
-            // Services - Consultation prix
-            'service.view',
-            
-            // Tests - Consultation prix
-            'test.view',
-            
-            // Assurances complètes - Gestion financière
+            'medicament.view', 'service.view', 'test.view',
             'insurance_company.view', 'insurance_coverage.view',
             'patient_insurance.view', 'patient_insurance.create', 'patient_insurance.edit',
-            
-            // Factures assurance - Toutes les actions
             'invoice.view', 'invoice.create', 'invoice.edit', 'invoice.delete',
             'invoice_item.view', 'invoice_item.create', 'invoice_item.edit', 'invoice_item.delete',
-            
-            // Paiements - Toutes les actions
             'payment.view', 'payment.process', 'payment.calculate', 'payment.hospitalisation',
-            
-            // Soldes Assurance - Toutes les actions
             'insurance_balance.view', 'insurance_balance.show', 'insurance_balance.payment', 'insurance_balance.export',
         ];
     }
-    
-    private function getSecretairePermissions(){
-        // SECRETAIRE - Permissions administratives et accueil
+
+    /**
+     * Retourner les permissions du rôle Secrétaire
+     */
+    private function getSecretairePermissions()
+    {
         return [
-            // Dashboard
             'dashboard.view',
-            
-            // Patients - Gestion complète (accueil)
             'patient.view', 'patient.create', 'patient.edit', 'patient.add_file',
-            
-            // Rendez-vous - Gestion complète
             'appointment.view', 'appointment.create', 'appointment.edit', 'appointment.delete',
-            
-            // Consultations - Programmation uniquement
             'consultation.view', 'consultation.create',
-            
-            // Départements et Services - Lecture
             'department.view', 'service.view',
-            
-            // Employés - Consultation
             'employee.view', 'employee.profile',
-            
-            // Médicaments - Consultation
             'medicament.view',
-            
-            // Packages - Consultation et vente
             'package.view', 'package.sale',
-            
-            // Tests - Programmation
             'test.view',
-            
-            // Hospitalisations - Admission
             'hospitalisation.view', 'hospitalisation.create',
-            
-            // Chambres - Gestion disponibilité
             'chambre.view',
-            
-            // Assurances patients - Vérification couverture
             'insurance_company.view', 'insurance_coverage.view', 'patient_insurance.view',
-            
-            // Paiements - Consultation uniquement
             'payment.view', 'payment.calculate',
         ];
     }
+
 
 
 }

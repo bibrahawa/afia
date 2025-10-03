@@ -18,11 +18,11 @@
             <tr>
                 <td>{{ $item->description }}</td>
                 <td><span class="badge badge-info">{{ ucfirst($item->coverage_type_type) }}</span></td>
-                <td>{{ number_format($item->unit_price, 0, ',', ' ') }} FCFA</td>
+                <td>{{ number_format($item->unit_price, 0, ',', ' ') }} GNF</td>
                 <td>{{ $item->quantity }}</td>
-                <td>{{ number_format($item->total_amount, 0, ',', ' ') }} FCFA</td>
-                <td>{{ number_format($item->insurance_covered_amount, 0, ',', ' ') }} FCFA</td>
-                <td>{{ number_format($item->patient_amount, 0, ',', ' ') }} FCFA</td>
+                <td>{{ number_format($item->total_amount, 0, ',', ' ') }} GNF</td>
+                <td>{{ number_format($item->insurance_covered_amount, 0, ',', ' ') }} GNF</td>
+                <td>{{ number_format($item->patient_amount, 0, ',', ' ') }} GNF</td>
                 <td>{{ $item->coverage_percentage_applied ? $item->coverage_percentage_applied . '%' : 'N/A' }}</td>
             </tr>
             @endforeach
@@ -30,9 +30,9 @@
         <tfoot>
             <tr class="fw-bold">
                 <td colspan="4">TOTAL</td>
-                <td>{{ number_format($invoice->total_amount, 0, ',', ' ') }} FCFA</td>
-                <td>{{ number_format($invoice->insurance_amount, 0, ',', ' ') }} FCFA</td>
-                <td>{{ number_format($invoice->patient_amount, 0, ',', ' ') }} FCFA</td>
+                <td>{{ number_format($invoice->total_amount, 0, ',', ' ') }} GNF</td>
+                <td>{{ number_format($invoice->insurance_amount, 0, ',', ' ') }} GNF</td>
+                <td>{{ number_format($invoice->patient_amount, 0, ',', ' ') }} GNF</td>
                 <td>-</td>
             </tr>
         </tfoot>

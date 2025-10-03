@@ -90,14 +90,14 @@
                                         <td>{{ $user->roles->first()?->name }}</td>
                                         <td>
                                             {{-- @can('modifier_utilisateur') --}}
-                                            <a href="{{ route('users.edit', $user->id) }}" class="btn btn-primary">
+                                            {{-- <a href="{{ route('users.edit', $user->id) }}" class="btn btn-primary">
                                                 <i class="bi bi-pencil-square"></i>
-                                            </a>
+                                            </a> --}}
                                             {{-- @endcan --}}
 
                                             <a href="{{ route('users.listePermissions', $user->id) }}" type="button" class="btn btn-warning"><i class="fa fa-user-shield"></i></a>
                                             {{-- @can('afficher_utilisateur') --}}
-                                                <a href="{{ route('users.show', $user->id) }}" type="button" class="btn btn-info"><i class="bi bi-eye-fill"></i></a>
+                                                {{-- <a href="{{ route('users.show', $user->id) }}" type="button" class="btn btn-info"><i class="bi bi-eye-fill"></i></a> --}}
                                             {{-- @endcan --}}
                                         </td>
                                     </tr>

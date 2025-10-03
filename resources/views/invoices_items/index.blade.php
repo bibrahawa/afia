@@ -92,11 +92,11 @@
                                         {{ ucfirst($item->coverage_type_type) }} #{{ $item->coverage_type_id }}
                                     </span>
                                 </td>
-                                <td>{{ number_format($item->unit_price, 0, ',', ' ') }} FCFA</td>
+                                <td>{{ number_format($item->unit_price, 0, ',', ' ') }} GNF</td>
                                 <td>{{ $item->quantity }}</td>
-                                <td>{{ number_format($item->total_amount, 0, ',', ' ') }} FCFA</td>
-                                <td>{{ number_format($item->insurance_covered_amount, 0, ',', ' ') }} FCFA</td>
-                                <td>{{ number_format($item->patient_amount, 0, ',', ' ') }} FCFA</td>
+                                <td>{{ number_format($item->total_amount, 0, ',', ' ') }} GNF</td>
+                                <td>{{ number_format($item->insurance_covered_amount, 0, ',', ' ') }} GNF</td>
+                                <td>{{ number_format($item->patient_amount, 0, ',', ' ') }} GNF</td>
                                 <td>{{ $item->coverage_percentage_applied ? $item->coverage_percentage_applied . '%' : 'N/A' }}</td>
                                 <td>
                                     <div class="form-button-action">
@@ -202,7 +202,7 @@
                             <div class="row">
                                 <div class="col-sm-4">
                                     <div class="form-group form-group-default">
-                                        <label>Prix unitaire (FCFA)</label>
+                                        <label>Prix unitaire (GNF)</label>
                                         <input
                                             id="unit_price"
                                             name="unit_price"
@@ -230,7 +230,7 @@
                                 </div>
                                 <div class="col-sm-4">
                                     <div class="form-group form-group-default">
-                                        <label>Montant total (FCFA)</label>
+                                        <label>Montant total (GNF)</label>
                                         <input
                                             id="total_amount"
                                             name="total_amount"
@@ -246,7 +246,7 @@
                             <div class="row">
                                 <div class="col-sm-4">
                                     <div class="form-group form-group-default">
-                                        <label>Montant couvert par l'assurance (FCFA)</label>
+                                        <label>Montant couvert par l'assurance (GNF)</label>
                                         <input
                                             id="insurance_covered_amount"
                                             name="insurance_covered_amount"
@@ -260,7 +260,7 @@
                                 </div>
                                 <div class="col-sm-4">
                                     <div class="form-group form-group-default">
-                                        <label>Part patient (FCFA)</label>
+                                        <label>Part patient (GNF)</label>
                                         <input
                                             id="patient_amount"
                                             name="patient_amount"
@@ -379,7 +379,7 @@
                                     <div class="row">
                                         <div class="col-sm-4">
                                             <div class="form-group form-group-default">
-                                                <label>Prix unitaire (FCFA)</label>
+                                                <label>Prix unitaire (GNF)</label>
                                                 <input
                                                     id="edit_unit_price"
                                                     name="unit_price"
@@ -404,7 +404,7 @@
                                         </div>
                                         <div class="col-sm-4">
                                             <div class="form-group form-group-default">
-                                                <label>Montant total (FCFA)</label>
+                                                <label>Montant total (GNF)</label>
                                                 <input
                                                     id="edit_total_amount"
                                                     name="total_amount"
@@ -419,7 +419,7 @@
                                     <div class="row">
                                         <div class="col-sm-4">
                                             <div class="form-group form-group-default">
-                                                <label>Montant couvert par l'assurance (FCFA)</label>
+                                                <label>Montant couvert par l'assurance (GNF)</label>
                                                 <input
                                                     id="edit_insurance_covered_amount"
                                                     name="insurance_covered_amount"
@@ -431,7 +431,7 @@
                                         </div>
                                         <div class="col-sm-4">
                                             <div class="form-group form-group-default">
-                                                <label>Part patient (FCFA)</label>
+                                                <label>Part patient (GNF)</label>
                                                 <input
                                                     id="edit_patient_amount"
                                                     name="patient_amount"

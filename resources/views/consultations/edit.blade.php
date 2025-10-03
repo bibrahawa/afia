@@ -598,7 +598,7 @@
                                             <select class="form-select select2" name="services[]" multiple id="services-select">
                                                 @foreach($services as $service)
                                                     <option value="{{ $service->id }}" {{ in_array($service->id, $consultation->services->pluck('id')->toArray()) ? 'selected' : '' }}>
-                                                        {{ $service->name }} - {{ number_format($service->amount, 0, ',', ' ') }} FCFA
+                                                        {{ $service->name }} - {{ number_format($service->amount, 0, ',', ' ') }} GNF
                                                     </option>
                                                 @endforeach
                                             </select>
@@ -622,7 +622,7 @@
                                             <select class="form-select select2" name="tests[]" multiple id="tests-select">
                                                 @foreach($tests as $test)
                                                     <option value="{{ $test->id }}" {{ in_array($test->id, $consultation->tests->pluck('id')->toArray()) ? 'selected' : '' }}>
-                                                        {{ $test->name }} - {{ number_format($test->amount, 0, ',', ' ') }} FCFA
+                                                        {{ $test->name }} - {{ number_format($test->amount, 0, ',', ' ') }} GNF
                                                     </option>
                                                 @endforeach
                                             </select>
@@ -646,7 +646,7 @@
                                             <select class="form-select select2" name="packages[]" multiple id="packages-select">
                                                 @foreach($packages as $package)
                                                     <option value="{{ $package->id }}" {{ in_array($package->id, $consultation->packages->pluck('id')->toArray()) ? 'selected' : '' }}>
-                                                        {{ $package->name }} - {{ number_format($package->price, 0, ',', ' ') }} FCFA
+                                                        {{ $package->name }} - {{ number_format($package->price, 0, ',', ' ') }} GNF
                                                     </option>
                                                 @endforeach
                                             </select>
@@ -714,7 +714,7 @@
                                             <option value="{{ $medicament->id }}" 
                                                     data-name="{{ $medicament->nom }}" 
                                                     data-price="{{ $medicament->amount }}">
-                                                {{ $medicament->nom }} - {{ number_format($medicament->amount, 0, ',', ' ') }} FCFA
+                                                {{ $medicament->nom }} - {{ number_format($medicament->amount, 0, ',', ' ') }} GNF
                                             </option>
                                         @endforeach
                                     </select>
@@ -726,7 +726,7 @@
                                             <div class="medicament-item" data-id="{{ $medicament->id }}">
                                                 <div class="medicament-info">
                                                     <div class="medicament-name">{{ $medicament->nom }}</div>
-                                                    <div class="medicament-price">{{ number_format($medicament->amount, 0, ',', ' ') }} FCFA</div>
+                                                    <div class="medicament-price">{{ number_format($medicament->amount, 0, ',', ' ') }} GNF</div>
                                                 </div>
                                                 <div class="quantity-control">
                                                     <button type="button" class="btn-quantity" onclick="decreaseQuantity(this)">
@@ -923,7 +923,7 @@
             <div class="medicament-item" data-id="${id}">
                 <div class="medicament-info">
                     <div class="medicament-name">${name}</div>
-                    <div class="medicament-price">${parseInt(price).toLocaleString('fr-FR')} FCFA</div>
+                    <div class="medicament-price">${parseInt(price).toLocaleString('fr-FR')} GNF</div>
                 </div>
                 <div class="quantity-control">
                     <button type="button" class="btn-quantity" onclick="decreaseQuantity(this)">

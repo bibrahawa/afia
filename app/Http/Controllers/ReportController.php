@@ -121,7 +121,7 @@ class ReportController extends Controller
                 'actes' => $this->getActes($transaction),
                 'debit' => $debit,
                 'credit' => $credit,
-                'solde' => $soldeAccumule, // Solde cumulé
+                'solde' => $soldeLigne, // Solde de la ligne
             ];
         }
 

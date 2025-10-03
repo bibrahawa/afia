@@ -11,35 +11,52 @@ use Illuminate\Support\Facades\DB;
 
 class InsuranceBalanceController extends Controller
 {
-
-
     public function index()
     {
         // 1) Récupère les assurances actives
         $companies = InsuranceCompany::where('status', 'active')
                                     ->get(['id','name','code','status']);
 
-        // 2) Récupère les factures liées (seulement les colonnes utiles)
+        // 2) Récupère les factures liées avec transactions
         $invoices = Invoice::whereIn('insurance_company_id', $companies->pluck('id'))
             ->whereNotNull('insurance_company_id')
-            ->get(['insurance_company_id','insurance_status','patient_amount_status','insurance_amount']);
+            ->with('transaction')
+            ->get();
 
-        // 3) Regroupe par assurance
+        // 3) Regroupe par compagnie
         $byCompany = $invoices->groupBy('insurance_company_id');
 
-        // 4) Calcule les totaux avec map => tableau final prêt pour la vue
+        // 4) Calcule les totaux
         $insuranceBalances = $companies->map(function ($c) use ($byCompany) {
             $list = $byCompany->get($c->id, collect());
 
+            // Factures assurées mais encore dues (validées ou en attente)
             $isDue = fn($inv) =>
-                in_array($inv->insurance_status, ['approved','pending'], true)
+                in_array($inv->insurance_status, ['approved', 'pending'], true)
                 && $inv->patient_amount_status === 'paid';
 
-            $montant_du        = $list->filter($isDue)->sum('insurance_amount');
-            $montant_paye      = $list->where('insurance_status', 'paid')->sum('insurance_amount');
-            $montant_total     = $list->sum('insurance_amount');
-            $factures_impayees = $list->filter($isDue)->count();
-            $total_factures    = $list->count();
+            $isPaid = fn($inv) =>
+                in_array($inv->insurance_status, ['approved', 'paid'], true)
+                && $inv->patient_amount_status === 'paid';
+
+            // Montant dû par l’assurance = total - montant déjà payé
+            $montant_du = $list->filter($isDue)->sum(function ($inv) {
+                return max(0, (float)$inv->transaction->total - (float)$inv->transaction->montant_payer);
+            });
+
+            // Montant déjà payé par l’assurance = ce qui a été payé en excédent de la part patient
+            $montant_paye = $list->filter($isPaid)->sum(function ($inv) {
+                // Si patient est déjà payé, alors tout le reste du "montant_payer" vient de l’assurance
+                if ($inv->patient_amount_status === 'paid' && $inv->insurance_status === 'paid') {
+                   return (float)$inv->insurance_amount;
+                }else{
+                    return max(0, (float)$inv->transaction->montant_payer - (float)$inv->patient_amount);
+                }
+                return 0;
+            });
+
+            // Montant total théorique couvert par l’assurance = somme de insurance_amount
+            $montant_total = $list->sum('insurance_amount');
 
             return [
                 'id'                => $c->id,
@@ -49,17 +66,15 @@ class InsuranceBalanceController extends Controller
                 'montant_du'        => (float) $montant_du,
                 'montant_paye'      => (float) $montant_paye,
                 'montant_total'     => (float) $montant_total,
-                'factures_impayees' => $factures_impayees,
-                'total_factures'    => $total_factures,
+                'factures_impayees' => $list->filter($isDue)->count(),
+                'total_factures'    => $list->count(),
             ];
         })
         ->sortByDesc('montant_du')
         ->values();
 
-
         return view('insurance.balance.index', compact('insuranceBalances'));
     }
-
 
     /**
      * Calcule les soldes de toutes les assurances
@@ -103,52 +118,55 @@ class InsuranceBalanceController extends Controller
     {
         $insurance = InsuranceCompany::findOrFail($id);
         
-        // Récupérer les factures avec pagination
+        // 1) Récupérer les factures avec pagination
         $invoices = Invoice::where('insurance_company_id', $id)
                         ->with(['transaction.patient'])
                         ->whereIn('insurance_status', ['approved', 'pending'])
-                        ->where('patient_amount_status', 'paid')
                         ->orderBy('created_at', 'desc')
                         ->paginate(20);
 
-        // Calculer les statistiques avec une seule requête optimisée
-        $statsQuery = DB::table('invoices')
-                        ->where('insurance_company_id', $id)
-                        ->selectRaw("
-                            SUM(CASE 
-                                WHEN insurance_status IN ('approved', 'pending') 
-                                AND patient_amount_status = 'paid' 
-                                THEN insurance_amount 
-                                ELSE 0 
-                            END) as montant_du,
-                            
-                            SUM(CASE 
-                                WHEN insurance_status = 'paid' 
-                                THEN insurance_amount 
-                                ELSE 0 
-                            END) as montant_paye,
-                            
-                            COUNT(CASE 
-                                WHEN insurance_status IN ('approved', 'pending') 
-                                AND patient_amount_status = 'paid' 
-                                THEN 1 
-                            END) as factures_impayees,
-                            
-                            COUNT(*) as total_factures,
-                            SUM(insurance_amount) as montant_total
-                        ")
-                        ->first();
+        // 2) Récupérer toutes les factures (non paginées) pour calculer les stats
+        $allInvoices = Invoice::where('insurance_company_id', $id)
+                                ->whereIn('insurance_status', ['approved', 'pending', 'paid'])
+                                ->with('transaction')
+                                ->get();
+
+        // 3) Calculer les stats
+        $isDue = fn($inv) =>
+            in_array($inv->insurance_status, ['approved', 'pending'], true)
+            && $inv->patient_amount_status === 'paid';
+
+        $isPaid = fn($inv) =>
+                in_array($inv->insurance_status, ['approved', 'paid'], true)
+                && $inv->patient_amount_status === 'paid';
+
+        $montant_du = $allInvoices->filter($isDue)->sum(function ($inv) {
+            return max(0, (float)$inv->transaction->total - (float)$inv->transaction->montant_payer);
+        });
+
+        $montant_paye = $allInvoices->filter($isPaid)->sum(function ($inv) {
+            // L’assurance paie après que le patient ait soldé sa part
+            if ($inv->patient_amount_status === 'paid' && $inv->insurance_status === 'paid') {
+                return (float)$inv->insurance_amount;
+            }else{
+                return max(0, (float)$inv->transaction->montant_payer - (float)$inv->patient_amount);
+            }
+            return 0;
+        });
+
+        $montant_total = $allInvoices->sum('insurance_amount');
 
         $stats = [
-            'montant_du' => $statsQuery->montant_du ?? 0,
-            'montant_paye' => $statsQuery->montant_paye ?? 0,
-            'factures_impayees' => $statsQuery->factures_impayees ?? 0,
-            'total_factures' => $statsQuery->total_factures ?? 0,
-            'montant_total' => $statsQuery->montant_total ?? 0
+            'montant_du'        => (float) $montant_du,
+            'montant_paye'      => (float) $montant_paye,
+            'factures_impayees' => $invoices->filter($isDue)->count(),
+            'total_factures'    => $invoices->count(),
+            'montant_total'     => (float) $montant_total,
         ];
 
         return view('insurance.balance.show', compact('insurance', 'invoices', 'stats'));
     }
+
 
     /**
      * Traite le paiement d'une facture par l'assurance
@@ -165,6 +183,7 @@ class InsuranceBalanceController extends Controller
         DB::beginTransaction();
         
         try {
+
             $invoice = Invoice::findOrFail($invoiceId);
             
             // Vérifier si le montant ne dépasse pas le montant dû
@@ -243,7 +262,7 @@ class InsuranceBalanceController extends Controller
 
             DB::commit();
             
-            return redirect()->back()->with('success', "Paiement groupé enregistré avec succès. Total: " . number_format($totalAmount, 0, ',', ' ') . " FCFA");
+            return redirect()->back()->with('success', "Paiement groupé enregistré avec succès. Total: " . number_format($totalAmount, 0, ',', ' ') . " GNF");
             
         } catch (\Exception $e) {
             DB::rollback();
@@ -269,11 +288,11 @@ class InsuranceBalanceController extends Controller
            
             // Récupérer les factures
             $invoices = Invoice::where('insurance_company_id', $insurance->id)
-                            ->with(['transaction.patient'])
-                            ->whereIn('insurance_status', ['approved', 'pending'])
-                            ->where('patient_amount_status', 'paid')
-                            ->orderBy('created_at', 'desc')
-                            ->get();
+                                ->with(['transaction.patient'])
+                                ->whereIn('insurance_status', ['approved', 'pending'])
+                                ->where('patient_amount_status', 'paid')
+                                ->orderBy('created_at', 'desc')
+                                ->get();
 
             $montantAssurance = (float) $request->montant;
 
@@ -301,12 +320,12 @@ class InsuranceBalanceController extends Controller
                         $transaction->status         = 'paid';
 
                     } else {
+                        
                         $invoice->insurance_status   = 'approved';
 
                         $transaction->montant_payer += $montantAPayer;
                         $transaction->status         = 'approved';
                     }
-
 
                     $invoice->save();
                     $transaction->save();
@@ -379,9 +398,9 @@ class InsuranceBalanceController extends Controller
             fputcsv($handle, [
                 'Code',
                 'Nom Assurance',
-                'Montant Dû (FCFA)',
-                'Montant Payé (FCFA)',
-                'Montant Total (FCFA)',
+                'Montant Dû (GNF)',
+                'Montant Payé (GNF)',
+                'Montant Total (GNF)',
                 'Factures Impayées',
                 'Total Factures',
                 'Statut'

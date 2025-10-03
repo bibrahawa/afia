@@ -68,7 +68,7 @@
                             <tr>
                                 <td class="px-4 py-2">{{ $chambre->numero }}</td>
                                 <td class="px-4 py-2">{{ $chambre->type }}</td>
-                                <td class="px-4 py-2">{{ number_format($chambre->prix_par_jour, 2) }} FCFA</td>
+                                <td class="px-4 py-2">{{ number_format($chambre->prix_par_jour, 2) }} GNF</td>
                                 <td class="px-4 py-2">
                                     <span class="px-2 py-1 rounded text-sm
                                         {{ $chambre->statut === 'Libre' ? 'bg-green-200 text-green-800' :

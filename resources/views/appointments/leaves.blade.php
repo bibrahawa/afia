@@ -38,8 +38,12 @@
                                     {{ ucfirst($leave['type']) }}
                                 </h4>
                                 <p class="text-sm text-gray-600 mt-1">
-                                    Du {{ \Carbon\Carbon::parse($leave['start_date'])->format('d/m/Y') }}
-                                    au {{ \Carbon\Carbon::parse($leave['end_date'])->format('d/m/Y') }}
+                                    {{-- Version conditionnelle (même jour) --}}
+                                    @if($leave->start_date->isSameDay($leave->end_date))
+                                        Le {{ $leave->start_date->format('d/m/Y') }} de {{ $leave->start_date->format('H:i') }} à {{ $leave->end_date->format('H:i') }}
+                                    @else
+                                        Du {{ $leave->start_date->format('d/m/Y à H:i') }} au {{ $leave->end_date->format('d/m/Y à H:i') }}
+                                    @endif
                                 </p>
                                 @if($leave['reason'])
                                 <p class="text-sm text-gray-600 mt-1">{{ $leave['reason'] }}</p>

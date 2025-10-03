@@ -6,24 +6,23 @@ use Spatie\Permission\Models\Role as SpatieRole;
 
 class Role extends SpatieRole
 {
-     /**
-     * setup variable mass assignment.
+    protected $guarded = [];
+
+    /**
+     * Setup variable mass assignment.
      *
      * @var array
      */
     protected $fillable = [
         'name',
-        'description',
+        'guard_name',
     ];
 
-    // public function permissions()
-    // {
-    //     return $this->belongsToMany('App\Models\Permission')->withTimestamps();
-    // }
-
+    /**
+     * Dropdown pour les formulaires
+     */
     public static function dropdown()
     {
-        return [null => '--Choose Role--'] + Self::all()->pluck('name', 'id')->toArray();
+        return [null => '--Choisir un rôle--'] + self::all()->pluck('name', 'id')->toArray();
     }
 }
-

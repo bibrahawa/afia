@@ -21,7 +21,7 @@
       top: 77%;
       transform: translateY(-50%);
     }
-  </style>
+</style>
 
 
 <section class="section">
@@ -131,15 +131,15 @@
         }
     });
 
-function togglePassword(fieldId) {
-    const field = document.getElementById(fieldId);
-    const icon = field.nextElementSibling.querySelector('i');
-    if (field.type === 'password') {
-        field.type = 'text';
-        icon.classList.replace('bi-eye-slash', 'bi-eye');
-    } else {
-        field.type = 'password';
-        icon.classList.replace('bi-eye', 'bi-eye-slash');
+    function togglePassword(fieldId) {
+        const field = document.getElementById(fieldId);
+        const icon = field.nextElementSibling.querySelector('i');
+        if (field.type === 'password') {
+            field.type = 'text';
+            icon.classList.replace('bi-eye-slash', 'bi-eye');
+        } else {
+            field.type = 'password';
+            icon.classList.replace('bi-eye', 'bi-eye-slash');
+        }
     }
-}
 </script>

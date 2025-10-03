@@ -868,48 +868,53 @@
             </div>
         </div>
 
-        <!-- Modal Ordonnance -->
+        <!-- Modal Ordonnance Améliorée -->
         <div class="modal fade" id="ordonnanceModal" tabindex="-1" role="dialog" aria-hidden="true">
             <div class="modal-dialog modal-lg" role="document">
                 <div class="modal-content">
-                    <div class="modal-header border-0">
+                    <div class="modal-header bg-warning text-dark border-0">
                         <h5 class="modal-title">
-                            <span class="fw-mediumbold"> Ordonnance Médicale</span>
+                            <i class="fas fa-prescription"></i>
+                            <span class="fw-mediumbold ms-2">Ordonnance Médicale</span>
                         </h5>
-                        <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <div class="modal-body">
-                        <!-- Boutons d'impression -->
-                        <div class="modal-print-buttons no-print">
-                            <button type="button" class="btn-print-prescription" onclick="printPrescription()">
-                                <i class="fas fa-print"></i> Imprimer l'Ordonnance
-                            </button>
+                    <div class="modal-body p-0">
+                        <!-- Barre d'actions -->
+                        <div class="modal-print-buttons no-print bg-light p-3 border-bottom">
+                            <div class="d-flex justify-content-center gap-2">
+                                <button type="button" class="btn btn-success" onclick="printPrescription()">
+                                    <i class="fas fa-print me-2"></i>Imprimer
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                                    <i class="fas fa-times me-2"></i>Fermer
+                                </button>
+                            </div>
                         </div>
 
+                        <!-- Contenu de l'ordonnance -->
                         <div class="prescription" id="prescriptionContent">
                             <div class="header">
                                 <div class="logo-section">
-                                    <div class="logo-text">
-                                        <img src="{{asset($hopital->logo)}}" alt="logo">
-                                    </div>
+                                    <img src="{{asset($hopital->logo)}}" alt="Logo {{$hopital->name}}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
                                 </div>
                                 <div class="clinic-info">
                                     <div class="clinic-name">{{$hopital->name}}</div>
                                     <div>Spécialités: Gynécologie • Obstétrique • Échographie</div>
                                     <div>Services: Suivi de grossesse • Planification familiale • Infertilité</div>
                                     <div>{{$hopital->address}}</div>
+                                    <div>Tél: {{$hopital->contact}}</div>
                                 </div>
                             </div>
 
                             <div class="date-location">
-                                Conakry, le <span class="editable">{{ $consultation->created_at->format('d/m/Y') }}</span>
+                                Conakry, le {{ $consultation->created_at->format('d/m/Y') }}
                             </div>
 
                             <div class="patient-info">
                                 <div class="patient-name">
-                                    Mr/Mme <span class="editable">{{ $consultation->patient->first_name." ".$consultation->patient->last_name }}</span>, <span class="editable">{{ $consultation->patient->age ?? 'N/A' }} ans</span>
+                                    M./Mme {{ $consultation->patient->first_name." ".$consultation->patient->last_name }}, 
+                                    {{ $consultation->patient->age ?? 'N/A' }} ans
                                 </div>
                             </div>
 
@@ -927,27 +932,24 @@
                                                     <div class="dosage">{{ $medicament->instructions }}</div>
                                                 @endif
                                             </div>
-                                            <div class="quantity">{{ $medicament->pivot->quantity }} BOITE(S)</div>
+                                            <div class="quantity">{{ $medicament->pivot->quantity }} BOÎTE(S)</div>
                                         </div>
                                     @endforeach
                                 @else
-                                    <div class="prescription-item">
-                                        <div class="item-number">1.</div>
-                                        <div class="medication">
-                                            <div class="medication-name editable">MEDICAMENT</div>
-                                            <div class="dosage editable">Posologie à définir</div>
-                                        </div>
-                                        <div class="quantity editable">1 BOITE</div>
+                                    <div class="text-center text-muted py-5">
+                                        <i class="fas fa-prescription-bottle-alt fa-3x mb-3"></i>
+                                        <p>Aucun médicament prescrit</p>
                                     </div>
                                 @endif
                             </div>
 
                             <div class="doctor-signature">
-                                <div>CLINIQUE APROSAFE</div>
+                                <div>{{$hopital->name}}</div>
                                 <div class="signature-line">
-                                    Dr <span class="editable">{{ $consultation->medecin->getFullNameAttribute() }}</span>
+                                    Dr {{ $consultation->medecin->getFullNameAttribute() }}
                                 </div>
                             </div>
+
                             <div class="footer_prescription">
                                 Tél: {{$hopital->contact}} - Adresse: {{$hopital->address}}<br>
                                 Email: {{$hopital->email}} - Site web: {{$hopital->website}}
@@ -958,26 +960,31 @@
             </div>
         </div>
 
-        <!-- Modal Examens -->
+        <!-- Modal Examens Améliorée -->
         <div class="modal fade" id="examensModal" tabindex="-1" role="dialog" aria-hidden="true">
             <div class="modal-dialog modal-lg" role="document">
                 <div class="modal-content">
-                    <div class="modal-header border-0">
+                    <div class="modal-header bg-success text-white border-0">
                         <h5 class="modal-title">
-                            <span class="fw-mediumbold"><i class="fas fa-microscope"></i> Examens Médicaux</span>
+                            <i class="fas fa-microscope"></i>
+                            <span class="fw-mediumbold ms-2">Demande d'Examens Médicaux</span>
                         </h5>
-                        <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <div class="modal-body">
-                        <!-- Boutons d'impression -->
-                        <div class="modal-print-buttons no-print">
-                            <button type="button" class="btn-print-prescription" onclick="printExamens()">
-                                <i class="fas fa-print"></i> Imprimer les Examens
-                            </button>
+                    <div class="modal-body p-0">
+                        <!-- Barre d'actions -->
+                        <div class="modal-print-buttons no-print bg-light p-3 border-bottom">
+                            <div class="d-flex justify-content-center gap-2">
+                                <button type="button" class="btn btn-success" onclick="printExamens()">
+                                    <i class="fas fa-print me-2"></i>Imprimer
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                                    <i class="fas fa-times me-2"></i>Fermer
+                                </button>
+                            </div>
                         </div>
 
+                        <!-- Contenu des examens -->
                         <div class="examens-document" id="examensContent">
                             <div class="examens-header">
                                 <div class="examens-title">Demande d'Examens Médicaux</div>
@@ -1013,13 +1020,13 @@
                                             <div style="display: flex; align-items: center; width: 100%;">
                                                 <div style="margin-right: 15px; font-weight: bold;">{{ $index + 1 }}.</div>
                                                 <div class="examen-name">{{ $test->name }}</div>
-                                                <div class="examen-price">{{ number_format($test->amount) }} GNF</div>
+                                                <div class="examen-price">{{ number_format($test->amount, 0, ',', ' ') }} GNF</div>
                                             </div>
                                         </div>
                                     @endforeach
                                     
                                     <div style="margin-top: 20px; text-align: right; font-weight: bold; font-size: 16px;">
-                                        Total Examens: {{ number_format($consultation->tests->sum('amount')) }} GNF
+                                        Total Examens: {{ number_format($consultation->tests->sum('amount'), 0, ',', ' ') }} GNF
                                     </div>
                                 @else
                                     <div style="text-align: center; color: #666; padding: 40px;">
@@ -1054,39 +1061,42 @@
             </div>
         </div>
 
-        <!-- Modal Facture Complète -->
+        <!-- Modal Facture Complète Améliorée -->
         <div class="modal fade" id="factureModal" tabindex="-1" role="dialog" aria-hidden="true">
             <div class="modal-dialog modal-xl" role="document">
                 <div class="modal-content">
-                    <div class="modal-header border-0">
+                    <div class="modal-header bg-info text-white border-0">
                         <h5 class="modal-title">
-                            <span class="fw-mediumbold"><i class="fas fa-file-invoice-dollar"></i> Facture Complète</span>
+                            <i class="fas fa-file-invoice-dollar"></i>
+                            <span class="fw-mediumbold ms-2">Facture Complète</span>
                         </h5>
-                        <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <div class="modal-body">
-                        <!-- Boutons d'impression -->
-                        <div class="modal-print-buttons no-print">
-                            <button type="button" class="btn-print-prescription" onclick="printFacture()">
-                                <i class="fas fa-print"></i> Imprimer la Facture
-                            </button>
+                    <div class="modal-body p-0">
+                        <!-- Barre d'actions -->
+                        <div class="modal-print-buttons no-print bg-light p-3 border-bottom">
+                            <div class="d-flex justify-content-center gap-2">
+                                <button type="button" class="btn btn-info text-white" onclick="printFacture()">
+                                    <i class="fas fa-print me-2"></i>Imprimer
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                                    <i class="fas fa-times me-2"></i>Fermer
+                                </button>
+                            </div>
                         </div>
 
+                        <!-- Contenu de la facture -->
                         <div class="facture-document" id="factureContent">
                             <div class="facture-header">
                                 <div class="facture-logo">
-                                    <div class="logo-text">
-                                        LOGO<br>
-                                        CLINIQUE
-                                    </div>
+                                    <img src="{{asset($hopital->logo)}}" alt="Logo {{$hopital->name}}" style="max-width: 90%; max-height: 90%; object-fit: contain;">
                                 </div>
                                 <div class="facture-info">
                                     <div style="font-weight: bold; font-size: 16px;">{{$hopital->name}}</div>
                                     <div>Spécialités: Gynécologie • Obstétrique • Échographie</div>
                                     <div>Services: Suivi de grossesse • Planification familiale • Infertilité</div>
                                     <div>{{$hopital->address}}</div>
+                                    <div>Tél: {{$hopital->contact}}</div>
                                 </div>
                                 <div class="facture-number">
                                     <div><strong>FACTURE N°:</strong> {{ str_pad($consultation->id, 6, '0', STR_PAD_LEFT) }}</div>
@@ -1133,50 +1143,46 @@
                                         $totalGeneral = 0;
                                     @endphp
                                     
-                                    <!-- Packages -->
                                     @foreach($consultation->packages as $package)
                                         <tr>
                                             <td>{{ $itemNumber++ }}</td>
                                             <td><strong>Package:</strong> {{ $package->name }}</td>
                                             <td>1</td>
-                                            <td>{{ number_format($package->price) }} GNF</td>
-                                            <td>{{ number_format($package->price) }} GNF</td>
+                                            <td>{{ number_format($package->price, 0, ',', ' ') }} GNF</td>
+                                            <td>{{ number_format($package->price, 0, ',', ' ') }} GNF</td>
                                         </tr>
                                         @php $totalGeneral += $package->price; @endphp
                                     @endforeach
 
-                                    <!-- Services -->
                                     @foreach($consultation->services as $service)
                                         <tr>
                                             <td>{{ $itemNumber++ }}</td>
                                             <td><strong>Service:</strong> {{ $service->name }}</td>
                                             <td>1</td>
-                                            <td>{{ number_format($service->amount) }} GNF</td>
-                                            <td>{{ number_format($service->amount) }} GNF</td>
+                                            <td>{{ number_format($service->amount, 0, ',', ' ') }} GNF</td>
+                                            <td>{{ number_format($service->amount, 0, ',', ' ') }} GNF</td>
                                         </tr>
                                         @php $totalGeneral += $service->amount; @endphp
                                     @endforeach
 
-                                    <!-- Examens -->
                                     @foreach($consultation->tests as $test)
                                         <tr>
                                             <td>{{ $itemNumber++ }}</td>
                                             <td><strong>Examen:</strong> {{ $test->name }}</td>
                                             <td>1</td>
-                                            <td>{{ number_format($test->amount) }} GNF</td>
-                                            <td>{{ number_format($test->amount) }} GNF</td>
+                                            <td>{{ number_format($test->amount, 0, ',', ' ') }} GNF</td>
+                                            <td>{{ number_format($test->amount, 0, ',', ' ') }} GNF</td>
                                         </tr>
                                         @php $totalGeneral += $test->amount; @endphp
                                     @endforeach
 
-                                    <!-- Médicaments -->
                                     @foreach($consultation->medicaments as $medicament)
                                         <tr>
                                             <td>{{ $itemNumber++ }}</td>
                                             <td><strong>Médicament:</strong> {{ $medicament->nom }}</td>
                                             <td>{{ $medicament->pivot->quantity }}</td>
-                                            <td>{{ number_format($medicament->amount) }} GNF</td>
-                                            <td>{{ number_format($medicament->amount * $medicament->pivot->quantity) }} GNF</td>
+                                            <td>{{ number_format($medicament->amount, 0, ',', ' ') }} GNF</td>
+                                            <td>{{ number_format($medicament->amount * $medicament->pivot->quantity, 0, ',', ' ') }} GNF</td>
                                         </tr>
                                         @php $totalGeneral += ($medicament->amount * $medicament->pivot->quantity); @endphp
                                     @endforeach
@@ -1186,21 +1192,23 @@
                             <div class="facture-total">
                                 <div class="total-line">
                                     <span>Sous-total:</span>
-                                    <span>{{ number_format($totalGeneral) }} GNF</span>
+                                    <span>{{ number_format($totalGeneral, 0, ',', ' ') }} GNF</span>
                                 </div>
-                                <div class="total-line">
-                                    <span>Montant Payé:</span>
-                                    <span>{{ number_format($consultation->transaction->montant_payer) }} GNF</span>
-                                </div>
-                                <?php
-                                    $restant = $consultation->transaction->total - $consultation->transaction->montant_payer;
-                                ?>
-                                <div class="total-line final">
-                                    <span>Restant à Payer:</span>
-                                    <span style="color: {{ $restant > 0 ? 'red' : 'green' }};">
-                                         {{ number_format($restant) }} GNF
-                                    </span>
-                                </div>
+                                @if($consultation->transaction)
+                                    <div class="total-line">
+                                        <span>Montant Payé:</span>
+                                        <span>{{ number_format($consultation->transaction->montant_payer, 0, ',', ' ') }} GNF</span>
+                                    </div>
+                                    @php
+                                        $restant = $consultation->transaction->total - $consultation->transaction->montant_payer;
+                                    @endphp
+                                    <div class="total-line final">
+                                        <span>Restant à Payer:</span>
+                                        <span style="color: {{ $restant > 0 ? '#dc3545' : '#28a745' }};">
+                                            {{ number_format($restant, 0, ',', ' ') }} GNF
+                                        </span>
+                                    </div>
+                                @endif
                             </div>
 
                             <div style="clear: both; margin-top: 30px; text-align: center;">
@@ -1210,7 +1218,7 @@
                             </div>
 
                             <div class="facture-footer">
-                                 Tél: {{$hopital->contact}} - Adresse: {{$hopital->address}}<br>
+                                Tél: {{$hopital->contact}} - Adresse: {{$hopital->address}}<br>
                                 Email: {{$hopital->email}} - Site web: {{$hopital->website}}
                             </div>
                         </div>

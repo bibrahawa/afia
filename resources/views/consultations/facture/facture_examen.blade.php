@@ -636,19 +636,19 @@
                     <div class="total-box">
                         <div class="total-row">
                             <span>Sous-total:</span>
-                            <span>82,300 FCFA</span>
+                            <span>82,300 GNF</span>
                         </div>
                         <div class="total-row">
                             <span>TVA (18%):</span>
-                            <span>14,814 FCFA</span>
+                            <span>14,814 GNF</span>
                         </div>
                         <div class="total-row">
                             <span>Remise:</span>
-                            <span>-2,000 FCFA</span>
+                            <span>-2,000 GNF</span>
                         </div>
                         <div class="total-row">
                             <span>TOTAL:</span>
-                            <span>95,114 FCFA</span>
+                            <span>95,114 GNF</span>
                         </div>
                     </div>
                 </div>
