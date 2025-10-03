@@ -469,9 +469,9 @@ Route::middleware('auth')->group(function () {
             ->middleware('permission:account.facture')
             ->name('facture');
         
-        Route::post('facture', [AccountController::class, 'payer'])
-            ->middleware('permission:account.payer')
-            ->name('payer');
+        // Route::post('facture', [AccountController::class, 'payer'])
+        //     ->middleware('permission:account.payer')
+        //     ->name('payer');
         
         Route::get('service', [AccountController::class, 'serviceReport'])
             ->middleware('permission:account.service_report')
