@@ -20,7 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'can' => \Illuminate\Auth\Middleware\Authorize::class,
             'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,
             'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
-            'permission' => \App\Http\Middleware\CheckPermission::class
+            'permission' => \App\Http\Middleware\CheckPermission::class,
         ]);
 
     })

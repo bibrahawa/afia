@@ -748,7 +748,9 @@ function validateStep(step) {
                     addFieldError('login-password');
                     return false;
                 }
+                
             } else {
+
                 const fullname = document.getElementById('register-fullname').value.trim();
                 const phone = document.getElementById('register-phone').value.trim();
                 const password = document.getElementById('register-password').value;
