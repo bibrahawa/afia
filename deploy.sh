@@ -27,4 +27,4 @@ php artisan view:cache
 echo "🌐 Synchronisation du dossier public..."
 rsync -av --exclude='.git' --exclude='storage' --exclude='index.php' --exclude='.htaccess' public/ $PUBLIC_PATH/
 
-echo "✅ Déploiement terminé !"
+echo "✅ Déploiement terminé !"  
