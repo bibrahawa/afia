@@ -40,6 +40,7 @@ class UsersSeeder extends Seeder
         // ==========================================
         echo "📋 Création des rôles...\n";
         
+        Role::create(['name' => 'patient', 'guard_name' => 'web']);
         $adminRole = Role::create(['name' => 'admin', 'guard_name' => 'web']);
         $medecinRole = Role::create(['name' => 'medecin', 'guard_name' => 'web']);
         $comptableRole = Role::create(['name' => 'comptable', 'guard_name' => 'web']);

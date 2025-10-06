@@ -65,7 +65,6 @@ class AppointmentController extends Controller
             'appointment_date' => 'required|date|after_or_equal:today',
             'appointment_time' => 'required',
             'reason' => 'required|string|max:255',
-
             'description' => 'nullable|string|max:1000'
         ]);
 

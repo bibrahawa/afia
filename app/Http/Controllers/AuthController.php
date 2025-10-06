@@ -16,7 +16,7 @@ use Carbon\Carbon;
 
 class AuthController extends Controller
 {
-         /**
+    /**
      * Connexion utilisateur avec protection contre les attaques par force brute
      */
     public function loginWithApi(Request $request): JsonResponse
@@ -158,7 +158,10 @@ class AuthController extends Controller
             'password.regex' => 'Le mot de passe doit contenir au moins: 1 minuscule, 1 majuscule, 1 chiffre et 1 caractère spécial.',
         ]);
 
-        // try {
+        try {
+
+            DB::beginTransaction();
+
             $user = User::create([
                 'email' => strtolower(trim(random_int(1000000000, 9999999999) . '@aprosafe.com')), // Email temporaire, à remplacer par un email valide
                 'phone' => $validated['phone'],
@@ -169,45 +172,34 @@ class AuthController extends Controller
                 'locked_until' => null,
             ]);
 
-            // Log de l'enregistrement réussi
-            Log::info('Nouvel utilisateur enregistré', [
+            //Create Patient Profile
+            $patient = Patient::create([
                 'user_id' => $user->id,
-                'phone' => $user->phone,
-                'name' => $user->name,
-                'ip' => $request->ip(),
-                'user_agent' => $request->userAgent(),
+                'first_name' => $user->name,
+                'last_name' => '',
+                'age' => 0,
+                'marital_status' => '',
             ]);
 
             // Connexion automatique après enregistrement
             Auth::login($user);
 
-            //Create Patient Profile
-            $patient = Patient::create([
-                'user_id' => $user->id,
-                'first_name' => $user->name,
-                'last_name' => 'NA',
-                'age' => 0,
-                'marital_status' => 'NA',
-            ]);
-
-            // Assign the 'patiente' role to the user
+            // Assign the 'patient' role to the user
             $user->assignRole('patient');
 
-            // Optionally, you can log the user in after registration
-            auth()->login($user);
+            DB::commit();
+
             // Return a response with the patient profile
             return response()->json(['message' => 'Registration successful', 'patient' => $patient], 201);
-    
-        // } catch (\Exception $e) {
-        //     RateLimiter::increment($key);
-        //     Log::error('Erreur lors de l\'enregistrement', [
-        //         'error' => $e->getMessage(),
-        //         'ip' => $request->ip(),
-        //     ]);
-
+        } catch (\Exception $e) {
+            DB::rollBack();
+            RateLimiter::increment($key);
+            Log::error('Erreur lors de l\'enregistrement', [
+                'error' => $e->getMessage(),
+                'ip' => $request->ip(),
+            ]);
             return response()->json(['message' => 'Une erreur est survenue lors de la création du compte.'], 500);
-        
-        // }
+        }
     }
 
     /**
