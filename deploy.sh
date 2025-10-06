@@ -4,8 +4,8 @@
 # ---------------------------
 
 # Chemins
-APP_PATH="/home/rdvpro"
-PUBLIC_PATH="/home/public_html"
+APP_PATH="/htdocs/rdvpro"
+PUBLIC_PATH="/htdocs/public_html"
 
 # 1. Se placer dans le projet Laravel
 cd $APP_PATH || { echo "Impossible de trouver $APP_PATH"; exit 1; }
