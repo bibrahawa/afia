@@ -39,7 +39,7 @@ class AppointmentController extends Controller
 
         $departmentId = $id;
 
-        $professionals = Employee::where('department_id', $departmentId)->where('type', 'Docteur')->get();
+        $professionals = Employee::where('department_id', $departmentId)->where('type', 'Medecin')->get();
 
         return response()->json($professionals);
     }
@@ -59,10 +59,6 @@ class AppointmentController extends Controller
 
     public function store(Request $request)
     {
-        
-        // |in:consultation_gynecologie', 'consultation_desir_maternite', 'cpn', 'echographie_gynecologique', 
-        //                             'echographie_obstetricale', 'interpretation_resultats', 'monnitoring_ovulation', 'pose_sterilet_gynecologie', 
-        //                             'pose_implant', 'autre
 
         $request->validate([
             'employee_id' => 'required|exists:employees,id',
