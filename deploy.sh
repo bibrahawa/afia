@@ -1,12 +1,11 @@
 #!/bin/bash
-
 # ---------------------------
 # Script de déploiement Laravel LWS
 # ---------------------------
 
 # Chemins
-APP_PATH="/htdocs/rdvpro"
-PUBLIC_PATH="/htdocs/rdv.aprosafe.com"
+APP_PATH="/home/rdvpro"
+PUBLIC_PATH="/home/public_html"
 
 # 1. Se placer dans le projet Laravel
 cd $APP_PATH || { echo "Impossible de trouver $APP_PATH"; exit 1; }
@@ -16,15 +15,16 @@ git pull origin main
 
 echo "📦 Installation des dépendances composer..."
 composer install --no-dev --optimize-autoloader
-php artisan migrate --force
 
 echo "🛠️ Clear et cache Laravel..."
 php artisan config:clear
 php artisan route:clear
 php artisan view:clear
-php artisan optimize
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
 
 echo "🌐 Synchronisation du dossier public..."
-rsync -av --exclude='.git' --exclude='storage' public/ $PUBLIC_PATH/
+rsync -av --exclude='.git' --exclude='storage' --exclude='index.php' --exclude='.htaccess' public/ $PUBLIC_PATH/
 
 echo "✅ Déploiement terminé !"
