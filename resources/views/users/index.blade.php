@@ -34,7 +34,7 @@
 
                     <a
                       class="btn btn-primary btn-round ms-auto"
-                      href="{{ route('users.create')}}"
+                      href="{{ url('users/create')}}"
                     >
                       <i class="fa fa-plus"></i> Ajouter un utilisateur
                     </a>

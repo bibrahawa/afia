@@ -44,7 +44,7 @@ class ConsultationController extends Controller
         ]));
     }
 
-    public function create(Patient $patient, $id = null)
+    public function create()
     {
         $patients = Patient::all();
 
@@ -348,7 +348,6 @@ class ConsultationController extends Controller
     public function show($id){
         $consultation = Consultation::find($id);
         $hopital = Hospital::first();
-
         return view('consultations.show', compact([
             'consultation', 'hopital'
         ]));

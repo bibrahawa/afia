@@ -199,7 +199,7 @@ class AuthController extends Controller
                 'error' => $e->getMessage(),
                 'ip' => $request->ip(),
             ]);
-            return response()->json(['message' => 'Une erreur est survenue lors de la création du compte.'], 500);
+            return response()->json(['message' => 'Une erreur est survenue lors de la création du compte.'. $e->getMessage()], 500);
         }
     }
 

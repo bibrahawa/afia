@@ -57,20 +57,20 @@ Route::middleware('auth')->group(function () {
     // ============================================
     Route::middleware('permission:users.view')->group(function () {
         Route::get('users', [UserController::class, 'index'])->name('users.index');
-        Route::get('users/{user}', [UserController::class, 'show'])->name('users.show');
+        Route::get('users/{user}/show', [UserController::class, 'show'])->name('users.show');
         
         Route::prefix('user')->name('user.')->group(function () {
             Route::get('/', [UserController::class, 'index'])->name('index');
         });
-        
-        Route::get('index-permissions', [UserController::class, 'indexPermissions'])
+    });
+
+    Route::get('index-permissions', [UserController::class, 'indexPermissions'])
             ->middleware('permission:users.permissions')
             ->name('users.index_permissions');
         
-        Route::get('liste-permissions/{id}', [UserController::class, 'listePermissions'])
+    Route::get('liste-permissions/{id}', [UserController::class, 'listePermissions'])
             ->middleware('permission:users.permissions')
             ->name('users.listePermissions');
-    });
 
     Route::get('users/create', [UserController::class, 'create'])
         ->middleware('permission:users.create')
@@ -84,11 +84,11 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:users.edit')
         ->name('users.edit');
     
-    Route::put('users/{user}', [UserController::class, 'update'])
+    Route::put('users/{user}/update', [UserController::class, 'update'])
         ->middleware('permission:users.edit')
         ->name('users.update');
     
-    Route::delete('users/{user}', [UserController::class, 'destroy'])
+    Route::delete('users/{user}/destroy', [UserController::class, 'destroy'])
         ->middleware('permission:users.delete')
         ->name('users.destroy');
     
@@ -274,7 +274,7 @@ Route::middleware('auth')->group(function () {
     // ============================================
     Route::middleware('permission:consultation.view')->group(function () {
         Route::get('consultation', [ConsultationController::class, 'index'])->name('consultation.index');
-        Route::get('consultation/{consultation}', [ConsultationController::class, 'show'])->name('consultation.show');
+        Route::get('consultation/{consultation}/show', [ConsultationController::class, 'show'])->name('consultation.show');
     });
     
     Route::get('consultation/create', [ConsultationController::class, 'create'])
@@ -289,7 +289,7 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:consultation.edit')
         ->name('consultation.edit');
     
-    Route::put('consultation/{consultation}', [ConsultationController::class, 'update'])
+    Route::put('consultation/{consultation}/update', [ConsultationController::class, 'update'])
         ->middleware('permission:consultation.edit')
         ->name('consultation.update');
     

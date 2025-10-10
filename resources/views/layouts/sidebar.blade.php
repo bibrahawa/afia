@@ -42,7 +42,7 @@
 
                 <li class="nav-item {{ request()->routeIs('patient.*') ? 'active' : '' }}">
                     <a href="{{ route('patient.index') }}">
-                        <i class="fas fa-user-injured"></i>
+                        <i class="fas fa-user"></i>
                         <p>Liste des patients</p>
                     </a>
                 </li>

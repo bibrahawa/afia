@@ -32,7 +32,7 @@
             <div class="card-header">
               <div class="d-flex align-items-center">
                 <h4 class="card-title">Liste des consultations</h4>
-                  <a class="btn btn-primary btn-round ms-auto" href="{{ route("consultation.create") }}"><i class="fa fa-plus"></i> Nouvelle consultation</a>
+                  <a class="btn btn-primary btn-round ms-auto" href="{{ url("consultation/create") }}"><i class="fa fa-plus"></i> Nouvelle consultation</a>
               </div>
             </div>
 

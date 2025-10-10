@@ -39,19 +39,16 @@ class UserController extends Controller
 
     public function store(Request $request)
     {
-
         $rules = [
             'first_name'                  => 'required|string|max:255',
             'last_name'               => 'required|string|max:255',
             'email'                => 'required|email|unique:users,email',
             'phone'              => 'required|string|min:8|max:15',
-            'password'             => ['required', 'confirmed', Rules\Password::defaults()],
-            'password_confirmation'=> 'required',
             'department_id'=>'required|numeric',
         ];
 
         if (count($request->working_day)) {
-             $request['working_day'] = implode(',',$request->working_day);
+            $request['working_day'] = implode(',',$request->working_day);
         }
 
         $data = $request->all();
