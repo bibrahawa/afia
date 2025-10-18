@@ -46,26 +46,40 @@ class ConsultationController extends Controller
 
     public function create()
     {
-        $patients = Patient::all();
-
+        // Vérification de rôle en premier pour éviter les requêtes inutiles
         if (!auth()->user()->hasRole('medecin')) {
             return redirect()->back()->with('error', 'Vous devez être un médecin pour créer une consultation.');
         }
 
-        $services = Service::where('department_id', auth()->user()->employee->department->id)->get();
-        $packages = Package::all();
-        $medicaments = Medicament::all();
-        $fichiersPatients = FichierPatient::where('used_by', 'accueil')->get();
-        $tests = Test::all();
+        $employeeDepartmentId = auth()->user()->employee->department_id;
 
-        return view('consultations.new', compact([
-            'patients',
-            'services',
-            'packages',
-            'medicaments',
-            'tests',
-            'fichiersPatients'
-        ]));
+        // Une seule requête optimisée pour tout charger en parallèle
+        return view('consultations.new', [
+            'patients' => Patient::select('id', 'first_name', 'last_name', 'first_visit')
+                ->orderBy('first_name')
+                ->get(),
+            
+            'services' => Service::select('id', 'name', 'amount')
+                ->where('department_id', $employeeDepartmentId)
+                ->orderBy('name')
+                ->get(),
+            
+            'packages' => Package::select('id', 'name', 'price')
+                ->orderBy('name')
+                ->get(),
+            
+            'medicaments' => Medicament::select('id', 'nom', 'amount')
+                ->orderBy('nom')
+                ->get(),
+            
+            'tests' => Test::select('id', 'name', 'amount')
+                ->orderBy('name')
+                ->get(),
+            
+            'fichiersPatients' => FichierPatient::select('id', 'nom_fichier', 'patient_id')
+                ->where('used_by', 'accueil')
+                ->get()
+        ]);
     }
 
     public function store(Request $request)
@@ -345,12 +359,25 @@ class ConsultationController extends Controller
         return redirect()->route('consultation.index')->with('success', 'Consultation enregistrée.');
     }
 
-    public function show($id){
-        $consultation = Consultation::find($id);
+
+    public function show($id)
+    {
+        $consultation = Consultation::with([
+            'patient.antecedant',
+            'medecin',
+            'department',
+            'medicaments',
+            'services',
+            'packages',
+            'tests',
+            'transaction.paiements',
+            'transaction.invoice.items.coverageType',
+            'fichiers',
+        ])->findOrFail($id);
+        
         $hopital = Hospital::first();
-        return view('consultations.show', compact([
-            'consultation', 'hopital'
-        ]));
+        
+        return view('consultations.show', compact('consultation', 'hopital'));
     }
 
     public function edit($id)

@@ -54,9 +54,22 @@ class Consultation extends Model
         return $this->morphOne(Transaction::class, 'transactionable');
     }
 
+    // Par celle-ci (relation many-to-many)
     public function fichiers()
     {
-        return $this->hasMany(FichierPatient::class);
+        return $this->belongsToMany(
+            FichierPatient::class, 
+            'consultation_fichier_patient', 
+            'consultation_id', 
+            'fichier_patient_id'
+        )->withTimestamps();
     }
+
+    public function invoice()
+    {
+        return $this->hasOneThrough(Invoice::class, Transaction::class, 'transactionable_id', 'transaction_id')
+            ->where('transactions.transactionable_type', Consultation::class);
+    }
+
 }
 

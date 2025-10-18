@@ -12,7 +12,14 @@ class FichierPatient extends Model
         return $this->belongsTo(Patient::class);
     }
 
-    public function consultation() {
-        return $this->belongsTo(Consultation::class);
+    // Dans le modèle FichierPatient
+    public function consultations()
+    {
+        return $this->belongsToMany(
+            Consultation::class,
+            'consultation_fichier_patient',
+            'fichier_patient_id',
+            'consultation_id'
+        )->withTimestamps();
     }
 }

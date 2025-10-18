@@ -6,12 +6,14 @@ use App\Models\Appointment;
 use App\Jobs\SendAppointmentReminderJob;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class SendAppointmentRemindersCommand extends Command
 {
     protected $signature = 'appointments:send-reminders 
                            {--type=all : Type de rappel (24h, 2h, all)} 
-                           {--dry-run : Simulation sans envoi réel}';
+                           {--dry-run : Simulation sans envoi réel}
+                           {--force : Ne pas demander de confirmation}';
 
     protected $description = 'Envoie les rappels SMS pour les rendez-vous médicaux';
 
@@ -20,13 +22,24 @@ class SendAppointmentRemindersCommand extends Command
         $type = $this->option('type');
         $dryRun = $this->option('dry-run');
 
-        $this->info("🏥 Traitement des rappels SMS ({$type})");
+        $this->info("🏥 Démarrage du traitement des rappels SMS");
+        $this->info("📅 Date/Heure : " . now()->format('d/m/Y H:i:s'));
+        $this->info("🔧 Type : {$type}");
         
         if ($dryRun) {
             $this->warn("⚠️  MODE SIMULATION - Aucun SMS ne sera envoyé");
         }
 
+        $this->newLine();
+
+        // Valider le type
+        if (!in_array($type, ['24h', '2h', 'all'])) {
+            $this->error("❌ Type de rappel invalide. Utilisez '24h', '2h' ou 'all'");
+            return 1;
+        }
+
         $totalProcessed = 0;
+        $startTime = microtime(true);
 
         // Traiter les rappels 24h
         if ($type === 'all' || $type === '24h') {
@@ -38,16 +51,16 @@ class SendAppointmentRemindersCommand extends Command
             $totalProcessed += $this->processReminders('2h', $dryRun);
         }
 
-        if (!in_array($type, ['24h', '2h', 'all'])) {
-            $this->error("Type de rappel invalide. Utilisez '24h', '2h' ou 'all'");
-            return 1;
-        }
+        $executionTime = round(microtime(true) - $startTime, 2);
 
-        $this->info("🎉 Total: {$totalProcessed} rappels traités");
+        $this->newLine();
+        $this->info("✅ Traitement terminé en {$executionTime}s");
+        $this->info("📊 Total : {$totalProcessed} rappels traités");
 
         Log::info("Commande rappels SMS exécutée", [
             'type' => $type,
             'total_processed' => $totalProcessed,
+            'execution_time' => $executionTime,
             'dry_run' => $dryRun
         ]);
 
@@ -57,100 +70,199 @@ class SendAppointmentRemindersCommand extends Command
     private function processReminders(string $type, bool $dryRun): int
     {
         $this->newLine();
-        $this->info("📱 === RAPPELS {$type} ===");
+        $this->line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        $this->info("📱 TRAITEMENT DES RAPPELS {$type}");
+        $this->line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
-        // Sélectionner les appointments selon le type
+        // Configuration selon le type
         if ($type === '24h') {
-            $appointments = Appointment::needingReminder()->with(['patient', 'employee'])->get();
+            $query = Appointment::needingReminder();
             $jobType = 'reminder_24h';
             $title = 'Rappels 24h avant';
+            $reminderField = 'reminder_sent_at';
         } else { // 2h
-            $appointments = Appointment::needingLastMinuteReminder()->with(['patient', 'employee'])->get();
+            $query = Appointment::needingLastMinuteReminder();
             $jobType = 'reminder_2h';
             $title = 'Rappels 2h avant';
+            $reminderField = 'last_minute_reminder_sent_at';
         }
 
-        $count = $appointments->count();
-        $this->info("📋 {$count} rendez-vous trouvés pour {$title}");
+        // Compter le nombre de RDV
+        $totalCount = $query->count();
+        
+        $this->info("🔍 Recherche en cours...");
+        $this->info("📋 {$totalCount} rendez-vous trouvés pour {$title}");
 
-        if ($appointments->isEmpty()) {
+        if ($totalCount === 0) {
             $this->info("✅ Aucun rappel {$type} à envoyer");
             return 0;
         }
 
-        // Afficher le tableau des RDV
+        // Afficher les détails de la fenêtre temporelle
+        if ($type === '24h') {
+            $start = now()->addHours(22)->format('d/m/Y H:i');
+            $end = now()->addHours(26)->format('d/m/Y H:i');
+            $this->comment("⏰ Fenêtre de détection : {$start} → {$end}");
+        } else {
+            $start = now()->addMinutes(90)->format('d/m/Y H:i');
+            $end = now()->addMinutes(150)->format('d/m/Y H:i');
+            $this->comment("⏰ Fenêtre de détection : {$start} → {$end}");
+        }
+
+        $this->newLine();
+
+        // En mode dry-run, afficher tous les détails
+        if ($dryRun) {
+            return $this->showDryRunResults($query, $type, $totalCount);
+        }
+
+        // Confirmation en mode interactif (sauf si --force)
+        if (!$this->option('force') && $this->input->isInteractive()) {
+            if (!$this->confirm("❓ Confirmer l'envoi de {$totalCount} rappels {$type} ?", true)) {
+                $this->warn("❌ Envoi annulé par l'utilisateur");
+                return 0;
+            }
+        }
+
+        // Traitement par chunks
+        return $this->sendReminders($query, $jobType, $reminderField, $totalCount);
+    }
+
+    private function showDryRunResults($query, string $type, int $totalCount): int
+    {
+        $this->warn("🔍 MODE SIMULATION - Aperçu des {$totalCount} rappels qui seraient envoyés :");
+        $this->newLine();
+
+        // Récupérer les appointments avec les relations
+        $appointments = $query->with(['patient.user', 'employee'])->get();
+
+        // Préparer les données pour le tableau
         $tableData = $appointments->map(function ($appointment) {
             return [
                 'ID' => $appointment->id,
                 'Patient' => $appointment->patient->getFullNameAttribute(),
                 'Médecin' => $appointment->employee->getFullNameAttribute(),
                 'Date RDV' => $appointment->getFormattedDateAttribute(),
-                'Téléphone' => $appointment->patient->user->phone,
+                'Dans' => $appointment->getTimeUntilAppointment(),
+                'Téléphone' => $appointment->patient->user->phone ?? 'N/A',
                 'Statut' => $appointment->status
             ];
         });
 
-        $this->table(['ID', 'Patient', 'Médecin', 'Date RDV', 'Téléphone', 'Statut'], $tableData);
+        // Afficher le tableau
+        $this->table(
+            ['ID', 'Patient', 'Médecin', 'Date RDV', 'Dans', 'Téléphone', 'Statut'],
+            $tableData
+        );
 
-        if ($dryRun) {
-            $this->warn("🔍 SIMULATION: {$count} rappels {$type} seraient envoyés");
-            return $count;
-        }
+        $this->newLine();
+        $this->info("💡 Pour envoyer réellement ces rappels, relancez sans --dry-run");
+        
+        return $totalCount;
+    }
 
-        // Confirmation seulement si on est en mode interactif
-        if ($this->input->isInteractive() && !$this->option('force')) {
-            if (!$this->confirm("Confirmer l'envoi de {$count} rappels {$type} ?", true)) {
-                $this->warn("❌ Rappels {$type} annulés");
-                return 0;
-            }
-        } else {
-            $this->info("🤖 Mode automatique détecté, envoi de {$count} rappels {$type}");
-        }
+    private function sendReminders($query, string $jobType, string $reminderField, int $totalCount): int
+    {
+        $this->info("🚀 Envoi en cours...");
+        $this->newLine();
 
-        // Envoi des rappels
-        $bar = $this->output->createProgressBar($count);
+        $bar = $this->output->createProgressBar($totalCount);
+        $bar->setFormat(' %current%/%max% [%bar%] %percent:3s%% %elapsed:6s%/%estimated:-6s% %memory:6s%');
         $bar->start();
 
         $successCount = 0;
         $errorCount = 0;
+        $skippedCount = 0;
 
-        foreach ($appointments as $appointment) {
-            try {
+        // Traiter par chunks de 50 pour éviter la surcharge mémoire
+        try {
+            DB::beginTransaction();
 
-                SendAppointmentReminderJob::dispatch($appointment, $jobType)->delay(now()->addSeconds(2));
-                
-                // Marquer le rappel 24h comme envoyé
-                if ($type === '24h') {
-                    $appointment->update(['reminder_sent_at' => now()]);
-                }
-                
-                $successCount++;
-                
-                // Petit délai pour éviter le spam
-                if ($count > 10) {
-                    usleep(rand(100000, 500000)); // 0.1 à 0.5 secondes
-                }
-                
-            } catch (\Exception $e) {
-                $errorCount++;
-                Log::error("Erreur envoi rappel {$type}", [
-                    'appointment_id' => $appointment->id,
-                    'error' => $e->getMessage()
-                ]);
-            }
+            $query->with(['patient.user', 'employee'])
+                ->chunk(50, function ($appointments) use (&$successCount, &$errorCount, &$skippedCount, $jobType, $reminderField, $bar) {
+                    foreach ($appointments as $appointment) {
+                        try {
+                            // Vérifier que le patient a un téléphone
+                            if (!$appointment->patient->user->phone) {
+                                $skippedCount++;
+                                Log::warning("Téléphone manquant", [
+                                    'appointment_id' => $appointment->id,
+                                    'patient_id' => $appointment->patient_id
+                                ]);
+                                $bar->advance();
+                                continue;
+                            }
+
+                            // Marquer immédiatement comme envoyé pour éviter les doublons
+                            $appointment->update([$reminderField => now()]);
+
+                            // Dispatch le job avec un délai aléatoire pour éviter le spam
+                            SendAppointmentReminderJob::dispatch($appointment, $jobType)
+                                ->delay(now()->addSeconds(rand(1, 10)));
+                            
+                            $successCount++;
+                            
+                        } catch (\Exception $e) {
+                            $errorCount++;
+                            Log::error("Erreur dispatch job rappel", [
+                                'appointment_id' => $appointment->id,
+                                'type' => $jobType,
+                                'error' => $e->getMessage(),
+                                'line' => $e->getLine()
+                            ]);
+                        }
+                        
+                        $bar->advance();
+                    }
+                });
+
+            DB::commit();
+
+        } catch (\Exception $e) {
+            DB::rollBack();
             
-            $bar->advance();
+            $bar->finish();
+            $this->newLine();
+            $this->error("❌ Erreur critique : " . $e->getMessage());
+            
+            Log::error("Erreur critique dans processReminders", [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return 0;
         }
 
         $bar->finish();
-        $this->newLine();
+        $this->newLine(2);
 
-        if ($errorCount > 0) {
-            $this->warn("⚠️  {$successCount} rappels {$type} envoyés, {$errorCount} erreurs");
-        } else {
-            $this->info("✅ {$successCount} rappels {$type} envoyés avec succès");
-        }
+        // Afficher le résumé
+        $this->displaySummary($successCount, $errorCount, $skippedCount);
 
         return $successCount;
+    }
+
+    private function displaySummary(int $successCount, int $errorCount, int $skippedCount): void
+    {
+        $this->line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        $this->info("📊 RÉSUMÉ");
+        $this->line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+
+        if ($successCount > 0) {
+            $this->info("✅ Rappels envoyés : {$successCount}");
+        }
+
+        if ($skippedCount > 0) {
+            $this->warn("⏭️  Rappels ignorés : {$skippedCount} (téléphone manquant)");
+        }
+
+        if ($errorCount > 0) {
+            $this->error("❌ Erreurs : {$errorCount}");
+            $this->comment("💡 Consultez les logs pour plus de détails : storage/logs/laravel.log");
+        }
+
+        if ($errorCount === 0 && $skippedCount === 0) {
+            $this->info("🎉 Tous les rappels ont été traités avec succès !");
+        }
     }
 }

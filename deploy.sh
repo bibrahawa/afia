@@ -20,11 +20,9 @@ echo "🛠️ Clear et cache Laravel..."
 php artisan config:clear
 php artisan route:clear
 php artisan view:clear
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
+php artisan optimize
 
 echo "🌐 Synchronisation du dossier public..."
 rsync -av --exclude='.git' --exclude='storage' --exclude='index.php' --exclude='.htaccess' public/ $PUBLIC_PATH/
 
-echo "✅ Déploiement terminé !"  
+echo "✅ Déploiement terminé !"

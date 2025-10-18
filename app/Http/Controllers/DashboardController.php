@@ -288,12 +288,22 @@ class DashboardController extends Controller
 
     public function storeLeave(Request $request): RedirectResponse
     {
+
         $validated = $request->validate([
-            'type' => 'required|string|in:Vacance,Maladie,Conference,Autre',
-            'start_date' => 'required|date|after_or_equal:today',
-            'end_date' => 'required|date|after_or_equal:start_date',
-            'reason' => 'nullable|string|max:500'
-        ]);
+                'type' => 'required|in:Vacance,Maladie,Conference,Autre',
+                'start_date' => 'required|date|after_or_equal:today',
+                'end_date' => 'required|date|after:start_date',
+                'reason' => 'nullable|string|max:500'
+            ], [
+                // Messages d'erreur personnalisés
+                'type.required' => 'Le type de congé est obligatoire.',
+                'type.in' => 'Le type de congé sélectionné est invalide.',
+                'start_date.required' => 'La date de début est obligatoire.',
+                'start_date.after_or_equal' => 'La date de début doit être aujourd\'hui ou ultérieure.',
+                'end_date.required' => 'La date de fin est obligatoire.',
+                'end_date.after' => 'La date de fin doit être après la date de début.',
+                'reason.max' => 'La raison ne peut pas dépasser 500 caractères.'
+            ]);
 
         $startDate = Carbon::parse($validated['start_date']);
         $endDate = Carbon::parse($validated['end_date']);
@@ -338,12 +348,18 @@ class DashboardController extends Controller
 
     public function updateLeave(Request $request): RedirectResponse
     {
+        // Validation
         $validated = $request->validate([
-            'id' => 'required|integer|exists:employee_leaves,id',
-            'type' => 'required|string|in:Vacance,Maladie,Conference,Autre',
-            'start_date' => 'required|date|after_or_equal:today',
-            'end_date' => 'required|date|after_or_equal:start_date',
+            'id' => 'required|exists:leaves,id',
+            'type' => 'required|in:Vacance,Maladie,Conference,Autre',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after:start_date',
             'reason' => 'nullable|string|max:500'
+        ], [
+            'id.exists' => 'Le congé sélectionné n\'existe pas.',
+            'type.required' => 'Le type de congé est obligatoire.',
+            'start_date.required' => 'La date de début est obligatoire.',
+            'end_date.after' => 'La date de fin doit être après la date de début.',
         ]);
 
         DB::beginTransaction();
@@ -598,8 +614,6 @@ class DashboardController extends Controller
                     $leaveEnd = Carbon::parse($endDate);
                     $endTime = $endTime->min(Carbon::createFromFormat('H:i', $leaveEnd->format('H:i')));
                 }
-
-                dd($startTime, $endTime);
                 
                 $slotTime = $startTime->copy();
                 while ($slotTime <= $endTime) {

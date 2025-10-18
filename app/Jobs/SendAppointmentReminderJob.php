@@ -20,8 +20,8 @@ class SendAppointmentReminderJob implements ShouldQueue
     protected $reminderType;
 
     public $tries = 3;
+    public $timeout = 30; // ✅ Timeout de 30 secondes
     public $backoff = [60, 300, 900]; // Réessayer après 1min, 5min, 15min
-
 
     public function __construct(Appointment $appointment, string $reminderType = 'reminder_24h')
     {
@@ -32,22 +32,49 @@ class SendAppointmentReminderJob implements ShouldQueue
     public function handle(SmsService $smsService)
     {
         try {
-
-            // Vérifier que le RDV est toujours valide
-            $appointment = $this->appointment->fresh();
+            // ✅ Récupérer la version fraîche du RDV avec les relations
+            $appointment = $this->appointment->fresh(['patient.user', 'employee']);
             
-            if (!$appointment || !in_array($appointment->status, ['pending', 'confirmed', 'cancelled'])) {
+            // Vérifier que le RDV est toujours valide
+            if (!$appointment || !in_array($appointment->status, ['pending', 'confirmed'])) {
                 Log::info("Rappel SMS annulé - RDV non valide", [
                     'appointment_id' => $this->appointment->id,
                     'status' => $appointment->status ?? 'null'
                 ]);
+                return;
+            }
 
+            // ✅ Vérifier que le rappel n'a pas déjà été envoyé (évite doublons)
+            if ($this->reminderType === 'reminder_24h' && $appointment->hasReminderBeenSent()) {
+                Log::info("Rappel 24h déjà envoyé", ['appointment_id' => $appointment->id]);
+                return;
+            }
+
+            if ($this->reminderType === 'reminder_2h' && $appointment->hasLastMinuteReminderBeenSent()) {
+                Log::info("Rappel 2h déjà envoyé", ['appointment_id' => $appointment->id]);
+                return;
+            }
+
+            // Vérifier que le patient a un numéro de téléphone
+            if (!$appointment->patient->user->phone) {
+                Log::warning("Pas de numéro de téléphone", [
+                    'appointment_id' => $appointment->id,
+                    'patient_id' => $appointment->patient_id
+                ]);
                 return;
             }
 
             // Générer le message selon le type
             $message = $this->generateMessage($appointment);
             
+            // ✅ Marquer IMMÉDIATEMENT comme envoyé pour éviter les doublons
+            // Même si l'envoi SMS échoue, on ne renverra pas
+            if ($this->reminderType === 'reminder_24h') {
+                $appointment->markReminderSent();
+            } elseif ($this->reminderType === 'reminder_2h') {
+                $appointment->markLastMinuteReminderSent();
+            }
+
             // Créer le log SMS
             $smsLog = AppointmentSmsLog::create([
                 'appointment_id' => $appointment->id,
@@ -66,20 +93,13 @@ class SendAppointmentReminderJob implements ShouldQueue
             if ($result['success']) {
                 $smsLog->markAsSent();
                 
-                // Marquer le rappel comme envoyé selon le type
-                if ($this->reminderType === 'reminder_24h') {
-                    $appointment->markReminderSent();
-                }
-
                 Log::info("Rappel SMS envoyé avec succès", [
                     'appointment_id' => $appointment->id,
                     'patient_id' => $appointment->patient_id,
                     'phone' => $appointment->patient->user->phone,
                     'type' => $this->reminderType
                 ]);
-
             } else {
-
                 $smsLog->markAsFailed($result['error']);
                 
                 Log::error("Échec envoi rappel SMS", [
@@ -87,18 +107,18 @@ class SendAppointmentReminderJob implements ShouldQueue
                     'error' => $result['error']
                 ]);
 
-                throw new \Exception($result['error']);
+                // ⚠️ Ne pas relancer l'exception car on a déjà marqué comme envoyé
+                // pour éviter les doublons
             }
 
         } catch (\Exception $e) {
-            
             Log::error("Erreur dans SendAppointmentReminderJob", [
                 'appointment_id' => $this->appointment->id,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'line' => $e->getLine()
             ]);
             
-            throw $e; // Relancer pour déclencher les tentatives
+            // Ne pas relancer pour éviter les doublons
         }
     }
 
@@ -106,21 +126,22 @@ class SendAppointmentReminderJob implements ShouldQueue
     {
         $patientName = $appointment->patient->getFullNameAttribute();
         $doctorName = $appointment->employee->getFullNameAttribute();
-        $appointmentDate = $appointment->getFormattedDateAttribute();
-        $appointmentTime = $appointment->appointment_datetime ? date('H:i', strtotime($appointment->appointment_datetime)) : '';
-
-        $clinicPhone = config('clinic.phone');
+        $appointmentDate = $appointment->getFormattedDateShortAttribute();
+        $appointmentTime = $appointment->getFormattedTimeAttribute();
+        
+        $clinicName = config('app.name', 'Clinique Aprosafe');
+        $clinicPhone = config('clinic.phone', '622 00 00 00');
         
         $messages = [
-            'reminder_24h' => "Bonjour {$patientName}, nous vous rappelons votre RDV avec Dr {$doctorName} demain ({$appointmentDate}). N'oubliez pas vos documents médicaux",
+            'reminder_24h' => "Bonjour {$patientName}, nous vous rappelons votre RDV avec Dr {$doctorName} demain le {$appointmentDate} à {$appointmentTime}. N'oubliez pas vos documents médicaux. {$clinicName}",
             
-            'reminder_2h' => "Rappel urgent {$patientName} : Votre RDV avec Dr {$doctorName} est dans 2h à {$appointmentTime}. Tel: {$clinicPhone}",
+            'reminder_2h' => "Rappel {$patientName} : Votre RDV avec Dr {$doctorName} est dans 2h à {$appointmentTime}. Arrivée conseillée 15min avant. Tel: {$clinicPhone}",
             
-            'confirmation' => "{$patientName} : Votre rendez-vous avec Dr {$doctorName} le {$appointmentDate} est confirmé. Arrivée conseillée 20min avant. Tel: {$clinicPhone}",
+            'confirmation' => "Confirmation {$patientName} : Votre RDV avec Dr {$doctorName} le {$appointmentDate} à {$appointmentTime} est confirmé. {$clinicName}",
             
-            'cancellation' => "Annulation {$patientName} : Votre RDV du {$appointmentDate} avec Dr {$doctorName} est annulé. Reprenez RDV via l'app ou appelez {$clinicPhone}",
+            'cancellation' => "Annulation {$patientName} : Votre RDV du {$appointmentDate} avec Dr {$doctorName} est annulé. Reprenez RDV via l'app ou au {$clinicPhone}",
             
-            'rescheduling' => "Report {$patientName} : Votre rendez-vous avec Dr {$doctorName} a été reporté. Nouveau créneau : {$appointmentDate}. Merci de confirmer. Clinique Aprosafe."
+            'rescheduling' => "Report {$patientName} : Votre RDV avec Dr {$doctorName} a été reporté au {$appointmentDate} à {$appointmentTime}. Merci de confirmer. {$clinicName}"
         ];
 
         return $messages[$this->reminderType] ?? $messages['reminder_24h'];
@@ -133,14 +154,5 @@ class SendAppointmentReminderJob implements ShouldQueue
             'error' => $exception->getMessage(),
             'attempts' => $this->attempts()
         ]);
-
-        // Marquer le SMS comme échoué définitivement
-        AppointmentSmsLog::where('appointment_id', $this->appointment->id)
-            ->where('sms_type', $this->reminderType)
-            ->where('status', 'pending')
-            ->update([
-                'status' => 'failed',
-                'error_message' => 'Échec définitif après ' . $this->tries . ' tentatives'
-            ]);
     }
 }

@@ -18,6 +18,24 @@ return new class extends Migration
             $table->date('appointment_date');
             $table->time('appointment_time');
 
+             // Ajouter la colonne appointment_datetime (générée automatiquement)
+            $table->datetime('appointment_datetime')->nullable();
+            
+            // Ajouter les colonnes de tracking pour éviter les doublons
+            $table->timestamp('reminder_sent_at')->nullable();
+            $table->timestamp('last_minute_reminder_sent_at')->nullable();
+            $table->timestamp('confirmation_sent_at')->nullable();
+            
+            // Ajouter les index pour optimiser les requêtes
+            $table->index(['appointment_datetime', 'status'], 'idx_appointment_datetime_status');
+            $table->index('reminder_sent_at', 'idx_reminder_sent_at');
+            $table->index('last_minute_reminder_sent_at', 'idx_last_minute_reminder_sent_at');
+            $table->index(['status', 'appointment_datetime'], 'idx_status_datetime');
+
+
+            $table->text('cancellation_reason')->nullable();
+            $table->boolean('patient_confirmed')->default(false);
+
             $table->enum('reason', ['consultation_gynecologie', 'consultation_desir_maternite', 'cpn', 'echographie_gynecologique', 
                                     'echographie_obstetricale', 'interpretation_resultats', 'monnitoring_ovulation', 'pose_sterilet_gynecologie', 
                                     'pose_implant', 'autre']);

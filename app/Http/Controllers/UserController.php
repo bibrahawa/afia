@@ -12,121 +12,274 @@ use Illuminate\Validation\Rules;
 use Illuminate\Support\Facades\Validator;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rules\Password;
 
 class UserController extends Controller
 {
-    public function index()
-    {
-        $users = User::all();
-        $roles = Role::all();
-        return view('users.index', compact('users','roles'));
-    }
-
-    public function listePermissions_old($id)
-    {
-        $user = User::find($id);
-        $permissions = Permission::all();
-        return view('users.create_permissions', compact('user', 'permissions'));
-    }
-
-
-    public function create()
-    {
-        $roles = Role::all();
-        $departments = Department::all();
-        return view('users.create', compact('roles','departments'));
-    }
-
+    /**
+     * Créer un nouvel utilisateur
+     */
     public function store(Request $request)
     {
-        $rules = [
-            'first_name'                  => 'required|string|max:255',
-            'last_name'               => 'required|string|max:255',
-            'email'                => 'required|email|unique:users,email',
-            'phone'              => 'required|string|min:8|max:15',
-            'department_id'=>'required|numeric',
-        ];
+        // ============================================
+        // VALIDATION
+        // ============================================
+        $validated = $request->validate([
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'phone' => 'required|string|min:8|max:15|unique:users,phone',
+            'department_id' => 'nullable|exists:departments,id',
+            'role_id' => 'required|string|exists:roles,name',
+            'address' => 'nullable|string|max:500',
+            'password' => ['required', 'confirmed', Password::min(8)
+                ->mixedCase()
+                ->numbers()
+                ->symbols()
+            ],
+            'working_day' => 'nullable|array',
+        ], [
+            // Messages personnalisés en français
+            'first_name.required' => 'Le prénom est obligatoire.',
+            'last_name.required' => 'Le nom est obligatoire.',
+            'email.required' => 'L\'email est obligatoire.',
+            'email.email' => 'L\'email doit être une adresse valide.',
+            'email.unique' => 'Cet email est déjà utilisé.',
+            'phone.required' => 'Le téléphone est obligatoire.',
+            'phone.unique' => 'Ce numéro de téléphone est déjà utilisé.',
+            'password.required' => 'Le mot de passe est obligatoire.',
+            'password.confirmed' => 'Les mots de passe ne correspondent pas.',
+            'role_id.required' => 'Le rôle est obligatoire.',
+            'role_id.exists' => 'Le rôle sélectionné n\'existe pas.',
+            'department_id.exists' => 'Le département sélectionné n\'existe pas.',
+        ]);
 
-        if (count($request->working_day)) {
-            $request['working_day'] = implode(',',$request->working_day);
+        // ============================================
+        // TRANSACTION DATABASE
+        // ============================================
+        try {
+            DB::beginTransaction();
+
+            // Traitement des jours de travail
+            $workingDays = null;
+            if ($request->has('working_day') && is_array($request->working_day)) {
+                $workingDays = implode(',', $request->working_day);
+            }
+
+            // Préfixe "DR" pour les médecins
+            $firstName = $validated['first_name'];
+            if ($validated['role_id'] === 'medecin') {
+                $firstName = 'Dr ' . $firstName;
+            }
+
+            // ============================================
+            // CRÉATION DE L'UTILISATEUR
+            // ============================================
+            $user = User::create([
+                'name' => $firstName . ' ' . $validated['last_name'],
+                'email' => $validated['email'],
+                'phone' => $validated['phone'],
+                'password' => Hash::make($validated['password']),
+            ]);
+
+            // ============================================
+            // CRÉATION DE L'EMPLOYÉ
+            // ============================================
+            Employee::create([
+                'user_id' => $user->id,
+                'first_name' => $firstName,
+                'last_name' => $validated['last_name'],
+                'email' => $validated['email'],
+                'phone' => $validated['phone'],
+                'department_id' => $validated['department_id'] ?? 1,
+                'address' => $validated['address'] ?? null,
+                'working_day' => $workingDays,
+            ]);
+
+            // ============================================
+            // ASSIGNATION DU RÔLE
+            // ============================================
+            $user->assignRole($validated['role_id']);
+
+            DB::commit();
+
+            // ============================================
+            // LOGS (Optionnel)
+            // ============================================
+            \Log::info('Nouvel utilisateur créé', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'role' => $validated['role_id'],
+                'created_by' => auth()->id(),
+            ]);
+
+            return redirect()
+                ->route('users.index')
+                ->with('success', 'Utilisateur créé avec succès.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            // Log de l'erreur
+            \Log::error('Erreur lors de la création d\'un utilisateur', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'Une erreur est survenue lors de la création de l\'utilisateur.');
         }
-
-        $data = $request->all();
-
-        if($request->role_id == 'medecin')
-        {
-            $data['first_name'] = 'DR '.$request->first_name;
-        }
-
-        $user = new User();
-        $user->name = $request->name;
-        $user->email = $request->email;
-        $user->password = $request->password;
-
-        if($user->save()){
-            $data['user_id'] = $user->id;
-            Employee::create($data);
-            $user->assignRole($request->role_id);
-        }
-
-        return redirect()->route('users.index')->withSucces('Utilisateur ajouté avec succès.');
     }
 
-    public function show(User $user)
+    /**
+     * Afficher la liste des utilisateurs
+     */
+    public function index()
     {
-        return view('users.show', compact('user'));
+        $users = User::with(['employee.department', 'roles'])
+            ->latest()
+            ->paginate(20);
+
+        return view('users.index', compact('users'));
     }
 
-    public function edit(User $user)
+    /**
+     * Afficher le formulaire de création
+     */
+    public function create()
     {
-        return view('users.edit', compact('user'));
+        $roles = \Spatie\Permission\Models\Role::all();
+        $departments = \App\Models\Department::all();
+
+        return view('users.create', compact('roles', 'departments'));
     }
 
-    public function update(Request $request, User $user)
+    /**
+     * Mettre à jour un utilisateur
+     */
+    public function update(Request $request, $id)
     {
-        $rules = [
-            'nom'                  => 'required|string|max:255',
-            'prenom'               => 'required|string|max:255',
-            'contact'              => 'required|string|min:8|max:15',
-            'role'                 => 'required|string|max:50',
-            'password'             => ['required', 'confirmed', Rules\Password::defaults()],
-        ];
+        $user = User::findOrFail($id);
 
-        $validator = Validator::make($request->all(), $rules);
+        $validated = $request->validate([
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $id,
+            'phone' => 'required|string|min:8|max:15|unique:users,phone,' . $id,
+            'department_id' => 'nullable|exists:departments,id',
+            'role_id' => 'required|string|exists:roles,name',
+            'address' => 'nullable|string|max:500',
+            'password' => ['nullable', 'confirmed', Password::min(8)
+                ->mixedCase()
+                ->numbers()
+                ->symbols()
+            ],
+        ]);
 
-        if ($validator->fails()) {
-            return back()->withErrors($validator)->withInput();
+        try {
+            DB::beginTransaction();
+
+            // Préfixe "DR" pour les médecins
+            $firstName = $validated['first_name'];
+            if ($validated['role_id'] === 'medecin') {
+                $firstName = 'Dr ' . $firstName;
+            }
+
+            // Mise à jour utilisateur
+            $user->update([
+                'name' => $firstName . ' ' . $validated['last_name'],
+                'email' => $validated['email'],
+                'phone' => $validated['phone'],
+            ]);
+
+            // Mise à jour du mot de passe si fourni
+            if ($request->filled('password')) {
+                $user->update(['password' => Hash::make($validated['password'])]);
+            }
+
+            // Mise à jour employé
+            $user->employee->update([
+                'first_name' => $firstName,
+                'last_name' => $validated['last_name'],
+                'email' => $validated['email'],
+                'phone' => $validated['phone'],
+                'department_id' => $validated['department_id'] ?? null,
+                'address' => $validated['address'] ?? null,
+            ]);
+
+            // Mise à jour du rôle
+            $user->syncRoles([$validated['role_id']]);
+
+            DB::commit();
+
+            return redirect()
+                ->route('users.index')
+                ->with('success', 'Utilisateur mis à jour avec succès.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            \Log::error('Erreur lors de la mise à jour d\'un utilisateur', [
+                'user_id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'Une erreur est survenue lors de la mise à jour.');
         }
-
-        $user = User::find($user->id);
-
-
-        if ($request->hasFile('image')) {
-            $image = $request->image->getClientOriginalName() . '_' . time() . '.' . $request->image->extension();
-            $image = str_replace(" ", "_", $image);
-            $request->image->move(public_path('assets/img'), $image);
-            $user->image = $image;
-        }
-
-        $user->nom     = $request->nom;
-        $user->prenom  = $request->prenom;
-        $user->contact = $request->contact;
-        $user->email   = $request->email;
-        $user->contact = $request->contact ?? $user->contact;
-        $user->role    = $request->role ?? $user->role;
-
-        if ($request->filled('password')) {
-            $user->password = Hash::make($request->password);
-        }
-
-        $user->update();
-        return redirect()->route('users.index')->withSucces('Utilisateur mis à jour avec succès.');
     }
 
-    public function destroy(User $user)
+    /**
+     * Supprimer un utilisateur
+     */
+    public function destroy($id)
     {
-        $user->delete();
-        return redirect()->route('users.index')->withSucces('Utilisateur supprimé avec succès.');
+        try {
+            $user = User::findOrFail($id);
+
+            // Empêcher la suppression de son propre compte
+            if ($user->id === auth()->id()) {
+                return redirect()
+                    ->back()
+                    ->with('error', 'Vous ne pouvez pas supprimer votre propre compte.');
+            }
+
+            DB::beginTransaction();
+
+            // Supprimer l'employé associé
+            $user->employee()->delete();
+
+            // Supprimer l'utilisateur
+            $user->delete();
+
+            DB::commit();
+
+            \Log::info('Utilisateur supprimé', [
+                'user_id' => $id,
+                'deleted_by' => auth()->id(),
+            ]);
+
+            return redirect()
+                ->route('users.index')
+                ->with('success', 'Utilisateur supprimé avec succès.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            \Log::error('Erreur lors de la suppression d\'un utilisateur', [
+                'user_id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return redirect()
+                ->back()
+                ->with('error', 'Une erreur est survenue lors de la suppression.');
+        }
     }
 
     public function disableUser($id)
@@ -338,7 +491,5 @@ class UserController extends Controller
             'payment.view', 'payment.calculate',
         ];
     }
-
-
 
 }

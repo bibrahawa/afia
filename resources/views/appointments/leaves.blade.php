@@ -19,6 +19,36 @@
 
     <div class="row">
       <div class="col-md-12">
+        
+        {{-- Messages de succès --}}
+        @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+          <strong>Succès!</strong> {{ session('success') }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        @endif
+
+        {{-- Messages d'erreur --}}
+        @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+          <strong>Erreur!</strong> {{ session('error') }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        @endif
+
+        {{-- Erreurs de validation --}}
+        @if($errors->any())
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+          <strong>Erreurs de validation:</strong>
+          <ul class="mb-0">
+            @foreach($errors->all() as $error)
+              <li>{{ $error }}</li>
+            @endforeach
+          </ul>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        @endif
+
         <div class="card">
           <div class="card-header d-flex align-items-center justify-content-between">
             <h4 class="card-title">Liste des congés</h4>
@@ -38,7 +68,6 @@
                                     {{ ucfirst($leave['type']) }}
                                 </h4>
                                 <p class="text-sm text-gray-600 mt-1">
-                                    {{-- Version conditionnelle (même jour) --}}
                                     @if($leave->start_date->isSameDay($leave->end_date))
                                         Le {{ $leave->start_date->format('d/m/Y') }} de {{ $leave->start_date->format('H:i') }} à {{ $leave->end_date->format('H:i') }}
                                     @else
@@ -50,7 +79,6 @@
                                 @endif
 
                                 <div class="mt-3 d-flex gap-2">
-                                    <!-- Bouton Modifier -->
                                     <button class="btn btn-sm btn-warning edit-button"
                                             data-id="{{ $leave['id'] }}"
                                             data-type="{{ $leave['type'] }}"
@@ -62,7 +90,6 @@
                                         Modifier
                                     </button>
 
-                                    <!-- Bouton Supprimer -->
                                     <button class="btn btn-sm btn-danger delete-button"
                                             data-id="{{ $leave['id'] }}"
                                             data-type="{{ $leave['type'] }}"
@@ -98,29 +125,41 @@
                     <div class="modal-body space-y-4">
                     <div>
                         <label>Type de congé</label>
-                        <select name="type" class="form-control" required>
+                        <select name="type" class="form-control @error('type') is-invalid @enderror" required>
                         <option value="">Sélectionner un type</option>
-                        <option value="Vacance">Vacances</option>
-                        <option value="Maladie">Maladie</option>
-                        <option value="Conference">Conférence</option>
-                        <option value="Autre">Autre</option>
+                        <option value="Vacance" {{ old('type') == 'Vacance' ? 'selected' : '' }}>Vacances</option>
+                        <option value="Maladie" {{ old('type') == 'Maladie' ? 'selected' : '' }}>Maladie</option>
+                        <option value="Conference" {{ old('type') == 'Conference' ? 'selected' : '' }}>Conférence</option>
+                        <option value="Autre" {{ old('type') == 'Autre' ? 'selected' : '' }}>Autre</option>
                         </select>
+                        @error('type')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
 
                     <div class="row">
                         <div class="col-md-6">
                         <label>Date de début</label>
-                        <input type="datetime-local" name="start_date" class="form-control" required>
+                        <input type="datetime-local" name="start_date" class="form-control @error('start_date') is-invalid @enderror" value="{{ old('start_date') }}" required>
+                        @error('start_date')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                         </div>
                         <div class="col-md-6">
                         <label>Date de fin</label>
-                        <input type="datetime-local" name="end_date" class="form-control" required>
+                        <input type="datetime-local" name="end_date" class="form-control @error('end_date') is-invalid @enderror" value="{{ old('end_date') }}" required>
+                        @error('end_date')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                         </div>
                     </div>
 
                     <div>
                         <label>Raison (optionnel)</label>
-                        <textarea name="reason" class="form-control" rows="3"></textarea>
+                        <textarea name="reason" class="form-control @error('reason') is-invalid @enderror" rows="3">{{ old('reason') }}</textarea>
+                        @error('reason')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                     </div>
                     <div class="modal-footer border-0">
@@ -148,29 +187,41 @@
                     <div class="modal-body">
                     <div class="form-group">
                         <label>Type</label>
-                        <select name="type" id="edit_leave_type" class="form-control" required>
+                        <select name="type" id="edit_leave_type" class="form-control @error('type') is-invalid @enderror" required>
                         <option value="Vacance">Vacances</option>
                         <option value="Maladie">Maladie</option>
                         <option value="Conference">Conférence</option>
                         <option value="Autre">Autre</option>
                         </select>
+                        @error('type')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
 
                     <div class="row">
                         <div class="col-md-6">
                             <label>Date de début</label>
-                            <input type="datetime-local" name="start_date" id="edit_leave_start" class="form-control" required>
+                            <input type="datetime-local" name="start_date" id="edit_leave_start" class="form-control @error('start_date') is-invalid @enderror" required>
+                            @error('start_date')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
 
                         <div class="col-md-6">
                             <label>Date de fin</label>
-                            <input type="datetime-local" name="end_date" id="edit_leave_end" class="form-control" required>
+                            <input type="datetime-local" name="end_date" id="edit_leave_end" class="form-control @error('end_date') is-invalid @enderror" required>
+                            @error('end_date')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
                     </div>
 
                     <div class="form-group">
                         <label>Raison</label>
-                        <textarea name="reason" id="edit_leave_reason" class="form-control" rows="3"></textarea>
+                        <textarea name="reason" id="edit_leave_reason" class="form-control @error('reason') is-invalid @enderror" rows="3"></textarea>
+                        @error('reason')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                     </div>
                     <div class="modal-footer">
@@ -207,7 +258,7 @@
             </div>
         </div>
 
-        </div> {{-- End Card --}}
+        </div>
       </div>
     </div>
   </div>
@@ -216,31 +267,24 @@
 
 @section('script')
 <script type="text/javascript">
-  // Remplir les champs du modal de modification de disponibilité
+  // Remplir les champs du modal de modification
   $('.edit-button').on('click', function () {
     $('#edit_leave_id').val($(this).data('id'));
     $('#edit_leave_type').val($(this).data('type'));
     $('#edit_leave_start').val($(this).data('start'));
     $('#edit_leave_end').val($(this).data('end'));
     $('#edit_leave_reason').val($(this).data('reason'));
-    });
-
-  // Loader modification
-  $('#editAvailabilityForm').on('submit', function () {
-    $('#editAvailabilityLoader').removeClass('d-none');
   });
 
-  // Supprimer une disponibilité
-$('.delete-button').on('click', function () {
+  // Supprimer un congé
+  $('.delete-button').on('click', function () {
     let id = $(this).data('id');
-    // $('#deleteLeaveForm').attr('action', `/leaves/${id}`);
     $('#delete_leave_id').val(id);
-});
-
-  $('#deleteLeaveForm').on('submit', function () {
-    $('#deleteLeaveLoader').removeClass('d-none');
   });
 
-
+  // Auto-fermeture des alertes après 5 secondes
+  setTimeout(function() {
+    $('.alert').fadeOut('slow');
+  }, 5000);
 </script>
 @endsection

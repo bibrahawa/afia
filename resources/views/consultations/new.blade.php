@@ -1,8 +1,10 @@
 @extends('layouts.backend')
 
 @section('style')
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
+        /* ============================================
+        VARIABLES CSS - Thème global
+        ============================================ */
         :root {
             --primary: #2563eb;
             --primary-dark: #1d4ed8;
@@ -10,15 +12,16 @@
             --danger: #ef4444;
             --warning: #f59e0b;
             --light-bg: #f8fafc;
-            --shadow: 0 1px 3px rgba(0,0,0,0.1);
-            --shadow-hover: 0 4px 6px rgba(0,0,0,0.1);
             --border-radius: 0.75rem;
+            --transition: all 0.2s ease;
         }
 
+        /* ============================================
+        BASE - Styles de base
+        ============================================ */
         body {
             background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-            font-family: 'Inter', sans-serif;
-            min-height: 100vh;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
 
         .main-container {
@@ -27,17 +30,20 @@
             padding: 2rem 1rem;
         }
 
+        /* ============================================
+        HEADER - En-tête de page
+        ============================================ */
         .page-header {
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
             color: white;
             border-radius: var(--border-radius);
             padding: 1.5rem;
             margin-bottom: 2rem;
-            box-shadow: var(--shadow);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
 
         .page-header h1 {
-            font-size: 2rem;
+            font-size: 1.75rem;
             font-weight: 700;
             margin: 0;
             display: flex;
@@ -45,24 +51,21 @@
             gap: 0.75rem;
         }
 
+        /* ============================================
+        CARDS - Cartes de consultation
+        ============================================ */
         .consultation-card {
             background: white;
             border-radius: var(--border-radius);
-            box-shadow: var(--shadow);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             margin-bottom: 1.5rem;
             overflow: hidden;
-            transition: all 0.3s ease;
-            border: 1px solid rgba(226, 232, 240, 0.8);
-        }
-
-        .consultation-card:hover {
-            box-shadow: var(--shadow-hover);
-            transform: translateY(-2px);
+            border: 1px solid #e2e8f0;
         }
 
         .card-header-custom {
             background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-            padding: 1.25rem 1.5rem;
+            padding: 1rem 1.5rem;
             border-bottom: 1px solid #e2e8f0;
             position: relative;
         }
@@ -84,19 +87,24 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            font-size: 1.1rem;
         }
 
         .card-body-custom {
             padding: 1.5rem;
         }
 
+        /* ============================================
+        FORMS - Formulaires
+        ============================================ */
         .form-label {
             font-weight: 600;
             color: #374151;
             margin-bottom: 0.5rem;
             display: flex;
             align-items: center;
-            gap: 0.25rem;
+            gap: 0.5rem;
+            font-size: 0.9rem;
         }
 
         .required-mark {
@@ -107,9 +115,9 @@
         .form-control {
             border: 2px solid #e5e7eb;
             border-radius: var(--border-radius);
-            padding: 0.75rem 1rem;
+            padding: 0.625rem 1rem;
             font-size: 0.95rem;
-            transition: all 0.3s ease;
+            transition: var(--transition);
             background: #fafafa;
         }
 
@@ -120,17 +128,43 @@
             outline: none;
         }
 
+        /* ============================================
+        BADGES - Statuts
+        ============================================ */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .status-required { 
+            background: #fef2f2; 
+            color: #dc2626; 
+        }
+
+        .status-optional { 
+            background: #f0fdf4; 
+            color: #16a34a; 
+        }
+
+        /* ============================================
+        BUTTONS - Boutons
+        ============================================ */
         .btn-enhanced {
             padding: 0.625rem 1.25rem;
             border-radius: var(--border-radius);
             font-weight: 500;
             font-size: 0.9rem;
             border: none;
-            transition: all 0.3s ease;
+            transition: var(--transition);
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            text-decoration: none;
+            cursor: pointer;
         }
 
         .btn-primary-enhanced {
@@ -155,6 +189,23 @@
             color: var(--primary);
         }
 
+        .action-buttons {
+            background: white;
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            margin-top: 2rem;
+            position: sticky;
+            bottom: 20px;
+            z-index: 50;
+        }
+
+        /* ============================================
+        SECTIONS SPÉCIALES
+        ============================================ */
         .antecedents-section {
             background: linear-gradient(135deg, #fef3c7 0%, #fbbf24 5%, #fef3c7 100%);
             border-radius: var(--border-radius);
@@ -170,25 +221,25 @@
             padding: 1rem;
             margin-bottom: 1.5rem;
             color: #1e40af;
+            font-size: 0.9rem;
         }
 
-        .action-buttons {
-            background: white;
-            padding: 1.5rem;
+        .alert-appointment {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
             border-radius: var(--border-radius);
-            box-shadow: var(--shadow);
-            display: flex;
-            justify-content: flex-end;
-            gap: 1rem;
-            margin-top: 2rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            color: #92400e;
         }
 
-        /* Service Selection Styles */
+        /* ============================================
+        SERVICE SELECTION - Recherche et sélection
+        ============================================ */
         .service-search-container {
             background: white;
             border-radius: var(--border-radius);
             padding: 1.5rem;
-            min-height: auto;
         }
 
         .search-input {
@@ -198,7 +249,7 @@
             border-radius: var(--border-radius);
             font-size: 16px;
             outline: none;
-            transition: border-color 0.2s;
+            transition: var(--transition);
         }
 
         .search-input:focus {
@@ -216,7 +267,6 @@
             border: 2px solid #e9ecef;
             border-radius: var(--border-radius);
             background: white;
-            transition: all 0.3s ease;
         }
 
         .selected-items:empty::before {
@@ -231,17 +281,17 @@
         .selected-item {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 8px 12px;
+            padding: 6px 12px;
             border-radius: 20px;
-            font-size: 14px;
+            font-size: 13px;
             display: flex;
             align-items: center;
             gap: 8px;
-            animation: slideIn 0.3s ease-out;
+            animation: slideIn 0.2s ease-out;
         }
 
         .quantity-input {
-            width: 50px;
+            width: 45px;
             padding: 2px 4px;
             border: 1px solid rgba(255,255,255,0.3);
             border-radius: 4px;
@@ -254,38 +304,47 @@
         .remove-item {
             cursor: pointer;
             font-weight: bold;
-            font-size: 16px;
-            width: 18px;
-            height: 18px;
+            font-size: 14px;
+            width: 16px;
+            height: 16px;
             border-radius: 50%;
             background: rgba(255, 255, 255, 0.2);
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: background 0.2s;
+            transition: var(--transition);
         }
 
         .remove-item:hover {
-            background: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        /* ============================================
+        DROPDOWN - Liste déroulante
+        ============================================ */
+        .position-relative {
+            position: relative;
         }
 
         .dropdown-list {
-            position: flex;
-            top: 100%;
+            /* position: flex !important; */
+            top: auto !important;
+            bottom: auto !important;
             left: 0;
             right: 0;
+            margin-top: 0;
             background: white;
             border: 2px solid #e9ecef;
             border-top: none;
             border-radius: 0 0 var(--border-radius) var(--border-radius);
             max-height: 300px;
             overflow-y: auto;
-            z-index: 1000;
+            z-index: 9999 !important;
             display: none;
-            box-shadow: var(--shadow-hover);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             opacity: 0;
             transform: translateY(-10px);
-            transition: all 0.2s ease;
+            transition: var(--transition);
         }
 
         .dropdown-list.show {
@@ -295,10 +354,11 @@
         }
 
         .dropdown-item {
-            padding: 12px 16px;
+            padding: 10px 16px;
             cursor: pointer;
             border-bottom: 1px solid #f1f3f4;
-            transition: background 0.2s;
+            transition: var(--transition);
+            font-size: 0.9rem;
         }
 
         .dropdown-item:hover {
@@ -308,22 +368,26 @@
         .dropdown-item.selected {
             background: #e7f3ff;
             color: var(--primary);
+            font-weight: 500;
         }
 
         .category {
-            padding: 8px 16px;
+            padding: 6px 16px;
             background: #f8f9fa;
-            font-weight: bold;
+            font-weight: 600;
             color: #495057;
-            font-size: 12px;
+            font-size: 0.75rem;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             border-bottom: 1px solid #e9ecef;
             position: sticky;
             top: 0;
+            z-index: 10;
         }
 
-        /* Modal Styles */
+        /* ============================================
+        MODAL - Fenêtre de résumé
+        ============================================ */
         .modal-content-enhanced {
             border-radius: var(--border-radius);
             border: none;
@@ -351,11 +415,12 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            font-size: 1rem;
         }
 
         .summary-item {
             display: grid;
-            grid-template-columns: 150px 1fr;
+            grid-template-columns: 140px 1fr;
             gap: 1rem;
             margin-bottom: 0.75rem;
             padding: 0.5rem 0;
@@ -370,42 +435,17 @@
         .summary-label {
             font-weight: 600;
             color: #374151;
+            font-size: 0.9rem;
         }
 
         .summary-value {
             color: #6b7280;
+            font-size: 0.9rem;
         }
 
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.25rem;
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 500;
-        }
-
-        .status-required { 
-            background: #fef2f2; 
-            color: #dc2626; 
-        }
-
-        .status-optional { 
-            background: #f0fdf4; 
-            color: #16a34a; 
-        }
-
-        /* Alert styles */
-        .alert-appointment {
-            background: #fef3c7;
-            border: 1px solid #f59e0b;
-            border-radius: var(--border-radius);
-            padding: 1rem;
-            margin-bottom: 1rem;
-            color: #92400e;
-        }
-
+        /* ============================================
+        SLOTS - Créneaux disponibles
+        ============================================ */
         .available-slots {
             display: flex;
             flex-wrap: wrap;
@@ -414,14 +454,14 @@
         }
 
         .slot-button {
-            padding: 0.25rem 0.75rem;
+            padding: 0.375rem 0.75rem;
             border: 1px solid var(--primary);
             background: white;
             color: var(--primary);
             border-radius: 1rem;
             font-size: 0.8rem;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: var(--transition);
         }
 
         .slot-button:hover {
@@ -429,10 +469,13 @@
             color: white;
         }
 
+        /* ============================================
+        ANIMATIONS
+        ============================================ */
         @keyframes slideIn {
             from {
                 opacity: 0;
-                transform: scale(0.8);
+                transform: scale(0.9);
             }
             to {
                 opacity: 1;
@@ -440,17 +483,49 @@
             }
         }
 
+        /* ============================================
+        RESPONSIVE
+        ============================================ */
         @media (max-width: 768px) {
             .main-container {
                 padding: 1rem 0.5rem;
+                margin-top: 20px;
             }
+            
+            .page-header h1 {
+                font-size: 1.25rem;
+            }
+            
             .action-buttons {
                 flex-direction: column;
+                position: relative;
+                bottom: 0;
             }
+            
             .summary-item {
                 grid-template-columns: 1fr;
                 gap: 0.25rem;
             }
+            
+            .card-body-custom {
+                padding: 1rem;
+            }
+        }
+
+        /* ============================================
+        OPTIMISATIONS PERFORMANCE
+        ============================================ */
+        * {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .dropdown-list {
+            will-change: transform, opacity;
+        }
+
+        .selected-item {
+            will-change: transform;
         }
     </style>
 @endsection
@@ -640,7 +715,6 @@
                         Services, Examens et Prescriptions
                     </h5>
                 </div>
-
                 <div class="service-search-container">
                     <div class="mb-3">
                         <label class="form-label">
@@ -651,7 +725,6 @@
                         <div class="position-relative">
                             <input type="hidden" name="selected_items" id="selected-items-input">
                             <input type="text" class="search-input" placeholder="Rechercher services, examens, médicaments..." id="search-input">
-                            <div class="selected-items" id="selected-items"></div>
                             <div class="dropdown-list" id="dropdown-list">
                                 <div class="category">Services</div>
                                 @foreach ($services as $service)
@@ -681,6 +754,7 @@
                                     </div>
                                 @endforeach
                             </div>
+                            <div class="selected-items" id="selected-items"></div>  <!-- ✅ APRÈS le dropdown -->
                         </div>
                     </div>
                 </div>
@@ -872,422 +946,556 @@
 @endsection
 
 @section('script')
+<script>
+    // ============================================
+    // CONFIGURATION ET INITIALISATION
+    // ============================================
+    document.addEventListener('DOMContentLoaded', function() {
+        'use strict';
 
-    {{-- <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script> --}}
-    
-    <script>
-        
-        document.addEventListener('DOMContentLoaded', function() {
-
-            // Initialize selectpicker
-            $('.selectpicker').selectpicker();
-
-            // Mock data for demonstration
-            const patients = @json($patients);
-            const fichierPatients = @json($fichiersPatients);
-
-            // Service selection management
-            const searchInput = document.getElementById('search-input');
-            const dropdownList = document.getElementById('dropdown-list');
-            const selectedItemsContainer = document.getElementById('selected-items');
-            const selectedItemsInput = document.getElementById('selected-items-input');
-
-            let selectedItems = [];
-            let medicamentQuantities = {};
-            let availableSlotsFromApi = {};
-
-            // Patient selection handler
-            $('#patient_id').on('change', function() {
-                const patientId = parseInt(this.value);
-                const patient = patients.find(p => p.id === patientId);
-                const antecedentsSection = document.getElementById('antecedents-section');
-
-                if (patient && patient.first_visit) {
-                    antecedentsSection.style.display = 'block';
-                    antecedentsSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                } else {
-                    antecedentsSection.style.display = 'none';
-                }
-
-                // Gestion des fichiers - nettoyer et repeupler les options
-                const fileSelect = document.querySelector('select[name="fichiers_enregistres[]"]');
-
-                if (fileSelect) {
-                    // Garder seulement la première option par défaut
-                    while (fileSelect.options.length > 1) {
-                        fileSelect.remove(1);
-                    }
-
-                    // Ajouter les nouvelles options (filtrer par patient si nécessaire)
-                    const patientFiles = fichierPatients.filter(file => file.patient_id == patientId);
-                    patientFiles.forEach(file => {
-                        const option = document.createElement('option');
-                        option.value = file.id;
-                        option.textContent = file.nom_fichier;
-                        fileSelect.appendChild(option);
-                    });
-                }
-
-            });
-
-            // Search functionality
-            searchInput.addEventListener('focus', () => {
-                dropdownList.classList.add('show');
-            });
-
-            searchInput.addEventListener('input', (e) => {
-                const filter = e.target.value.toLowerCase();
-                const items = dropdownList.querySelectorAll('.dropdown-item');
-                
-                items.forEach(item => {
-                    const text = item.textContent.toLowerCase();
-                    item.style.display = text.includes(filter) ? 'block' : 'none';
-                });
-            });
-
-            // Item selection
-            dropdownList.addEventListener('click', (e) => {
-                const item = e.target.closest('.dropdown-item');
-                if (!item) return;
-
-                const value = item.dataset.value;
-                const name = item.dataset.name;
-                const type = item.dataset.type;
-
-                if (!selectedItems.find(s => s.value === value)) {
-                    const selectedItem = { value, name, type };
-                    selectedItems.push(selectedItem);
-
-                    if (type === 'medicament') {
-                        medicamentQuantities[value] = 1;
-                    }
-
-                    updateSelectedItemsDisplay();
-                    item.classList.add('selected');
-                }
-
-                searchInput.value = '';
-                dropdownList.classList.remove('show');
-            });
+        // Cache des éléments DOM pour éviter les recherches répétées
+        const DOM = {
+            // Sélection patient
+            patientSelect: $('#patient_id'),
+            antecedentsSection: document.getElementById('antecedents-section'),
+            fileSelect: document.querySelector('select[name="fichiers_enregistres[]"]'),
             
+            // Recherche et sélection
+            searchInput: document.getElementById('search-input'),
+            dropdownList: document.getElementById('dropdown-list'),
+            selectedItemsContainer: document.getElementById('selected-items'),
+            selectedItemsInput: document.getElementById('selected-items-input'),
+            
+            // Rendez-vous
+            appointmentInput: document.getElementById('prochain_rdv'),
+            appointmentAlert: document.getElementById('appointment-alert'),
+            appointmentMessage: document.getElementById('appointment-message'),
+            availableSlots: document.getElementById('available-slots'),
+            
+            // Formulaire et modals
+            form: document.getElementById('consultationForm'),
+            summaryModal: $('#consultationSummaryModal'),
+            confirmButton: document.getElementById('confirmConsultation')
+        };
 
-            function updateSelectedItemsDisplay() {
-                selectedItemsContainer.innerHTML = '';
+        // Données
+        const patients = @json($patients);
+        const fichierPatients = @json($fichiersPatients);
+        const employeeId = @json(auth()->user()->id);
 
-                selectedItems.forEach(item => {
-                    const div = document.createElement('div');
-                    div.className = 'selected-item';
-                    
-                    let content = `<span>${item.name}</span>`;
-                    
-                    if (item.type === 'medicament') {
-                        content += `<input type="number" class="quantity-input" value="${medicamentQuantities[item.value] || 1}" min="1" data-value="${item.value}">`;
-                    }
-                    
-                    content += `<span class="remove-item" data-value="${item.value}">&times;</span>`;
-                    
-                    div.innerHTML = content;
-                    selectedItemsContainer.appendChild(div);
+        // État de l'application
+        const state = {
+            selectedItems: [],
+            medicamentQuantities: {},
+            availableSlotsData: [],
+            searchTimeout: null
+        };
+
+        // ============================================
+        // INITIALISATION
+        // ============================================
+        function init() {
+            DOM.patientSelect.selectpicker();
+            attachEventListeners();
+        }
+
+        // ============================================
+        // GESTION DES ÉVÉNEMENTS
+        // ============================================
+        function attachEventListeners() {
+            // Patient
+            DOM.patientSelect.on('change', handlePatientChange);
+            
+            // Recherche
+            DOM.searchInput.addEventListener('focus', () => showDropdown(true));
+            DOM.searchInput.addEventListener('input', debounce(handleSearchInput, 150));
+            
+            // Dropdown - Utiliser la délégation d'événements
+            DOM.dropdownList.addEventListener('click', handleDropdownClick);
+            
+            // Selected items - Utiliser la délégation d'événements
+            DOM.selectedItemsContainer.addEventListener('click', handleSelectedItemsClick);
+            DOM.selectedItemsContainer.addEventListener('input', handleQuantityChange);
+            
+            // Rendez-vous
+            DOM.appointmentInput.addEventListener('change', handleAppointmentChange);
+            
+            // Modal
+            DOM.summaryModal.on('show.bs.modal', updateSummary);
+            DOM.confirmButton.addEventListener('click', handleConfirmConsultation);
+            
+            // Click outside pour fermer dropdown
+            document.addEventListener('click', handleOutsideClick);
+        }
+
+        // ============================================
+        // GESTION DU PATIENT
+        // ============================================
+        function handlePatientChange() {
+            const patientId = parseInt(this.value);
+            const patient = patients.find(p => p.id === patientId);
+
+            // Afficher/masquer section antécédents
+            if (patient && patient.first_visit) {
+                DOM.antecedentsSection.style.display = 'block';
+                DOM.antecedentsSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } else {
+                DOM.antecedentsSection.style.display = 'none';
+            }
+
+            // Mettre à jour les fichiers
+            updatePatientFiles(patientId);
+        }
+
+        function updatePatientFiles(patientId) {
+            if (!DOM.fileSelect) return;
+
+            // Nettoyer les options (garder seulement la première)
+            while (DOM.fileSelect.options.length > 1) {
+                DOM.fileSelect.remove(1);
+            }
+
+            // Ajouter les fichiers du patient
+            const patientFiles = fichierPatients.filter(file => file.patient_id == patientId);
+            const fragment = document.createDocumentFragment();
+            
+            patientFiles.forEach(file => {
+                const option = document.createElement('option');
+                option.value = file.id;
+                option.textContent = file.nom_fichier;
+                fragment.appendChild(option);
+            });
+
+            DOM.fileSelect.appendChild(fragment);
+        }
+
+        // ============================================
+        // RECHERCHE ET SÉLECTION D'ITEMS
+        // ============================================
+        function handleSearchInput(e) {
+            const filter = e.target.value.toLowerCase();
+            const items = DOM.dropdownList.querySelectorAll('.dropdown-item');
+            
+            // Optimisation: utiliser requestAnimationFrame pour les changements DOM
+            requestAnimationFrame(() => {
+                items.forEach(item => {
+                    const matches = item.textContent.toLowerCase().includes(filter);
+                    item.style.display = matches ? 'block' : 'none';
                 });
+            });
+        }
 
-                updateHiddenInput();
+        function handleDropdownClick(e) {
+            const item = e.target.closest('.dropdown-item');
+            if (!item) return;
+
+            const value = item.dataset.value;
+            const name = item.dataset.name;
+            const type = item.dataset.type;
+
+            // Éviter les doublons
+            if (state.selectedItems.some(s => s.value === value)) {
+                return;
             }
 
-            function updateHiddenInput() {
-                const categorized = selectedItems.reduce((acc, item) => {
-                    let category = 'autres';
-                    let cleanValue = item.value;
+            // Ajouter l'item
+            const selectedItem = { value, name, type };
+            state.selectedItems.push(selectedItem);
 
-                    if (item.value.startsWith('service-')) {
-                        category = 'services';
-                        cleanValue = item.value.replace('service-', '');
-                    } else if (item.value.startsWith('examen-')) {
-                        category = 'examens';
-                        cleanValue = item.value.replace('examen-', '');
-                    } else if (item.value.startsWith('package-')) {
-                        category = 'packages';
-                        cleanValue = item.value.replace('package-', '');
-                    } else if (item.value.startsWith('medicament-')) {
-                        category = 'medicaments';
-                        cleanValue = item.value.replace('medicament-', '');
-                    }
-
-                    if (!acc[category]) acc[category] = [];
-                    
-                    const itemData = {
-                        id: cleanValue,
-                        name: item.name
-                    };
-
-                    if (item.type === 'medicament') {
-                        itemData.quantity = medicamentQuantities[item.value] || 1;
-                    }
-
-                    acc[category].push(itemData);
-                    return acc;
-                }, {});
-
-                selectedItemsInput.value = JSON.stringify(categorized);
+            // Initialiser la quantité pour les médicaments
+            if (type === 'medicament') {
+                state.medicamentQuantities[value] = 1;
             }
 
-            // Remove item handler
-            selectedItemsContainer.addEventListener('click', (e) => {
-                if (e.target.classList.contains('remove-item')) {
-                    const value = e.target.dataset.value;
-                    selectedItems = selectedItems.filter(item => item.value !== value);
-                    delete medicamentQuantities[value];
+            // Mettre à jour l'affichage
+            item.classList.add('selected');
+            updateSelectedItemsDisplay();
+            
+            // Réinitialiser la recherche
+            DOM.searchInput.value = '';
+            showDropdown(false);
+        }
 
-                    const dropdownItem = dropdownList.querySelector(`[data-value="${value}"]`);
-                    if (dropdownItem) {
-                        dropdownItem.classList.remove('selected');
-                    }
+        function handleSelectedItemsClick(e) {
+            if (!e.target.classList.contains('remove-item')) return;
 
-                    updateSelectedItemsDisplay();
+            const value = e.target.dataset.value;
+            
+            // Retirer de l'état
+            state.selectedItems = state.selectedItems.filter(item => item.value !== value);
+            delete state.medicamentQuantities[value];
+
+            // Retirer la classe selected du dropdown
+            const dropdownItem = DOM.dropdownList.querySelector(`[data-value="${value}"]`);
+            if (dropdownItem) {
+                dropdownItem.classList.remove('selected');
+            }
+
+            updateSelectedItemsDisplay();
+        }
+
+        function handleQuantityChange(e) {
+            if (!e.target.classList.contains('quantity-input')) return;
+
+            const value = e.target.dataset.value;
+            const quantity = parseInt(e.target.value) || 1;
+            
+            state.medicamentQuantities[value] = quantity;
+            updateHiddenInput();
+        }
+
+        function updateSelectedItemsDisplay() {
+            // Utiliser DocumentFragment pour de meilleures performances
+            const fragment = document.createDocumentFragment();
+
+            state.selectedItems.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'selected-item';
+                
+                let html = `<span>${item.name}</span>`;
+                
+                if (item.type === 'medicament') {
+                    const qty = state.medicamentQuantities[item.value] || 1;
+                    html += `<input type="number" class="quantity-input" value="${qty}" min="1" data-value="${item.value}">`;
                 }
+                
+                html += `<span class="remove-item" data-value="${item.value}">&times;</span>`;
+                div.innerHTML = html;
+                
+                fragment.appendChild(div);
             });
 
-            // Quantity change handler
-            selectedItemsContainer.addEventListener('input', (e) => {
-                if (e.target.classList.contains('quantity-input')) {
-                    const value = e.target.dataset.value;
-                    medicamentQuantities[value] = parseInt(e.target.value) || 1;
-                    updateHiddenInput();
+            DOM.selectedItemsContainer.innerHTML = '';
+            DOM.selectedItemsContainer.appendChild(fragment);
+
+            updateHiddenInput();
+        }
+
+        function updateHiddenInput() {
+            const categorized = state.selectedItems.reduce((acc, item) => {
+                const [category, cleanValue] = getCategoryAndId(item.value);
+                
+                if (!acc[category]) acc[category] = [];
+                
+                const itemData = {
+                    id: cleanValue,
+                    name: item.name
+                };
+
+                if (item.type === 'medicament') {
+                    itemData.quantity = state.medicamentQuantities[item.value] || 1;
                 }
-            });
 
-            // Close dropdown when clicking outside
-            document.addEventListener('click', (e) => {
-                if (!e.target.closest('.position-relative')) {
-                    dropdownList.classList.remove('show');
+                acc[category].push(itemData);
+                return acc;
+            }, {});
+
+            DOM.selectedItemsInput.value = JSON.stringify(categorized);
+        }
+
+        function getCategoryAndId(value) {
+            const prefixes = {
+                'service-': 'services',
+                'examen-': 'examens',
+                'package-': 'packages',
+                'medicament-': 'medicaments'
+            };
+
+            for (const [prefix, category] of Object.entries(prefixes)) {
+                if (value.startsWith(prefix)) {
+                    return [category, value.replace(prefix, '')];
                 }
-            });
+            }
 
-            // Appointment availability checker
-            const appointmentInput = document.getElementById('prochain_rdv');
-            const appointmentAlert = document.getElementById('appointment-alert');
-            const appointmentMessage = document.getElementById('appointment-message');
-            const availableSlots = document.getElementById('available-slots');
+            return ['autres', value];
+        }
 
-            appointmentInput.addEventListener('change', function () {
-                if (this.value) {
-                    checkAppointmentAvailability(new Date(this.value));
+        function showDropdown(show) {
+            requestAnimationFrame(() => {
+                if (show) {
+                    DOM.dropdownList.classList.add('show');
                 } else {
-                    appointmentAlert.style.display = 'none';
+                    DOM.dropdownList.classList.remove('show');
                 }
             });
+        }
 
-            function checkAppointmentAvailability(requestedDate) {
-                $.ajax({
-                    url: '/api/appointments/slots',
-                    method: 'GET',
-                    data: {
-                        date: requestedDate.toISOString().split('T')[0],
-                        employee_id: @json(auth()->user()->id)
-                    },
-                    success: function (data) {
-                        availableSlotsFromApi = data;
+        function handleOutsideClick(e) {
+            if (!e.target.closest('.position-relative')) {
+                showDropdown(false);
+            }
+        }
 
-                        if (availableSlotsFromApi.length > 0) {
-                            appointmentMessage.textContent =
-                                "Voici les créneaux disponibles :";
+        // ============================================
+        // GESTION DES RENDEZ-VOUS
+        // ============================================
+        function handleAppointmentChange() {
+            if (this.value) {
+                checkAppointmentAvailability(new Date(this.value));
+            } else {
+                hideAppointmentAlert();
+            }
+        }
 
-                            const slots = generateAvailableSlots(requestedDate);
+        function checkAppointmentAvailability(requestedDate) {
+            const dateString = requestedDate.toISOString().split('T')[0];
 
-                            availableSlots.innerHTML = '';
+            $.ajax({
+                url: '/api/appointments/slots',
+                method: 'GET',
+                data: {
+                    date: dateString,
+                    employee_id: employeeId
+                },
+                success: function(data) {
+                    handleAvailabilityResponse(data, requestedDate);
+                },
+                error: function(err) {
+                    console.error("Erreur lors de la vérification des créneaux:", err);
+                    hideAppointmentAlert();
+                }
+            });
+        }
 
-                            slots.forEach(slot => {
-                                const button = document.createElement('button');
-                                button.type = 'button';
-                                button.className = 'slot-button';
-                                button.textContent = slot.display;
-                                button.onclick = () => selectTimeSlot(slot.value);
-                                availableSlots.appendChild(button);
-                            });
+        function handleAvailabilityResponse(data, requestedDate) {
+            state.availableSlotsData = data;
 
+            if (data.length > 0) {
+                DOM.appointmentMessage.textContent = "Voici les créneaux disponibles :";
+                displayAvailableSlots(requestedDate);
+                showAppointmentAlert();
+            } else {
+                DOM.appointmentMessage.textContent = "Aucun créneau disponible pour cette date.";
+                DOM.availableSlots.innerHTML = '';
+                showAppointmentAlert();
+            }
+        }
 
-                            appointmentAlert.style.display = 'block';
-                        } else {
-                            appointmentMessage.textContent =
-                                "Aucun créneau disponible pour cette date.";
-                            appointmentAlert.style.display = 'block';
-                            availableSlots.innerHTML = '';
-                        }
-                    },
-                    error: function (err) {
-                        console.error("Error:", err);
-                        appointmentAlert.style.display = 'none';
-                    }
+        function displayAvailableSlots(requestedDate) {
+            const fragment = document.createDocumentFragment();
+
+            state.availableSlotsData.forEach(item => {
+                const [hours, minutes] = item.time.split(':').map(Number);
+                const slotDate = new Date(requestedDate);
+                slotDate.setHours(hours, minutes, 0, 0);
+
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'slot-button';
+                button.textContent = formatSlotTime(slotDate);
+                button.onclick = () => selectTimeSlot(slotDate);
+                
+                fragment.appendChild(button);
+            });
+
+            DOM.availableSlots.innerHTML = '';
+            DOM.availableSlots.appendChild(fragment);
+        }
+
+        function formatSlotTime(date) {
+            return date.toLocaleString('fr-FR', {
+                day: '2-digit',
+                month: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function selectTimeSlot(date) {
+            DOM.appointmentInput.value = date.toISOString().slice(0, 16);
+            hideAppointmentAlert();
+        }
+
+        function showAppointmentAlert() {
+            DOM.appointmentAlert.style.display = 'block';
+        }
+
+        function hideAppointmentAlert() {
+            DOM.appointmentAlert.style.display = 'none';
+        }
+
+        // ============================================
+        // MODAL DE RÉSUMÉ
+        // ============================================
+        function updateSummary() {
+            updatePatientSummary();
+            updateAntecedentsSummary();
+            updateConsultationSummary();
+            updateServicesSummary();
+            updateFollowUpSummary();
+        }
+
+        function updatePatientSummary() {
+            const patientSelect = DOM.patientSelect[0];
+            const selectedPatient = patientSelect.options[patientSelect.selectedIndex];
+            
+            setSummaryValue('summary-patient', selectedPatient ? selectedPatient.text : 'Non sélectionné');
+
+            const fileSelect = DOM.fileSelect;
+            const selectedFile = fileSelect.options[fileSelect.selectedIndex];
+            setSummaryValue('summary-documents', selectedFile ? selectedFile.text : 'Aucun');
+        }
+
+        function updateAntecedentsSummary() {
+            const antecedentsVisible = DOM.antecedentsSection.style.display !== 'none';
+            const antecedentsSection = document.getElementById('summary-antecedents');
+            
+            if (antecedentsVisible) {
+                antecedentsSection.style.display = 'block';
+                
+                const antecedentsFields = [
+                    'antecedents_medicaux',
+                    'antecedents_chirurgicaux',
+                    'antecedents_gyneco_obstetricaux',
+                    'antecedents_familiaux',
+                    'allergies',
+                    'traitements_cours'
+                ];
+
+                antecedentsFields.forEach(field => {
+                    const value = getTextareaValue(field);
+                    const summaryId = 'summary-' + field.replace('_', '-');
+                    setSummaryValue(summaryId, value);
                 });
+            } else {
+                antecedentsSection.style.display = 'none';
+            }
+        }
+
+        function updateConsultationSummary() {
+            setSummaryValue('summary-motif', getTextareaValue('motif'));
+            setSummaryValue('summary-signes', getTextareaValue('signes_cliniques'));
+            setSummaryValue('summary-diagnostic', getTextareaValue('diagnostic'));
+            setSummaryValue('summary-observation', getTextareaValue('observation') || 'Aucune');
+        }
+
+        function updateServicesSummary() {
+            const categories = {
+                services: state.selectedItems.filter(item => item.value.startsWith('service-')),
+                examens: state.selectedItems.filter(item => item.value.startsWith('examen-')),
+                packages: state.selectedItems.filter(item => item.value.startsWith('package-')),
+                medicaments: state.selectedItems.filter(item => item.value.startsWith('medicament-'))
+            };
+
+            setSummaryValue('summary-services', formatItemsList(categories.services));
+            setSummaryValue('summary-examens', formatItemsList(categories.examens));
+            setSummaryValue('summary-packages', formatItemsList(categories.packages));
+            setSummaryValue('summary-medicaments', formatMedicamentsList(categories.medicaments), true);
+        }
+
+        function updateFollowUpSummary() {
+            const rdvInput = DOM.appointmentInput;
+            if (rdvInput.value) {
+                const rdvDate = new Date(rdvInput.value);
+                setSummaryValue('summary-rdv', rdvDate.toLocaleString('fr-FR'));
+            } else {
+                setSummaryValue('summary-rdv', 'Non planifié');
             }
 
-            function generateAvailableSlots(requestedDate) {
-                const slots = [];
+            const medecinSelect = document.querySelector('select[name="medecin_suivi"]');
+            const selectedMedecin = medecinSelect.options[medecinSelect.selectedIndex];
+            setSummaryValue('summary-medecin', selectedMedecin ? selectedMedecin.text : 'Non assigné');
+        }
 
-                availableSlotsFromApi.forEach(item => {
-                    // item.time est une string "HH:MM"
-                    const [hours, minutes] = item.time.split(':').map(Number);
-
-                    // clone la date demandée
-                    const slotDate = new Date(requestedDate);
-                    slotDate.setHours(hours, minutes, 0, 0);
-
-                    slots.push({
-                        value: slotDate.toISOString().slice(0, 16), // pour input datetime-local
-                        display: slotDate.toLocaleString('fr-FR', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        })
-                    });
-                });
-
-                return slots;
-            }
-
-            function selectTimeSlot(value) {
-                appointmentInput.value = value;
-                appointmentAlert.style.display = 'none';
-            }
-
-            // Summary modal handler
-            $('#consultationSummaryModal').on('show.bs.modal', function() {
-                updateSummary();
-            });
-
-            function updateSummary() {
-                // Patient info
-                const patientSelect = document.getElementById('patient_id');
-                document.getElementById('summary-patient').textContent = 
-                    patientSelect.options[patientSelect.selectedIndex]?.text || 'Non sélectionné';
-
-                // Documents
-                const documentsSelect = document.querySelector('select[name="fichiers_enregistres[]"]');
-                document.getElementById('summary-documents').textContent = 
-                    documentsSelect.options[documentsSelect.selectedIndex]?.text || 'Aucun';
-
-                // Antecedents
-                const antecedentsVisible = document.getElementById('antecedents-section').style.display !== 'none';
-                const antecedentsSection = document.getElementById('summary-antecedents');
-                
-                if (antecedentsVisible) {
-                    antecedentsSection.style.display = 'block';
-                    document.getElementById('summary-antecedents-medicaux').textContent = 
-                        document.querySelector('textarea[name="antecedents_medicaux"]').value || 'Non renseigné';
-                    document.getElementById('summary-antecedents-chirurgicaux').textContent = 
-                        document.querySelector('textarea[name="antecedents_chirurgicaux"]').value || 'Non renseigné';
-                    document.getElementById('summary-antecedents-gyneco').textContent = 
-                        document.querySelector('textarea[name="antecedents_gyneco_obstetricaux"]').value || 'Non renseigné';
-                    document.getElementById('summary-antecedents-familiaux').textContent = 
-                        document.querySelector('textarea[name="antecedents_familiaux"]').value || 'Non renseigné';
-                    document.getElementById('summary-allergies').textContent = 
-                        document.querySelector('textarea[name="allergies"]').value || 'Non renseigné';
-                    document.getElementById('summary-traitements').textContent = 
-                        document.querySelector('textarea[name="traitements_cours"]').value || 'Non renseigné';
+        // ============================================
+        // FONCTIONS UTILITAIRES
+        // ============================================
+        function setSummaryValue(elementId, value, isHtml = false) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                if (isHtml) {
+                    element.innerHTML = value;
                 } else {
-                    antecedentsSection.style.display = 'none';
+                    element.textContent = value;
                 }
-
-                // Consultation details
-                document.getElementById('summary-motif').textContent = 
-                    document.querySelector('textarea[name="motif"]').value || 'Non renseigné';
-                document.getElementById('summary-signes').textContent = 
-                    document.querySelector('textarea[name="signes_cliniques"]').value || 'Non renseigné';
-                document.getElementById('summary-diagnostic').textContent = 
-                    document.querySelector('textarea[name="diagnostic"]').value || 'Non renseigné';
-                document.getElementById('summary-observation').textContent = 
-                    document.querySelector('textarea[name="observation"]').value || 'Aucune';
-
-                // Services and prescriptions
-                updateServicesSummary();
-
-                // Follow-up
-                const rdvInput = document.querySelector('input[name="prochain_rdv"]');
-                if (rdvInput && rdvInput.value) {
-                    const rdvDate = new Date(rdvInput.value);
-                    document.getElementById('summary-rdv').textContent = rdvDate.toLocaleString('fr-FR');
-                } else {
-                    document.getElementById('summary-rdv').textContent = 'Non planifié';
-                }
-
-                const medecinSelect = document.querySelector('select[name="medecin_suivi"]');
-                document.getElementById('summary-medecin').textContent = 
-                    medecinSelect.options[medecinSelect.selectedIndex]?.text || 'Non assigné';
             }
+        }
 
-            function updateServicesSummary() {
-                const services = selectedItems.filter(item => item.value.startsWith('service-'));
-                const examens = selectedItems.filter(item => item.value.startsWith('examen-'));
-                const packages = selectedItems.filter(item => item.value.startsWith('package-'));
-                const medicaments = selectedItems.filter(item => item.value.startsWith('medicament-'));
+        function getTextareaValue(name) {
+            const textarea = document.querySelector(`textarea[name="${name}"]`);
+            return textarea ? (textarea.value || 'Non renseigné') : 'Non renseigné';
+        }
 
-                document.getElementById('summary-services').textContent = 
-                    services.length > 0 ? services.map(s => s.name).join(', ') : 'Aucun';
-                
-                document.getElementById('summary-examens').textContent = 
-                    examens.length > 0 ? examens.map(e => e.name).join(', ') : 'Aucun';
-                
-                document.getElementById('summary-packages').textContent = 
-                    packages.length > 0 ? packages.map(p => p.name).join(', ') : 'Aucun';
-                
-                document.getElementById('summary-medicaments').innerHTML = 
-                    medicaments.length > 0 ? medicaments.map(m => {
-                        const quantity = medicamentQuantities[m.value] || 1;
-                        return `${m.name} (x${quantity})`;
-                    }).join('<br>') : 'Aucun';
-            }
+        function formatItemsList(items) {
+            return items.length > 0 ? items.map(item => item.name).join(', ') : 'Aucun';
+        }
 
-            // Confirm consultation
-            document.getElementById('confirmConsultation').addEventListener('click', function() {
-                $('#consultationSummaryModal').modal('hide');
-                // const button = this;
-                // const originalText = button.innerHTML;
+        function formatMedicamentsList(medicaments) {
+            if (medicaments.length === 0) return 'Aucun';
+            
+            return medicaments.map(med => {
+                const quantity = state.medicamentQuantities[med.value] || 1;
+                return `${med.name} (x${quantity})`;
+            }).join('<br>');
+        }
 
-                // button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enregistrement...';
-                // button.disabled = true;
+        function debounce(func, wait) {
+            return function executedFunction(...args) {
+                clearTimeout(state.searchTimeout);
+                state.searchTimeout = setTimeout(() => func.apply(this, args), wait);
+            };
+        }
 
-                // // Simulate API call
-                // setTimeout(() => {
-                //     button.innerHTML = '<i class="fas fa-check"></i> Enregistré !';
-                    
-                //     setTimeout(() => {
-                //         $('#consultationSummaryModal').modal('hide');
-                //         showNotification('Consultation enregistrée avec succès !', 'success');
-                        
-                //         button.innerHTML = originalText;
-                //         button.disabled = false;
-                //     }, 1500);
-                // }, 2000);
-            });
+        // ============================================
+        // CONFIRMATION DE LA CONSULTATION
+        // ============================================
+        function handleConfirmConsultation() {
+            DOM.summaryModal.modal('hide');
+            DOM.form.submit();
+        }
 
-            function showNotification(message, type = 'info') {
-                const notification = document.createElement('div');
-                notification.className = `alert alert-${type} position-fixed`;
-                notification.style.cssText = `
-                    top: 20px; right: 20px; z-index: 9999;
-                    min-width: 300px; box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
-                    animation: slideInRight 0.5s ease forwards;
-                `;
-                notification.innerHTML = `
-                    <i class="fas fa-${type === 'success' ? 'check-circle' : 'info-circle'}"></i>
-                    ${message}
-                    <button type="button" class="btn-close ms-auto" onclick="this.parentElement.remove()"></button>
-                `;
-
-                document.body.appendChild(notification);
-                setTimeout(() => notification.remove(), 5000);
-            }
-
-            // Add animation keyframes
-            const style = document.createElement('style');
-            style.textContent = `
-                @keyframes slideInRight {
-                    from { transform: translateX(100%); opacity: 0; }
-                    to { transform: translateX(0); opacity: 1; }
-                }
+        // ============================================
+        // NOTIFICATIONS
+        // ============================================
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type} position-fixed`;
+            notification.style.cssText = `
+                top: 20px; right: 20px; z-index: 9999;
+                min-width: 300px; box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
+                animation: slideInRight 0.3s ease forwards;
             `;
-            document.head.appendChild(style);
-        });
-    </script>
+            
+            const icon = type === 'success' ? 'check-circle' : 
+                        type === 'danger' ? 'exclamation-circle' : 'info-circle';
+            
+            notification.innerHTML = `
+                <i class="fas fa-${icon} me-2"></i>
+                ${message}
+                <button type="button" class="btn-close ms-auto" onclick="this.parentElement.remove()"></button>
+            `;
 
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 5000);
+        }
+
+        // ============================================
+        // LANCEMENT DE L'APPLICATION
+        // ============================================
+        init();
+
+        // Exposer certaines fonctions globalement si nécessaire
+        window.ConsultationApp = {
+            showNotification
+        };
+    });
+
+    // ============================================
+    // ANIMATIONS CSS
+    // ============================================
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideInRight {
+            from { 
+                transform: translateX(100%); 
+                opacity: 0; 
+            }
+            to { 
+                transform: translateX(0); 
+                opacity: 1; 
+            }
+        }
+    `;
+    document.head.appendChild(style);
+</script>
 @endsection
