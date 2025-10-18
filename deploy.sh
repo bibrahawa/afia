@@ -17,10 +17,20 @@ echo "📦 Installation des dépendances composer..."
 composer install --no-dev --optimize-autoloader
 
 echo "🛠️ Clear et cache Laravel..."
+
 php artisan config:clear
+php artisan cache:clear
 php artisan route:clear
 php artisan view:clear
-php artisan optimize
+php artisan session:clear
+
+# Si cette commande existe
+php artisan optimize:clear
+
+# Recréer les caches
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
 
 echo "🌐 Synchronisation du dossier public..."
 rsync -av --exclude='.git' --exclude='storage' --exclude='index.php' --exclude='.htaccess' public/ $PUBLIC_PATH/

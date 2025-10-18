@@ -133,6 +133,8 @@ class Kernel extends ConsoleKernel
         */
     }
 
+    # Test du endpoint de login
+
     /**
      * Register the commands for the application.
      */
