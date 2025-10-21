@@ -12,7 +12,7 @@ use App\Http\Controllers\{
     PaymentController, InsuranceBalanceController, SmsController, SmsReportController
 };
 
-// Route::get('sms', [SmsController::class, 'send']);
+Route::get('sms', [SmsController::class, 'send']);
 
 // Authentification
 Route::get('/', [DashboardController::class, 'index'])->name('rdv');
