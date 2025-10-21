@@ -100,6 +100,7 @@ class SendAppointmentReminderJob implements ShouldQueue
                     'type' => $this->reminderType
                 ]);
             } else {
+                
                 $smsLog->markAsFailed($result['error']);
                 
                 Log::error("Échec envoi rappel SMS", [
