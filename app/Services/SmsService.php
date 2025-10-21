@@ -54,8 +54,6 @@ class SmsService
             preg_match('/HTTP\/\S*\s(\d{3})/', $status_line, $match);
             $status_code = $match[1] ?? 0;
 
-            dd($status_code, $response);
-
             if ($status_code == 201) {
                 $responseData = $status_code;
                 
