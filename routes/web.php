@@ -12,10 +12,7 @@ use App\Http\Controllers\{
     PaymentController, InsuranceBalanceController, SmsController, SmsReportController
 };
 
-
-Route::get('new', function(){
-    return view('consultations.facture.bilan_hormonale');
-});
+// Route::get('sms', [SmsController::class, 'send']);
 
 // Authentification
 Route::get('/', [DashboardController::class, 'index'])->name('rdv');

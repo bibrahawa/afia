@@ -23,32 +23,6 @@
                 </div>
             </div>
 
-            <!-- Filtres -->
-            <div class="bg-gray-50 p-4 border-b">
-                <div class="flex flex-wrap gap-4 items-center">
-                    <div class="flex items-center space-x-2">
-                        <label class="text-sm font-medium text-gray-700">Expéditeur:</label>
-                        <select class="border border-gray-300 rounded px-3 py-1 text-sm">
-                            <option value="">Tous</option>
-                            <option value="CauriWallet">CauriWallet</option>
-                            <option value="MyCauri">MyCauri</option>
-                        </select>
-                    </div>
-                    <div class="flex items-center space-x-2">
-                        <label class="text-sm font-medium text-gray-700">Type:</label>
-                        <select class="border border-gray-300 rounded px-3 py-1 text-sm">
-                            <option value="">Tous</option>
-                            <option value="transaction">Transactions</option>
-                            <option value="otp">Codes OTP</option>
-                            <option value="greeting">Salutations</option>
-                        </select>
-                    </div>
-                    <button class="bg-blue-600 text-white px-4 py-1 rounded text-sm hover:bg-blue-700">
-                        Filtrer
-                    </button>
-                </div>
-            </div>
-
             <!-- Liste des messages -->
             <div class="divide-y divide-gray-200">
                 @foreach($messages->results as $message)
@@ -180,7 +154,7 @@
                     </div>
                     <div>
                         <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                            <button class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50" disabled>
+                            {{-- <button class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50" disabled>
                                 <span class="sr-only">Précédent</span>
                                 <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
@@ -200,7 +174,7 @@
                                 <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
                                 </svg>
-                            </button>
+                            </button> --}}
                         </nav>
                     </div>
                 </div>

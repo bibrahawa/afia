@@ -38,7 +38,7 @@ return [
     'nimba_sms' => [
         'api_key' => env('NIMBA_SMS_API_KEY'),
         'api_url' => env('NIMBA_SMS_API_URL', 'https://api.nimbasms.com/v1/messages'),
-        'default_sender' => env('NIMBA_SMS_DEFAULT_SENDER', 'Aprosafe'),
+        'default_sender' => env('NIMBA_SMS_DEFAULT_SENDER', 'APROSAFE'),
     ],
 
 ];

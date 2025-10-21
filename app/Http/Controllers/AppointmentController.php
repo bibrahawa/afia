@@ -1,6 +1,5 @@
 <?php
 
-// Controller: AppointmentController.php
 namespace App\Http\Controllers;
 
 use App\Models\Appointment;
@@ -18,6 +17,7 @@ use Illuminate\Support\Facades\Validator;
 
 class AppointmentController extends Controller
 {
+
     public function index()
     {
         $departments = Department::where('is_active', true)
@@ -36,15 +36,45 @@ class AppointmentController extends Controller
 
     public function getProfessionals(Request $request, $id)
     {
-
         $departmentId = $id;
 
-        $professionals = Employee::where('department_id', $departmentId)->where('type', 'Medecin')->get();
+        $professionals = Employee::where('department_id', $departmentId)
+            ->where('type', 'Medecin')
+            ->get();
 
         return response()->json($professionals);
     }
 
+    /**
+     * NOUVELLE FONCTION: Obtenir les dates disponibles pour un professionnel sur une période
+     */
+    public function getAvailableDates(Request $request)
+    {
+        $request->validate([
+            'employee_id' => 'required|exists:employees,id',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date'
+        ]);
 
+        $employeeId = $request->get('employee_id');
+        $startDate = Carbon::parse($request->get('start_date'));
+        $endDate = Carbon::parse($request->get('end_date'));
+
+        $employee = Employee::findOrFail($employeeId);
+        
+        // Récupérer toutes les dates avec des créneaux disponibles
+        $availableDates = AppointmentSlot::where('employee_id', $employeeId)
+            ->where('is_available', true)
+            ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+            ->where('date', '>=', now()->format('Y-m-d'))
+            ->distinct()
+            ->pluck('date')
+            ->toArray();
+
+        return response()->json([
+            'available_dates' => $availableDates
+        ]);
+    }
 
     public function getAvailableSlots(Request $request)
     {
@@ -57,9 +87,154 @@ class AppointmentController extends Controller
         return response()->json($slots);
     }
 
+    /**
+     * NOUVELLE FONCTION: Obtenir les créneaux disponibles par professionnel
+     */
+    public function getAvailableSlotsByProfessional($id)
+    {
+        $professional = Employee::findOrFail($id);
+        
+        // Récupérer les créneaux disponibles pour les 30 prochains jours
+        $startDate = now()->format('Y-m-d');
+        $endDate = now()->addDays(30)->format('Y-m-d');
+        
+        $slots = AppointmentSlot::where('employee_id', $id)
+            ->where('is_available', true)
+            ->whereBetween('date', [$startDate, $endDate])
+            ->orderBy('date')
+            ->orderBy('time')
+            ->get()
+            ->groupBy('date');
+
+        return response()->json([
+            'professional' => $professional,
+            'slots' => $slots
+        ]);
+    }
+
+    /**
+     * NOUVELLE FONCTION: Obtenir les créneaux disponibles par professionnel et date
+     */
+    public function getAvailableSlotsByProfessionalAndDate($id, $date)
+    {
+        $professional = Employee::findOrFail($id);
+        
+        // Valider la date
+        try {
+            $dateCarbon = Carbon::parse($date);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Date invalide'], 400);
+        }
+
+        if ($dateCarbon->isPast()) {
+            return response()->json(['error' => 'La date ne peut pas être dans le passé'], 400);
+        }
+
+        $slots = AppointmentSlot::where('employee_id', $id)
+            ->where('date', $date)
+            ->where('is_available', true)
+            ->orderBy('time')
+            ->get();
+
+        return response()->json([
+            'professional' => $professional,
+            'date' => $date,
+            'slots' => $slots
+        ]);
+    }
+
+    /**
+     * NOUVELLE FONCTION: Vérifier la disponibilité d'un créneau spécifique
+     */
+    public function getAvailableSlotsByProfessionalDateAndTime($id, $date, $time)
+    {
+        $professional = Employee::findOrFail($id);
+        
+        // Valider la date
+        try {
+            $dateCarbon = Carbon::parse($date);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Date invalide'], 400);
+        }
+
+        if ($dateCarbon->isPast()) {
+            return response()->json(['error' => 'La date ne peut pas être dans le passé'], 400);
+        }
+
+        $slot = AppointmentSlot::where('employee_id', $id)
+            ->where('date', $date)
+            ->where('time', $time)
+            ->where('is_available', true)
+            ->first();
+
+        if (!$slot) {
+            return response()->json([
+                'available' => false,
+                'message' => 'Ce créneau n\'est pas disponible'
+            ], 404);
+        }
+
+        return response()->json([
+            'available' => true,
+            'professional' => $professional,
+            'slot' => $slot
+        ]);
+    }
+
+    /**
+     * NOUVELLE FONCTION: Obtenir les créneaux disponibles avec durée personnalisée
+     */
+    public function getAvailableSlotsByProfessionalDateTimeAndDuration($id, $date, $time, $duration)
+    {
+        $professional = Employee::findOrFail($id);
+        
+        // Valider la durée (en minutes)
+        if (!is_numeric($duration) || $duration <= 0 || $duration > 240) {
+            return response()->json(['error' => 'Durée invalide (max 240 minutes)'], 400);
+        }
+
+        // Valider la date
+        try {
+            $dateCarbon = Carbon::parse($date);
+            $timeCarbon = Carbon::parse($date . ' ' . $time);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Date ou heure invalide'], 400);
+        }
+
+        if ($dateCarbon->isPast()) {
+            return response()->json(['error' => 'La date ne peut pas être dans le passé'], 400);
+        }
+
+        // Calculer l'heure de fin
+        $endTime = $timeCarbon->copy()->addMinutes($duration)->format('H:i');
+
+        // Vérifier si tous les créneaux nécessaires sont disponibles
+        $requiredSlots = ceil($duration / 30); // Supposant des créneaux de 30 min
+        $availableSlots = AppointmentSlot::where('employee_id', $id)
+            ->where('date', $date)
+            ->where('time', '>=', $time)
+            ->where('time', '<', $endTime)
+            ->where('is_available', true)
+            ->orderBy('time')
+            ->get();
+
+        $isAvailable = $availableSlots->count() >= $requiredSlots;
+
+        return response()->json([
+            'available' => $isAvailable,
+            'professional' => $professional,
+            'date' => $date,
+            'start_time' => $time,
+            'end_time' => $endTime,
+            'duration' => $duration,
+            'required_slots' => $requiredSlots,
+            'available_slots' => $availableSlots->count(),
+            'slots' => $availableSlots
+        ]);
+    }
+
     public function store(Request $request)
     {
-
         $request->validate([
             'employee_id' => 'required|exists:employees,id',
             'appointment_date' => 'required|date|after_or_equal:today',
@@ -151,10 +326,6 @@ class AppointmentController extends Controller
             'patient_confirmed' => true,
             'confirmed_at' => now()
         ]);
-
-
-        // Envoyer SMS de confirmation
-        // SendAppointmentReminderJob::dispatchSync($appointment, 'confirmation');
         
         return response()->json([
             'success' => true,
@@ -259,5 +430,4 @@ class AppointmentController extends Controller
             'new_date' => $appointment->appointment_date->format('d/m/Y H:i')
         ]);
     }
-
 }

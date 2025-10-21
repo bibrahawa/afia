@@ -15,7 +15,7 @@ class SmsService
     {
         $this->apiKey = config('services.nimba_sms.api_key');
         $this->apiUrl = config('services.nimba_sms.api_url');
-        $this->defaultSender = config('services.nimba_sms.default_sender', 'Aprosafe');
+        $this->defaultSender = config('services.nimba_sms.default_sender', 'APROSAFE');
     }
 
     public function sendSms(string $phoneNumber, string $message, string $sender = null): array
@@ -32,7 +32,7 @@ class SmsService
             ];
 
             $headers = array(
-                "Authorization: ".$this->apiKey,
+                $this->apiKey,
                 "Content-Type: application/json"
             );
 

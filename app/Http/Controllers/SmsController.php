@@ -4,15 +4,27 @@ namespace App\Http\Controllers;
 
 class SmsController
 {
-    public function send($phone, $message)
+
+    private $apiKey;
+    private $apiUrl;
+    private $defaultSender;
+
+    public function __construct()
+    {
+        $this->apiKey = config('services.nimba_sms.api_key');
+        $this->apiUrl = config('services.nimba_sms.api_url');
+        $this->defaultSender = config('services.nimba_sms.default_sender', 'APROSAFE');
+    }
+
+    public function send()
     {
         $data = $this->getSmsHeader();
         $headers = $data['headers'];
         $url     = $data['url'];
 
         $body = [
-            "to"          => ["622099672"], // numéros destinataires
-            "sender_name" => "MyCauri",
+            "to"          => ["622099672"],
+            "sender_name" => $this->defaultSender,
             "message"     => "Hello, Comment vas-tu ?"
         ];
 
@@ -33,6 +45,7 @@ class SmsController
         $status_line = $http_response_header[0] ?? '';
         preg_match('/HTTP\/\S*\s(\d{3})/', $status_line, $match);
         $status_code = $match[1] ?? 0;
+        // dd($status_code);
 
         if ($status_code != 201) {
             return "Erreur (HTTP $status_code) : " . $response;
@@ -71,14 +84,12 @@ class SmsController
 
     private function getSmsHeader(){
 
-        $url = "https://api.nimbasms.com/v1/messages";
-
         $headers = [
-            "Authorization: Basic ODE2MDM4ZGM3ZTVlNmMzNTAyZDJjNzI5MGQ4NWExOGM6c19TaDVzYnpJOGRCSi1HaVVVNWxWWVQ3aDIyTXdVZTgwNTVQNWtnVm5jMlAtM0g3STVUT2VmM3RUVHVtdHFfWmliXzE0UElWeGZrdXNMUGp5eFVrZmJaQy1zUTZmWEF2U1N5eVhoU3NlWGc=",
+            $this->apiKey,
             "Content-Type: application/json"
         ];
 
-        return ['headers' => $headers, 'url' => $url];
+        return ['headers' => $headers, 'url' => $this->apiUrl];
     }
 
 }

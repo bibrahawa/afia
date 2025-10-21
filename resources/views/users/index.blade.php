@@ -48,7 +48,7 @@
                                 <tr>
                                     <th>N</th>
                                     <th style="text-align: center">Nom</th>
-                                    <th style="text-align: center">Email</th>
+                                    <th style="text-align: center">Telephone</th>
                                     <th style="text-align: center">Status</th>
                                     <th style="text-align: center">Role</th>
                                     <th style="text-align: center">Action</th>
@@ -58,7 +58,7 @@
                                 <tr>
                                     <th>N</th>
                                     <th style="text-align: center">Nom</th>
-                                    <th style="text-align: center">Email</th>
+                                    <th style="text-align: center">Telephone</th>
                                     <th style="text-align: center">Status</th>
                                     <th style="text-align: center">Role</th>
                                     <th style="text-align: center">Action</th>
@@ -70,7 +70,7 @@
                                     <tr>
                                         <td>{{ $indice++ }}</td>
                                         <td>{{ $user->name }} </td>
-                                        <td>{{ $user->email }}</td>
+                                        <td>{{ $user->phone }}</td>
                                         <td style="text-align: center">
                                             <form id="#" action="{{ route('user.disable', $user->id) }}" method="GET">
                                                 @csrf

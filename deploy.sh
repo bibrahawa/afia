@@ -22,7 +22,6 @@ php artisan config:clear
 php artisan cache:clear
 php artisan route:clear
 php artisan view:clear
-php artisan session:clear
 
 # Si cette commande existe
 php artisan optimize:clear

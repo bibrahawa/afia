@@ -25,15 +25,20 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 });
 
 
+// Dans routes/api.php
+
 Route::get('departments', [AppointmentController::class, 'getDepartments']);
 Route::get('professionals/{id}', [AppointmentController::class, 'getProfessionals']);
-Route::get('appointments/slots', [AppointmentController::class, 'getAvailableSlots']);
 
+// NOUVELLE ROUTE pour les dates disponibles
+Route::get('appointments/available-dates', [AppointmentController::class, 'getAvailableDates']);
+
+Route::get('appointments/slots', [AppointmentController::class, 'getAvailableSlots']);
 Route::get('appointments/slots/{id}', [AppointmentController::class, 'getAvailableSlotsByProfessional']);
 Route::get('appointments/slots/{id}/{date}', [AppointmentController::class, 'getAvailableSlotsByProfessionalAndDate']);
 Route::get('appointments/slots/{id}/{date}/{time}', [AppointmentController::class, 'getAvailableSlotsByProfessionalDateAndTime']);
 Route::get('appointments/slots/{id}/{date}/{time}/{duration}', [AppointmentController::class, 'getAvailableSlotsByProfessionalDateTimeAndDuration']);
-Route::get('available-slots', [AppointmentController::class, 'getAvailableSlots']);
+
 Route::post('appointments', [AppointmentController::class, 'store']);
 
 // Gestion des rendez-vous

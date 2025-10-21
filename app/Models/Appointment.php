@@ -15,7 +15,7 @@ class Appointment extends Model
         'patient_id',
         'appointment_date',
         'appointment_time',
-        'appointment_datetime', // ✅ Nouveau
+        'appointment_datetime', 
         'reason',
         'description',
         'status',
@@ -24,7 +24,7 @@ class Appointment extends Model
         'cancelled_at',
         'cancellation_reason',
         'reminder_sent_at',
-        'last_minute_reminder_sent_at', // ✅ Nouveau
+        'last_minute_reminder_sent_at', 
         'confirmation_sent_at',
         'patient_confirmed'
     ];
@@ -32,11 +32,11 @@ class Appointment extends Model
     protected $casts = [
         'appointment_date' => 'date',
         'appointment_time' => 'datetime:H:i',
-        'appointment_datetime' => 'datetime', // ✅ Nouveau
+        'appointment_datetime' => 'datetime', 
         'confirmed_at' => 'datetime',
         'cancelled_at' => 'datetime',
         'reminder_sent_at' => 'datetime',
-        'last_minute_reminder_sent_at' => 'datetime', // ✅ Nouveau
+        'last_minute_reminder_sent_at' => 'datetime', 
         'confirmation_sent_at' => 'datetime',
         'patient_confirmed' => 'boolean'
     ];
