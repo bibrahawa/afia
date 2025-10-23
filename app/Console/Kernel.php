@@ -23,10 +23,17 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule)
     {
         // ============================================
-        // RAPPELS SMS 24H - 3 fois par jour
+        // RAPPELS SMS 24H - 5 fois par jour
         // ============================================
-        // Exécution à 8h, 14h et 20h pour couvrir tous les créneaux
+        // Exécution à 00h, 8h, 12h, 16h et 20h pour couvrir tous les créneaux
         // Fenêtre de détection : 22h-26h avant le RDV
+
+        $schedule->command('appointments:send-reminders --type=24h')
+                ->dailyAt('00:00')
+                ->withoutOverlapping(10)
+                ->onOneServer()
+                ->appendOutputTo(storage_path('logs/reminders-24h.log'))
+                ->emailOutputOnFailure(config('mail.admin_email'));
         
         $schedule->command('appointments:send-reminders --type=24h --force')
                 ->dailyAt('08:00')

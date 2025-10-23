@@ -34,4 +34,6 @@ php artisan view:cache
 echo "🌐 Synchronisation du dossier public..."
 rsync -av --exclude='.git' --exclude='storage' --exclude='index.php' --exclude='.htaccess' public/ $PUBLIC_PATH/
 
+php artisan sms:clean-logs --days=90
+
 echo "✅ Déploiement terminé !"
