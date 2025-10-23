@@ -180,10 +180,7 @@ class AuthController extends Controller
 
                 // Mettre à jour la dernière connexion
                 $user->update(['last_login_at' => Carbon::now()]);
-                
-                // Créer un token si vous utilisez Sanctum
-                // $token = $user->createToken('auth_token')->plainTextToken;
-                
+                                
                 // Nettoyage des limitations
                 RateLimiter::clear($ipKey);
                 
@@ -218,6 +215,7 @@ class AuthController extends Controller
                     'locked_until' => null,
                 ]);
 
+
                 // Créer le profil patient
                 $patient = Patient::create([
                     'user_id' => $user->id,
@@ -229,9 +227,6 @@ class AuthController extends Controller
 
                 // Assigner le rôle patient
                 $user->assignRole('patient');
-
-                // Créer un token
-                $token = $user->createToken('auth_token')->plainTextToken;
 
                 DB::commit();
 
@@ -252,9 +247,7 @@ class AuthController extends Controller
                     'error' => false,
                     'message' => 'Nouveau compte créé',
                     'patient' => $patient,
-                    'token' => $token,
-                    'is_new' => true,
-                    'temporary_password' => $generatedPassword // À retirer en production
+                    'is_new' => true
                 ], 201);
             }
 
