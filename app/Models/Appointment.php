@@ -94,13 +94,13 @@ class Appointment extends Model
 
     /**
      * RDV nécessitant un rappel 24h avant
-     * Fenêtre large : entre 22h et 26h avant le RDV
+     * Fenêtre large : entre 21h et 27h avant le RDV
      * Évite de manquer un rappel si le CRON rate une exécution
      */
     public function scopeNeedingReminder($query)
     {
-        $start = now()->addHours(22);
-        $end = now()->addHours(26);
+        $start = now()->addHours(21);
+        $end = now()->addHours(27);
         
         return $query
             ->whereIn('status', ['pending', 'confirmed']) // Filtrer d'abord par status (index)
@@ -121,7 +121,6 @@ class Appointment extends Model
         return $query
             ->whereIn('status', ['pending', 'confirmed'])
             ->whereBetween('appointment_datetime', [$start, $end])
-            ->whereNotNull('reminder_sent_at') // Doit avoir reçu le rappel 24h
             ->whereNull('last_minute_reminder_sent_at') // Pas encore reçu le rappel 2h
             ->orderBy('appointment_datetime');
     }

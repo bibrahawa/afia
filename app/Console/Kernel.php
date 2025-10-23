@@ -30,21 +30,21 @@ class Kernel extends ConsoleKernel
         
         $schedule->command('appointments:send-reminders --type=24h --force')
                 ->dailyAt('08:00')
-                ->withoutOverlapping(30)
+                ->withoutOverlapping(10)
                 ->onOneServer()
                 ->appendOutputTo(storage_path('logs/reminders-24h.log'))
                 ->emailOutputOnFailure(config('mail.admin_email'));
 
         $schedule->command('appointments:send-reminders --type=24h --force')
                 ->dailyAt('14:00')
-                ->withoutOverlapping(30)
+                ->withoutOverlapping(10)
                 ->onOneServer()
                 ->appendOutputTo(storage_path('logs/reminders-24h.log'))
                 ->emailOutputOnFailure(config('mail.admin_email'));
 
         $schedule->command('appointments:send-reminders --type=24h --force')
                 ->dailyAt('20:00')
-                ->withoutOverlapping(30)
+                ->withoutOverlapping(10)
                 ->onOneServer()
                 ->appendOutputTo(storage_path('logs/reminders-24h.log'))
                 ->emailOutputOnFailure(config('mail.admin_email'));
@@ -57,8 +57,8 @@ class Kernel extends ConsoleKernel
         
         $schedule->command('appointments:send-reminders --type=2h --force')
                 ->hourlyAt(0)
-                ->between('06:00', '22:00')
-                ->withoutOverlapping(30)
+                ->between('06:00', '23:00')
+                ->withoutOverlapping(10)
                 ->onOneServer()
                 ->appendOutputTo(storage_path('logs/reminders-2h.log'))
                 ->emailOutputOnFailure(config('mail.admin_email'));
