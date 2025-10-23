@@ -50,10 +50,13 @@ Route::post('/appointments/{appointment}/reschedule', [AppointmentController::cl
 Route::post('/doctors/set-unavailability', [AppointmentController::class, 'setDoctorUnavailability'])
     ->middleware('role:admin,doctor');
 
+// Trouver ou créer un patient avec uniquement le téléphone
+Route::post('patient/find-or-create', [AuthController::class, 'findOrCreate']);
 
 Route::post('login', [AuthController::class, 'loginWithApi']);
 Route::post('register', [AuthController::class, 'register']);
-Route::post('logout', [AuthController::class, 'logout'])->middleware('auth:api');
+Route::post('logout', [AuthController::class, 'logoutApi'])->middleware('auth:sanctum');
+Route::post('check-account', [AuthController::class, 'checkAccountStatus']);
 
 // API pour récupérer les assurances d'un patient
 Route::get('/patient/{patient}/insurances', [Api_PatientInsuranceController::class, 'getPatientInsurances']);

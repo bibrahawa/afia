@@ -119,6 +119,7 @@ class SendAppointmentReminderJob implements ShouldQueue
                 'line' => $e->getLine()
             ]);
             
+            throw $e;
             // Ne pas relancer pour éviter les doublons
         }
     }

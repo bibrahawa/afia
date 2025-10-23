@@ -24,10 +24,10 @@ class AuthController extends Controller
     {
         $validated = $request->validate([
             'phone' => ['required', 'string', 'regex:/^[0-9]{9}$/'],
-            'phone' => ['required', 'string', 'regex:/^[0-9]{9}$/'],
-            'password' => ['required', 'string', 'min:6', 'max:255'],
+            'password' => ['required', 'string', 'min:4', 'max:255'],
         ], [
             'phone.regex' => 'Le numéro de téléphone doit contenir exactement 9 chiffres.',
+            'password.min' => 'Le mot de passe doit contenir au moins 4 caractères.',
         ]);
 
         // Clé pour la limitation du taux par IP et par utilisateur
@@ -55,7 +55,7 @@ class AuthController extends Controller
         // Vérification si l'utilisateur existe et n'est pas verrouillé
         $user = User::where('phone', $validated['phone'])->first();
 
-        // si cet utilisateur est un medecin
+        // Si cet utilisateur est un médecin
         if ($user && !$user->hasRole('patient')) {
             // Logique spécifique pour les médecins
             return response()->json(['message' => 'Les médecins doivent se connecter via l\'interface dédiée.'], 403);
@@ -83,7 +83,6 @@ class AuthController extends Controller
                 'locked_until' => null,
             ]);
 
-
             // Nettoyage des limitations
             RateLimiter::clear($ipKey);
             RateLimiter::clear($userKey);
@@ -96,7 +95,10 @@ class AuthController extends Controller
                 'user_agent' => $request->userAgent(),
             ]);
 
-            return response()->json(['message' => 'Login successful', 'patient' => $user->patient], 200);
+            return response()->json([
+                'message' => 'Login successful',
+                'patient' => $user->patient
+            ], 200);
         }
 
         // Échec de connexion
@@ -128,7 +130,149 @@ class AuthController extends Controller
             'user_agent' => $request->userAgent(),
         ]);
 
-        return response()->json(['message' => 'Les informations de connexion sont incorrectes.'], 401);
+        return response()->json([
+            'message' => 'Les informations de connexion sont incorrectes.'
+        ], 401);
+    }
+
+        /**
+     * Trouver ou créer un patient avec uniquement le numéro de téléphone
+     */
+    public function findOrCreate(Request $request): JsonResponse
+    {
+        // Limitation du taux par IP (5 tentatives par heure)
+        $ipKey = 'findOrCreate.ip.' . $request->ip();
+        if (RateLimiter::tooManyAttempts($ipKey, 5)) {
+            $seconds = RateLimiter::availableIn($ipKey);
+            return response()->json([
+                'error' => true,
+                'message' => "Trop de tentatives. Réessayez dans " . gmdate('H:i:s', $seconds) . "."
+            ], 429);
+        }
+
+        $validated = $request->validate([
+            'phone' => ['required', 'string', 'regex:/^[0-9]{9}$/'],
+        ], [
+            'phone.regex' => 'Le numéro de téléphone doit contenir exactement 9 chiffres.',
+        ]);
+
+        try {
+            // Chercher l'utilisateur par téléphone
+            $user = User::where('phone', $validated['phone'])->first();
+            if ($user) {
+                // Vérifier si le compte est verrouillé
+                if ($user->locked_until && Carbon::now()->lt($user->locked_until)) {
+                    return response()->json([
+                        'error' => true,
+                        'message' => 'Ce compte est temporairement verrouillé. Réessayez plus tard.'
+                    ], 403);
+                }
+
+                // Vérifier si l'utilisateur a un profil patient
+                $patient = $user->patient;
+                
+                if (!$patient) {
+                    return response()->json([
+                        'error' => true,
+                        'message' => 'Ce compte n\'est pas un compte patient.'
+                    ], 403);
+                }
+
+                // Mettre à jour la dernière connexion
+                $user->update(['last_login_at' => Carbon::now()]);
+                
+                // Créer un token si vous utilisez Sanctum
+                // $token = $user->createToken('auth_token')->plainTextToken;
+                
+                // Nettoyage des limitations
+                RateLimiter::clear($ipKey);
+                
+                // Log de connexion réussie
+                Log::info('Patient trouvé via findOrCreate', [
+                    'user_id' => $user->id,
+                    'phone' => $user->phone,
+                    'ip' => $request->ip(),
+                ]);
+                
+                return response()->json([
+                    'error' => false,
+                    'message' => 'Patient trouvé',
+                    'patient' => $patient,
+                    'is_new' => false
+                ], 200);
+                
+            } else {
+                // Créer un nouveau patient
+                DB::beginTransaction();
+
+                // Générer un mot de passe aléatoire de 6 chiffres
+                $generatedPassword = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
+
+                $user = User::create([
+                    'email' => strtolower(trim(random_int(1000000000, 9999999999) . '@aprosafe.com')),
+                    'phone' => $validated['phone'],
+                    'name' => 'Patient ' . substr($validated['phone'], -4),
+                    'password' => Hash::make($generatedPassword),
+                    'last_login_at' => Carbon::now(),
+                    'login_attempts' => 0,
+                    'locked_until' => null,
+                ]);
+
+                // Créer le profil patient
+                $patient = Patient::create([
+                    'user_id' => $user->id,
+                    'first_name' => 'Patient',
+                    'last_name' => substr($validated['phone'], -4),
+                    'age' => 0,
+                    'marital_status' => '',
+                ]);
+
+                // Assigner le rôle patient
+                $user->assignRole('patient');
+
+                // Créer un token
+                $token = $user->createToken('auth_token')->plainTextToken;
+
+                DB::commit();
+
+                // Nettoyage des limitations
+                RateLimiter::clear($ipKey);
+
+                // TODO: Envoyer le mot de passe par SMS
+                // SmsService::send($validated['phone'], "Bienvenue! Votre mot de passe: $generatedPassword");
+
+                // Log de création de compte
+                Log::info('Nouveau patient créé via findOrCreate', [
+                    'user_id' => $user->id,
+                    'phone' => $user->phone,
+                    'ip' => $request->ip(),
+                ]);
+
+                return response()->json([
+                    'error' => false,
+                    'message' => 'Nouveau compte créé',
+                    'patient' => $patient,
+                    'token' => $token,
+                    'is_new' => true,
+                    'temporary_password' => $generatedPassword // À retirer en production
+                ], 201);
+            }
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            RateLimiter::increment($ipKey, 3600);
+            
+            Log::error('Erreur findOrCreate', [
+                'error' => $e->getMessage(),
+                'phone' => $validated['phone'] ?? null,
+                'ip' => $request->ip(),
+            ]);
+
+            return response()->json([
+                'error' => true,
+                'message' => 'Une erreur est survenue lors du traitement.'
+            ], 500);
+        }
     }
 
     /**
@@ -151,29 +295,29 @@ class AuthController extends Controller
             'password' => [
                 'required',
                 'string',
-                'min:8',
+                'min:4',
                 'max:255'
             ],
         ], [
             'phone.unique' => 'Ce numéro de téléphone est déjà utilisé.',
-            'password.regex' => 'Le mot de passe doit contenir au moins: 1 minuscule, 1 majuscule, 1 chiffre et 1 caractère spécial.',
+            'phone.regex' => 'Le numéro de téléphone doit contenir exactement 9 chiffres.',
+            'password.min' => 'Le mot de passe doit contenir au moins 4 caractères.',
         ]);
 
         try {
-
             DB::beginTransaction();
 
             $user = User::create([
-                'email' => strtolower(trim(random_int(1000000000, 9999999999) . '@aprosafe.com')), // Email temporaire, à remplacer par un email valide
+                'email' => strtolower(trim(random_int(1000000000, 9999999999) . '@aprosafe.com')), // Email temporaire
                 'phone' => $validated['phone'],
                 'name' => $validated['name'],
-                'password' => $validated['password'],
+                'password' => $validated['password'], // Le mutateur de User va hasher automatiquement
                 'last_login_at' => null,
                 'login_attempts' => 0,
                 'locked_until' => null,
             ]);
 
-            //Create Patient Profile
+            // Create Patient Profile
             $patient = Patient::create([
                 'user_id' => $user->id,
                 'first_name' => $user->name,
@@ -182,37 +326,58 @@ class AuthController extends Controller
                 'marital_status' => '',
             ]);
 
-            // Connexion automatique après enregistrement
-            Auth::login($user);
-
             // Assign the 'patient' role to the user
             $user->assignRole('patient');
 
+            // Connexion automatique après enregistrement
+            Auth::login($user);
+
             DB::commit();
 
+            // Nettoyage du rate limiter
+            RateLimiter::clear($key);
+
+            // Log d'enregistrement réussi
+            Log::info('Nouvel utilisateur enregistré', [
+                'user_id' => $user->id,
+                'phone' => $user->phone,
+                'ip' => $request->ip(),
+            ]);
+
             // Return a response with the patient profile
-            return response()->json(['message' => 'Registration successful', 'patient' => $patient], 201);
+            return response()->json([
+                'message' => 'Registration successful',
+                'patient' => $patient
+            ], 201);
+
         } catch (\Exception $e) {
             DB::rollBack();
             RateLimiter::increment($key);
+            
             Log::error('Erreur lors de l\'enregistrement', [
                 'error' => $e->getMessage(),
                 'ip' => $request->ip(),
+                'trace' => $e->getTraceAsString()
             ]);
-            return response()->json(['message' => 'Une erreur est survenue lors de la création du compte.'. $e->getMessage()], 500);
+
+            return response()->json([
+                'message' => 'Une erreur est survenue lors de la création du compte.',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
         }
     }
 
     /**
-     * Connexion utilisateur avec protection contre les attaques par force brute
+     * Connexion utilisateur (interface web) avec protection contre les attaques par force brute
      */
     public function login(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'phone' => ['required', 'string', 'regex:/^[0-9]{9}$/'],
-            'password' => ['required', 'string', 'min:6', 'max:255'],
+            'password' => ['required', 'string', 'min:4', 'max:255'],
         ], [
             'phone.regex' => 'Le numéro de téléphone doit contenir exactement 9 chiffres.',
+            'password.min' => 'Le mot de passe doit contenir au moins 4 caractères.',
         ]);
 
         // Clé pour la limitation du taux par IP et par utilisateur
@@ -339,12 +504,41 @@ class AuthController extends Controller
     }
 
     /**
+     * Déconnexion API
+     */
+    public function logoutApi(Request $request): JsonResponse
+    {
+        $user = Auth::user();
+
+        // Log de déconnexion
+        if ($user) {
+            Log::info('Déconnexion utilisateur API', [
+                'user_id' => $user->id,
+                'ip' => $request->ip(),
+            ]);
+        }
+
+        // Déconnexion
+        Auth::logout();
+
+        // Invalidation de la session
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return response()->json([
+            'message' => 'Déconnexion réussie'
+        ], 200);
+    }
+
+    /**
      * Déblocage d'un compte (pour les administrateurs)
      */
     public function unlockAccount(Request $request)
     {
         $validated = $request->validate([
-            'phone' => ['required', 'string', 'regex:/^[0-9]{10}$/'],
+            'phone' => ['required', 'string', 'regex:/^[0-9]{9}$/'],
+        ], [
+            'phone.regex' => 'Le numéro de téléphone doit contenir exactement 9 chiffres.',
         ]);
 
         $user = User::where('phone', $validated['phone'])->first();
@@ -360,12 +554,42 @@ class AuthController extends Controller
 
         // Nettoyage des limitations
         RateLimiter::clear('login.user.' . $validated['phone']);
+        RateLimiter::clear('login.ip.' . $request->ip());
 
         Log::info('Compte débloqué par administrateur', [
             'user_id' => $user->id,
+            'admin_id' => Auth::id(),
             'admin_ip' => $request->ip(),
         ]);
 
         return back()->with('success', 'Compte débloqué avec succès.');
+    }
+
+    /**
+     * Vérifier le statut du compte
+     */
+    public function checkAccountStatus(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'phone' => ['required', 'string', 'regex:/^[0-9]{9}$/'],
+        ]);
+
+        $user = User::where('phone', $validated['phone'])->first();
+
+        if (!$user) {
+            return response()->json([
+                'exists' => false,
+                'message' => 'Utilisateur non trouvé'
+            ], 404);
+        }
+
+        $isLocked = $user->locked_until && Carbon::now()->lt($user->locked_until);
+
+        return response()->json([
+            'exists' => true,
+            'is_locked' => $isLocked,
+            'locked_until' => $isLocked ? $user->locked_until->toIso8601String() : null,
+            'login_attempts' => $user->login_attempts,
+        ], 200);
     }
 }

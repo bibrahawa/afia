@@ -69,6 +69,14 @@ class AppointmentController extends Controller
             ->where('date', '>=', now()->format('Y-m-d'))
             ->distinct()
             ->pluck('date')
+            ->map(function($date) {
+                // Forcer le format Y-m-d
+                if ($date instanceof \Carbon\Carbon) {
+                    return $date->format('Y-m-d');
+                }
+                return substr($date, 0, 10); // Prendre uniquement les 10 premiers caractères
+            })
+            ->values()
             ->toArray();
 
         return response()->json([
@@ -326,6 +334,9 @@ class AppointmentController extends Controller
             'patient_confirmed' => true,
             'confirmed_at' => now()
         ]);
+
+        // Envoyer SMS de confirmation
+        // SendAppointmentReminderJob::dispatchSync($appointment, 'confirmation');
         
         return response()->json([
             'success' => true,

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -21,21 +20,20 @@ use App\Models\InsuranceClaim;
 use App\Models\InvoiceItem;
 use App\Models\Medicament;
 use App\Jobs\ProcessDoctorUnavailabilityJob;
-use \Carbon\Carbon;
+use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
-
-    public function index ()
+    public function index()
     {
         return view('appointments.rdv.rdv');
     }
+
     /**
      * Affiche le dashboard principal
      */
     public function admin()
     {
-        // Dans votre DashboardController
         $rdv_today = Appointment::whereDate('appointment_date', today())->count();
         $hospitalisations_active = Hospitalisation::where('statut', 'active')->count();
         $chambres_libres = Chambre::where('statut', 'libre')->count();
@@ -45,26 +43,26 @@ class DashboardController extends Controller
         $medicaments_stock_faible = Medicament::count();
         $reclamations_en_attente = InsuranceClaim::where('status', 'draft')->count();
         $rdv_aujourdhui = Appointment::with(['patient', 'employee'])->whereDate('appointment_date', today())->get();
-
         $total_patient = Patient::count();
         $patientes = Patient::latest()->limit(5)->get();
         $consultations = Consultation::latest()->limit(10)->get();
         $transactions = Transaction::latest()->limit(10)->get();
 
-        return view('dashboard', compact('total_patient', 
-                                        'consultations', 
-                                        'transactions', 
-                                        'patientes',
-                                        'rdv_aujourdhui',
-                                        'rdv_today',
-                                        'hospitalisations_active',
-                                        'chambres_libres',
-                                        'patients_assures',
-                                        'factures_impayees',
-                                        'montant_impaye',
-                                        'medicaments_stock_faible',
-                                        'reclamations_en_attente'));
-                                        
+        return view('dashboard', compact(
+            'total_patient', 
+            'consultations', 
+            'transactions', 
+            'patientes',
+            'rdv_aujourdhui',
+            'rdv_today',
+            'hospitalisations_active',
+            'chambres_libres',
+            'patients_assures',
+            'factures_impayees',
+            'montant_impaye',
+            'medicaments_stock_faible',
+            'reclamations_en_attente'
+        ));
     }
 
     /**
@@ -81,14 +79,12 @@ class DashboardController extends Controller
      */
     public function appointments(Request $request)
     {
-        // Suppression des données de démonstration - utilisation des vraies données
         $appointments = Appointment::where('employee_id', auth()->id())
             ->where('status', '!=', 'Completed')
             ->with('patient')
             ->orderBy('appointment_date')
             ->orderBy('appointment_time')
             ->get();
-
 
         return view('appointments.appointment', compact('appointments'));
     }
@@ -101,18 +97,14 @@ class DashboardController extends Controller
         try {
             $appointment = Appointment::findOrFail($appointmentId);
 
-            // Vérification que l'employé peut modifier ce rendez-vous
             if ($appointment->employee_id !== auth()->id()) {
                 return redirect()->back()->with('error', 'Vous n\'êtes pas autorisé à modifier ce rendez-vous');
             }
 
             $appointment->update(['status' => 'confirmed']);
-            // Notifier le patient par une api sms
-            /**
-             * Envoie une notification SMS au patient
-             */
 
-
+            // TODO: Notifier le patient par SMS
+            
             return redirect()->back()->with('success', 'Rendez-vous confirmé avec succès');
 
         } catch (\Exception $e) {
@@ -129,7 +121,6 @@ class DashboardController extends Controller
         try {
             $appointment = Appointment::findOrFail($appointmentId);
 
-            // Vérification des permissions
             if ($appointment->employee_id !== auth()->id()) {
                 return redirect()->back()->with('error', 'Vous n\'êtes pas autorisé à modifier ce rendez-vous');
             }
@@ -157,6 +148,7 @@ class DashboardController extends Controller
 
     /**
      * Crée une nouvelle disponibilité
+     * FIX: Génère aussi les créneaux pour aujourd'hui si la disponibilité correspond
      */
     public function storeAvailability(Request $request): RedirectResponse
     {
@@ -186,8 +178,8 @@ class DashboardController extends Controller
                 'is_active' => true
             ]);
 
-            // Générer les créneaux pour les 8 prochaines semaines
-            $this->generateAppointmentSlots($validated, 8);
+            // FIX: Générer les créneaux en incluant aujourd'hui si applicable
+            $this->generateAppointmentSlotsImproved($validated, 8);
 
             DB::commit();
             return redirect()->back()->with('success', 'Disponibilité et créneaux créés avec succès');
@@ -216,19 +208,18 @@ class DashboardController extends Controller
         try {
             $availability = EmployeeAvailability::findOrFail($request->id);
 
-            // Vérifier que l'employé peut modifier cette disponibilité
             if ($availability->employee_id !== auth()->id()) {
                 return redirect()->back()->with('error', 'Vous n\'êtes pas autorisé à modifier cette disponibilité');
             }
 
             // Supprimer les anciens créneaux futurs
-            $this->deleteExistingSlots($validated['day_of_week']);
+            $this->deleteExistingSlotsImproved($validated['day_of_week']);
 
             // Mettre à jour la disponibilité
             $availability->update($validated);
 
-            // Générer les nouveaux créneaux
-            $this->generateAppointmentSlots($validated, 8);
+            // Générer les nouveaux créneaux (incluant aujourd'hui)
+            $this->generateAppointmentSlotsImproved($validated, 8);
 
             DB::commit();
             return redirect()->back()->with('success', 'Disponibilité mise à jour avec succès');
@@ -249,13 +240,12 @@ class DashboardController extends Controller
         try {
             $availability = EmployeeAvailability::findOrFail($availabilityId);
 
-            // Vérifier les permissions
             if ($availability->employee_id !== auth()->id()) {
                 return redirect()->back()->with('error', 'Vous n\'êtes pas autorisé à supprimer cette disponibilité');
             }
 
             // Supprimer les créneaux futurs associés
-            $this->deleteExistingSlots($availability->day_of_week);
+            $this->deleteExistingSlotsImproved($availability->day_of_week);
 
             // Supprimer la disponibilité
             $availability->delete();
@@ -271,6 +261,106 @@ class DashboardController extends Controller
     }
 
     /**
+     * FIX: Génère les créneaux en incluant aujourd'hui si le jour correspond
+     */
+    private function generateAppointmentSlotsImproved(array $availability, int $weeks = 8): void
+    {
+        $dayOfWeek = $this->getDayOfWeek($availability['day_of_week']);
+        $today = Carbon::now();
+        $todayDayOfWeek = $today->dayOfWeek;
+        
+        // Convertir le jour de la semaine français en numéro (0 = dimanche, 1 = lundi, etc.)
+        $targetDayNumber = Carbon::parse('next ' . $dayOfWeek)->dayOfWeek;
+        
+        // Si aujourd'hui correspond au jour de disponibilité, commencer aujourd'hui
+        $startDate = ($todayDayOfWeek === $targetDayNumber) 
+            ? $today->copy()
+            : $today->next($dayOfWeek);
+
+        for ($week = 0; $week < $weeks; $week++) {
+            $date = $startDate->copy()->addWeeks($week);
+
+            // Vérifier si c'est un jour de congé
+            $isLeaveDay = EmployeeLeave::where('employee_id', auth()->id())
+                ->where('status', 'approved')
+                ->whereDate('start_date', '<=', $date)
+                ->whereDate('end_date', '>=', $date)
+                ->exists();
+
+            if ($isLeaveDay) {
+                continue;
+            }
+
+            $start = Carbon::createFromFormat('H:i', $availability['start_time']);
+            $end = Carbon::createFromFormat('H:i', $availability['end_time']);
+            $duration = (int)$availability['slot_duration'];
+            
+            // Si c'est aujourd'hui, ne générer que les créneaux futurs
+            if ($date->isToday()) {
+                $now = Carbon::now();
+                while ($start < $now) {
+                    $start->addMinutes($duration);
+                }
+            }
+
+            while ($start < $end) {
+                AppointmentSlot::firstOrCreate([
+                    'employee_id' => auth()->id(),
+                    'date' => $date->format('Y-m-d'),
+                    'time' => $start->format('H:i'),
+                ], [
+                    'is_available' => true
+                ]);
+
+                $start->addMinutes($duration);
+            }
+        }
+    }
+
+    /**
+     * FIX: Supprime les créneaux existants pour un jour donné (incluant aujourd'hui)
+     */
+    private function deleteExistingSlotsImproved(string $dayOfWeek): void
+    {
+        $dayOfWeekEn = $this->getDayOfWeek($dayOfWeek);
+        $today = Carbon::now();
+        $todayDayOfWeek = $today->dayOfWeek;
+        $targetDayNumber = Carbon::parse('next ' . $dayOfWeekEn)->dayOfWeek;
+        
+        // Si aujourd'hui correspond, commencer par aujourd'hui
+        $startDate = ($todayDayOfWeek === $targetDayNumber) 
+            ? $today->copy()
+            : $today->next($dayOfWeekEn);
+
+        for ($week = 0; $week < 8; $week++) {
+            $date = $startDate->copy()->addWeeks($week);
+
+            AppointmentSlot::where('employee_id', auth()->id())
+                ->whereDate('date', $date)
+                ->where('is_available', true)
+                ->delete();
+        }
+    }
+
+    /**
+     * Convertit les jours français en anglais
+     */
+    private function getDayOfWeek(string $day): string
+    {
+        $days = [
+            'Lundi' => 'Monday',
+            'Mardi' => 'Tuesday',
+            'Mercredi' => 'Wednesday',
+            'Jeudi' => 'Thursday',
+            'Vendredi' => 'Friday',
+            'Samedi' => 'Saturday',
+            'Dimanche' => 'Sunday',
+        ];
+
+        return $days[$day] ?? 'Monday';
+    }
+
+    /**
      * Récupère les congés
      */
     public function leaves()
@@ -282,28 +372,25 @@ class DashboardController extends Controller
         return view('appointments.leaves', compact('leaves'));
     }
 
-    // ===============================================
-    // VERSION COMPLÈTE AVEC TOUTES LES FONCTIONS
-    // ===============================================
-
+    /**
+     * Crée une demande de congé
+     */
     public function storeLeave(Request $request): RedirectResponse
     {
-
         $validated = $request->validate([
-                'type' => 'required|in:Vacance,Maladie,Conference,Autre',
-                'start_date' => 'required|date|after_or_equal:today',
-                'end_date' => 'required|date|after:start_date',
-                'reason' => 'nullable|string|max:500'
-            ], [
-                // Messages d'erreur personnalisés
-                'type.required' => 'Le type de congé est obligatoire.',
-                'type.in' => 'Le type de congé sélectionné est invalide.',
-                'start_date.required' => 'La date de début est obligatoire.',
-                'start_date.after_or_equal' => 'La date de début doit être aujourd\'hui ou ultérieure.',
-                'end_date.required' => 'La date de fin est obligatoire.',
-                'end_date.after' => 'La date de fin doit être après la date de début.',
-                'reason.max' => 'La raison ne peut pas dépasser 500 caractères.'
-            ]);
+            'type' => 'required|in:Vacance,Maladie,Conference,Autre',
+            'start_date' => 'required|date|after_or_equal:today',
+            'end_date' => 'required|date|after:start_date',
+            'reason' => 'nullable|string|max:500'
+        ], [
+            'type.required' => 'Le type de congé est obligatoire.',
+            'type.in' => 'Le type de congé sélectionné est invalide.',
+            'start_date.required' => 'La date de début est obligatoire.',
+            'start_date.after_or_equal' => 'La date de début doit être aujourd\'hui ou ultérieure.',
+            'end_date.required' => 'La date de fin est obligatoire.',
+            'end_date.after' => 'La date de fin doit être après la date de début.',
+            'reason.max' => 'La raison ne peut pas dépasser 500 caractères.'
+        ]);
 
         $startDate = Carbon::parse($validated['start_date']);
         $endDate = Carbon::parse($validated['end_date']);
@@ -316,7 +403,6 @@ class DashboardController extends Controller
         DB::beginTransaction();
         
         try {
-
             $leave = EmployeeLeave::create([
                 'employee_id' => auth()->id(),
                 'start_date' => $startDate,
@@ -328,7 +414,7 @@ class DashboardController extends Controller
 
             $deletedCount = $this->deleteSlotsForPeriod($startDate, $endDate, auth()->id());
 
-            // Job optionnel
+            // Job optionnel pour notifier
             dispatch(new ProcessDoctorUnavailabilityJob(
                 auth()->id(),
                 $startDate,
@@ -337,6 +423,13 @@ class DashboardController extends Controller
             ));
 
             DB::commit();
+            
+            Log::info('Congé créé', [
+                'leave_id' => $leave->id,
+                'employee_id' => auth()->id(),
+                'deleted_slots' => $deletedCount
+            ]);
+            
             return redirect()->back()->with('success', "Congé créé. {$deletedCount} créneaux supprimés.");
 
         } catch (\Exception $e) {
@@ -346,11 +439,13 @@ class DashboardController extends Controller
         }
     }
 
+    /**
+     * Met à jour une demande de congé
+     */
     public function updateLeave(Request $request): RedirectResponse
     {
-        // Validation
         $validated = $request->validate([
-            'id' => 'required|exists:leaves,id',
+            'id' => 'required|exists:employee_leaves,id',
             'type' => 'required|in:Vacance,Maladie,Conference,Autre',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after:start_date',
@@ -364,7 +459,6 @@ class DashboardController extends Controller
 
         DB::beginTransaction();
         try {
-
             $leave = EmployeeLeave::findOrFail($request->id);
 
             if ($leave->employee_id !== auth()->id()) {
@@ -398,11 +492,18 @@ class DashboardController extends Controller
             );
 
             DB::commit();
+            
+            Log::info('Congé mis à jour', [
+                'leave_id' => $leave->id,
+                'restored_slots' => $restoredCount,
+                'deleted_slots' => $deletedCount
+            ]);
+            
             return redirect()->back()->with('success', "Congé mis à jour. {$restoredCount} créneaux restaurés, {$deletedCount} supprimés.");
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Erreur: ' . $e->getMessage());
+            Log::error('Erreur mise à jour congé: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Erreur lors de la mise à jour');
         }
     }
@@ -414,15 +515,13 @@ class DashboardController extends Controller
     {
         DB::beginTransaction();
 
-        // try {
+        try {
             $leave = EmployeeLeave::findOrFail($request->input('id'));
             
-            // Vérifier les permissions
             if ($leave->employee_id !== auth()->id()) {
                 return redirect()->back()->with('error', 'Vous n\'êtes pas autorisé à supprimer ce congé');
             }
 
-            // Vérifier que le congé peut être supprimé
             if ($leave->status === 'approved' && $leave->start_date <= now()) {
                 return redirect()->back()->with('error', 'Un congé déjà approuvé et commencé ne peut être supprimé');
             }
@@ -434,106 +533,28 @@ class DashboardController extends Controller
                 auth()->id()
             );
 
-            // Supprimer le congé
             $leave->delete();
 
             DB::commit();
             
-            Log::info("Congé supprimé - Créneaux restaurés", [
+            Log::info("Congé supprimé", [
                 'leave_id' => $leave->id,
                 'employee_id' => auth()->id(),
-                'period' => $leave->start_date->format('Y-m-d H:i') . ' à ' . $leave->end_date->format('Y-m-d H:i'),
                 'restored_slots' => $restoredCount
             ]);
             
             return redirect()->back()->with('success', "Congé supprimé avec succès. {$restoredCount} créneaux restaurés.");
 
-        // } catch (\Exception $e) {
-        //     DB::rollBack();
-        //     Log::error('Erreur suppression congé', [
-        //         'message' => $e->getMessage(),
-        //         'trace' => $e->getTraceAsString(),
-        //         'employee_id' => auth()->id()
-        //     ]);
-        //     return redirect()->back()->with('error', 'Erreur lors de la suppression du congé: ' . $e->getMessage());
-        // }
-    }
-
-    /**
-     * Génère les créneaux de rendez-vous pour une disponibilité
-     */
-    private function generateAppointmentSlots(array $availability, int $weeks = 8): void
-    {
-        $dayOfWeek = $this->getDayOfWeek($availability['day_of_week']);
-        $nextOccurrence = Carbon::now()->next($dayOfWeek);
-
-        for ($week = 0; $week < $weeks; $week++) {
-            $date = $nextOccurrence->copy()->addWeeks($week);
-
-            // Vérifier si c'est un jour de congé
-            $isLeaveDay = EmployeeLeave::where('employee_id', auth()->id())
-                ->whereDate('start_date', '<=', $date)
-                ->whereDate('end_date', '>=', $date)
-                ->exists();
-
-            if ($isLeaveDay) {
-                continue;
-            }
-
-            $start = Carbon::createFromFormat('H:i', $availability['start_time']);
-            $end = Carbon::createFromFormat('H:i', $availability['end_time']);
-            $duration = (int)$availability['slot_duration'];
-
-            while ($start <= $end) {
-                AppointmentSlot::create([
-                    'employee_id' => auth()->id(),
-                    'date' => $date->format('Y-m-d'),
-                    'time' => $start->format('H:i'),
-                    'is_available' => true
-                ]);
-
-                $start->addMinutes($duration);
-            }
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Erreur suppression congé: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Erreur lors de la suppression du congé: ' . $e->getMessage());
         }
     }
 
     /**
-     * Supprime les créneaux existants pour un jour donné
+     * Restaure les créneaux pour une période donnée
      */
-    private function deleteExistingSlots(string $dayOfWeek): void
-    {
-        $dayOfWeekEn = $this->getDayOfWeek($dayOfWeek);
-        $nextOccurrence = Carbon::now()->next($dayOfWeekEn);
-
-        for ($week = 0; $week < 8; $week++) {
-            $date = $nextOccurrence->copy()->addWeeks($week);
-
-            AppointmentSlot::where('employee_id', auth()->id())
-                ->whereDate('date', $date)
-                ->where('is_available', true) // Ne supprimer que les créneaux disponibles
-                ->delete();
-        }
-    }
-
-    /**
-     * Convertit les jours français en anglais
-     */
-    private function getDayOfWeek(string $day): string
-    {
-        $days = [
-            'Lundi' => 'Monday',
-            'Mardi' => 'Tuesday',
-            'Mercredi' => 'Wednesday',
-            'Jeudi' => 'Thursday',
-            'Vendredi' => 'Friday',
-            'Samedi' => 'Saturday',
-            'Dimanche' => 'Sunday',
-        ];
-
-        return $days[$day] ?? 'Monday';
-    }
-
-        // Fonction helper réutilisable
     private function restoreSlotsForPeriod($startDate, $endDate, $employeeId): int
     {
         $start = Carbon::parse($startDate);
@@ -545,27 +566,35 @@ class DashboardController extends Controller
             $dayName = ucfirst($currentDate->locale('fr')->isoFormat('dddd'));
             
             $availability = EmployeeAvailability::where('employee_id', $employeeId)
-                                                ->where('day_of_week', $dayName)
-                                                ->where('is_active', true)
-                                                ->first();
+                ->where('day_of_week', $dayName)
+                ->where('is_active', true)
+                ->first();
 
             if ($availability) {
                 $startTime = Carbon::createFromFormat('H:i', $availability->start_time->format('H:i'));
                 $endTime = Carbon::createFromFormat('H:i', $availability->end_time->format('H:i'));
                 $duration = (int)$availability->slot_duration;
                 
+                // Ajustement pour le premier jour
                 if ($currentDate->isSameDay($start)) {
                     $leaveStart = Carbon::parse($startDate);
                     $startTime = $startTime->max(Carbon::createFromFormat('H:i', $leaveStart->format('H:i')));
                 }
                 
+                // Ajustement pour le dernier jour
                 if ($currentDate->isSameDay($end)) {
                     $leaveEnd = Carbon::parse($endDate);
                     $endTime = $endTime->min(Carbon::createFromFormat('H:i', $leaveEnd->format('H:i')));
                 }
                 
+                // Ne pas créer de créneaux dans le passé
+                if ($currentDate->isToday()) {
+                    $now = Carbon::now();
+                    $startTime = $startTime->max($now);
+                }
+                
                 $slotTime = $startTime->copy();
-                while ($slotTime <= $endTime) {
+                while ($slotTime < $endTime) {
                     $slot = AppointmentSlot::firstOrCreate([
                         'employee_id' => $employeeId,
                         'date' => $currentDate->format('Y-m-d'),
@@ -585,6 +614,9 @@ class DashboardController extends Controller
         return $restoredCount;
     }
 
+    /**
+     * Supprime les créneaux pour une période donnée
+     */
     private function deleteSlotsForPeriod($startDate, $endDate, $employeeId): int
     {
         $start = Carbon::parse($startDate);
@@ -596,32 +628,34 @@ class DashboardController extends Controller
             $dayName = ucfirst($currentDate->locale('fr')->isoFormat('dddd'));
             
             $availability = EmployeeAvailability::where('employee_id', $employeeId)
-                                                ->where('day_of_week', $dayName)
-                                                ->where('is_active', true)
-                                                ->first();
+                ->where('day_of_week', $dayName)
+                ->where('is_active', true)
+                ->first();
 
             if ($availability) {
-                $startTime  = Carbon::createFromFormat('H:i', $availability->start_time->format('H:i'));
-                $endTime    = Carbon::createFromFormat('H:i', $availability->end_time->format('H:i'));
-                $duration   = (int)$availability->slot_duration;
+                $startTime = Carbon::createFromFormat('H:i', $availability->start_time->format('H:i'));
+                $endTime = Carbon::createFromFormat('H:i', $availability->end_time->format('H:i'));
+                $duration = (int)$availability->slot_duration;
                 
+                // Ajustement pour le premier jour
                 if ($currentDate->isSameDay($start)) {
                     $leaveStart = Carbon::parse($startDate);
                     $startTime = $startTime->max(Carbon::createFromFormat('H:i', $leaveStart->format('H:i')));
                 }
                 
+                // Ajustement pour le dernier jour
                 if ($currentDate->isSameDay($end)) {
                     $leaveEnd = Carbon::parse($endDate);
                     $endTime = $endTime->min(Carbon::createFromFormat('H:i', $leaveEnd->format('H:i')));
                 }
                 
                 $slotTime = $startTime->copy();
-                while ($slotTime <= $endTime) {
+                while ($slotTime < $endTime) {
                     $deleted = AppointmentSlot::where('employee_id', $employeeId)
-                                            ->where('date', $currentDate->format('Y-m-d'))
-                                            ->where('time', $slotTime->format('H:i:s'))
-                                            ->where('is_available', true)
-                                            ->delete();
+                        ->where('date', $currentDate->format('Y-m-d'))
+                        ->where('time', $slotTime->format('H:i:s'))
+                        ->where('is_available', true)
+                        ->delete();
                     
                     $deletedCount += $deleted;
                     $slotTime->addMinutes($duration);
@@ -643,11 +677,11 @@ class DashboardController extends Controller
             ->where('status', '!=', 'rejected')
             ->where(function ($q) use ($startDate, $endDate) {
                 $q->whereBetween('start_date', [$startDate, $endDate])
-                ->orWhereBetween('end_date', [$startDate, $endDate])
-                ->orWhere(function ($q2) use ($startDate, $endDate) {
-                    $q2->where('start_date', '<=', $startDate)
-                        ->where('end_date', '>=', $endDate);
-                });
+                    ->orWhereBetween('end_date', [$startDate, $endDate])
+                    ->orWhere(function ($q2) use ($startDate, $endDate) {
+                        $q2->where('start_date', '<=', $startDate)
+                            ->where('end_date', '>=', $endDate);
+                    });
             });
         
         if ($excludeLeaveId) {

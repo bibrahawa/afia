@@ -174,10 +174,7 @@ class SendAppointmentRemindersCommand extends Command
         $errorCount = 0;
         $skippedCount = 0;
 
-        // Traiter par chunks de 50 pour éviter la surcharge mémoire
         try {
-            DB::beginTransaction();
-
             $query->with(['patient.user', 'employee'])
                 ->chunk(50, function ($appointments) use (&$successCount, &$errorCount, &$skippedCount, $jobType, $reminderField, $bar) {
                     foreach ($appointments as $appointment) {
@@ -193,22 +190,35 @@ class SendAppointmentRemindersCommand extends Command
                                 continue;
                             }
 
-                            // Marquer immédiatement comme envoyé pour éviter les doublons
-                            $appointment->update([$reminderField => now()]);
+                            // Petit délai pour éviter le spam
+                            if ($successCount > 0) {
+                                usleep(rand(500000, 1500000)); // 0.5 à 1.5 secondes
+                            }
 
-                            // Dispatch le job avec un délai aléatoire pour éviter le spam
-                            SendAppointmentReminderJob::dispatch($appointment, $jobType)
-                                ->delay(now()->addSeconds(rand(1, 10)));
+                            // 1. D'ABORD envoyer le SMS
+                            SendAppointmentReminderJob::dispatchSync($appointment, $jobType);
+                            
+                            // 2. SI ça marche, ALORS marquer comme envoyé
+                            $appointment->update([$reminderField => now()]);
                             
                             $successCount++;
                             
+                            Log::info("SMS envoyé avec succès", [
+                                'appointment_id' => $appointment->id,
+                                'patient' => $appointment->patient->getFullNameAttribute(),
+                                'type' => $jobType
+                            ]);
+                            
                         } catch (\Exception $e) {
                             $errorCount++;
-                            Log::error("Erreur dispatch job rappel", [
+                            
+                            // Le RDV n'a PAS été marqué comme envoyé, donc il sera retenté
+                            Log::error("Erreur envoi SMS", [
                                 'appointment_id' => $appointment->id,
+                                'patient' => $appointment->patient->getFullNameAttribute(),
                                 'type' => $jobType,
                                 'error' => $e->getMessage(),
-                                'line' => $e->getLine()
+                                'trace' => $e->getTraceAsString()
                             ]);
                         }
                         
@@ -216,11 +226,7 @@ class SendAppointmentRemindersCommand extends Command
                     }
                 });
 
-            DB::commit();
-
         } catch (\Exception $e) {
-            DB::rollBack();
-            
             $bar->finish();
             $this->newLine();
             $this->error("❌ Erreur critique : " . $e->getMessage());
