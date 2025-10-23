@@ -22,19 +22,19 @@ class SendAppointmentRemindersCommand extends Command
         $type = $this->option('type');
         $dryRun = $this->option('dry-run');
 
-        $this->info("🏥 Démarrage du traitement des rappels SMS");
-        $this->info("📅 Date/Heure : " . now()->format('d/m/Y H:i:s'));
-        $this->info("🔧 Type : {$type}");
+        $this->info("Démarrage du traitement des rappels SMS");
+        $this->info("Date/Heure : " . now()->format('d/m/Y H:i:s'));
+        $this->info("Type : {$type}");
         
         if ($dryRun) {
-            $this->warn("⚠️  MODE SIMULATION - Aucun SMS ne sera envoyé");
+            $this->warn(" MODE SIMULATION - Aucun SMS ne sera envoyé");
         }
 
         $this->newLine();
 
         // Valider le type
         if (!in_array($type, ['24h', '2h', 'all'])) {
-            $this->error("❌ Type de rappel invalide. Utilisez '24h', '2h' ou 'all'");
+            $this->error("Type de rappel invalide. Utilisez '24h', '2h' ou 'all'");
             return 1;
         }
 
@@ -54,8 +54,8 @@ class SendAppointmentRemindersCommand extends Command
         $executionTime = round(microtime(true) - $startTime, 2);
 
         $this->newLine();
-        $this->info("✅ Traitement terminé en {$executionTime}s");
-        $this->info("📊 Total : {$totalProcessed} rappels traités");
+        $this->info("Traitement terminé en {$executionTime}s");
+        $this->info("Total : {$totalProcessed} rappels traités");
 
         Log::info("Commande rappels SMS exécutée", [
             'type' => $type,
@@ -70,9 +70,7 @@ class SendAppointmentRemindersCommand extends Command
     private function processReminders(string $type, bool $dryRun): int
     {
         $this->newLine();
-        $this->line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        $this->info("📱 TRAITEMENT DES RAPPELS {$type}");
-        $this->line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        $this->info("TRAITEMENT DES RAPPELS {$type}");
 
         // Configuration selon le type
         if ($type === '24h') {
@@ -90,11 +88,11 @@ class SendAppointmentRemindersCommand extends Command
         // Compter le nombre de RDV
         $totalCount = $query->count();
         
-        $this->info("🔍 Recherche en cours...");
-        $this->info("📋 {$totalCount} rendez-vous trouvés pour {$title}");
+        $this->info("Recherche en cours...");
+        $this->info("{$totalCount} rendez-vous trouvés pour {$title}");
 
         if ($totalCount === 0) {
-            $this->info("✅ Aucun rappel {$type} à envoyer");
+            $this->info("Aucun rappel {$type} à envoyer");
             return 0;
         }
 
@@ -102,11 +100,11 @@ class SendAppointmentRemindersCommand extends Command
         if ($type === '24h') {
             $start = now()->addHours(22)->format('d/m/Y H:i');
             $end = now()->addHours(26)->format('d/m/Y H:i');
-            $this->comment("⏰ Fenêtre de détection : {$start} → {$end}");
+            $this->comment("Fenêtre de détection : {$start} → {$end}");
         } else {
             $start = now()->addMinutes(90)->format('d/m/Y H:i');
             $end = now()->addMinutes(150)->format('d/m/Y H:i');
-            $this->comment("⏰ Fenêtre de détection : {$start} → {$end}");
+            $this->comment("Fenêtre de détection : {$start} → {$end}");
         }
 
         $this->newLine();
@@ -118,8 +116,8 @@ class SendAppointmentRemindersCommand extends Command
 
         // Confirmation en mode interactif (sauf si --force)
         if (!$this->option('force') && $this->input->isInteractive()) {
-            if (!$this->confirm("❓ Confirmer l'envoi de {$totalCount} rappels {$type} ?", true)) {
-                $this->warn("❌ Envoi annulé par l'utilisateur");
+            if (!$this->confirm("Confirmer l'envoi de {$totalCount} rappels {$type} ?", true)) {
+                $this->warn("Envoi annulé par l'utilisateur");
                 return 0;
             }
         }
@@ -130,7 +128,7 @@ class SendAppointmentRemindersCommand extends Command
 
     private function showDryRunResults($query, string $type, int $totalCount): int
     {
-        $this->warn("🔍 MODE SIMULATION - Aperçu des {$totalCount} rappels qui seraient envoyés :");
+        $this->warn("MODE SIMULATION - Aperçu des {$totalCount} rappels qui seraient envoyés :");
         $this->newLine();
 
         // Récupérer les appointments avec les relations
@@ -163,7 +161,7 @@ class SendAppointmentRemindersCommand extends Command
 
     private function sendReminders($query, string $jobType, string $reminderField, int $totalCount): int
     {
-        $this->info("🚀 Envoi en cours...");
+        $this->info("Envoi en cours...");
         $this->newLine();
 
         $bar = $this->output->createProgressBar($totalCount);
@@ -229,7 +227,7 @@ class SendAppointmentRemindersCommand extends Command
         } catch (\Exception $e) {
             $bar->finish();
             $this->newLine();
-            $this->error("❌ Erreur critique : " . $e->getMessage());
+            $this->error("Erreur critique : " . $e->getMessage());
             
             Log::error("Erreur critique dans processReminders", [
                 'error' => $e->getMessage(),
@@ -250,25 +248,23 @@ class SendAppointmentRemindersCommand extends Command
 
     private function displaySummary(int $successCount, int $errorCount, int $skippedCount): void
     {
-        $this->line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        $this->info("📊 RÉSUMÉ");
-        $this->line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        $this->info("RÉSUMÉ");
 
         if ($successCount > 0) {
-            $this->info("✅ Rappels envoyés : {$successCount}");
+            $this->info("Rappels envoyés : {$successCount}");
         }
 
         if ($skippedCount > 0) {
-            $this->warn("⏭️  Rappels ignorés : {$skippedCount} (téléphone manquant)");
+            $this->warn("Rappels ignorés : {$skippedCount} (téléphone manquant)");
         }
 
         if ($errorCount > 0) {
-            $this->error("❌ Erreurs : {$errorCount}");
-            $this->comment("💡 Consultez les logs pour plus de détails : storage/logs/laravel.log");
+            $this->error("Erreurs : {$errorCount}");
+            $this->comment("Consultez les logs pour plus de détails : storage/logs/laravel.log");
         }
 
         if ($errorCount === 0 && $skippedCount === 0) {
-            $this->info("🎉 Tous les rappels ont été traités avec succès !");
+            $this->info("Tous les rappels ont été traités avec succès !");
         }
     }
 }

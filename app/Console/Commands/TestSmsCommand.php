@@ -15,17 +15,17 @@ class TestSmsCommand extends Command
         $phone = $this->argument('phone');
         $message = $this->argument('message');
 
-        $this->info("📱 Test d'envoi SMS vers {$phone}");
-        $this->info("💬 Message: {$message}");
+        $this->info("Test d'envoi SMS vers {$phone}");
+        $this->info("Message: {$message}");
 
         $result = $smsService->sendSms($phone, $message, 'TEST');
 
         if ($result['success']) {
-            $this->info("✅ SMS envoyé avec succès");
-            $this->info("🆔 Message ID: " . ($result['message_id'] ?? 'N/A'));
+            $this->info("SMS envoyé avec succès");
+            $this->info("Message ID: " . ($result['message_id'] ?? 'N/A'));
         } else {
-            $this->error("❌ Échec de l'envoi");
-            $this->error("🔥 Erreur: " . $result['error']);
+            $this->error("Échec de l'envoi");
+            $this->error("Erreur: " . $result['error']);
         }
     }
 }
