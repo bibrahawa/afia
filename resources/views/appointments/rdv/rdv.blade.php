@@ -421,6 +421,15 @@
                     <div class="input-border"></div>
                 </div>
 
+                <div class="input-group">
+                    <div class="input-label">
+                        <span class="label-icon">📱</span>
+                        <span>Nom</span>
+                    </div>
+                    <input type="text" id="patient-name" class="form-control" placeholder="Ex: Hawaou" required>
+                    <div class="input-border"></div>
+                </div>
+
                 <p style="font-size: 12px; color: #666; margin-top: 8px;">
                     💡 Si c'est votre première visite, un compte sera créé automatiquement
                 </p>
@@ -485,6 +494,119 @@
         document.getElementById('next-btn').disabled = show;
         document.getElementById('prev-btn').disabled = show;
     }
+
+    // Fonction pour vérifier si le patient existe
+    async function checkPatientExists(phone) {
+        try {
+            const response = await fetch('/api/check-patient', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify({ phone: phone })
+            });
+
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Erreur lors de la vérification du patient:', error);
+            return { exists: false, error: true };
+        }
+    }
+
+    // Fonction pour formater le numéro de téléphone
+    function formatPhoneNumber(phone) {
+        // Enlever tous les espaces et caractères non numériques
+        return phone.replace(/\D/g, '');
+    }
+
+    // Fonction pour valider le format du numéro de téléphone
+    function isValidPhone(phone) {
+        const cleanPhone = formatPhoneNumber(phone);
+        // Vérifier que le numéro a au moins 9 chiffres (ajustez selon vos besoins)
+        return cleanPhone.length >= 9 && cleanPhone.length <= 12;
+    }
+
+    // Gestionnaire d'événement sur le champ téléphone
+    document.getElementById('patient-phone').addEventListener('blur', async function() {
+        const phone = this.value.trim();
+        const nameField = document.getElementById('patient-name');
+        const nameGroup = nameField.closest('.input-group');
+        const confirmField = document.getElementById('patient-phone-confirm');
+        const confirmGroup = confirmField.closest('.input-group');
+        
+        // Réinitialiser les styles d'erreur
+        this.classList.remove('error');
+        
+        if (!phone) {
+            return;
+        }
+
+        // Vérifier le format du numéro
+        if (!isValidPhone(phone)) {
+            showAlert('Veuillez entrer un numéro de téléphone valide', 'error');
+            this.classList.add('error');
+            return;
+        }
+
+        // Afficher un loader
+        showLoading(true);
+        
+        try {
+            const result = await checkPatientExists(formatPhoneNumber(phone));
+            
+            if (result.error) {
+                showAlert('Erreur lors de la vérification. Veuillez réessayer.', 'error');
+                showLoading(false);
+                return;
+            }
+
+            if (result.exists) {
+                // Patient existe déjà
+                console.log('Patient trouvé:', result.patient);
+                
+                // Masquer le champ nom
+                nameGroup.style.display = 'none';
+                nameField.removeAttribute('required');
+                nameField.value = ''; // Réinitialiser la valeur
+                
+                // Afficher le champ de confirmation
+                confirmGroup.style.display = 'block';
+                confirmField.setAttribute('required', 'required');
+                
+                // Afficher un message de bienvenue
+                showAlert(`Bienvenue ${result.patient.name || 'de retour'} ! 👋`, 'success');
+                
+                // Stocker les infos du patient
+                window.existingPatient = result.patient;
+                
+            } else {
+                // Nouveau patient
+                console.log('Nouveau patient');
+                
+                // Afficher le champ nom
+                nameGroup.style.display = 'block';
+                nameField.setAttribute('required', 'required');
+                
+                // Afficher le champ de confirmation
+                confirmGroup.style.display = 'block';
+                confirmField.setAttribute('required', 'required');
+                
+                // Message pour nouveau patient
+                showAlert('Premier rendez-vous ? Renseignez votre nom ci-dessous. 📝', 'info');
+                
+                // Supprimer les infos patient stockées
+                delete window.existingPatient;
+            }
+            
+        } catch (error) {
+            console.error('Erreur:', error);
+            showAlert('Une erreur est survenue. Veuillez réessayer.', 'error');
+        } finally {
+            showLoading(false);
+        }
+    });
 
     // Fonction pour faire des requêtes AJAX améliorée
     async function makeRequest(url, options = {}) {
@@ -573,6 +695,20 @@
             showAlert('Erreur lors du chargement des dates disponibles: ' + error.message);
         }
     }
+
+    // Validation en temps réel de la confirmation du téléphone
+    document.getElementById('patient-phone-confirm').addEventListener('input', function() {
+        const phone = document.getElementById('patient-phone').value;
+        const confirmPhone = this.value;
+        
+        if (confirmPhone && phone !== confirmPhone) {
+            this.classList.add('error');
+            this.setCustomValidity('Les numéros ne correspondent pas');
+        } else {
+            this.classList.remove('error');
+            this.setCustomValidity('');
+        }
+    });
 
     // Sélectionner une date disponible
     async function selectAvailableDate(date, dateStr, card) {
@@ -753,10 +889,6 @@
         }, 200);
     }
 
-    // Gestion de l'authentification - fonction simplifiée
-    function showAuth(type) {
-        // Fonction vide - plus nécessaire avec le nouveau système
-    }
 
     // Validation des données
     function validateStep(step) {
@@ -788,8 +920,16 @@
                 }
                 break;
             case 4:
+
+                // const name = document.getElementById('patient-name').value.trim();
                 const phone = document.getElementById('patient-phone').value.trim();
 
+                // if (!name) {
+                //     showAlert('Veuillez saisir votre nom');
+                //     addFieldError('patient-name');
+                //     return false;
+                // }
+                
                 if (!phone) {
                     showAlert('Veuillez saisir votre numéro de téléphone');
                     addFieldError('patient-phone');
@@ -897,12 +1037,20 @@
         document.getElementById('summary-date').textContent = selectedDate ?
             selectedDate.toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : '-';
         document.getElementById('summary-time').textContent = selectedTime || '-';
+
+        // Cacher initialement les champs de confirmation et nom
+        const confirmGroup = document.getElementById('patient-phone-confirm').closest('.input-group');
+        const nameGroup = document.getElementById('patient-name').closest('.input-group');
+        
+        confirmGroup.style.display = 'none';
+        nameGroup.style.display = 'none';
     }
 
     // Authentification simplifiée - Vérifier ou créer le patient
     async function authenticatePatient(phone) {
+        var name = document.getElementById('patient-name').value.trim() || null
         const url = '/api/patient/find-or-create';
-        const data = { phone: phone };
+        const data = { phone: phone, name: name };
 
         try {
             const response = await makeRequest(url, {
@@ -990,6 +1138,7 @@
         document.getElementById('time-slots').innerHTML = '';
         document.getElementById('time-slots-container').style.display = 'none';
         document.getElementById('patient-phone-confirm').value = '';
+        document.getElementById('patient-name').value = '';
 
         updateSteps();
     }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Appointment;
 use App\Models\Department;
 use App\Models\Employee;
+use App\Models\User;
 use App\Services\SmsService;
 use App\Models\AppointmentSlot;
 use Illuminate\Http\Request;
@@ -32,6 +33,33 @@ class AppointmentController extends Controller
     {
         $departments = Department::get();
         return response()->json($departments);
+    }
+
+    // Dans votre AppointmentController.php
+    public function checkPatient(Request $request)
+    {
+        $request->validate([
+            'phone' => 'required|string'
+        ]);
+        
+        $phone = preg_replace('/\D/', '', $request->phone); // Nettoyer le numéro
+
+        $patient = User::where('phone', $phone)->first();
+
+        if ($patient) {
+            return response()->json([
+                'exists' => true,
+                'patient' => [
+                    'id' => $patient->id,
+                    'name' => $patient->name,
+                    'phone' => $patient->phone
+                ]
+            ]);
+        }
+        
+        return response()->json([
+            'exists' => false
+        ]);
     }
 
     public function getProfessionals(Request $request, $id)

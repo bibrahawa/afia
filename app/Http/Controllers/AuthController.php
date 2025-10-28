@@ -152,8 +152,11 @@ class AuthController extends Controller
 
         $validated = $request->validate([
             'phone' => ['required', 'string', 'regex:/^[0-9]{9}$/'],
+            'name' => ['nullable', 'string', 'min:2', 'max:100'], // AJOUTER CETTE LIGNE
         ], [
             'phone.regex' => 'Le numéro de téléphone doit contenir exactement 9 chiffres.',
+            'name.min' => 'Le nom doit contenir au moins 2 caractères.', // AJOUTER
+            'name.max' => 'Le nom ne peut pas dépasser 100 caractères.', // AJOUTER
         ]);
 
         try {
@@ -193,8 +196,15 @@ class AuthController extends Controller
                 
                 return response()->json([
                     'error' => false,
+                    'exists' => true,
                     'message' => 'Patient trouvé',
-                    'patient' => $patient,
+                    'patient' => [
+                        'id' => $patient->id,
+                        'name' => $user->name, 
+                        'phone' => $user->phone,
+                        'first_name' => $patient->first_name,
+                        'last_name' => $patient->last_name,
+                    ],
                     'is_new' => false
                 ], 200);
                 
@@ -205,22 +215,28 @@ class AuthController extends Controller
                 // Générer un mot de passe aléatoire de 6 chiffres
                 $generatedPassword = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
 
+                // Déterminer le nom à utiliser
+                $providedName = $validated['name'] ?? null;
+                $nameParts = $providedName ? explode(' ', trim($providedName), 2) : ['Patient', substr($validated['phone'], -4)];
+
+                $firstName = $nameParts[0];
+                $lastName = $nameParts[1] ?? substr($validated['phone'], -4);
+
                 $user = User::create([
                     'email' => strtolower(trim(random_int(1000000000, 9999999999) . '@aprosafe.com')),
                     'phone' => $validated['phone'],
-                    'name' => 'Patient ' . substr($validated['phone'], -4),
+                    'name' => $providedName ?? 'Patient ' . substr($validated['phone'], -4), // MODIFIÉ
                     'password' => Hash::make($generatedPassword),
                     'last_login_at' => Carbon::now(),
                     'login_attempts' => 0,
                     'locked_until' => null,
                 ]);
 
-
                 // Créer le profil patient
                 $patient = Patient::create([
                     'user_id' => $user->id,
-                    'first_name' => 'Patient',
-                    'last_name' => substr($validated['phone'], -4),
+                    'first_name' => $firstName, // MODIFIÉ
+                    'last_name' => $lastName, // MODIFIÉ
                     'age' => 0,
                     'marital_status' => '',
                 ]);
@@ -245,9 +261,16 @@ class AuthController extends Controller
 
                 return response()->json([
                     'error' => false,
+                    'exists' => false, // AJOUTER
                     'message' => 'Nouveau compte créé',
-                    'patient' => $patient,
-                    'is_new' => true
+                    'patient' => [
+                        'id' => $patient->id,
+                        'name' => $user->name,
+                        'phone' => $user->phone,
+                        'first_name' => $patient->first_name,
+                        'last_name' => $patient->last_name,
+                    ],
+                    'is_new' => true,
                 ], 201);
             }
 
