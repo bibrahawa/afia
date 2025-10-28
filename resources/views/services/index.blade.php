@@ -32,13 +32,15 @@
             <div class="card-header">
               <div class="d-flex align-items-center">
                 <h4 class="card-title">Liste des services</h4>
-                <button
-                  class="btn btn-primary btn-round ms-auto"
-                  data-bs-toggle="modal"
-                  data-bs-target="#addRowModal"
-                >
-                  <i class="fa fa-plus"></i> Ajouter un service
-                </button>
+                @can('service.create')
+                    <button
+                    class="btn btn-primary btn-round ms-auto"
+                    data-bs-toggle="modal"
+                    data-bs-target="#addRowModal"
+                    >
+                    <i class="fa fa-plus"></i> Ajouter un service
+                    </button>
+                @endcan
               </div>
             </div>
 
@@ -72,28 +74,30 @@
                                     <td>{{ number_format($service->amount, 2)}}</td>
                                     <td>
                                         <div class="form-button-action">
-                                            <!-- Modifier : Ajout des data-bs-toggle et data-bs-target -->
-                                            <button
-                                                type="button"
-                                                class="btn btn-warning btn-round btn-sm edit-button"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#editRowModal"
-                                                data-info="{{$service->id}},{{$service->name}},{{$service->department_id}},{{$service->amount}}"
-                                            >
-                                                <i class="fa fa-edit"></i>
-                                            </button>
+                                            @can('service.edit')
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-warning btn-round btn-sm edit-button"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#editRowModal"
+                                                    data-info="{{$service->id}},{{$service->name}},{{$service->department_id}},{{$service->amount}}"
+                                                >
+                                                    <i class="fa fa-edit"></i>
+                                                </button>
+                                            @endcan
 
-                                            <!-- Supprimer : Ajout des data-bs-toggle et data-bs-target -->
-                                            <button
-                                                type="button"
-                                                class="btn btn-danger btn-round btn-sm delete-button"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#deleteRowModal"
-                                                data-id="{{$service->id}}"
-                                                data-name="{{$service->name}}"
-                                            >
-                                                <i class="fa fa-trash"></i>
-                                            </button>
+                                            @can('service.delete')
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-danger btn-round btn-sm delete-button"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#deleteRowModal"
+                                                    data-id="{{$service->id}}"
+                                                    data-name="{{$service->name}}"
+                                                >
+                                                    <i class="fa fa-trash"></i>
+                                                </button>
+                                            @endcan
                                         </div>
                                     </td>
                                 </tr>

@@ -46,24 +46,30 @@
                                 <small class="text-muted">Détails des factures impayées</small>
                             </div>
                             <div>
-                                <a href="{{ route('insurance.balances.index') }}" class="btn btn-secondary">
-                                    <i class="fas fa-arrow-left mr-1"></i>
-                                    Retour
-                                </a>
-                                @if($invoices->isNotEmpty())
-                                    <button type="button" class="btn btn-success" onclick="exportToExcel()">
-                                        <i class="fas fa-file-excel mr-1"></i>
-                                        Exporter Excel
-                                    </button>
-                                @endif
-                                @if($stats['factures_impayees'] > 0)
-                                    <button type="button" class="btn btn-success"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#addNewPaiementModal">
-                                        <i class="fas fa-money-bill-wave mr-1"></i>
-                                        Paiement Groupé
-                                    </button>
-                                @endif
+                                @can('insurance_balance.view')
+                                    <a href="{{ route('insurance.balances.index') }}" class="btn btn-secondary">
+                                        <i class="fas fa-arrow-left mr-1"></i>
+                                        Retour
+                                    </a>
+                                @endcan
+                                @can('insurance_balance.export')
+                                    @if($invoices->isNotEmpty())
+                                        <button type="button" class="btn btn-success" onclick="exportToExcel()">
+                                            <i class="fas fa-file-excel mr-1"></i>
+                                            Exporter Excel
+                                        </button>
+                                    @endif
+                                @endcan
+                                @can('insurance_balance.payment')
+                                    @if($stats['factures_impayees'] > 0)
+                                        <button type="button" class="btn btn-success"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#addNewPaiementModal">
+                                            <i class="fas fa-money-bill-wave mr-1"></i>
+                                            Paiement Groupé
+                                        </button>
+                                    @endif
+                                @endcan
                             </div>
                         </div>
                     </div>

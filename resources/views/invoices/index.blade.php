@@ -112,16 +112,18 @@
                                 {{-- <td>{{ $invoice->insurance_claim_number ?? 'N/A' }}</td> --}}
                                 <td>
                                     <div class="form-button-action">
-                                        <button
-                                            type="button"
-                                            class="btn btn-info btn-round btn-sm view-items-button"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#viewItemsModal"
-                                            data-id="{{$invoice->id}}"
-                                            title="Voir les éléments"
-                                        >
-                                            <i class="fa fa-list"></i>
-                                        </button>
+                                        @can('payment.process')
+                                            <button
+                                                type="button"
+                                                class="btn btn-info btn-round btn-sm view-items-button"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#viewItemsModal"
+                                                data-id="{{$invoice->id}}"
+                                                title="Voir les éléments"
+                                            >
+                                                <i class="fa fa-list"></i>
+                                            </button>
+                                        @endcan
 
                                         {{-- <button
                                             type="button"
@@ -326,12 +328,14 @@
                         </form>
                         </div>
                         <div class="modal-footer border-0">
-                        <button type="submit" id="addRowButton" class="btn btn-primary" form="addInvoiceForm">
-                            Ajouter
-                            <div class="spinner-border spinner-border-sm text-light" role="status" id="addLoader" style="display: none;">
-                                <span class="sr-only">Loading...</span>
-                            </div>
-                        </button>
+                        @can('payment.process')
+                            <button type="submit" id="addRowButton" class="btn btn-primary" form="addInvoiceForm">
+                                Ajouter
+                                <div class="spinner-border spinner-border-sm text-light" role="status" id="addLoader" style="display: none;">
+                                    <span class="sr-only">Loading...</span>
+                                </div>
+                            </button>
+                        @endcan
 
                         <button type="button" class="btn btn-danger" data-bs-dismiss="modal">
                             Fermer

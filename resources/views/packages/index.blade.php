@@ -33,11 +33,13 @@
               <div class="d-flex align-items-center">
                 <h4 class="card-title">Liste des packages</h4>
                 {{-- Bouton "Ajouter un package" qui redirige vers la page de création --}}
-                <button class="btn btn-primary btn-round ms-auto"
-                  data-bs-toggle="modal"
-                  data-bs-target="#addRowModal">
-                  <i class="fa fa-plus"></i> Ajouter un package
-                </button>
+                @can('package.create')
+                    <button class="btn btn-primary btn-round ms-auto"
+                    data-bs-toggle="modal"
+                    data-bs-target="#addRowModal">
+                    <i class="fa fa-plus"></i> Ajouter un package
+                    </button>
+                @endcan
               </div>
             </div>
 
@@ -82,20 +84,22 @@
                                     <td>{{ number_format($package->price, 2)}}</td>
                                     <td>
                                         <div class="form-button-action">
-
-                                            <a  class="btn btn-warning btn-round btn-sm edit-button"
-                                            href="{{ route('package.edit', $package->id) }}"><i class="fa fa-edit"></i></a>
-
-                                            <button
-                                                type="button"
-                                                class="btn btn-danger btn-round btn-sm delete-button"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#deleteRowModal"
-                                                data-id="{{$package->id}}"
-                                                data-name="{{$package->name}}"
-                                            >
-                                                <i class="fa fa-trash"></i>
-                                            </button>
+                                            @can('package.edit')
+                                                <a  class="btn btn-warning btn-round btn-sm edit-button"
+                                                href="{{ route('package.edit', $package->id) }}"><i class="fa fa-edit"></i></a>
+                                            @endcan
+                                            @can('package.delete')
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-danger btn-round btn-sm delete-button"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#deleteRowModal"
+                                                    data-id="{{$package->id}}"
+                                                    data-name="{{$package->name}}"
+                                                >
+                                                    <i class="fa fa-trash"></i>
+                                                </button>
+                                            @endcan
                                         </div>
                                     </td>
                                 </tr>

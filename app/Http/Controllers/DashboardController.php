@@ -79,8 +79,8 @@ class DashboardController extends Controller
      */
     public function appointments(Request $request)
     {
-        $appointments = Appointment::where('employee_id', auth()->id())
-            ->where('status', '!=', 'Completed')
+        // where('employee_id', auth()->id())
+        $appointments = Appointment::where('status', '!=', 'Completed')
             ->with('patient')
             ->orderBy('appointment_date')
             ->orderBy('appointment_time')
@@ -95,11 +95,12 @@ class DashboardController extends Controller
     public function confirmAppointment(int $appointmentId): RedirectResponse
     {
         try {
+
             $appointment = Appointment::findOrFail($appointmentId);
 
-            if ($appointment->employee_id !== auth()->id()) {
-                return redirect()->back()->with('error', 'Vous n\'êtes pas autorisé à modifier ce rendez-vous');
-            }
+            // if ($appointment->employee_id !== auth()->id()) {
+            //     return redirect()->back()->with('error', 'Vous n\'êtes pas autorisé à modifier ce rendez-vous');
+            // }
 
             $appointment->update(['status' => 'confirmed']);
 
@@ -121,9 +122,9 @@ class DashboardController extends Controller
         try {
             $appointment = Appointment::findOrFail($appointmentId);
 
-            if ($appointment->employee_id !== auth()->id()) {
-                return redirect()->back()->with('error', 'Vous n\'êtes pas autorisé à modifier ce rendez-vous');
-            }
+            // if ($appointment->employee_id !== auth()->id()) {
+            //     return redirect()->back()->with('error', 'Vous n\'êtes pas autorisé à modifier ce rendez-vous');
+            // }
 
             $appointment->update(['status' => 'completed']);
             return redirect()->back()->with('success', 'Rendez-vous marqué comme terminé avec succès');

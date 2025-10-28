@@ -13,7 +13,7 @@
         <li class="separator"><i class="icon-arrow-right"></i></li>
         <li class="nav-item"><a href="{{ url('/') }}">Admin</a></li>
         <li class="separator"><i class="icon-arrow-right"></i></li>
-        <li class="nav-item"><a href="{{ route('department.index') }}">Department</a></li>
+        <li class="nav-item"><a href="#">Leaves</a></li>
       </ul>
     </div>
 
@@ -52,9 +52,12 @@
         <div class="card">
           <div class="card-header d-flex align-items-center justify-content-between">
             <h4 class="card-title">Liste des congés</h4>
-            <button class="btn btn-primary btn-round" data-bs-toggle="modal" data-bs-target="#addRowModal">
-              <i class="fa fa-plus"></i> Ajouter un congé
-            </button>
+            @can('medecin.leaves')
+              <button class="btn btn-primary btn-round" data-bs-toggle="modal" data-bs-target="#addRowModal">
+                <i class="fa fa-plus"></i> Ajouter un congé
+              </button>
+            @endcan
+          </div>
           </div>
 
           <div class="card-body">
@@ -79,6 +82,7 @@
                                 @endif
 
                                 <div class="mt-3 d-flex gap-2">
+                                  @can('medecin.leaves')
                                     <button class="btn btn-sm btn-warning edit-button"
                                             data-id="{{ $leave['id'] }}"
                                             data-type="{{ $leave['type'] }}"
@@ -89,7 +93,6 @@
                                             data-bs-target="#editLeaveModal">
                                         Modifier
                                     </button>
-
                                     <button class="btn btn-sm btn-danger delete-button"
                                             data-id="{{ $leave['id'] }}"
                                             data-type="{{ $leave['type'] }}"
@@ -97,6 +100,7 @@
                                             data-bs-target="#deleteLeaveModal">
                                         Supprimer
                                     </button>
+                                  @endcan
                                 </div>
                             </div>
 

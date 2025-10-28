@@ -423,10 +423,10 @@
 
                 <div class="input-group">
                     <div class="input-label">
-                        <span class="label-icon">📱</span>
-                        <span>Nom</span>
+                        <span class="label-icon">✅</span>
+                        <span>Votre Nom</span>
                     </div>
-                    <input type="text" id="patient-name" class="form-control" placeholder="Ex: Hawaou" required>
+                    <input type="text" id="patient-name" class="form-control" placeholder="Ex: Hawaou Barry" required>
                     <div class="input-border"></div>
                 </div>
 
@@ -468,22 +468,148 @@
     ];
 
     // Fonction pour afficher les alertes avec animation
+    // function showAlert(message, type = 'error') {
+    //     const alertContainer = document.getElementById('alert-container');
+    //     const alertClass = type === 'success' ? 'alert-success' : 'alert-error';
+    //     const icon = type === 'success' ? '✅' : '❌';
+
+    //     alertContainer.innerHTML = `
+    //         <div class="alert ${alertClass}">
+    //             ${icon} ${message}
+    //         </div>
+    //     `;
+
+    //     alertContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    //     setTimeout(() => {
+    //         alertContainer.innerHTML = '';
+    //     }, 5000);
+    // }
+
+    // Fonction pour afficher les alertes avec animation
     function showAlert(message, type = 'error') {
         const alertContainer = document.getElementById('alert-container');
-        const alertClass = type === 'success' ? 'alert-success' : 'alert-error';
-        const icon = type === 'success' ? '✅' : '❌';
+        
+        // Configuration des types d'alertes
+        const alertConfig = {
+            success: {
+                class: 'alert-success',
+                icon: '✅',
+                gradient: 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)'
+            },
+            error: {
+                class: 'alert-error',
+                icon: '❌',
+                gradient: 'linear-gradient(135deg, #f44336 0%, #da190b 100%)'
+            },
+            info: {
+                class: 'alert-info',
+                icon: 'ℹ️',
+                gradient: 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)'
+            },
+            warning: {
+                class: 'alert-warning',
+                icon: '⚠️',
+                gradient: 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)'
+            }
+        };
+        
+        const config = alertConfig[type] || alertConfig.error;
 
         alertContainer.innerHTML = `
-            <div class="alert ${alertClass}">
-                ${icon} ${message}
+            <div class="alert ${config.class}" style="
+                background: ${config.gradient};
+                color: white;
+                padding: 15px 20px;
+                border-radius: 8px;
+                margin-bottom: 15px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                animation: slideInDown 0.4s ease-out;
+                font-size: 15px;
+                font-weight: 500;
+            ">
+                <span style="font-size: 22px; flex-shrink: 0;">${config.icon}</span>
+                <span style="flex: 1;">${message}</span>
+                <button onclick="this.parentElement.remove()" style="
+                    background: rgba(255,255,255,0.2);
+                    border: none;
+                    color: white;
+                    width: 28px;
+                    height: 28px;
+                    border-radius: 50%;
+                    cursor: pointer;
+                    font-size: 18px;
+                    line-height: 1;
+                    flex-shrink: 0;
+                    transition: all 0.2s;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                " onmouseover="this.style.background='rgba(255,255,255,0.3)'" 
+                onmouseout="this.style.background='rgba(255,255,255,0.2)'">×</button>
             </div>
         `;
 
         alertContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
         setTimeout(() => {
-            alertContainer.innerHTML = '';
+            const alert = alertContainer.querySelector('.alert');
+            if (alert) {
+                alert.style.animation = 'slideOutUp 0.4s ease-in';
+                setTimeout(() => {
+                    alertContainer.innerHTML = '';
+                }, 400);
+            }
         }, 5000);
+    }
+
+    // Ajouter les animations CSS si elles n'existent pas déjà
+    if (!document.getElementById('alert-animations')) {
+        const style = document.createElement('style');
+        style.id = 'alert-animations';
+        style.textContent = `
+            @keyframes slideInDown {
+                from {
+                    transform: translateY(-30px);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateY(0);
+                    opacity: 1;
+                }
+            }
+            
+            @keyframes slideOutUp {
+                from {
+                    transform: translateY(0);
+                    opacity: 1;
+                }
+                to {
+                    transform: translateY(-30px);
+                    opacity: 0;
+                }
+            }
+            
+            .alert-success {
+                background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%) !important;
+            }
+            
+            .alert-error {
+                background: linear-gradient(135deg, #f44336 0%, #da190b 100%) !important;
+            }
+            
+            .alert-info {
+                background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%) !important;
+            }
+            
+            .alert-warning {
+                background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%) !important;
+            }
+        `;
+        document.head.appendChild(style);
     }
 
     // Fonction pour afficher/masquer le loader

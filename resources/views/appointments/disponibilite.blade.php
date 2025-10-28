@@ -21,7 +21,7 @@
             <i class="icon-arrow-right"></i>
           </li>
           <li class="nav-item">
-            <a href="">disponibilités</a>
+            <a href="#">disponibilités</a>
           </li>
         </ul>
       </div>
@@ -48,13 +48,15 @@
             <div class="card-header">
               <div class="d-flex align-items-center">
                 <h4 class="card-title">Liste des disponibilités</h4>
-                <button
-                  class="btn btn-primary btn-round ms-auto"
-                  data-bs-toggle="modal"
-                  data-bs-target="#addRowModal"
-                >
-                  <i class="fa fa-plus"></i> Ajouter une disponibilité
-                </button>
+                @can('medecin.availabilities')
+                    <button
+                    class="btn btn-primary btn-round ms-auto"
+                    data-bs-toggle="modal"
+                    data-bs-target="#addRowModal"
+                    >
+                    <i class="fa fa-plus"></i> Ajouter une disponibilité
+                    </button>
+                @endcan
               </div>
             </div>
 
@@ -67,20 +69,22 @@
                                     <div class="flex justify-between items-start mb-2">
                                         <h4 class="font-medium text-gray-900">{{ ucfirst($item['day_of_week']) }}</h4>
                                         <div class="flex space-x-2">
-                                            <button class="text-blue-600 hover:text-blue-800 edit-button"
-                                                    data-id="{{ $item['id'] }}"
-                                                    data-day="{{ $item['day_of_week'] }}"
-                                                    data-start="{{ $item['start_time'] }}"
-                                                    data-end="{{ $item['end_time'] }}"
-                                                    data-duration="{{ $item['slot_duration'] }}"
-                                                    data-active="{{ $item['is_active'] }}">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                            <button class="text-red-600 hover:text-red-800 delete-button"
-                                                    data-id="{{ $item['id'] }}"
-                                                    data-name="{{ ucfirst($item['day_of_week']) }}">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
+                                            @can('medecin.availabilities')
+                                                <button class="text-blue-600 hover:text-blue-800 edit-button"
+                                                        data-id="{{ $item['id'] }}"
+                                                        data-day="{{ $item['day_of_week'] }}"
+                                                        data-start="{{ $item['start_time'] }}"
+                                                        data-end="{{ $item['end_time'] }}"
+                                                        data-duration="{{ $item['slot_duration'] }}"
+                                                        data-active="{{ $item['is_active'] }}">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="text-red-600 hover:text-red-800 delete-button"
+                                                        data-id="{{ $item['id'] }}"
+                                                        data-name="{{ ucfirst($item['day_of_week']) }}">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            @endcan
                                         </div>
                                     </div>
                                     <p class="text-sm text-gray-600 mb-2">
@@ -169,113 +173,113 @@
 
                 <!-- Modal Edit Availability -->
                 <div class="modal fade" id="editAvailabilityModal" tabindex="-1" role="dialog" aria-hidden="true">
-                <div class="modal-dialog" role="document">
-                    <form method="POST" action="{{ route('medecin.availabilities.update') }}" id="editAvailabilityForm">
-                    @csrf
-                    @method('PUT')
-                    <div class="modal-content">
-                        <div class="modal-header border-0">
-                        <h5 class="modal-title">Modifier la disponibilité</h5>
-                        <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                        </div>
-
-                        <div class="modal-body">
-                            <input type="hidden" name="id" id="edit_availability_id">
-
-                            <div class="form-group">
-                                <label>Jour de la semaine</label>
-                                <select name="day_of_week" id="edit_day_of_week" class="form-control" required>
-                                <option value="">Sélectionner un jour</option>
-                                <option value="Lundi">Lundi</option>
-                                <option value="Mardi">Mardi</option>
-                                <option value="Mercredi">Mercredi</option>
-                                <option value="Jeudi">Jeudi</option>
-                                <option value="Vendredi">Vendredi</option>
-                                <option value="Samedi">Samedi</option>
-                                <option value="Dimanche">Dimanche</option>
-                                </select>
+                    <div class="modal-dialog" role="document">
+                        <form method="POST" action="{{ route('medecin.availabilities.update') }}" id="editAvailabilityForm">
+                        @csrf
+                        @method('PUT')
+                        <div class="modal-content">
+                            <div class="modal-header border-0">
+                            <h5 class="modal-title">Modifier la disponibilité</h5>
+                            <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
                             </div>
 
-                            <div class="row">
-                                <div class="form-group col-md-6">
-                                <label>Heure de début</label>
-                                <input type="time" name="start_time" id="edit_start_time" class="form-control" required>
+                            <div class="modal-body">
+                                <input type="hidden" name="id" id="edit_availability_id">
+
+                                <div class="form-group">
+                                    <label>Jour de la semaine</label>
+                                    <select name="day_of_week" id="edit_day_of_week" class="form-control" required>
+                                    <option value="">Sélectionner un jour</option>
+                                    <option value="Lundi">Lundi</option>
+                                    <option value="Mardi">Mardi</option>
+                                    <option value="Mercredi">Mercredi</option>
+                                    <option value="Jeudi">Jeudi</option>
+                                    <option value="Vendredi">Vendredi</option>
+                                    <option value="Samedi">Samedi</option>
+                                    <option value="Dimanche">Dimanche</option>
+                                    </select>
                                 </div>
-                                <div class="form-group col-md-6">
-                                <label>Heure de fin</label>
-                                <input type="time" name="end_time" id="edit_end_time" class="form-control" required>
+
+                                <div class="row">
+                                    <div class="form-group col-md-6">
+                                    <label>Heure de début</label>
+                                    <input type="time" name="start_time" id="edit_start_time" class="form-control" required>
+                                    </div>
+                                    <div class="form-group col-md-6">
+                                    <label>Heure de fin</label>
+                                    <input type="time" name="end_time" id="edit_end_time" class="form-control" required>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Durée des créneaux (minutes)</label>
+                                    <select name="slot_duration" id="edit_slot_duration" class="form-control">
+                                    <option value="10">10 minutes</option>
+                                    <option value="15">15 minutes</option>
+                                    <option value="20">20 minutes</option>
+                                    <option value="30">30 minutes</option>
+                                    <option value="45">45 minutes</option>
+                                    <option value="60">1 heure</option>
+                                    <option value="90">1h30 minutes</option>
+                                    <option value="120">2 heures</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-check mt-3">
+                                    <input class="form-check-input" type="checkbox" name="is_active" id="edit_is_active" value="1">
+                                    <label class="form-check-label" for="edit_is_active">
+                                    Actif
+                                    </label>
                                 </div>
                             </div>
 
-                            <div class="form-group">
-                                <label>Durée des créneaux (minutes)</label>
-                                <select name="slot_duration" id="edit_slot_duration" class="form-control">
-                                <option value="10">10 minutes</option>
-                                <option value="15">15 minutes</option>
-                                <option value="20">20 minutes</option>
-                                <option value="30">30 minutes</option>
-                                <option value="45">45 minutes</option>
-                                <option value="60">1 heure</option>
-                                <option value="90">1h30 minutes</option>
-                                <option value="120">2 heures</option>
-                                </select>
-                            </div>
-
-                            <div class="form-check mt-3">
-                                <input class="form-check-input" type="checkbox" name="is_active" id="edit_is_active" value="1">
-                                <label class="form-check-label" for="edit_is_active">
-                                Actif
-                                </label>
+                            <div class="modal-footer border-0">
+                            <button type="submit" class="btn btn-success">
+                                Modifier
+                                <div class="spinner-border spinner-border-sm text-light d-none" role="status" id="editAvailabilityLoader">
+                                <span class="sr-only">Loading...</span>
+                                </div>
+                            </button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
                             </div>
                         </div>
-
-                        <div class="modal-footer border-0">
-                        <button type="submit" class="btn btn-success">
-                            Modifier
-                            <div class="spinner-border spinner-border-sm text-light d-none" role="status" id="editAvailabilityLoader">
-                            <span class="sr-only">Loading...</span>
-                            </div>
-                        </button>
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                        </div>
+                        </form>
                     </div>
-                    </form>
-                </div>
                 </div>
 
                 <!-- Modal Delete Availability -->
                 <div class="modal fade" id="deleteAvailabilityModal" tabindex="-1" role="dialog" aria-hidden="true">
-                <div class="modal-dialog" role="document">
-                    <form method="POST" action="" id="deleteAvailabilityForm">
-                    @csrf
-                    @method('DELETE')
-                    <div class="modal-content">
-                        <div class="modal-header border-0">
-                        <h5 class="modal-title">Supprimer la disponibilité</h5>
-                        <button type="button" class="close" data-bs-dismiss="modal" aria-label="Fermer">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                        </div>
-
-                        <div class="modal-body">
-                        <input type="hidden" name="id" id="delete_availability_id">
-                        <p id="availability_to_delete_text" class="text-danger font-weight-bold"></p>
-                        </div>
-
-                        <div class="modal-footer border-0">
-                        <button type="submit" class="btn btn-danger">
-                            Supprimer
-                            <div class="spinner-border spinner-border-sm text-light d-none" role="status" id="deleteAvailabilityLoader">
-                            <span class="sr-only">Loading...</span>
+                    <div class="modal-dialog" role="document">
+                        <form method="POST" action="" id="deleteAvailabilityForm">
+                        @csrf
+                        @method('DELETE')
+                        <div class="modal-content">
+                            <div class="modal-header border-0">
+                            <h5 class="modal-title">Supprimer la disponibilité</h5>
+                            <button type="button" class="close" data-bs-dismiss="modal" aria-label="Fermer">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
                             </div>
-                        </button>
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+
+                            <div class="modal-body">
+                            <input type="hidden" name="id" id="delete_availability_id">
+                            <p id="availability_to_delete_text" class="text-danger font-weight-bold"></p>
+                            </div>
+
+                            <div class="modal-footer border-0">
+                            <button type="submit" class="btn btn-danger">
+                                Supprimer
+                                <div class="spinner-border spinner-border-sm text-light d-none" role="status" id="deleteAvailabilityLoader">
+                                <span class="sr-only">Loading...</span>
+                                </div>
+                            </button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                            </div>
                         </div>
+                        </form>
                     </div>
-                    </form>
-                </div>
                 </div>
 
             </div>

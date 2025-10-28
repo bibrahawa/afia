@@ -292,9 +292,12 @@
                 <!-- Header -->
                 <div class="card-header-enhanced d-flex justify-content-between align-items-center">
                     <h4><i class="fas fa-users me-2"></i>Liste des Patientes</h4>
-                    <button class="btn btn-add-patient" data-bs-toggle="modal" data-bs-target="#addRowModal">
-                        <i class="fa fa-plus me-2"></i>Nouvelle Patiente
-                    </button>
+                    @can('patient.create')
+                        <button class="btn btn-add-patient" data-bs-toggle="modal" data-bs-target="#addRowModal">
+                            <i class="fa fa-plus me-2"></i>Nouvelle Patiente
+                        </button>
+                    @endcan
+                </div>
                 </div>
 
                 <!-- Table -->
@@ -348,6 +351,7 @@
                                             title="Voir">
                                                 <i class="fa fa-eye"></i>
                                             </a>
+                                            @can('patient.edit')
                                             <button class="btn btn-action btn-edit edit-button" 
                                                     data-bs-toggle="modal" 
                                                     data-bs-target="#editRowModal"
@@ -356,6 +360,8 @@
                                                     title="Modifier">
                                                 <i class="fa fa-edit"></i>
                                             </button>
+                                            @endcan
+                                            @can('patient.delete')
                                             <button class="btn btn-action btn-delete delete-button" 
                                                     data-bs-toggle="modal" 
                                                     data-bs-target="#deleteRowModal"
@@ -363,6 +369,8 @@
                                                     title="Supprimer">
                                                 <i class="fa fa-trash"></i>
                                             </button>
+                                            @endcan
+                                            @can('patient.add_file')
                                             <button class="btn btn-action btn-upload add-file-button" 
                                                     data-bs-toggle="modal" 
                                                     data-bs-target="#uploadFileModal"
@@ -370,6 +378,7 @@
                                                     title="Ajouter un fichier">
                                                 <i class="fas fa-upload"></i>
                                             </button>
+                                            @endcan
                                         </div>
                                     </td>
                                 </tr>

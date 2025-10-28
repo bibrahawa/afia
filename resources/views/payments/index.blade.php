@@ -78,17 +78,21 @@
                                     @endif
                                 </td>
                                 <td>
-                                    <a href="{{ route('patient.show', $patient->id) }}" class="btn btn-sm btn-primary">
-                                        <i class="fa fa-eye"></i>
-                                    </a>
-                                    <button
-                                        type="button"
-                                        class="btn btn-success btn-sm payer-button"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#addNewPaiementModal"
-                                        data-patient="{{ json_encode($patient) }}">
-                                        <i class="fas fa-money-bill"></i>
-                                    </button>
+                                    @can('patient.show')
+                                        <a href="{{ route('patient.show', $patient->id) }}" class="btn btn-sm btn-primary">
+                                            <i class="fa fa-eye"></i>
+                                        </a>
+                                    @endcan
+                                    @can('payment.process')
+                                        <button
+                                            type="button"
+                                            class="btn btn-success btn-sm payer-button"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#addNewPaiementModal"
+                                            data-patient="{{ json_encode($patient) }}">
+                                            <i class="fas fa-money-bill"></i>
+                                        </button>
+                                    @endcan
                                 </td>
                             </tr>
                         @endforeach

@@ -164,9 +164,11 @@
                                             </td> --}}
                                             
                                             <td class="text-center">
-                                                <a href="{{ route('insurance.balances.show', $balance['id']) }}" class="btn btn-sm btn-primary" title="Voir détails">
-                                                    <i class="fa fa-eye"></i>
-                                                </a>
+                                                @can('insurance_balance.view')
+                                                    <a href="{{ route('insurance.balances.show', $balance['id']) }}" class="btn btn-sm btn-primary" title="Voir détails">
+                                                        <i class="fa fa-eye"></i>
+                                                    </a>
+                                                @endcan
                                                 {{-- @if($balance['montant_du'] > 0)
                                                     <button
                                                         type="button"

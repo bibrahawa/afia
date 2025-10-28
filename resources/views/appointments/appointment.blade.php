@@ -20,9 +20,9 @@
           <li class="separator">
             <i class="icon-arrow-right"></i>
           </li>
-          <li class="nav-item">
-            <a href="{{ route('department.index') }}">Department</a>
-          </li>
+            <li class="nav-item">
+                <a href="#">Appointments</a>
+            </li>
         </ul>
       </div>
 
@@ -124,19 +124,23 @@
                                     </span>
 
                                     @if ($item['status'] === 'pending')
-                                        <form method="POST" action="{{ route('medecin.appointments.confirm', $item['id']) }}">
-                                            @csrf
-                                            <button type="submit" class="px-3 py-1 bg-green-600 text-white rounded-md text-sm hover:bg-green-700">
-                                                <i class="fas fa-check me-1"></i> Confirmer
-                                            </button>
-                                        </form>
+                                        @can('medecin.confirm_appointment')
+                                            <form method="POST" action="{{ route('medecin.appointments.confirm', $item['id']) }}">
+                                                @csrf
+                                                <button type="submit" class="px-3 py-1 bg-green-600 text-white rounded-md text-sm hover:bg-green-700">
+                                                    <i class="fas fa-check me-1"></i> Confirmer
+                                                </button>
+                                            </form>
+                                        @endcan
                                     @elseif ($item['status'] === 'confirmed')
-                                        <form method="POST" action="{{ route('medecin.appointments.complete', $item['id']) }}">
-                                            @csrf
-                                            <button type="submit" class="px-3 py-1 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700">
-                                                <i class="fas fa-check-double me-1"></i> Terminer
-                                            </button>
-                                        </form>
+                                        @can('medecin.complete_appointment')
+                                            <form method="POST" action="{{ route('medecin.appointments.complete', $item['id']) }}">
+                                                @csrf
+                                                <button type="submit" class="px-3 py-1 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700">
+                                                    <i class="fas fa-check-double me-1"></i> Terminer
+                                                </button>
+                                            </form>
+                                        @endcan
                                     @endif
                                 </div>
                             </div>

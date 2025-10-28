@@ -50,9 +50,6 @@
                             <th>ID</th>
 					        <th>Name</th>
 					        <th>Contact</th>
-					        {{-- <th>Working Days</th>
-					        <th>In-time</th>
-					        <th>Out-time</th> --}}
 					        <th>Type</th>
                             <th style="width: 10%">Actions</th>
                         </tr>
@@ -62,9 +59,6 @@
                             <th>ID</th>
 					        <th>Name</th>
 					        <th>Contact</th>
-					        {{-- <th>Working Days</th>
-					        <th>In-time</th>
-					        <th>Out-time</th> --}}
 					        <th>Type</th>
                             <th>Actions</th>
                         </tr>
@@ -75,33 +69,32 @@
                                 <td>{{ $employee->id}}</td>
                                 <td>{{$employee->first_name}} {{$employee->middle_name}} {{$employee->last_name}}</td>
                                 <td>{{$employee->phone}}</td>
-                                {{-- <td>{{$employee->working_day}}</td>
-                                <td>{{$employee->in_time}}</td>
-                                <td>{{$employee->out_time}}</td> --}}
                                 <td>{{$employee->type}}</td>
                                 <td>
                                     <div class="form-button-action">
-                                        <!-- Modifier : Ajout des data-bs-toggle et data-bs-target -->
-                                        <button
-                                            type="button"
-                                            class="btn btn-warning btn-round btn-sm edit-button"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#editRowModal"
-                                            data-info="{{ $employee }}"
-                                        >
-                                            <i class="fa fa-edit"></i>
-                                        </button>
+                                        @can('employee.edit')
+                                            <button
+                                                type="button"
+                                                class="btn btn-warning btn-round btn-sm edit-button"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#editRowModal"
+                                                data-info="{{ $employee }}"
+                                            >
+                                                <i class="fa fa-edit"></i>
+                                            </button>
+                                        @endcan
 
-                                        <!-- Supprimer : Ajout des data-bs-toggle et data-bs-target -->
-                                        <button
-                                            type="button"
-                                            class="btn btn-danger btn-round btn-sm delete-button"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#deleteRowModal"
-                                            data-employee="{{$employee}}"
-                                        >
-                                            <i class="fa fa-trash"></i>
-                                        </button>
+                                        @can('employee.delete')
+                                            <button
+                                                type="button"
+                                                class="btn btn-danger btn-round btn-sm delete-button"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#deleteRowModal"
+                                                data-employee="{{$employee}}"
+                                            >
+                                                <i class="fa fa-trash"></i>
+                                            </button>
+                                        @endcan
                                     </div>
                                 </td>
                             </tr>

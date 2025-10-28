@@ -56,7 +56,7 @@ class UsersSeeder extends Seeder
         // ==========================================
         echo "🔑 Création des permissions...\n";
         
-        $permissions = [
+        $permissions = [ 
             'dashboard.view', 'dashboard.medecin', 'backup.access', 'setting.access',
             'users.view', 'users.create', 'users.edit', 'users.delete', 'users.disable', 
             'users.permissions', 'users.change_password',
@@ -233,7 +233,7 @@ class UsersSeeder extends Seeder
             'education' => 'MBA',
             'description' => 'Administrator of the system',
             'certificate' => 'Admin Certificate',
-            'speciality' => 'Genycologue',
+            'speciality' => 'Administration',
             'type' => 'admin',
             'department_id' => $department->id,
         ]);
@@ -246,7 +246,7 @@ class UsersSeeder extends Seeder
             'education' => 'MBA',
             'description' => 'Administrator of the system',
             'certificate' => 'Admin Certificate',
-            'speciality' => 'Genycologue',
+            'speciality' => 'GYNECOLOGIE',
             'type' => 'medecin',
             'department_id' => $department->id,
         ]);
@@ -259,7 +259,7 @@ class UsersSeeder extends Seeder
             'education' => 'MBA',
             'description' => 'Administrator of the system',
             'certificate' => 'Admin Certificate',
-            'speciality' => 'Genycologue',
+            'speciality' => 'comptable',
             'type' => 'comptable',
             'department_id' => $department->id,
         ]);
@@ -272,7 +272,7 @@ class UsersSeeder extends Seeder
             'education' => 'MBA',
             'description' => 'Administrator of the system',
             'certificate' => 'Admin Certificate',
-            'speciality' => 'Genycologue',
+            'speciality' => 'secretaire',
             'type' => 'secretaire',
             'department_id' => $department->id,
         ]);

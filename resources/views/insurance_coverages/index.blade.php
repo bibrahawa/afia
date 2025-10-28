@@ -32,13 +32,15 @@
             <div class="card-header">
               <div class="d-flex align-items-center">
                 <h4 class="card-title">Liste des couvertures d'assurance</h4>
-                <button
-                  class="btn btn-primary btn-round ms-auto"
-                  data-bs-toggle="modal"
-                  data-bs-target="#addRowModal"
-                >
-                  <i class="fa fa-plus"></i> Ajouter une couverture
-                </button>
+                @can('insurance_coverage.create')
+                    <button
+                    class="btn btn-primary btn-round ms-auto"
+                    data-bs-toggle="modal"
+                    data-bs-target="#addRowModal"
+                    >
+                    <i class="fa fa-plus"></i> Ajouter une couverture
+                    </button>
+                @endcan
               </div>
             </div>
 
@@ -134,30 +136,36 @@
                                     </td>
                                     <td>
                                         <div class="form-button-action">
-                                            <button type="button" 
-                                                    class="btn btn-info btn-round btn-sm view-button"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#viewRowModal"
-                                                    data-info="{{ $coverage->id }},{{ $coverage->insuranceCompany->name }},{{ $coverage->coverageable->name ?? $coverage->coverageable->nom }},{{ $coverage->acte_price }},{{ $coverage->max_amount }},{{ $coverage->min_amount }},{{ $coverage->max_usage_count }},{{ $coverage->usage_period }},{{ $coverage->valid_from }},{{ $coverage->valid_to }},{{ $coverage->requires_preauthorization }},{{ $coverage->conditions }}, {{ $coverage->coverageable->id }}">
-                                                <i class="fa fa-eye"></i>
-                                            </button>
+                                            @can('insurance_coverage.view')
+                                                <button type="button" 
+                                                        class="btn btn-info btn-round btn-sm view-button"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#viewRowModal"
+                                                        data-info="{{ $coverage->id }},{{ $coverage->insuranceCompany->name }},{{ $coverage->coverageable->name ?? $coverage->coverageable->nom }},{{ $coverage->acte_price }},{{ $coverage->max_amount }},{{ $coverage->min_amount }},{{ $coverage->max_usage_count }},{{ $coverage->usage_period }},{{ $coverage->valid_from }},{{ $coverage->valid_to }},{{ $coverage->requires_preauthorization }},{{ $coverage->conditions }}, {{ $coverage->coverageable->id }}">
+                                                    <i class="fa fa-eye"></i>
+                                                </button>
+                                            @endcan
 
-                                            <button type="button"
-                                                    class="btn btn-warning btn-round btn-sm edit-button"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#editRowModal"
-                                                    data-info="{{ $coverage->id }},{{ $coverage->insuranceCompany->id }},{{ $coverage->coverageable_type }},{{ $coverage->acte_price }},{{ $coverage->max_amount }},{{ $coverage->min_amount }},{{ $coverage->max_usage_count }},{{ $coverage->usage_period }},{{ $coverage->valid_from }},{{ $coverage->valid_to }},{{ $coverage->requires_preauthorization }},{{ $coverage->conditions }}, {{ $coverage->coverageable->id }}">
-                                                <i class="fa fa-edit"></i>
-                                            </button>
+                                            @can('insurance_coverage.edit')
+                                                <button type="button"
+                                                        class="btn btn-warning btn-round btn-sm edit-button"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#editRowModal"
+                                                        data-info="{{ $coverage->id }},{{ $coverage->insuranceCompany->id }},{{ $coverage->coverageable_type }},{{ $coverage->acte_price }},{{ $coverage->max_amount }},{{ $coverage->min_amount }},{{ $coverage->max_usage_count }},{{ $coverage->usage_period }},{{ $coverage->valid_from }},{{ $coverage->valid_to }},{{ $coverage->requires_preauthorization }},{{ $coverage->conditions }}, {{ $coverage->coverageable->id }}">
+                                                    <i class="fa fa-edit"></i>
+                                                </button>
+                                            @endcan
 
-                                            <button type="button"
-                                                    class="btn btn-danger btn-round btn-sm delete-button"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#deleteRowModal"
-                                                    data-id="{{ $coverage->id }}"
-                                                    data-name="{{ $coverage->insuranceCompany->name }}">
-                                                <i class="fa fa-trash"></i>
-                                            </button>
+                                            @can('insurance_coverage.delete')
+                                                <button type="button"
+                                                        class="btn btn-danger btn-round btn-sm delete-button"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#deleteRowModal"
+                                                        data-id="{{ $coverage->id }}"
+                                                        data-name="{{ $coverage->insuranceCompany->name }}">
+                                                    <i class="fa fa-trash"></i>
+                                                </button>
+                                            @endcan
                                         </div>
                                     </td>
                                 </tr>

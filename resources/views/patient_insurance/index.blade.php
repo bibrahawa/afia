@@ -32,6 +32,7 @@
             <div class="card-header">
               <div class="d-flex align-items-center">
                 <h4 class="card-title">Liste des assurances patients</h4>
+                @can('patient_insurance.create')
                 <button
                   class="btn btn-primary btn-round ms-auto"
                   data-bs-toggle="modal"
@@ -39,6 +40,7 @@
                 >
                   <i class="fa fa-plus"></i> Ajouter une assurance
                 </button>
+                @endcan
               </div>
             </div>
 
@@ -99,26 +101,29 @@
                                 <td>{{ number_format($insurance->used_amount, 0, ',', ' ') }} GNF</td>
                                 <td>
                                     <div class="form-button-action">
-                                        <button
-                                            type="button"
-                                            class="btn btn-warning btn-round btn-sm edit-button"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#editRowModal"
-                                            data-info="{{$insurance->id}},{{$insurance->patient_id}},{{$insurance->insurance_company_id}},{{$insurance->policy_number}},{{$insurance->start_date}},{{$insurance->end_date}},{{$insurance->status}},{{$insurance->annual_limit}},{{$insurance->used_amount}},{{$insurance->notes}}, {{$insurance->coverage_percentage}}"
-                                        >
-                                            <i class="fa fa-edit"></i>
-                                        </button>
-
-                                        <button
-                                            type="button"
-                                            class="btn btn-danger btn-round btn-sm delete-button"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#deleteRowModal"
-                                            data-id="{{$insurance->id}}"
-                                            data-name="{{$insurance->patient->first_name}} {{$insurance->patient->last_name}} - {{$insurance->policy_number}}"
-                                        >
-                                            <i class="fa fa-trash"></i>
-                                        </button>
+                                        @can('patient_insurance.edit')
+                                            <button
+                                                type="button"
+                                                class="btn btn-warning btn-round btn-sm edit-button"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#editRowModal"
+                                                data-info="{{$insurance->id}},{{$insurance->patient_id}},{{$insurance->insurance_company_id}},{{$insurance->policy_number}},{{$insurance->start_date}},{{$insurance->end_date}},{{$insurance->status}},{{$insurance->annual_limit}},{{$insurance->used_amount}},{{$insurance->notes}}, {{$insurance->coverage_percentage}}"
+                                            >
+                                                <i class="fa fa-edit"></i>
+                                            </button>
+                                        @endcan
+                                        @can('patient_insurance.delete')
+                                            <button
+                                                type="button"
+                                                class="btn btn-danger btn-round btn-sm delete-button"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#deleteRowModal"
+                                                data-id="{{$insurance->id}}"
+                                                data-name="{{$insurance->patient->first_name}} {{$insurance->patient->last_name}} - {{$insurance->policy_number}}"
+                                            >
+                                                <i class="fa fa-trash"></i>
+                                            </button>
+                                        @endcan
                                     </div>
                                 </td>
                             </tr>

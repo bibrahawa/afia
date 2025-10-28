@@ -39,35 +39,43 @@
                     </span>
                     <h4 class="text-section">Patients</h4>
                 </li>
+                @can('patient.view')
+                    <li class="nav-item {{ request()->routeIs('patient.*') ? 'active' : '' }}">
+                        <a href="{{ route('patient.index') }}">
+                            <i class="fas fa-user"></i>
+                            <p>Liste des patients</p>
+                        </a>
+                    </li>
+                @endcan
 
-                <li class="nav-item {{ request()->routeIs('patient.*') ? 'active' : '' }}">
-                    <a href="{{ route('patient.index') }}">
-                        <i class="fas fa-user"></i>
-                        <p>Liste des patients</p>
-                    </a>
-                </li>
-
+                @can('medecin.appointments')
                 <li class="nav-item {{ request()->routeIs('medecin.*') && request()->routeIs('*.appointments') ? 'active' : '' }}">
                     <a href="{{ route('medecin.appointments') }}">
                         <i class="fas fa-calendar-alt"></i>
                         <p>Rendez-vous</p>
                     </a>
                 </li>
+                @endcan
 
-                <li class="nav-item {{ request()->routeIs('consultation.*') ? 'active' : '' }}">
-                    <a href="{{ route('consultation.index') }}">
-                        <i class="fas fa-stethoscope"></i>
-                        <p>Consultations</p>
-                    </a>
-                </li>
+                @can('consultation.view')
+                    <li class="nav-item {{ request()->routeIs('consultation.*') ? 'active' : '' }}">
+                        <a href="{{ route('consultation.index') }}">
+                            <i class="fas fa-stethoscope"></i>
+                            <p>Consultations</p>
+                        </a>
+                    </li>
+                @endcan
 
-                <li class="nav-item {{ request()->routeIs('hospitalisations.*') ? 'active' : '' }}">
-                    <a href="{{ route('hospitalisations.index') }}">
-                        <i class="fas fa-hospital"></i>
-                        <p>Hospitalisations</p>
-                    </a>
-                </li>
+                @can('hospitalisation.view')
+                    <li class="nav-item {{ request()->routeIs('hospitalisations.*') ? 'active' : '' }}">
+                        <a href="{{ route('hospitalisations.index') }}">
+                            <i class="fas fa-hospital"></i>
+                            <p>Hospitalisations</p>
+                        </a>
+                    </li>
+                @endcan
 
+                @can('employee.view')
                 <!-- PERSONNEL MÉDICAL -->
                 <li class="nav-section">
                     <span class="sidebar-mini-icon">
@@ -82,21 +90,27 @@
                         <p>Employés</p>
                     </a>
                 </li>
+                @endcan
 
-                <li class="nav-item {{ request()->routeIs('medecin.*') && request()->routeIs('*.availabilities') ? 'active' : '' }}">
-                    <a href="{{ route('medecin.availabilities') }}">
-                        <i class="fas fa-calendar-check"></i>
-                        <p>Disponibilités</p>
-                    </a>
-                </li>
+                @can('medecin.availabilities')
+                    <li class="nav-item {{ request()->routeIs('medecin.*') && request()->routeIs('*.availabilities') ? 'active' : '' }}">
+                        <a href="{{ route('medecin.availabilities') }}">
+                            <i class="fas fa-calendar-check"></i>
+                            <p>Disponibilités</p>
+                        </a>
+                    </li>
+                @endcan
 
-                <li class="nav-item {{ request()->routeIs('medecin.*') && request()->routeIs('*.leaves') ? 'active' : '' }}">
-                    <a href="{{ route('medecin.leaves') }}">
-                        <i class="fas fa-plane"></i>
-                        <p>Congés & Absences</p>
-                    </a>
-                </li>
+                @can('medecin.leaves')
+                    <li class="nav-item {{ request()->routeIs('medecin.*') && request()->routeIs('*.leaves') ? 'active' : '' }}">
+                        <a href="{{ route('medecin.leaves') }}">
+                            <i class="fas fa-plane"></i>
+                            <p>Congés & Absences</p>
+                        </a>
+                    </li>
+                @endcan
 
+                @can('department.view')
                 <!-- RESSOURCES & SERVICES -->
                 <li class="nav-section">
                     <span class="sidebar-mini-icon">
@@ -105,48 +119,60 @@
                     <h4 class="text-section">Ressources & Services</h4>
                 </li>
 
-                <li class="nav-item {{ request()->routeIs('department.*') ? 'active' : '' }}">
-                    <a href="{{ route('department.index') }}">
-                        <i class="fas fa-building"></i>
-                        <p>Départements</p>
-                    </a>
-                </li>
+                    <li class="nav-item {{ request()->routeIs('department.*') ? 'active' : '' }}">
+                        <a href="{{ route('department.index') }}">
+                            <i class="fas fa-building"></i>
+                            <p>Départements</p>
+                        </a>
+                    </li>
+                @endcan
 
-                <li class="nav-item {{ request()->routeIs('service.*') ? 'active' : '' }}">
-                    <a href="{{ route('service.index') }}">
-                        <i class="fas fa-cogs"></i>
-                        <p>Services médicaux</p>
-                    </a>
-                </li>
+                @can('service.view')
+                    <li class="nav-item {{ request()->routeIs('service.*') ? 'active' : '' }}">
+                        <a href="{{ route('service.index') }}">
+                            <i class="fas fa-cogs"></i>
+                            <p>Services médicaux</p>
+                        </a>
+                    </li>
+                @endcan
 
-                <li class="nav-item {{ request()->routeIs('chambres.*') ? 'active' : '' }}">
-                    <a href="{{ route('chambres.index') }}">
-                        <i class="fas fa-bed"></i>
-                        <p>Chambres</p>
-                    </a>
-                </li>
+                @can('chambre.view')
+                    <li class="nav-item {{ request()->routeIs('chambres.*') ? 'active' : '' }}">
+                        <a href="{{ route('chambres.index') }}">
+                            <i class="fas fa-bed"></i>
+                            <p>Chambres</p>
+                        </a>
+                    </li>
+                @endcan
 
-                <li class="nav-item {{ request()->routeIs('test.*') ? 'active' : '' }}">
-                    <a href="{{ route('test.index') }}">
-                        <i class="fas fa-microscope"></i>
-                        <p>Examens & Tests</p>
-                    </a>
-                </li>
+                @can('test.view')
+                    <li class="nav-item {{ request()->routeIs('test.*') ? 'active' : '' }}">
+                        <a href="{{ route('test.index') }}">
+                            <i class="fas fa-microscope"></i>
+                            <p>Examens & Tests</p>
+                        </a>
+                    </li>
+                @endcan
 
-                <li class="nav-item {{ request()->routeIs('package.*') ? 'active' : '' }}">
-                    <a href="{{ route('package.index') }}">
-                        <i class="fas fa-box-open"></i>
-                        <p>Packages de soins</p>
-                    </a>
-                </li>
+                @can('package.view')
+                    <li class="nav-item {{ request()->routeIs('package.*') ? 'active' : '' }}">
+                        <a href="{{ route('package.index') }}">
+                            <i class="fas fa-box-open"></i>
+                            <p>Packages de soins</p>
+                        </a>
+                    </li>
+                @endcan
 
-                <li class="nav-item {{ request()->routeIs('medicaments.*') ? 'active' : '' }}">
-                    <a href="{{ route('medicaments.index') }}">
-                        <i class="fas fa-pills"></i>
-                        <p>Médicaments</p>
-                    </a>
-                </li>
+                @can('medicament.view')
+                    <li class="nav-item {{ request()->routeIs('medicaments.*') ? 'active' : '' }}">
+                        <a href="{{ route('medicaments.index') }}">
+                            <i class="fas fa-pills"></i>
+                            <p>Médicaments</p>
+                        </a>
+                    </li>
+                @endcan
 
+                @can('insurance_company.view')
                 <!-- ASSURANCES -->
                 <li class="nav-section">
                     <span class="sidebar-mini-icon">
@@ -161,29 +187,37 @@
                         <p>Compagnies</p>
                     </a>
                 </li>
+                @endcan
 
-                <li class="nav-item {{ request()->routeIs('insurance-coverages.*') ? 'active' : '' }}">
-                    <a href="{{ route('insurance-coverages.index') }}">
-                        <i class="fas fa-shield-alt"></i>
-                        <p>Couvertures</p>
-                    </a>
-                </li>
+                @can('insurance_coverage.view')
+                    <li class="nav-item {{ request()->routeIs('insurance-coverages.*') ? 'active' : '' }}">
+                        <a href="{{ route('insurance-coverages.index') }}">
+                            <i class="fas fa-shield-alt"></i>
+                            <p>Couvertures</p>
+                        </a>
+                    </li>
+                @endcan
 
-                <li class="nav-item {{ request()->routeIs('insurance_patient.*') ? 'active' : '' }}">
-                    <a href="{{ route('insurance_patient.index') }}">
-                        <i class="fas fa-user-shield"></i>
-                        <p>Patients assurés</p>
-                    </a>
-                </li>
+                @can('insurance_patient.view')
+                    <li class="nav-item {{ request()->routeIs('insurance_patient.*') ? 'active' : '' }}">
+                        <a href="{{ route('insurance_patient.index') }}">
+                            <i class="fas fa-user-shield"></i>
+                            <p>Patients assurés</p>
+                        </a>
+                    </li>
+                @endcan
 
-                <li class="nav-item {{ request()->routeIs('insurance.balances*') ? 'active' : '' }}">
-                    <a href="{{ route('insurance.balances.index') }}">
-                        <i class="fas fa-balance-scale"></i>
-                        <p>Soldes</p>
-                    </a>
-                </li>
+                @can('insurance_balance.view')
+                    <li class="nav-item {{ request()->routeIs('insurance.balances*') ? 'active' : '' }}">
+                        <a href="{{ route('insurance.balances.index') }}">
+                            <i class="fas fa-balance-scale"></i>
+                            <p>Soldes</p>
+                        </a>
+                    </li>
+                @endcan
 
                 <!-- FACTURATION -->
+                @can('invoice.view')
                 <li class="nav-section">
                     <span class="sidebar-mini-icon">
                         <i class="fa fa-ellipsis-h"></i>
@@ -197,15 +231,19 @@
                         <p>Factures</p>
                     </a>
                 </li>
+                @endcan
 
-                <li class="nav-item {{ request()->routeIs('account.*') ? 'active' : '' }}">
-                    <a href="{{ route('account.facture') }}">
-                        <i class="fas fa-clock"></i>
-                        <p>Paiements en attente</p>
-                    </a>
-                </li>
+                @can('account.facture')
+                    <li class="nav-item {{ request()->routeIs('account.*') ? 'active' : '' }}">
+                        <a href="{{ route('account.facture') }}">
+                            <i class="fas fa-clock"></i>
+                            <p>Paiements en attente</p>
+                        </a>
+                    </li>
+                @endcan
 
                 <!-- COMMUNICATION -->
+                {{-- @can('sms.access') --}}
                 <li class="nav-section">
                     <span class="sidebar-mini-icon">
                         <i class="fa fa-ellipsis-h"></i>
@@ -216,16 +254,19 @@
                 <li class="nav-item {{ request()->routeIs('sms.lists') ? 'active' : '' }}">
                     <a href="{{ route('sms.lists') }}">
                         <i class="fas fa-list"></i>
-                        <p>Listes de messages</p>
+                        <p>Sms envoyés</p>
                     </a>
                 </li>
+                {{-- @endcan --}}
 
-                <li class="nav-item {{ request()->routeIs('sms.new') ? 'active' : '' }}">
+                {{-- @can('sms.new') --}}
+                {{-- <li class="nav-item {{ request()->routeIs('sms.new') ? 'active' : '' }}">
                     <a href="{{ route('sms.new') }}">
                         <i class="fas fa-sms"></i>
                         <p>Nouveau SMS</p>
                     </a>
-                </li>
+                </li> --}}
+                {{-- @endcan --}}
 
                 <!-- ADMINISTRATION -->
                 <li class="nav-section">
@@ -234,6 +275,7 @@
                     </span>
                     <h4 class="text-section">Administration</h4>
                 </li>
+                @can('users.view')
 
                 <li class="nav-item {{ request()->routeIs('users.*') ? 'active' : '' }}">
                     <a href="{{ route('users.index') }}">
@@ -241,13 +283,16 @@
                         <p>Utilisateurs</p>
                     </a>
                 </li>
+                @endcan
 
+                @can('report.view')
                 <li class="nav-item {{ request()->routeIs('reports.*') ? 'active' : '' }}">
                     <a href="{{ route('reports.index') }}">
                         <i class="fas fa-chart-bar"></i>
                         <p>Rapports & Analytics</p>
                     </a>
                 </li>
+                @endcan
             </ul>
         </div>
     </div>

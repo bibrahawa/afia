@@ -32,13 +32,15 @@
             <div class="card-header">
               <div class="d-flex align-items-center">
                 <h4 class="card-title">Liste des examens</h4>
-                <button
-                  class="btn btn-primary btn-round ms-auto"
-                  data-bs-toggle="modal"
-                  data-bs-target="#addRowModal"
-                >
-                  <i class="fa fa-plus"></i> Ajouter un examen
-                </button>
+                @can('test.create')
+                    <button
+                    class="btn btn-primary btn-round ms-auto"
+                    data-bs-toggle="modal"
+                    data-bs-target="#addRowModal"
+                    >
+                    <i class="fa fa-plus"></i> Ajouter un examen
+                    </button>
+                @endcan
               </div>
             </div>
 
@@ -72,28 +74,30 @@
                                 <td>{{ number_format($test->amount)}}</td>
                                 <td>
                                     <div class="form-button-action">
-                                        <!-- Modifier : Ajout des data-bs-toggle et data-bs-target -->
-                                        <button
-                                            type="button"
-                                            class="btn btn-warning btn-round btn-sm edit-button"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#editRowModal"
-                                            data-info="{{$test}}">
+                                        @can('test.edit')
+                                            <button
+                                                type="button"
+                                                class="btn btn-warning btn-round btn-sm edit-button"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#editRowModal"
+                                                data-info="{{$test}}"
+                                            >
+                                                <i class="fa fa-edit"></i>
+                                            </button>
+                                        @endcan
 
-                                            <i class="fa fa-edit"></i>
-                                        </button>
-
-                                        <!-- Supprimer : Ajout des data-bs-toggle et data-bs-target -->
-                                        <button
-                                            type="button"
-                                            class="btn btn-danger btn-round btn-sm delete-button"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#deleteRowModal"
-                                            data-id="{{$test->id}}"
-                                            data-name="{{$test->name}}"
-                                        >
-                                            <i class="fa fa-trash"></i>
-                                        </button>
+                                        @can('test.delete')
+                                            <button
+                                                type="button"
+                                                class="btn btn-danger btn-round btn-sm delete-button"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#deleteRowModal"
+                                                data-id="{{$test->id}}"
+                                                data-name="{{$test->name}}"
+                                            >
+                                                <i class="fa fa-trash"></i>
+                                            </button>
+                                        @endcan
                                     </div>
                                 </td>
                             </tr>

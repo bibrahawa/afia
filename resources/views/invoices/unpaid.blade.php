@@ -399,12 +399,14 @@
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                                     <i class="fas fa-times"></i> Annuler
                                 </button>
-                                <button type="submit" class="btn btn-success btn-lg" id="editRowButton" form="addNewPaiementForm">
-                                    <i class="fas fa-money-bill"></i> Effectuer le paiement
-                                    <div class="spinner-border spinner-border-sm text-light ms-2" role="status" id="editLoader" style="display: none;">
-                                        <span class="sr-only">Loading...</span>
-                                    </div>
-                                </button>
+                                @can('payment.process')
+                                    <button type="submit" class="btn btn-success btn-lg" id="editRowButton" form="addNewPaiementForm">
+                                        <i class="fas fa-money-bill"></i> Effectuer le paiement
+                                        <div class="spinner-border spinner-border-sm text-light ms-2" role="status" id="editLoader" style="display: none;">
+                                            <span class="sr-only">Loading...</span>
+                                        </div>
+                                    </button>
+                                @endcan
                             </div>
                         </div>
                     </div>

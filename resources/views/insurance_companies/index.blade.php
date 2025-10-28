@@ -32,13 +32,15 @@
             <div class="card-header">
               <div class="d-flex align-items-center">
                 <h4 class="card-title">Liste des compagnies d'assurance</h4>
-                <button
-                  class="btn btn-primary btn-round ms-auto"
-                  data-bs-toggle="modal"
-                  data-bs-target="#addRowModal"
-                >
-                  <i class="fa fa-plus"></i> Ajouter une compagnie
-                </button>
+                @can('insurance_company.create')
+                    <button
+                    class="btn btn-primary btn-round ms-auto"
+                    data-bs-toggle="modal"
+                    data-bs-target="#addRowModal"
+                    >
+                    <i class="fa fa-plus"></i> Ajouter une compagnie
+                    </button>
+                @endcan
               </div>
             </div>
 
@@ -132,38 +134,44 @@
                                     <td>
                                         <div class="form-button-action">
                                             <!-- Voir détails -->
-                                            <button
-                                                type="button"
-                                                class="btn btn-info btn-round btn-sm view-button"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#viewRowModal"
-                                                data-info="{{ $company->code }},{{ $company->name }},{{ $company->contact_person }},{{ $company->phone }},{{ $company->email }},{{ $company->default_coverage_percentage }},{{ $company->status }},{{ $company->contract_start_date }},{{ $company->contract_end_date }},{{ $company->address }},{{ $company->notes }}"
-                                            >
-                                                <i class="fa fa-eye"></i>
-                                            </button>
+                                            @can('insurance_company.view')
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-info btn-round btn-sm view-button"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#viewRowModal"
+                                                    data-info="{{ $company->code }},{{ $company->name }},{{ $company->contact_person }},{{ $company->phone }},{{ $company->email }},{{ $company->default_coverage_percentage }},{{ $company->status }},{{ $company->contract_start_date }},{{ $company->contract_end_date }},{{ $company->address }},{{ $company->notes }}"
+                                                >
+                                                    <i class="fa fa-eye"></i>
+                                                </button>
+                                            @endcan
 
                                             <!-- Modifier -->
-                                            <button
-                                                type="button"
-                                                class="btn btn-warning btn-round btn-sm edit-button"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#editRowModal"
-                                                data-info="{{ $company->id }},{{ $company->name }},{{ $company->code }},{{ $company->contact_person }},{{ $company->phone }},{{ $company->email }},{{ $company->default_coverage_percentage }},{{ $company->status }},{{ $company->contract_start_date }},{{ $company->contract_end_date }}, {{ $company->address }},{{ $company->notes }}"
-                                            >
-                                                <i class="fa fa-edit"></i>
-                                            </button>
+                                            @can('insurance_company.edit')
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-warning btn-round btn-sm edit-button"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#editRowModal"
+                                                    data-info="{{ $company->id }},{{ $company->name }},{{ $company->code }},{{ $company->contact_person }},{{ $company->phone }},{{ $company->email }},{{ $company->default_coverage_percentage }},{{ $company->status }},{{ $company->contract_start_date }},{{ $company->contract_end_date }}, {{ $company->address }},{{ $company->notes }}"
+                                                >
+                                                    <i class="fa fa-edit"></i>
+                                                </button>
+                                            @endcan
 
                                             <!-- Supprimer -->
-                                            <button
-                                                type="button"
-                                                class="btn btn-danger btn-round btn-sm delete-button"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#deleteRowModal"
-                                                data-id="{{$company->id}}"
-                                                data-name="{{$company->name}}"
-                                            >
-                                                <i class="fa fa-trash"></i>
-                                            </button>
+                                            @can('insurance_company.delete')
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-danger btn-round btn-sm delete-button"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#deleteRowModal"
+                                                    data-id="{{$company->id}}"
+                                                    data-name="{{$company->name}}"
+                                                >
+                                                    <i class="fa fa-trash"></i>
+                                                </button>
+                                            @endcan
                                         </div>
                                     </td>
                                 </tr>

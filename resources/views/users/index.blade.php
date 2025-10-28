@@ -31,13 +31,14 @@
                 <div class="card-header">
                   <div class="d-flex align-items-center">
                     <h4 class="card-title">Liste des users</h4>
-
-                    <a
-                      class="btn btn-primary btn-round ms-auto"
-                      href="{{ url('users/create')}}"
-                    >
-                      <i class="fa fa-plus"></i> Ajouter un utilisateur
-                    </a>
+                    @can('users.create')
+                      <a
+                        class="btn btn-primary btn-round ms-auto"
+                        href="{{ url('users/create')}}"
+                      >
+                        <i class="fa fa-plus"></i> Ajouter un utilisateur
+                      </a>
+                    @endcan
                   </div>
                 </div>
 
@@ -72,6 +73,8 @@
                                         <td>{{ $user->name }} </td>
                                         <td>{{ $user->phone }}</td>
                                         <td style="text-align: center">
+                                          @can('users.disable')
+                                            
                                             <form id="#" action="{{ route('user.disable', $user->id) }}" method="GET">
                                                 @csrf
                                                 @method('PATCH')
@@ -87,6 +90,8 @@
                                                     </div>
                                                 </div>
                                             </form>
+                                          @endcan
+                                        </td>
                                         <td>{{ $user->roles->first()?->name }}</td>
                                         <td>
                                             {{-- @can('modifier_utilisateur') --}}
@@ -94,8 +99,9 @@
                                                 <i class="bi bi-pencil-square"></i>
                                             </a> --}}
                                             {{-- @endcan --}}
-
-                                            <a href="{{ route('users.listePermissions', $user->id) }}" type="button" class="btn btn-warning"><i class="fa fa-user-shield"></i></a>
+                                            @can('users.permissions')
+                                              <a href="{{ route('users.listePermissions', $user->id) }}" type="button" class="btn btn-warning"><i class="fa fa-user-shield"></i></a>
+                                            @endcan
                                             {{-- @can('afficher_utilisateur') --}}
                                                 {{-- <a href="{{ route('users.show', $user->id) }}" type="button" class="btn btn-info"><i class="bi bi-eye-fill"></i></a> --}}
                                             {{-- @endcan --}}

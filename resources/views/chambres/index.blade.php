@@ -32,13 +32,15 @@
             <div class="card-header">
               <div class="d-flex align-items-center">
                 <h4 class="card-title">Liste des chambres</h4>
-                <button
-                  class="btn btn-primary btn-round ms-auto"
-                  data-bs-toggle="modal"
-                  data-bs-target="#addRowModal"
-                >
-                  <i class="fa fa-plus"></i> Ajouter une chambre
-                </button>
+                @can('chambre.create')
+                    <button
+                    class="btn btn-primary btn-round ms-auto"
+                    data-bs-toggle="modal"
+                    data-bs-target="#addRowModal"
+                    >
+                    <i class="fa fa-plus"></i> Ajouter une chambre
+                    </button>
+                @endcan
               </div>
             </div>
 
@@ -78,26 +80,27 @@
                                 </td>
                                 <td>
                                     <div class="form-button-action">
-                                        <!-- Modifier : Ajout des data-bs-toggle et data-bs-target -->
-                                        <button
-                                            type="button"
-                                            class="btn btn-warning btn-round btn-sm edit-button"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#editRowModal"
-                                            data-info="{{$chambre}}"
-                                        >
-                                            <i class="fa fa-edit"></i>
-                                        </button>
-
-                                        <form action="{{ route('chambres.destroy', $chambre->id) }}" method="POST"
-                                            onsubmit="return confirm('Supprimer cette chambre ?')">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button class="btn btn-danger btn-round btn-sm delete-button">
-                                                <i class="fa fa-trash"></i>
+                                        @can('chambre.edit')
+                                            <button
+                                                type="button"
+                                                class="btn btn-warning btn-round btn-sm edit-button"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#editRowModal"
+                                                data-info="{{$chambre}}"
+                                            >
+                                                <i class="fa fa-edit"></i>
                                             </button>
-                                        </form>
-
+                                        @endcan
+                                        @can('chambre.delete')
+                                            <form action="{{ route('chambres.destroy', $chambre->id) }}" method="POST"
+                                                onsubmit="return confirm('Supprimer cette chambre ?')">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button class="btn btn-danger btn-round btn-sm delete-button">
+                                                    <i class="fa fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        @endcan
                                     </div>
                                 </td>
                             </tr>

@@ -32,13 +32,15 @@
             <div class="card-header">
               <div class="d-flex align-items-center">
                 <h4 class="card-title">Liste des departements</h4>
-                <button
-                  class="btn btn-primary btn-round ms-auto"
-                  data-bs-toggle="modal"
-                  data-bs-target="#addRowModal"
-                >
-                  <i class="fa fa-plus"></i> Ajouter un département
-                </button>
+                @can('department.create')
+                    <button
+                    class="btn btn-primary btn-round ms-auto"
+                    data-bs-toggle="modal"
+                    data-bs-target="#addRowModal"
+                    >
+                    <i class="fa fa-plus"></i> Ajouter un département
+                    </button>
+                @endcan
               </div>
             </div>
 
@@ -66,28 +68,29 @@
                                 <td>{{ $department->name}}</td>
                                 <td>
                                     <div class="form-button-action">
-                                        <!-- Modifier : Ajout des data-bs-toggle et data-bs-target -->
-                                        <button
-                                            type="button"
-                                            class="btn btn-warning btn-round btn-sm edit-button"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#editRowModal"
-                                            data-info="{{$department->id}},{{$department->name}}"
-                                        >
-                                            <i class="fa fa-edit"></i>
-                                        </button>
-
-                                        <!-- Supprimer : Ajout des data-bs-toggle et data-bs-target -->
-                                        <button
-                                            type="button"
-                                            class="btn btn-danger btn-round btn-sm delete-button"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#deleteRowModal"
-                                            data-id="{{$department->id}}"
-                                            data-name="{{$department->name}}"
-                                        >
-                                            <i class="fa fa-trash"></i>
-                                        </button>
+                                        @can('department.edit')
+                                            <button
+                                                type="button"
+                                                class="btn btn-warning btn-round btn-sm edit-button"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#editRowModal"
+                                                data-info="{{$department->id}},{{$department->name}}"
+                                            >
+                                                <i class="fa fa-edit"></i>
+                                            </button>
+                                        @endcan
+                                        @can('department.delete')
+                                            <button
+                                                type="button"
+                                                class="btn btn-danger btn-round btn-sm delete-button"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#deleteRowModal"
+                                                data-id="{{$department->id}}"
+                                                data-name="{{$department->name}}"
+                                            >
+                                                <i class="fa fa-trash"></i>
+                                            </button>
+                                        @endcan
                                     </div>
                                 </td>
                             </tr>
