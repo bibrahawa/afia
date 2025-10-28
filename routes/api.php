@@ -25,7 +25,7 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 });
 
 
-// Dans routes/api.php
+Route::post('check-patient', [AppointmentController::class, 'checkPatient']);
 
 Route::get('departments', [AppointmentController::class, 'getDepartments']);
 Route::get('professionals/{id}', [AppointmentController::class, 'getProfessionals']);
