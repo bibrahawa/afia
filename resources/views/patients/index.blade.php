@@ -15,82 +15,247 @@
         }
 
         /* ============================================
-        HEADER OPTIMISÉ
+        HEADER
         ============================================ */
-        .card-header-enhanced {
+        .page-header {
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
             color: white;
-            padding: 1.25rem 1.5rem;
-            border-radius: var(--border-radius) var(--border-radius) 0 0;
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
         }
 
-        .card-header-enhanced h4 {
+        .page-header h1 {
             margin: 0;
-            font-size: 1.5rem;
+            font-size: 1.75rem;
             font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
         }
 
         .btn-add-patient {
             background: white;
             color: var(--primary);
             border: none;
-            padding: 0.625rem 1.5rem;
+            padding: 0.75rem 1.5rem;
             border-radius: 2rem;
             font-weight: 600;
             transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .btn-add-patient:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
+            color: var(--primary);
         }
 
         /* ============================================
-        TABLE OPTIMISÉE
+        BARRE DE RECHERCHE ET FILTRES
         ============================================ */
-        .table-container {
+        .search-filter-bar {
             background: white;
-            border-radius: 0 0 var(--border-radius) var(--border-radius);
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 3rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6b7280;
+        }
+
+        /* ============================================
+        GRID DE CARDS
+        ============================================ */
+        .patients-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .patients-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ============================================
+        PATIENT CARD
+        ============================================ */
+        .patient-card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            position: relative;
             overflow: hidden;
         }
 
-        .table thead th {
-            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+        .patient-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        }
+
+        .patient-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            border-color: var(--primary);
+        }
+
+        /* Header de la card */
+        .patient-card-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.25rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .patient-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.5rem;
+            flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        .patient-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .patient-name {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .patient-id {
+            font-size: 0.875rem;
+            color: #6b7280;
+            font-weight: 500;
+        }
+
+        /* Corps de la card */
+        .patient-card-body {
+            margin-bottom: 1rem;
+        }
+
+        .patient-detail {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 0;
+            font-size: 0.9rem;
+        }
+
+        .patient-detail i {
+            width: 20px;
+            color: var(--primary);
+            font-size: 1rem;
+        }
+
+        .patient-detail-label {
+            color: #6b7280;
+            font-weight: 500;
+            min-width: 80px;
+        }
+
+        .patient-detail-value {
+            color: #1f2937;
             font-weight: 600;
-            text-transform: uppercase;
-            font-size: 0.75rem;
-            letter-spacing: 0.5px;
-            padding: 1rem 0.75rem;
-            border: none;
+            flex: 1;
+            word-break: break-word;
         }
 
-        .table tbody tr {
-            transition: all 0.2s ease;
-        }
-
-        .table tbody tr:hover {
-            background: #f8fafc;
-            transform: translateX(2px);
-        }
-
-        .table tbody td {
-            padding: 1rem 0.75rem;
-            vertical-align: middle;
-        }
-
-        /* ============================================
-        ACTIONS RAPIDES
-        ============================================ */
-
-        .btn-action {
-            padding: 0.375rem 0.75rem;
-            border-radius: 0.5rem;
-            border: none;
-            transition: all 0.2s ease;
+        /* Solde badge */
+        .balance-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 1.5rem;
+            font-weight: 700;
             font-size: 0.875rem;
         }
 
-        .btn-action:hover {
+        /* Actions */
+        .patient-card-footer {
+            display: flex;
+            gap: 0.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid #f3f4f6;
+        }
+
+        .card-action-btn {
+            flex: 1;
+            padding: 0.625rem;
+            border-radius: 0.5rem;
+            border: none;
+            font-size: 0.875rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .card-action-btn:hover {
             transform: translateY(-2px);
         }
 
@@ -131,265 +296,162 @@
         }
 
         /* ============================================
-        BADGE SOLDE
+        EMPTY STATE
         ============================================ */
-        .balance-badge {
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: white;
-            padding: 0.375rem 0.875rem;
-            border-radius: 1.5rem;
-            font-weight: 600;
-            font-size: 0.875rem;
-            display: inline-block;
-        }
-
-        /* ============================================
-        MODALS OPTIMISÉS
-        ============================================ */
-        .modal-content-enhanced {
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: white;
             border-radius: var(--border-radius);
-            border: none;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         }
 
-        .modal-header-enhanced {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            color: white;
-            border-radius: var(--border-radius) var(--border-radius) 0 0;
-            padding: 1.5rem;
-            border: none;
-        }
-
-        .modal-header-enhanced .btn-close {
-            filter: brightness(0) invert(1);
-        }
-
-        .form-section {
-            background: #f8fafc;
-            padding: 1rem;
-            border-radius: 0.5rem;
+        .empty-state i {
+            font-size: 4rem;
+            color: #d1d5db;
             margin-bottom: 1rem;
         }
 
-        .form-section-title {
-            font-weight: 600;
-            color: var(--primary);
-            margin-bottom: 0.75rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .form-label-enhanced {
-            font-weight: 600;
-            color: #374151;
+        .empty-state h3 {
+            color: #6b7280;
             margin-bottom: 0.5rem;
-            font-size: 0.875rem;
         }
 
-        .form-control-enhanced {
-            border: 2px solid #e5e7eb;
-            border-radius: 0.5rem;
-            padding: 0.625rem 0.875rem;
-            transition: all 0.2s ease;
-        }
-
-        .form-control-enhanced:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-            outline: none;
-        }
-
-        /* ============================================
-        UPLOAD ZONE
-        ============================================ */
-        .file-upload-zone {
-            border: 2px dashed #d1d5db;
-            border-radius: var(--border-radius);
-            padding: 2rem;
-            text-align: center;
-            background: #fafafa;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-
-        .file-upload-zone:hover {
-            border-color: var(--primary);
-            background: #eff6ff;
-        }
-
-        .file-name-display {
-            margin-top: 1rem;
-            padding: 0.75rem;
-            background: #e0f2fe;
-            border-radius: 0.5rem;
-            color: #0369a1;
-            font-weight: 500;
-            display: none;
-        }
-
-        /* ============================================
-        LOADING STATES
-        ============================================ */
-        .btn-loading {
-            position: relative;
-            pointer-events: none;
-            opacity: 0.7;
-        }
-
-        .btn-loading::after {
-            content: '';
-            position: absolute;
-            width: 14px;
-            height: 14px;
-            top: 50%;
-            left: 50%;
-            margin-left: -7px;
-            margin-top: -7px;
-            border: 2px solid #ffffff;
-            border-radius: 50%;
-            border-top-color: transparent;
-            animation: spinner 0.6s linear infinite;
-        }
-
-        @keyframes spinner {
-            to { transform: rotate(360deg); }
-        }
-
-        /* ============================================
-        RESPONSIVE
-        ============================================ */
-        @media (max-width: 768px) {
-            
-            .card-header-enhanced {
-                flex-direction: column;
-                gap: 1rem;
-            }
-            
-            .table {
-                font-size: 0.875rem;
-            }
+        .empty-state p {
+            color: #9ca3af;
         }
     </style>
 @endsection
 
 @section('content')
     <div class="container">
-        <div class="page-inner">
-            <!-- Breadcrumbs -->
-            <div class="page-header mb-4">
-                <ul class="breadcrumbs">
-                    <li class="nav-home"><a href="{{url('/')}}"><i class="icon-home"></i></a></li>
-                    <li class="separator"><i class="icon-arrow-right"></i></li>
-                    <li class="nav-item"><a href="{{ url('/') }}">Admin</a></li>
-                    <li class="separator"><i class="icon-arrow-right"></i></li>
-                    <li class="nav-item"><a href="{{ route('patient.index') }}">Patientes</a></li>
-                </ul>
+        <!-- Header -->
+        <div class="page-header">
+            <h1>
+                <i class="fas fa-users"></i>
+                Liste des Patientes
+            </h1>
+            <button class="btn-add-patient" data-bs-toggle="modal" data-bs-target="#addRowModal">
+                <i class="fas fa-plus"></i>
+                Nouvelle Patiente
+            </button>
+        </div>
+
+        <!-- Barre de recherche -->
+        <div class="search-filter-bar">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="Rechercher une patiente par nom, téléphone ou ID...">
             </div>
+        </div>
 
-            <!-- Card Principal -->
-            <div class="card shadow-sm">
-                <!-- Header -->
-                <div class="card-header-enhanced d-flex justify-content-between align-items-center">
-                    <h4><i class="fas fa-users me-2"></i>Liste des Patientes</h4>
-                    @can('patient.create')
-                        <button class="btn btn-add-patient" data-bs-toggle="modal" data-bs-target="#addRowModal">
-                            <i class="fa fa-plus me-2"></i>Nouvelle Patiente
-                        </button>
-                    @endcan
-                </div>
-                </div>
+        <!-- Grid de cards -->
+        <div class="patients-grid" id="patientsGrid">
+            @forelse($patients as $patient)
+                <div class="patient-card" data-patient-name="{{ strtolower($patient->first_name . ' ' . $patient->last_name) }}" 
+                     data-patient-phone="{{ $patient->user->phone ?? '' }}" 
+                     data-patient-id="{{ $patient->id }}">
+                    
+                    <!-- Header -->
+                    <div class="patient-card-header">
+                        <div class="patient-avatar">
+                            {{ strtoupper(substr($patient->first_name ?? 'P', 0, 1)) }}
+                        </div>
+                        <div class="patient-info">
+                            <div class="patient-name">
+                                {{ $patient->first_name }} {{ $patient->last_name }}
+                            </div>
+                            <div class="patient-id">
+                                #{{ str_pad($patient->id, 4, '0', STR_PAD_LEFT) }}
+                            </div>
+                        </div>
+                    </div>
 
-                <!-- Table -->
-                <div class="table-container">
-                    <div class="table-responsive">
-                        <table id="add-row" class="table table-hover mb-0">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Nom Complet</th>
-                                    <th>Téléphone</th>
-                                    <th>Adresse</th>
-                                    <th>Solde</th>
-                                    <th class="text-center">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($patients as $patient)
-                                <tr>
-                                    <td><strong>#{{ str_pad($patient->id, 4, '0', STR_PAD_LEFT) }}</strong></td>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2">
-                                                {{ strtoupper(substr($patient->first_name, 0, 1)) }}
-                                            </div>
-                                            <div>
-                                                <strong>{{ $patient->first_name }} {{ $patient->last_name }}</strong>
-                                                @if($patient->middle_name)
-                                                    <br><small class="text-muted">{{ $patient->middle_name }}</small>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <i class="fas fa-phone-alt text-primary me-1"></i>
-                                        {{ $patient->user->phone }}
-                                    </td>
-                                    <td>
-                                        <i class="fas fa-map-marker-alt text-danger me-1"></i>
-                                        {{ $patient->district }}, {{ $patient->location }}
-                                    </td>
-                                    <td>
-                                        <span class="balance-badge">
-                                            {{ number_format($patient->account?->balance ?? 0) }} GNF
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div class="quick-actions">
-                                            <a href="{{ route('patient.show', $patient->id) }}" 
-                                            class="btn btn-action btn-view" 
-                                            title="Voir">
-                                                <i class="fa fa-eye"></i>
-                                            </a>
-                                            @can('patient.edit')
-                                            <button class="btn btn-action btn-edit edit-button" 
-                                                    data-bs-toggle="modal" 
-                                                    data-bs-target="#editRowModal"
-                                                    data-patient='@json($patient)'
-                                                    data-phone="{{ $patient->user->phone }}"
-                                                    title="Modifier">
-                                                <i class="fa fa-edit"></i>
-                                            </button>
-                                            @endcan
-                                            @can('patient.delete')
-                                            <button class="btn btn-action btn-delete delete-button" 
-                                                    data-bs-toggle="modal" 
-                                                    data-bs-target="#deleteRowModal"
-                                                    data-patient='@json($patient)'
-                                                    title="Supprimer">
-                                                <i class="fa fa-trash"></i>
-                                            </button>
-                                            @endcan
-                                            @can('patient.add_file')
-                                            <button class="btn btn-action btn-upload add-file-button" 
-                                                    data-bs-toggle="modal" 
-                                                    data-bs-target="#uploadFileModal"
-                                                    data-patient='@json($patient)'
-                                                    title="Ajouter un fichier">
-                                                <i class="fas fa-upload"></i>
-                                            </button>
-                                            @endcan
-                                        </div>
-                                    </td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+                    <!-- Body -->
+                    <div class="patient-card-body">
+                        <div class="patient-detail">
+                            <i class="fas fa-phone"></i>
+                            <span class="patient-detail-label">Téléphone:</span>
+                            <span class="patient-detail-value">{{ $patient->user->phone ?? 'N/A' }}</span>
+                        </div>
+
+                        <div class="patient-detail">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span class="patient-detail-label">Adresse:</span>
+                            <span class="patient-detail-value">{{ $patient->location ?? 'Non renseignée' }}</span>
+                        </div>
+
+                        <div class="patient-detail">
+                            <i class="fas fa-calendar"></i>
+                            <span class="patient-detail-label">Âge:</span>
+                            <span class="patient-detail-value">{{ $patient->age ?? '-' }} ans</span>
+                        </div>
+
+                        <div class="patient-detail">
+                            <i class="fas fa-wallet"></i>
+                            <span class="patient-detail-label">Solde:</span>
+                            <span class="balance-badge">
+                                {{ number_format($patient->solde ?? 0, 0, ',', ' ') }} GNF
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Footer Actions -->
+                    <div class="patient-card-footer">
+                        @can('patient.view')
+                            <a href="{{ route('patient.show', $patient->id) }}" class="card-action-btn btn-view">
+                                <i class="fas fa-eye"></i>
+                                
+                            </a>
+                        @endcan
+
+                        @can('patient.edit')
+                            <button class="card-action-btn btn-edit edit-button"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#editRowModal"
+                                    data-patient='@json($patient)'
+                                    data-phone="{{ $patient->user->phone ?? '' }}">
+                                <i class="fas fa-edit"></i>
+                                
+                            </button>
+                        @endcan
+                        
+                        @can('patient.delete')
+                            <button class="card-action-btn btn-delete delete-button"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#deleteRowModal"
+                                    data-patient='@json($patient)'>
+                                <i class="fas fa-trash"></i>
+                                
+                            </button>
+                        @endcan
+                        
+                        @can('patient.add_file')
+                            <button class="card-action-btn btn-upload add-file-button"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#uploadFileModal"
+                                    data-patient='@json($patient)'>
+                                <i class="fas fa-upload"></i>
+                                Fichier
+                            </button>
+                        @endcan
                     </div>
                 </div>
-            </div>
+            @empty
+                <div class="empty-state" style="grid-column: 1 / -1;">
+                    <i class="fas fa-users-slash"></i>
+                    <h3>Aucune patiente trouvée</h3>
+                    <p>Ajoutez votre première patiente en cliquant sur le bouton ci-dessus</p>
+                </div>
+            @endforelse
+        </div>
 
-            <!-- MODAL AJOUT -->
+        <!-- Pagination -->
+        <div class="d-flex justify-content-center">
+            {{ $patients->links() }}
+        </div>
+
+        <!-- MODAL AJOUT -->
             <div class="modal fade" id="addRowModal" tabindex="-1">
                 <div class="modal-dialog modal-lg">
                     <div class="modal-content modal-content-enhanced">
@@ -615,13 +677,37 @@
                     </div>
                 </div>
             </div>
-        </div>
+
+
     </div>
 @endsection
 
 @section('script')
     <script>
         $(document).ready(function() {
+            
+        // RECHERCHE EN TEMPS RÉEL
+        // ============================================
+        $('#searchInput').on('keyup', function() {
+            const searchTerm = $(this).val().toLowerCase().trim();
+            
+            if (searchTerm === '') {
+                $('.patient-card').show();
+                return;
+            }
+            
+            $('.patient-card').each(function() {
+                const name = ($(this).data('patient-name') || '').toString().toLowerCase();
+                const phone = ($(this).data('patient-phone') || '').toString().toLowerCase();
+                const id = ($(this).data('patient-id') || '').toString().toLowerCase();
+                
+                const searchableText = `${name} ${phone} ${id}`;
+                const matches = searchableText.includes(searchTerm);
+                
+                $(this).toggle(matches);
+            });
+        });
+
             // ============================================
             // MODIFIER PATIENTE
             // ============================================
@@ -694,7 +780,6 @@
             $('#uploadFileForm').on('submit', function() {
                 setLoading('#btnUploadFile', true);
             });
-
         });
     </script>
 @endsection
