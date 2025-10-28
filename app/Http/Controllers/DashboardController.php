@@ -79,14 +79,98 @@ class DashboardController extends Controller
      */
     public function appointments(Request $request)
     {
-        // where('employee_id', auth()->id())
-        $appointments = Appointment::where('status', '!=', 'Completed')
-            ->with('patient')
-            ->orderBy('appointment_date')
-            ->orderBy('appointment_time')
-            ->get();
-
-        return view('appointments.appointment', compact('appointments'));
+        $query = Appointment::with(['patient.user']);
+        
+        // Recherche
+        if ($request->has('search') && $request->search != '') {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->whereHas('patient', function($patientQuery) use ($search) {
+                    $patientQuery->where('first_name', 'LIKE', "%{$search}%")
+                                ->orWhere('last_name', 'LIKE', "%{$search}%")
+                                ->orWhereHas('user', function($userQuery) use ($search) {
+                                    $userQuery->where('phone', 'LIKE', "%{$search}%");
+                                });
+                })
+                ->orWhere('notes', 'LIKE', "%{$search}%")
+                ->orWhere('appointment_date', 'LIKE', "%{$search}%");
+            });
+        }
+        
+        // Filtre par statut
+        if ($request->has('status') && $request->status != '') {
+            $query->where('status', $request->status);
+        }
+        
+        // Filtre par date
+        if ($request->has('date_filter') && $request->date_filter != '') {
+            $dateFilter = $request->date_filter;
+            
+            switch ($dateFilter) {
+                case 'today':
+                    $query->whereDate('appointment_date', Carbon::today());
+                    break;
+                case 'tomorrow':
+                    $query->whereDate('appointment_date', Carbon::tomorrow());
+                    break;
+                case 'day_after_tomorrow':
+                    $query->whereDate('appointment_date', Carbon::today()->addDays(2));
+                    break;
+                case 'this_week':
+                    $query->whereBetween('appointment_date', [
+                        Carbon::now()->startOfWeek(),
+                        Carbon::now()->endOfWeek()
+                    ]);
+                    break;
+                case 'next_week':
+                    $query->whereBetween('appointment_date', [
+                        Carbon::now()->addWeek()->startOfWeek(),
+                        Carbon::now()->addWeek()->endOfWeek()
+                    ]);
+                    break;
+                case 'this_month':
+                    $query->whereMonth('appointment_date', Carbon::now()->month)
+                        ->whereYear('appointment_date', Carbon::now()->year);
+                    break;
+            }
+        }
+        
+        $appointments = $query->orderBy('appointment_date', 'asc')
+                            ->orderBy('appointment_time', 'asc')
+                            ->paginate(20);
+        
+        // IMPORTANT: Ajouter les paramètres à la pagination
+        $appointments->appends([
+            'search' => $request->search,
+            'status' => $request->status,
+            'date_filter' => $request->date_filter
+        ]);
+        
+        // Calculer les statistiques pour les filtres
+        $stats = [
+            'today' => Appointment::whereDate('appointment_date', Carbon::today())->count(),
+            'tomorrow' => Appointment::whereDate('appointment_date', Carbon::tomorrow())->count(),
+            'day_after_tomorrow' => Appointment::whereDate('appointment_date', Carbon::today()->addDays(2))->count(),
+            'this_week' => Appointment::whereBetween('appointment_date', [
+                Carbon::now()->startOfWeek(),
+                Carbon::now()->endOfWeek()
+            ])->count(),
+            'next_week' => Appointment::whereBetween('appointment_date', [
+                Carbon::now()->addWeek()->startOfWeek(),
+                Carbon::now()->addWeek()->endOfWeek()
+            ])->count(),
+            'this_month' => Appointment::whereMonth('appointment_date', Carbon::now()->month)
+                                    ->whereYear('appointment_date', Carbon::now()->year)
+                                    ->count(),
+            'total' => Appointment::count(),
+        ];
+        
+        // Si c'est une requête AJAX, retourner seulement la liste
+        if ($request->ajax()) {
+            return view('appointments.partials.list', compact('appointments'))->render();
+        }
+        
+        return view('appointments.appointment', compact('appointments', 'stats'));
     }
 
     /**
