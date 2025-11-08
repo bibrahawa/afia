@@ -13,42 +13,42 @@
 
         body {
             font-family: 'DejaVu Sans', Arial, sans-serif;
-            font-size: 10px;
+            font-size: 9px;
             color: #333;
-            line-height: 1.4;
+            line-height: 1.2;
         }
 
         .header {
             background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
             color: white;
-            padding: 20px;
-            margin-bottom: 20px;
-            border-radius: 8px;
+            padding: 12px 15px;
+            margin-bottom: 12px;
+            border-radius: 6px;
         }
 
         .header h1 {
-            font-size: 22px;
-            margin-bottom: 8px;
+            font-size: 18px;
+            margin-bottom: 4px;
             font-weight: bold;
         }
 
         .header .info {
-            font-size: 10px;
+            font-size: 9px;
             opacity: 0.9;
         }
 
         .info-box {
             background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border-left: 4px solid #3b82f6;
+            padding: 10px 12px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            border-left: 3px solid #3b82f6;
         }
 
         .info-box h3 {
-            font-size: 12px;
+            font-size: 11px;
             color: #3b82f6;
-            margin-bottom: 10px;
+            margin-bottom: 6px;
             font-weight: bold;
         }
 
@@ -59,19 +59,19 @@
 
         .info-item {
             display: table-cell;
-            padding: 5px 10px;
+            padding: 3px 8px;
             width: 25%;
         }
 
         .info-label {
-            font-size: 9px;
+            font-size: 8px;
             color: #6b7280;
             display: block;
-            margin-bottom: 3px;
+            margin-bottom: 2px;
         }
 
         .info-value {
-            font-size: 11px;
+            font-size: 10px;
             font-weight: bold;
             color: #1f2937;
         }
@@ -79,41 +79,37 @@
         .stats-grid {
             display: table;
             width: 100%;
-            margin-bottom: 20px;
+            margin-bottom: 12px;
         }
 
         .stat-card {
             display: table-cell;
             width: 25%;
-            padding: 10px;
+            padding: 8px;
             text-align: center;
             background: #f8f9fa;
-            border-radius: 6px;
-            margin-right: 10px;
-        }
-
-        .stat-card:last-child {
-            margin-right: 0;
+            border-radius: 4px;
         }
 
         .stat-number {
-            font-size: 20px;
+            font-size: 16px;
             font-weight: bold;
             color: #3b82f6;
             display: block;
+            line-height: 1;
         }
 
         .stat-label {
-            font-size: 9px;
+            font-size: 8px;
             color: #6b7280;
             display: block;
-            margin-top: 3px;
+            margin-top: 2px;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
         }
 
         thead {
@@ -122,40 +118,41 @@
         }
 
         thead th {
-            padding: 10px 8px;
+            padding: 6px 4px;
             text-align: left;
-            font-size: 9px;
+            font-size: 8px;
             font-weight: bold;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
+            border: none;
         }
 
         tbody td {
-            padding: 10px 8px;
+            padding: 5px 4px;
             border-bottom: 1px solid #e5e7eb;
-            font-size: 9px;
+            font-size: 8px;
+            vertical-align: middle;
+            line-height: 1.1;
         }
 
         tbody tr:nth-child(even) {
             background-color: #f9fafb;
         }
 
-        tbody tr:hover {
-            background-color: #f3f4f6;
-        }
-
         .patient-name {
             font-weight: bold;
             color: #1f2937;
+            font-size: 9px;
         }
 
         .status-badge {
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 8px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 7px;
             font-weight: bold;
             display: inline-block;
             text-align: center;
+            white-space: nowrap;
         }
 
         .status-pending {
@@ -174,11 +171,11 @@
         }
 
         .footer {
-            margin-top: 30px;
-            padding-top: 15px;
-            border-top: 2px solid #e5e7eb;
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px solid #e5e7eb;
             text-align: center;
-            font-size: 8px;
+            font-size: 7px;
             color: #6b7280;
         }
 
@@ -187,23 +184,14 @@
         }
 
         .text-truncate {
-            max-width: 150px;
+            max-width: 120px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
         }
 
-        .icon {
-            color: #9ca3af;
-            margin-right: 3px;
-        }
-
-        .page-break {
-            page-break-after: always;
-        }
-
         @page {
-            margin: 15mm;
+            margin: 0mm 10mm;
         }
     </style>
 </head>
@@ -212,7 +200,7 @@
     <div class="header">
         <h1>📋 Liste des Rendez-vous</h1>
         <div class="info">
-            {{-- Dr. {{ $medecin->user->name ?? 'Médecin' }} |  --}}
+            Dr. {{ $medecin->user->name ?? 'Médecin' }} | 
             Généré le {{ $generatedAt }}
         </div>
     </div>
@@ -245,7 +233,7 @@
             </div>
             <div class="info-item">
                 <span class="info-label">Total</span>
-                <span class="info-value">{{ $stats['total'] }} rendez-vous</span>
+                <span class="info-value">{{ $stats['total'] }} RDV</span>
             </div>
         </div>
     </div>
@@ -274,14 +262,14 @@
     <table>
         <thead>
             <tr>
-                <th style="width: 5%;">#</th>
+                <th style="width: 3%;">#</th>
                 <th style="width: 18%;">Patient</th>
-                <th style="width: 13%;">Téléphone</th>
+                <th style="width: 11%;">Téléphone</th>
                 <th style="width: 13%;">Date</th>
-                <th style="width: 8%;">Heure</th>
-                <th style="width: 23%;">Notes</th>
-                <th style="width: 12%;">Statut</th>
-                <th style="width: 8%;">Confirmation</th>
+                <th style="width: 7%;">Heure</th>
+                <th style="width: 28%;">Notes</th>
+                <th style="width: 11%;">Statut</th>
+                <th style="width: 9%;">Action</th>
             </tr>
         </thead>
         <tbody>
@@ -296,22 +284,20 @@
                     </td>
                     <td>
                         @if(isset($appointment->patient->user->phone))
-                            <span class="icon">📞</span>{{ $appointment->patient->user->phone }}
+                            {{ $appointment->patient->user->phone }}
                         @else
                             <span class="text-muted">-</span>
                         @endif
                     </td>
                     <td>
-                        <span class="icon">📅</span>
-                        {{ \Carbon\Carbon::parse($appointment->appointment_date)->locale('fr')->isoFormat('DD MMM YYYY') }}
+                        {{ \Carbon\Carbon::parse($appointment->appointment_date)->locale('fr')->isoFormat('DD MMM YY') }}
                     </td>
                     <td>
-                        <span class="icon">🕐</span>
                         {{ $appointment->appointment_time->format('H:i') }}
                     </td>
                     <td>
                         @if($appointment->notes)
-                            <span class="text-truncate">{{ $appointment->notes }}</span>
+                            <span class="text-truncate">{{ Str::limit($appointment->notes, 40) }}</span>
                         @else
                             <span class="text-muted">-</span>
                         @endif
@@ -322,11 +308,11 @@
                             ($appointment->status === 'confirmed' ? 'status-confirmed' :
                             ($appointment->status === 'completed' ? 'status-completed' : '')) }}">
                             @if($appointment->status === 'pending')
-                                ⏳ En attente
+                                En attente
                             @elseif($appointment->status === 'confirmed')
-                                ✓ Confirmé
+                                Confirmé
                             @elseif($appointment->status === 'completed')
-                                ✓✓ Terminé
+                                Terminé
                             @endif
                         </span>
                     </td>
@@ -336,44 +322,13 @@
                         @elseif($appointment->status === 'confirmed')
                             À terminer
                         @else
-                            Fait ✓
+                            Fait
                         @endif
                     </td>
                 </tr>
-
-                {{-- Saut de page tous les 15 rendez-vous --}}
-                @if(($index + 1) % 15 === 0 && !$loop->last)
-                    </tbody>
-                    </table>
-                    <div class="page-break"></div>
-                    
-                    {{-- Répéter l'en-tête sur la nouvelle page --}}
-                    <div class="header">
-                        <h1>📋 Liste des Rendez-vous (suite)</h1>
-                        <div class="info">
-                            {{-- Dr. {{ $medecin->user->name ?? 'Médecin' }} |  --}}
-                            Généré le {{ $generatedAt }}
-                        </div>
-                    </div>
-                    
-                    <table>
-                    <thead>
-                        <tr>
-                            <th style="width: 5%;">#</th>
-                            <th style="width: 18%;">Patient</th>
-                            <th style="width: 13%;">Téléphone</th>
-                            <th style="width: 13%;">Date</th>
-                            <th style="width: 8%;">Heure</th>
-                            <th style="width: 23%;">Notes</th>
-                            <th style="width: 12%;">Statut</th>
-                            <th style="width: 8%;">Confirmation</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                @endif
             @empty
                 <tr>
-                    <td colspan="8" style="text-align: center; padding: 30px;">
+                    <td colspan="8" style="text-align: center; padding: 20px;">
                         <span class="text-muted">Aucun rendez-vous trouvé.</span>
                     </td>
                 </tr>

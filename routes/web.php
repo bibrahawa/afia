@@ -12,9 +12,6 @@ use App\Http\Controllers\{
     PaymentController, InsuranceBalanceController, SmsController, SmsReportController
 };
 
-Route::get('sms', function(){
-    dd(\App\Models\Appointment::NeedingLastMinuteReminder()->get());
-});
 
 // Authentification
 Route::get('/', [DashboardController::class, 'index'])->name('rdv');
@@ -362,6 +359,13 @@ Route::middleware('auth')->group(function () {
     // Route pour l'export PDF des rendez-vous
     Route::get('/appointments/export-pdf', [AppointmentController::class, 'exportPdf'])
         ->name('appointments.export-pdf');
+
+    // Gestion des pauses
+    Route::post('/breaks', [DashboardController::class, 'storeBreak'])->name('breaks.store');
+    Route::put('/breaks', [DashboardController::class, 'updateBreak'])->name('breaks.update');
+    Route::delete('/breaks', [DashboardController::class, 'destroyBreak'])->name('breaks.destroy');
+    Route::post('/breaks/{id}/toggle', [DashboardController::class, 'toggleBreak'])->name('breaks.toggle');
+
 
     // ============================================
     // MÉDICAMENTS

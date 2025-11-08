@@ -127,7 +127,8 @@ class AppointmentController extends Controller
         $pdf = Pdf::loadView('appointments.pdf', $data);
         
         // Configuration du PDF
-        $pdf->setPaper('a4', 'landscape');
+        $pdf->setPaper('a4', 'portrait');
+        $pdf->setOption('margin-top', 0);
         
         // Nom du fichier
         $filename = 'rendez-vous_' . Carbon::now()->format('Y-m-d_His') . '.pdf';

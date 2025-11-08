@@ -21,6 +21,7 @@ use App\Models\InvoiceItem;
 use App\Models\Medicament;
 use App\Jobs\ProcessDoctorUnavailabilityJob;
 use Carbon\Carbon;
+use App\Models\EmployeeBreak;
 
 class DashboardController extends Controller
 {
@@ -446,18 +447,6 @@ class DashboardController extends Controller
     }
 
     /**
-     * Récupère les congés
-     */
-    public function leaves()
-    {
-        $leaves = EmployeeLeave::where('employee_id', auth()->id())
-            ->orderBy('start_date', 'desc')
-            ->get();
-
-        return view('appointments.leaves', compact('leaves'));
-    }
-
-    /**
      * Crée une demande de congé
      */
     public function storeLeave(Request $request): RedirectResponse
@@ -775,4 +764,397 @@ class DashboardController extends Controller
         
         return $query->exists();
     }
+
+    /**
+     * Affiche la page des congés ET pauses
+     */
+    public function leaves()
+    {
+        $leaves = EmployeeLeave::where('employee_id', auth()->id())
+            ->orderBy('start_date', 'desc')
+            ->get();
+        
+        // Récupérer aussi les pauses
+        $breaks = EmployeeBreak::where('employee_id', auth()->id())
+            ->orderBy('day_of_week')
+            ->orderBy('start_time')
+            ->get();
+
+        return view('appointments.leaves', compact('leaves', 'breaks'));
+    }
+
+    /**
+     * Créer une pause (supprime UNIQUEMENT les créneaux existants)
+     */
+    public function storeBreak(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'day_of_week' => 'required|in:Lundi,Mardi,Mercredi,Jeudi,Vendredi,Samedi,Dimanche',
+            'start_time' => 'required|date_format:H:i',
+            'end_time' => 'required|date_format:H:i|after:start_time',
+            'label' => 'nullable|string|max:255',
+        ], [
+            'day_of_week.required' => 'Le jour de la semaine est requis.',
+            'start_time.required' => 'L\'heure de début est requise.',
+            'end_time.required' => 'L\'heure de fin est requise.',
+            'end_time.after' => 'L\'heure de fin doit être après l\'heure de début.',
+        ]);
+
+
+        // Vérifier les chevauchements
+        $existingBreak = EmployeeBreak::where('employee_id', auth()->id())
+            ->where('day_of_week', $validated['day_of_week'])
+            ->where(function($query) use ($validated) {
+                $query->where(function($q) use ($validated) {
+                    $q->where('start_time', '<=', $validated['start_time'])
+                    ->where('end_time', '>', $validated['start_time']);
+                })
+                ->orWhere(function($q) use ($validated) {
+                    $q->where('start_time', '<', $validated['end_time'])
+                    ->where('end_time', '>=', $validated['end_time']);
+                })
+                ->orWhere(function($q) use ($validated) {
+                    $q->where('start_time', '>=', $validated['start_time'])
+                    ->where('end_time', '<=', $validated['end_time']);
+                });
+            })
+            ->exists();
+
+        if ($existingBreak) {
+            return redirect()->back()->with('error', 'Une pause existe déjà dans cette plage horaire pour ce jour.');
+        }
+
+        DB::beginTransaction();
+        
+        try {
+            // Créer la pause
+            $break = EmployeeBreak::create([
+                'employee_id' => auth()->id(),
+                'day_of_week' => $validated['day_of_week'],
+                'start_time' => $validated['start_time'],
+                'end_time' => $validated['end_time'],
+                'label' => $validated['label'] ?? 'Pause',
+                'is_active' => true,
+            ]);
+
+            // Supprimer UNIQUEMENT les créneaux existants
+            $deletedCount = $this->deleteSlotsForBreakOptimized($break);
+
+            DB::commit();
+            
+            Log::info('Pause créée', [
+                'break_id' => $break->id,
+                'employee_id' => auth()->id(),
+                'deleted_slots' => $deletedCount
+            ]);
+            
+            return redirect()->back()->with('success', "Pause créée avec succès. {$deletedCount} créneau(x) supprimé(s).");
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Erreur création pause: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Erreur lors de la création de la pause');
+        }
+    }
+
+    public function break($id){
+        $break = EmployeeBreak::where('employee_id', auth()->id())->findOrFail($id);
+        dd($this->restoreSlotsForBreakOptimized($break));
+
+    }
+
+    /**
+     * Mettre à jour une pause
+     */
+    public function updateBreak(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'id' => 'required|exists:employee_breaks,id',
+            'day_of_week' => 'required|in:Lundi,Mardi,Mercredi,Jeudi,Vendredi,Samedi,Dimanche',
+            'start_time' => 'required|date_format:H:i',
+            'end_time' => 'required|date_format:H:i|after:start_time',
+            'label' => 'nullable|string|max:255',
+        ]);
+
+        DB::beginTransaction();
+        
+        try {
+            $break = EmployeeBreak::findOrFail($request->id);
+
+            if ($break->employee_id !== auth()->id()) {
+                return redirect()->back()->with('error', 'Non autorisé');
+            }
+
+            // Vérifier les chevauchements (sauf avec cette pause)
+            $existingBreak = EmployeeBreak::where('employee_id', auth()->id())
+                ->where('id', '!=', $request->id)
+                ->where('day_of_week', $validated['day_of_week'])
+                ->where(function($query) use ($validated) {
+                    $query->where(function($q) use ($validated) {
+                        $q->where('start_time', '<=', $validated['start_time'])
+                        ->where('end_time', '>', $validated['start_time']);
+                    })
+                    ->orWhere(function($q) use ($validated) {
+                        $q->where('start_time', '<', $validated['end_time'])
+                        ->where('end_time', '>=', $validated['end_time']);
+                    })
+                    ->orWhere(function($q) use ($validated) {
+                        $q->where('start_time', '>=', $validated['start_time'])
+                        ->where('end_time', '<=', $validated['end_time']);
+                    });
+                })
+                ->exists();
+
+            if ($existingBreak) {
+                return redirect()->back()->with('error', 'Une pause existe déjà dans cette plage horaire.');
+            }
+
+            // Restaurer les créneaux de l'ancienne pause
+            $restoredCount = $this->restoreSlotsForBreakOptimized($break);
+
+            // Mettre à jour la pause
+            $break->update([
+                'day_of_week' => $validated['day_of_week'],
+                'start_time' => $validated['start_time'],
+                'end_time' => $validated['end_time'],
+                'label' => $validated['label'] ?? 'Pause',
+            ]);
+
+            // Supprimer les créneaux de la nouvelle pause
+            $deletedCount = $this->deleteSlotsForBreakOptimized($break);
+
+            DB::commit();
+            
+            Log::info('Pause mise à jour', [
+                'break_id' => $break->id,
+                'restored_slots' => $restoredCount,
+                'deleted_slots' => $deletedCount
+            ]);
+            
+            return redirect()->back()->with('success', "Pause mise à jour. {$restoredCount} créneau(x) restauré(s), {$deletedCount} supprimé(s).");
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Erreur mise à jour pause: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Erreur lors de la mise à jour');
+        }
+    }
+
+    /**
+     * Supprimer une pause
+     */
+    public function destroyBreak(Request $request): RedirectResponse
+    {
+        DB::beginTransaction();
+
+        try {
+            $break = EmployeeBreak::findOrFail($request->input('id'));
+            
+            if ($break->employee_id !== auth()->id()) {
+                return redirect()->back()->with('error', 'Non autorisé');
+            }
+            
+            // Restaurer les créneaux
+            $restoredCount = $this->restoreSlotsForBreakOptimized($break);
+
+            $break->delete();
+
+            DB::commit();
+            
+            Log::info("Pause supprimée", [
+                'break_id' => $break->id,
+                'employee_id' => auth()->id(),
+                'restored_slots' => $restoredCount
+            ]);
+            
+            return redirect()->back()->with('success', "Pause supprimée. {$restoredCount} créneau(x) restauré(s).");
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Erreur suppression pause: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Erreur lors de la suppression');
+        }
+    }
+
+    /**
+     * Toggle actif/inactif (AJAX)
+     */
+    public function toggleBreak(Request $request, int $id)
+    {
+        try {
+
+            $break = EmployeeBreak::where('employee_id', auth()->id())->findOrFail($id);
+            
+            DB::beginTransaction();
+            
+            // Convertir explicitement en boolean
+            $isActive = filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN);
+            
+            if ($isActive) {
+                // Activer = supprimer les créneaux
+                $deletedCount = $this->deleteSlotsForBreakOptimized($break);
+                $break->update(['is_active' => true]);
+                $message = "Pause activée. {$deletedCount} créneau(x) supprimé(s).";
+            } else {
+                // Désactiver = restaurer les créneaux
+                $restoredCount = $this->restoreSlotsForBreakOptimized($break);
+                $break->update(['is_active' => false]);
+                $message = "Pause désactivée. {$restoredCount} créneau(x) restauré(s).";
+            }
+
+            DB::commit();
+            
+            return response()->json([
+                'success' => true,
+                'message' => $message
+            ]);
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Erreur toggle pause: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Erreur lors de la mise à jour de la pause');
+        }
+    }
+
+    /**
+     * VERSION OPTIMISÉE : Supprimer UNIQUEMENT les créneaux existants
+     * Ne touche QUE les créneaux déjà créés dans la plage de dates configurée
+     */
+    private function deleteSlotsForBreakOptimized(EmployeeBreak $break): int
+    {
+        $dayOfWeekEn = $this->getDayOfWeek($break->day_of_week);
+        
+        // Récupérer la date min et max des créneaux existants pour cet employé
+        $dateRange = AppointmentSlot::where('employee_id', $break->employee_id)
+            ->selectRaw('MIN(date) as min_date, MAX(date) as max_date')
+            ->first();
+        
+        if (!$dateRange || !$dateRange->min_date) {
+            Log::info('Aucun créneau existant trouvé pour cet employé');
+            return 0;
+        }
+        
+        $startDate = Carbon::parse($dateRange->min_date);
+        $endDate = Carbon::parse($dateRange->max_date);
+        
+        Log::info('Plage de créneaux existants', [
+            'start' => $startDate->format('Y-m-d'),
+            'end' => $endDate->format('Y-m-d')
+        ]);
+        
+        // Supprimer UNIQUEMENT les créneaux qui existent dans cette plage
+        $deletedCount = AppointmentSlot::where('employee_id', $break->employee_id)
+            ->whereBetween('date', [$startDate, $endDate])
+            ->whereRaw('DAYNAME(date) = ?', [$dayOfWeekEn])
+            ->where('time', '>=', $break->start_time->format('H:i:s'))
+            ->where('time', '<', $break->end_time->format('H:i:s'))
+            ->where('is_available', true)
+            ->delete();
+        
+        Log::info("Créneaux supprimés pour la pause", [
+            'break_id' => $break->id,
+            'day' => $break->day_of_week,
+            'deleted_count' => $deletedCount
+        ]);
+        
+        return $deletedCount;
+    }
+
+    /**
+     * VERSION OPTIMISÉE : Restaurer UNIQUEMENT là où il y a une disponibilité
+     * Ne recrée QUE les créneaux dans la plage de dates où des créneaux existent déjà
+     */
+    private function restoreSlotsForBreakOptimized($break): int
+    {
+        // Récupérer la disponibilité pour ce jour        
+        $availability = EmployeeAvailability::where('employee_id', $break->employee_id)
+            ->where('day_of_week', $break->day_of_week)
+            ->where('is_active', true)
+            ->first();
+
+        if (!$availability) {
+            Log::info('Aucune disponibilité configurée pour ce jour');
+            return 0;
+        }
+        
+        // Récupérer la plage de dates des créneaux existants
+        $dateRange = AppointmentSlot::where('employee_id', $break->employee_id)
+            ->selectRaw('MIN(date) as min_date, MAX(date) as max_date')
+            ->first();
+        
+        if (!$dateRange || !$dateRange->min_date) {
+            Log::info('Aucun créneau existant trouvé');
+            return 0;
+        }
+        
+        $startDate = Carbon::parse($dateRange->min_date);
+        $endDate = Carbon::parse($dateRange->max_date);
+        $dayOfWeekEn = $this->getDayOfWeek($break->day_of_week);
+        $restoredCount = 0;
+        
+        // Ne parcourir QUE les jours qui correspondent dans cette plage
+        $currentDate = $startDate->copy();
+        
+        // Aller au premier jour correspondant
+        while ($currentDate <= $endDate) {
+            if ($currentDate->format('l') === $dayOfWeekEn) {
+                break;
+            }
+            $currentDate->addDay();
+        }
+        
+        // Parcourir tous les jours correspondants dans la plage
+        while ($currentDate <= $endDate) {
+            // Vérifier si c'est un jour de congé
+            $isLeaveDay = EmployeeLeave::where('employee_id', $break->employee_id)
+                ->where('status', 'approved')
+                ->whereDate('start_date', '<=', $currentDate)
+                ->whereDate('end_date', '>=', $currentDate)
+                ->exists();
+            
+            if (!$isLeaveDay) {
+                $startTime = Carbon::createFromFormat('H:i', $break->start_time->format('H:i'));
+                $endTime = Carbon::createFromFormat('H:i', $break->end_time->format('H:i'));
+                $duration = (int)$availability->slot_duration;
+                
+                // Si c'est aujourd'hui, ne restaurer que les créneaux futurs
+                if ($currentDate->isToday()) {
+                    $now = Carbon::now();
+                    while ($startTime < $now) {
+                        $startTime->addMinutes($duration);
+                    }
+                }
+                
+                // Restaurer les créneaux
+                $slotTime = $startTime->copy();
+                while ($slotTime < $endTime) {
+                    $slot = AppointmentSlot::firstOrCreate([
+                        'employee_id' => $break->employee_id,
+                        'date' => $currentDate->format('Y-m-d'),
+                        'time' => $slotTime->format('H:i:s'),
+                    ], [
+                        'is_available' => true
+                    ]);
+                    
+                    if ($slot->wasRecentlyCreated) {
+                        $restoredCount++;
+                    }
+                    
+                    $slotTime->addMinutes($duration);
+                }
+            }
+            
+            // Passer au même jour la semaine prochaine
+            $currentDate->addWeek();
+        }
+        
+        Log::info("Créneaux restaurés pour la pause", [
+            'break_id' => $break->id,
+            'day' => $break->day_of_week,
+            'restored_count' => $restoredCount
+        ]);
+        
+        return $restoredCount;
+    }
+
 }
