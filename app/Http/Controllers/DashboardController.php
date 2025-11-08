@@ -241,7 +241,7 @@ class DashboardController extends Controller
             'day_of_week' => 'required|string|in:Lundi,Mardi,Mercredi,Jeudi,Vendredi,Samedi,Dimanche',
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
-            'slot_duration' => 'required|integer|min:15|max:180'
+            'slot_duration' => 'required|integer|min:10|max:180'
         ]);
 
         // Vérification des conflits de disponibilité
@@ -286,7 +286,7 @@ class DashboardController extends Controller
             'day_of_week' => 'required|string|in:Lundi,Mardi,Mercredi,Jeudi,Vendredi,Samedi,Dimanche',
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
-            'slot_duration' => 'required|integer|min:15|max:180'
+            'slot_duration' => 'required|integer|min:10|max:180'
         ]);
 
         DB::beginTransaction();

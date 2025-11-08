@@ -359,6 +359,10 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:appointment.delete')
         ->name('appointment.destroy');
 
+    // Route pour l'export PDF des rendez-vous
+    Route::get('/appointments/export-pdf', [AppointmentController::class, 'exportPdf'])
+        ->name('appointments.export-pdf');
+
     // ============================================
     // MÉDICAMENTS
     // ============================================

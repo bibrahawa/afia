@@ -15,9 +15,126 @@ use App\Jobs\SendAppointmentReminderJob;
 use App\Jobs\ProcessDoctorUnavailabilityJob;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Validator;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class AppointmentController extends Controller
 {
+
+    /**
+     * Export des rendez-vous en PDF
+     */
+    public function exportPdf(Request $request)
+    {
+        
+        if (!$request->date_filter) {
+            return redirect()->back()->with('error', 'Le filtre de date est requis pour l\'export PDF.');
+        }
+        
+        // Construction de la requête de base
+        
+        $query = Appointment::with(['patient.user'])
+            ->orderBy('appointment_date', 'asc')
+            ->orderBy('appointment_time', 'asc');
+        
+        // Filtrage par date
+        $dateFilter = $request->input('date_filter', '');
+        $dateFilterLabel = 'Tous les rendez-vous';
+        
+        switch ($dateFilter) {
+            case 'today':
+                $query->whereDate('appointment_date', Carbon::today());
+                $dateFilterLabel = 'Aujourd\'hui - ' . Carbon::today()->locale('fr')->isoFormat('DD MMM YYYY');
+                break;
+                
+            case 'tomorrow':
+                $query->whereDate('appointment_date', Carbon::tomorrow());
+                $dateFilterLabel = 'Demain - ' . Carbon::tomorrow()->locale('fr')->isoFormat('DD MMM YYYY');
+                break;
+                
+            case 'day_after_tomorrow':
+                $query->whereDate('appointment_date', Carbon::today()->addDays(2));
+                $dateFilterLabel = 'Après-demain - ' . Carbon::today()->addDays(2)->locale('fr')->isoFormat('DD MMM YYYY');
+                break;
+                
+            case 'this_week':
+                $query->whereBetween('appointment_date', [
+                    Carbon::now()->startOfWeek(),
+                    Carbon::now()->endOfWeek()
+                ]);
+                $dateFilterLabel = 'Cette semaine - ' . 
+                    Carbon::now()->startOfWeek()->locale('fr')->isoFormat('DD') . ' - ' . 
+                    Carbon::now()->endOfWeek()->locale('fr')->isoFormat('DD MMM YYYY');
+                break;
+                
+            case 'next_week':
+                $query->whereBetween('appointment_date', [
+                    Carbon::now()->addWeek()->startOfWeek(),
+                    Carbon::now()->addWeek()->endOfWeek()
+                ]);
+                $dateFilterLabel = 'Semaine prochaine - ' . 
+                    Carbon::now()->addWeek()->startOfWeek()->locale('fr')->isoFormat('DD') . ' - ' . 
+                    Carbon::now()->addWeek()->endOfWeek()->locale('fr')->isoFormat('DD MMM YYYY');
+                break;
+                
+            case 'this_month':
+                $query->whereMonth('appointment_date', Carbon::now()->month)
+                    ->whereYear('appointment_date', Carbon::now()->year);
+                $dateFilterLabel = 'Ce mois - ' . Carbon::now()->locale('fr')->isoFormat('MMMM YYYY');
+                break;
+        }
+        
+        // Filtrage par statut
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        
+        // Recherche
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->whereHas('patient', function($patientQuery) use ($search) {
+                    $patientQuery->where('first_name', 'like', "%{$search}%")
+                        ->orWhere('last_name', 'like', "%{$search}%");
+                })
+                ->orWhere('notes', 'like', "%{$search}%")
+                ->orWhere('appointment_date', 'like', "%{$search}%");
+            });
+        }
+        
+        // Récupérer tous les rendez-vous (sans pagination pour le PDF)
+        $appointments = $query->get();
+        
+        // Statistiques
+        $stats = [
+            'total' => $appointments->count(),
+            'pending' => $appointments->where('status', 'pending')->count(),
+            'confirmed' => $appointments->where('status', 'confirmed')->count(),
+            'completed' => $appointments->where('status', 'completed')->count(),
+        ];
+        
+        // Données à passer à la vue PDF
+        $data = [
+            'appointments' => $appointments,
+            'stats' => $stats,
+            // 'medecin' => $medecin,
+            'dateFilterLabel' => $dateFilterLabel,
+            'generatedAt' => Carbon::now()->locale('fr')->isoFormat('DD MMMM YYYY à HH:mm'),
+            'statusFilter' => $request->status,
+            'searchQuery' => $request->search,
+        ];
+        
+        // Générer le PDF
+        $pdf = Pdf::loadView('appointments.pdf', $data);
+        
+        // Configuration du PDF
+        $pdf->setPaper('a4', 'landscape');
+        
+        // Nom du fichier
+        $filename = 'rendez-vous_' . Carbon::now()->format('Y-m-d_His') . '.pdf';
+        
+        // Télécharger le PDF
+        return $pdf->download($filename);
+    }
 
     public function index()
     {
