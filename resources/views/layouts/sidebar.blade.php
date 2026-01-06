@@ -3,9 +3,9 @@
     <div class="sidebar-logo">
         <!-- Logo Header -->
         <div class="logo-header" data-background-color="orange2">
-            <img src="{{ asset("assets/img/logo.jpeg") }}"
+            {{-- <img src="{{ asset("assets/img/logo.jpeg") }}"
                 alt="Logo Aprosafe"
-                class="h-12 w-auto object-contain mx-auto"/>
+                class="h-12 w-auto object-contain mx-auto"/> --}}
 
             <div class="nav-toggle">
                 <button class="btn btn-toggle toggle-sidebar">
@@ -198,14 +198,14 @@
                     </li>
                 @endcan
 
-                @can('insurance_patient.view')
+                {{-- @can('insurance_patient.view') --}}
                     <li class="nav-item {{ request()->routeIs('insurance_patient.*') ? 'active' : '' }}">
                         <a href="{{ route('insurance_patient.index') }}">
                             <i class="fas fa-user-shield"></i>
                             <p>Patients assurés</p>
                         </a>
                     </li>
-                @endcan
+                {{-- @endcan --}}
 
                 @can('insurance_balance.view')
                     <li class="nav-item {{ request()->routeIs('insurance.balances*') ? 'active' : '' }}">

@@ -296,8 +296,8 @@
                         {{ $appointment->appointment_time->format('H:i') }}
                     </td>
                     <td>
-                        @if($appointment->notes)
-                            <span class="text-truncate">{{ Str::limit($appointment->notes, 40) }}</span>
+                        @if($appointment->reason)
+                            <span>{{ $appointment->reason }}</span>
                         @else
                             <span class="text-muted">-</span>
                         @endif

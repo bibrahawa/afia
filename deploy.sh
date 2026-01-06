@@ -26,6 +26,8 @@ php artisan view:clear
 # Si cette commande existe
 php artisan optimize:clear
 
+php artisan migrate --force
+
 # Recréer les caches
 php artisan config:cache
 php artisan route:cache

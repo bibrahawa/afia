@@ -11,8 +11,6 @@ use App\Http\Controllers\{
     InsuranceCoverageController, InvoiceItemController, InvoicesController, PatientInsuranceController, 
     PaymentController, InsuranceBalanceController, SmsController, SmsReportController
 };
-
-
 // Authentification
 Route::get('/', [DashboardController::class, 'index'])->name('rdv');
 
@@ -173,6 +171,10 @@ Route::middleware('auth')->group(function () {
         Route::post('appointments/{id}/complete', [DashboardController::class, 'completeAppointment'])
             ->middleware('permission:medecin.complete_appointment')
             ->name('appointments.complete');
+
+        Route::delete('appointments/{id}/cancel', [AppointmentController::class, 'cancel'])
+            ->name('appointments.cancel');
+
 
         // Disponibilités
         Route::middleware('permission:medecin.availabilities')->group(function () {
@@ -352,9 +354,9 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:appointment.edit')
         ->name('appointment.updated');
     
-    Route::delete('appointment/{appointment}', [AppointmentController::class, 'destroy'])
-        ->middleware('permission:appointment.delete')
-        ->name('appointment.destroy');
+    // Route::delete('appointment/{appointment}', [AppointmentController::class, 'destroy'])
+    //     ->middleware('permission:appointment.delete')
+    //     ->name('appointment.destroy');
 
     // Route pour l'export PDF des rendez-vous
     Route::get('/appointments/export-pdf', [AppointmentController::class, 'exportPdf'])

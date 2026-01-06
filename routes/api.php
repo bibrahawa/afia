@@ -1,6 +1,6 @@
 <?php
 
-use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\Api\Api_PatientInsuranceController;
 use App\Http\Controllers\Api\Api_InsuranceCalculationController;
@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\Api_InsuranceCompanyController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\InsuranceBalanceController;
 use App\Http\Controllers\AuthController;
+use Illuminate\Support\Facades\DB;
 
 /*
 |--------------------------------------------------------------------------
@@ -20,9 +21,9 @@ use App\Http\Controllers\AuthController;
 |
 */
 
-Route::middleware('auth:api')->get('/user', function (Request $request) {
-    return $request->user();
-});
+// Route::middleware('auth:api')->get('/user', function (Request $request) {
+//     return $request->user();
+// });
 
 
 Route::post('check-patient', [AppointmentController::class, 'checkPatient']);

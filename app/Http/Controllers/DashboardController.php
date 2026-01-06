@@ -138,7 +138,7 @@ class DashboardController extends Controller
         
         $appointments = $query->orderBy('appointment_date', 'asc')
                             ->orderBy('appointment_time', 'asc')
-                            ->paginate(20);
+                            ->paginate(30);
         
         // IMPORTANT: Ajouter les paramètres à la pagination
         $appointments->appends([

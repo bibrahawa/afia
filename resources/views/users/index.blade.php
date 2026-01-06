@@ -68,6 +68,7 @@
                             <tbody>
                                 <?php $indice = 1; ?>
                                 @foreach ($users as $key=>$user )
+                                  @if ($user->roles->first()?->name != 'patient')
                                     <tr>
                                         <td>{{ $indice++ }}</td>
                                         <td>{{ $user->name }} </td>
@@ -92,7 +93,8 @@
                                             </form>
                                           @endcan
                                         </td>
-                                        <td>{{ $user->roles->first()?->name }}</td>
+                                        <td>
+                                          {{ $user->roles->first()?->name }}</td>
                                         <td>
                                             {{-- @can('modifier_utilisateur') --}}
                                             {{-- <a href="{{ route('users.edit', $user->id) }}" class="btn btn-primary">
@@ -107,6 +109,8 @@
                                             {{-- @endcan --}}
                                         </td>
                                     </tr>
+                                  @endif
+                                    
                                 @endforeach
                             </tbody>
                         </table>

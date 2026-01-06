@@ -47,9 +47,9 @@ class ConsultationController extends Controller
     public function create()
     {
         // Vérification de rôle en premier pour éviter les requêtes inutiles
-        if (!auth()->user()->hasRole('medecin')) {
-            return redirect()->back()->with('error', 'Vous devez être un médecin pour créer une consultation.');
-        }
+        // if (!auth()->user()->hasRole('medecin')) {
+        //     return redirect()->back()->with('error', 'Vous devez être un médecin pour créer une consultation.');
+        // }
 
         $employeeDepartmentId = auth()->user()->employee->department_id;
 

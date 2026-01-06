@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Jobs\SendAppointmentReminderJob;
 use App\Jobs\ProcessDoctorUnavailabilityJob;
+use App\Models\Role;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Validator;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -182,6 +183,7 @@ class AppointmentController extends Controller
 
     public function getProfessionals(Request $request, $id)
     {
+
         $departmentId = $id;
 
         $professionals = Employee::where('department_id', $departmentId)
@@ -440,15 +442,15 @@ class AppointmentController extends Controller
         return view('appointments.my-appointments', compact('appointments'));
     }
 
-    public function cancel(Appointment $appointment)
+    public function cancel($id)
     {
-        if ($appointment->patient_id !== Auth::id()) {
-            abort(403);
-        }
-
-        if (!$appointment->canBeCancelled()) {
-            return response()->json(['error' => 'Ce rendez-vous ne peut pas être annulé'], 400);
-        }
+        $appointment = Appointment::find($id);
+        // if ($appointment->patient_id !== Auth::id()) {
+        //     abort(403);
+        // }
+        // if (!$appointment->canBeCancelled()) {
+        //     return response()->json(['error' => 'Ce rendez-vous ne peut pas être annulé'], 400);
+        // }
 
         DB::transaction(function () use ($appointment) {
             $appointment->update([
@@ -463,32 +465,9 @@ class AppointmentController extends Controller
                 ->update(['is_available' => true]);
         });
 
-        return response()->json(['message' => 'Rendez-vous annulé avec succès']);
-    }
+        $appointment->delete();
 
-    public function confirmAppointment(Appointment $appointment)
-    {
-        if ($appointment->status !== 'pending') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Ce rendez-vous ne peut plus être confirmé'
-            ], 400);
-        }
-
-        $appointment->update([
-            'status' => 'confirmed',
-            'patient_confirmed' => true,
-            'confirmed_at' => now()
-        ]);
-
-        // Envoyer SMS de confirmation
-        // SendAppointmentReminderJob::dispatchSync($appointment, 'confirmation');
-        
-        return response()->json([
-            'success' => true,
-            'message' => 'Rendez-vous confirmé avec succès',
-            'appointment' => $appointment->load(['patient', 'employee'])
-        ]);
+        return redirect()->back()->with(['success' => 'Rendez-vous annulé avec succès']);
     }
 
     public function cancelAppointment(Request $request, Appointment $appointment)
@@ -522,6 +501,31 @@ class AppointmentController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Rendez-vous annulé avec succès'
+        ]);
+    }
+
+    public function confirmAppointment(Appointment $appointment)
+    {
+        if ($appointment->status !== 'pending') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ce rendez-vous ne peut plus être confirmé'
+            ], 400);
+        }
+
+        $appointment->update([
+            'status' => 'confirmed',
+            'patient_confirmed' => true,
+            'confirmed_at' => now()
+        ]);
+
+        // Envoyer SMS de confirmation
+        // SendAppointmentReminderJob::dispatchSync($appointment, 'confirmation');
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Rendez-vous confirmé avec succès',
+            'appointment' => $appointment->load(['patient', 'employee'])
         ]);
     }
 

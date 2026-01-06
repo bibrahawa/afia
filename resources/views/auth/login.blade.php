@@ -69,6 +69,7 @@
 
     <form method="POST" action="{{ route('login') }}">
         @csrf
+        @method('POST')
       <div class="mb-3 position-relative text-start">
         <label for="phone" class="form-label">Téléphone</label>
         <input type="text" name="phone" :value="old('phone')" class="form-control" id="phone" placeholder="Téléphone" required>

@@ -95,6 +95,8 @@ class UserController extends Controller
                 'department_id' => $validated['department_id'] ?? 1,
                 'address' => $validated['address'] ?? null,
                 'working_day' => $workingDays,
+                'speciality' => Department::find($validated['department_id'])->name,
+                'type' => $validated['role_id'],
             ]);
 
             // ============================================

@@ -471,9 +471,9 @@
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    @if(isset($item['patient']['phone']))
+                                                    @if(isset($item->patient->user->phone))
                                                         <i class="fas fa-phone text-muted me-1"></i>
-                                                        {{ $item['patient']['phone'] }}
+                                                        {{ $item->patient->user->phone }}
                                                     @else
                                                         <span class="text-muted">-</span>
                                                     @endif
@@ -487,9 +487,9 @@
                                                     {{ $item['appointment_time']->format('H:i') }}
                                                 </td>
                                                 <td>
-                                                    @if ($item['notes'])
-                                                        <span class="text-truncate d-inline-block" style="max-width: 150px;" title="{{ $item['notes'] }}">
-                                                            {{ $item['notes'] }}
+                                                    @if ($item['reason'])
+                                                        <span class="text-truncate d-inline-block" title="{{ $item['notes'] }}">
+                                                            {{ $item['reason'] }}
                                                         </span>
                                                     @else
                                                         <span class="text-muted">-</span>
@@ -523,8 +523,18 @@
                                                         @can('medecin.complete_appointment')
                                                             <form method="POST" action="{{ route('medecin.appointments.complete', $item['id']) }}" class="d-inline">
                                                                 @csrf
-                                                                <button type="submit" class="btn btn-sm btn-primary" title="Terminer">
+                                                                <button type="submit" class="text-blue-600 hover:text-blue-800" title="Terminer">
                                                                     <i class="fas fa-check-double"></i>
+                                                                </button>
+                                                            </form>
+
+                                                            &nbsp;&nbsp;
+
+                                                            <form method="POST" action="{{ route('medecin.appointments.cancel', $item['id']) }}" class="d-inline">
+                                                                @csrf
+                                                                @method('DELETE')
+                                                                <button type="submit" class="text-red-600 hover:text-red-800">
+                                                                    <i class="fas fa-trash"></i>
                                                                 </button>
                                                             </form>
                                                         @endcan
