@@ -225,7 +225,7 @@ class DashboardController extends Controller
      */
     public function availabilities()
     {
-        $availabilities = EmployeeAvailability::where('employee_id', auth()->id())
+        $availabilities = EmployeeAvailability::where('employee_id', auth()->user()->employee->id)
             ->orderBy('day_of_week')
             ->get();
 
@@ -246,7 +246,7 @@ class DashboardController extends Controller
         ]);
 
         // Vérification des conflits de disponibilité
-        $existingAvailability = EmployeeAvailability::where('employee_id', auth()->id())
+        $existingAvailability = EmployeeAvailability::where('employee_id', auth()->user()->employee->id)
             ->where('day_of_week', $validated['day_of_week'])
             ->first();
 
@@ -259,10 +259,12 @@ class DashboardController extends Controller
         try {
             // Créer la disponibilité
             $availability = EmployeeAvailability::create([
-                'employee_id' => auth()->id(),
+                'employee_id' => auth()->user()->employee->id,
                 ...$validated,
                 'is_active' => true
             ]);
+
+            dd($availability);
 
             // FIX: Générer les créneaux en incluant aujourd'hui si applicable
             $this->generateAppointmentSlotsImproved($validated, 8);
@@ -367,7 +369,7 @@ class DashboardController extends Controller
             $date = $startDate->copy()->addWeeks($week);
 
             // Vérifier si c'est un jour de congé
-            $isLeaveDay = EmployeeLeave::where('employee_id', auth()->id())
+            $isLeaveDay = EmployeeLeave::where('employee_id', auth()->user()->employee->id)
                 ->where('status', 'approved')
                 ->whereDate('start_date', '<=', $date)
                 ->whereDate('end_date', '>=', $date)
@@ -421,7 +423,7 @@ class DashboardController extends Controller
         for ($week = 0; $week < 8; $week++) {
             $date = $startDate->copy()->addWeeks($week);
 
-            AppointmentSlot::where('employee_id', auth()->id())
+            AppointmentSlot::where('employee_id', auth()->user()->employee->id)
                 ->whereDate('date', $date)
                 ->where('is_available', true)
                 ->delete();
@@ -770,12 +772,12 @@ class DashboardController extends Controller
      */
     public function leaves()
     {
-        $leaves = EmployeeLeave::where('employee_id', auth()->id())
+        $leaves = EmployeeLeave::where('employee_id', auth()->user()->employee->id)
             ->orderBy('start_date', 'desc')
             ->get();
         
         // Récupérer aussi les pauses
-        $breaks = EmployeeBreak::where('employee_id', auth()->id())
+        $breaks = EmployeeBreak::where('employee_id', auth()->user()->employee->id)
             ->orderBy('day_of_week')
             ->orderBy('start_time')
             ->get();
@@ -802,7 +804,7 @@ class DashboardController extends Controller
 
 
         // Vérifier les chevauchements
-        $existingBreak = EmployeeBreak::where('employee_id', auth()->id())
+        $existingBreak = EmployeeBreak::where('employee_id', auth()->user()->employee->id)
             ->where('day_of_week', $validated['day_of_week'])
             ->where(function($query) use ($validated) {
                 $query->where(function($q) use ($validated) {
@@ -858,7 +860,7 @@ class DashboardController extends Controller
     }
 
     public function break($id){
-        $break = EmployeeBreak::where('employee_id', auth()->id())->findOrFail($id);
+        $break = EmployeeBreak::where('employee_id', auth()->user()->employee->id)->findOrFail($id);
         dd($this->restoreSlotsForBreakOptimized($break));
 
     }
@@ -886,7 +888,7 @@ class DashboardController extends Controller
             }
 
             // Vérifier les chevauchements (sauf avec cette pause)
-            $existingBreak = EmployeeBreak::where('employee_id', auth()->id())
+            $existingBreak = EmployeeBreak::where('employee_id', auth()->user()->employee->id)
                 ->where('id', '!=', $request->id)
                 ->where('day_of_week', $validated['day_of_week'])
                 ->where(function($query) use ($validated) {
@@ -983,7 +985,7 @@ class DashboardController extends Controller
     {
         try {
 
-            $break = EmployeeBreak::where('employee_id', auth()->id())->findOrFail($id);
+            $break = EmployeeBreak::where('employee_id', auth()->user()->employee->id)->findOrFail($id);
             
             DB::beginTransaction();
             
