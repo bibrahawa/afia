@@ -391,7 +391,7 @@ class DashboardController extends Controller
 
             while ($start < $end) {
                 AppointmentSlot::firstOrCreate([
-                    'employee_id' => auth()->id(),
+                    'employee_id' => auth()->user()->employee->id,
                     'date' => $date->format('Y-m-d'),
                     'time' => $start->format('H:i'),
                 ], [
@@ -478,7 +478,7 @@ class DashboardController extends Controller
         
         try {
             $leave = EmployeeLeave::create([
-                'employee_id' => auth()->id(),
+                'employee_id' => auth()->user()->employee->id,
                 'start_date' => $startDate,
                 'end_date' => $endDate,
                 'type' => $validated['type'],
@@ -500,7 +500,7 @@ class DashboardController extends Controller
             
             Log::info('Congé créé', [
                 'leave_id' => $leave->id,
-                'employee_id' => auth()->id(),
+                'employee_id' => auth()->user()->employee->id,
                 'deleted_slots' => $deletedCount
             ]);
             
@@ -613,7 +613,7 @@ class DashboardController extends Controller
             
             Log::info("Congé supprimé", [
                 'leave_id' => $leave->id,
-                'employee_id' => auth()->id(),
+                'employee_id' => auth()->user()->employee->id,
                 'restored_slots' => $restoredCount
             ]);
             
@@ -829,7 +829,7 @@ class DashboardController extends Controller
         try {
             // Créer la pause
             $break = EmployeeBreak::create([
-                'employee_id' => auth()->id(),
+                'employee_id' => auth()->user()->employee->id,
                 'day_of_week' => $validated['day_of_week'],
                 'start_time' => $validated['start_time'],
                 'end_time' => $validated['end_time'],
@@ -844,7 +844,7 @@ class DashboardController extends Controller
             
             Log::info('Pause créée', [
                 'break_id' => $break->id,
-                'employee_id' => auth()->id(),
+                'employee_id' => auth()->user()->employee->id,
                 'deleted_slots' => $deletedCount
             ]);
             
@@ -963,7 +963,7 @@ class DashboardController extends Controller
             
             Log::info("Pause supprimée", [
                 'break_id' => $break->id,
-                'employee_id' => auth()->id(),
+                'employee_id' => auth()->user()->employee->id,
                 'restored_slots' => $restoredCount
             ]);
             
