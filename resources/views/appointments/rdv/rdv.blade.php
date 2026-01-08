@@ -8,6 +8,16 @@
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     <link rel="stylesheet" href="{{ asset('front/css/rdv.css') }}">
     <style>
+        .professional-schedule {
+            font-size: 12px;
+            color: #4facfe;
+            font-weight: 600;
+            margin-top: 8px;
+            padding: 4px 8px;
+            background: rgba(79, 172, 254, 0.1);
+            border-radius: 4px;
+            display: inline-block;
+        }
         /* Styles responsive optimisés */
         .container {
             max-width: 1200px;
@@ -269,12 +279,82 @@
             }
         }
     </style>
+    <style>
+        .emergency-banner {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin-top: 20;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        .emergency-banner-icon {
+            font-size: 32px;
+            flex-shrink: 0;
+        }
+        
+        .emergency-banner-content {
+            flex: 1;
+        }
+        
+        .emergency-banner-title {
+            font-size: 16px;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .emergency-banner-text {
+            margin: 0;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+        
+        @media (max-width: 640px) {
+            .emergency-banner {
+                padding: 12px 15px;
+            }
+            
+            .emergency-banner-icon {
+                font-size: 24px;
+            }
+            
+            .emergency-banner-title {
+                font-size: 14px;
+            }
+            
+            .emergency-banner-text {
+                font-size: 12px;
+            }
+        }
+    </style>
 </head>
 <body>
 <div class="container">
     <div class="header">
         <h1>🏥 Prise de Rendez-vous</h1>
         <p>Réservez votre consultation en quelques clics</p>
+    </div>
+
+    <div class="emergency-banner">
+        <span class="emergency-banner-icon">🚨</span>
+        <div class="emergency-banner-content">
+            <strong class="emergency-banner-title">URGENCES MÉDICALES</strong>
+            <p class="emergency-banner-text">
+                En cas d'urgence, présentez-vous directement à la clinique sans rendez-vous.
+            </p>
+        </div>
     </div>
 
     <div class="progress-bar">
@@ -317,9 +397,7 @@
         <!-- Étape 2: Motif -->
         <div class="step" id="step-2">
             <h2>Motif de la consultation</h2>
-
             <div class="form-group">
-                <label for="reason">Motif principal</label>
                 <select id="reason">
                     <option value="">Sélectionnez un motif</option>
                     <option value="consultation_gynecologie">Consultation gynécologie</option>
@@ -451,7 +529,7 @@
     // Configuration Laravel
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-    // Variables globales
+    // Variables globaless
     let currentStep = 1;
     let selectedProfessional = null;
     let selectedProfessionalId = null;
@@ -466,6 +544,126 @@
         "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
         "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
     ];
+
+    // Fonction pour mettre à jour les motifs selon la spécialité
+    function updateReasonOptions() {
+        const reasonSelect = document.getElementById('reason');
+        
+        if (!selectedProfessional) return;
+        
+        // Vérifier si c'est un pédiatre
+        const isPediatre = selectedProfessional.speciality && 
+                        (selectedProfessional.speciality.toLowerCase().includes('pediatrie') ||
+                            selectedProfessional.speciality.toLowerCase().includes('pediatrie'));
+        
+        // Vider le select
+        reasonSelect.innerHTML = '<option value="">Sélectionnez un motif</option>';
+        
+        if (isPediatre) {
+            // Ajouter les motifs pédiatrie
+            reasonSelect.innerHTML += `
+                <option value="consultation_immunologie">Immunologie</option>
+                <option value="consultation_nutrition_obesite">Nutrition & obésité</option>
+                <option value="consultation_hematologie">Hématologie pédiatrique</option>
+                <option value="consultation_drepanocytose">Prise en charge de la drépanocytose</option>
+                <option value="autre_pediatre">Autre</option>
+            `;
+        } else {
+            // Ajouter les motifs gynécologie (par défaut)
+            reasonSelect.innerHTML += `
+                <option value="consultation_gynecologie">Consultation gynécologie</option>
+                <option value="consultation_desir_maternite">Consultation pour désir de maternité</option>
+                <option value="cpn">Consultation pour suivi de maternité (CPN)</option>
+                <option value="echographie_gynecologique">Echographie gynécologique</option>
+                <option value="echographie_obstetricale">Echographie obstétricale</option>
+                <option value="interpretation_resultats">Interprétation des résultats</option>
+                <option value="monnitoring_ovulation">Monnitoring de l'ovulation</option>
+                <option value="pose_sterilet_gynecologie">Pose de Stérilet gynécologie</option>
+                <option value="pose_implant">Pose implant</option>
+                <option value="autre">Autre</option>
+            `;
+        }
+        
+        // Réinitialiser la sélection
+        reasonSelect.value = '';
+    }
+
+    // Fonction pour formater les jours de travail
+    function formatWorkingDays(workingDay) {
+        if (!workingDay) return 'Disponibilité à confirmer';
+        
+        // Mapping des jours en français
+        const daysMap = {
+            'monday': 'Lun',
+            'tuesday': 'Mar',
+            'wednesday': 'Mer',
+            'thursday': 'Jeu',
+            'friday': 'Ven',
+            'saturday': 'Sam',
+            'sunday': 'Dim',
+            'lundi': 'Lun',
+            'mardi': 'Mar',
+            'mercredi': 'Mer',
+            'jeudi': 'Jeu',
+            'vendredi': 'Ven',
+            'samedi': 'Sam',
+            'dimanche': 'Dim'
+        };
+        
+        // Si c'est déjà formaté (ex: "Lun-Ven"), retourner tel quel
+        if (workingDay.length < 15 && (workingDay.includes('-') || workingDay.includes(','))) {
+            return workingDay;
+        }
+        
+        // Convertir la chaîne en minuscules pour la comparaison
+        const lowerWorkingDay = workingDay.toLowerCase();
+        
+        // Détecter les patterns courants
+        if (lowerWorkingDay.includes('tous les jours') || lowerWorkingDay.includes('every day')) {
+            return 'Lun-Dim';
+        }
+        
+        if (lowerWorkingDay.includes('semaine') || 
+            (lowerWorkingDay.includes('lundi') && lowerWorkingDay.includes('vendredi'))) {
+            return 'Lun-Ven';
+        }
+        
+        // Essayer de parser les jours individuels
+        const foundDays = [];
+        for (const [key, value] of Object.entries(daysMap)) {
+            if (lowerWorkingDay.includes(key)) {
+                if (!foundDays.includes(value)) {
+                    foundDays.push(value);
+                }
+            }
+        }
+        
+        if (foundDays.length > 0) {
+            // Si c'est une séquence continue, afficher avec un tiret
+            const allDays = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+            const indices = foundDays.map(day => allDays.indexOf(day)).sort((a, b) => a - b);
+            
+            if (indices.length > 2) {
+                // Vérifier si c'est une séquence continue
+                let isContinuous = true;
+                for (let i = 1; i < indices.length; i++) {
+                    if (indices[i] !== indices[i-1] + 1) {
+                        isContinuous = false;
+                        break;
+                    }
+                }
+                
+                if (isContinuous) {
+                    return `${allDays[indices[0]]}-${allDays[indices[indices.length - 1]]}`;
+                }
+            }
+            
+            return foundDays.join(', ');
+        }
+        
+        // Si aucun pattern détecté, retourner le texte original (limité à 25 caractères)
+        return workingDay.length > 25 ? workingDay.substring(0, 22) + '...' : workingDay;
+    }
 
     // Fonction pour afficher les alertes avec animation
     // function showAlert(message, type = 'error') {
@@ -788,6 +986,29 @@
             if (dates.length === 0) {
                 grid.style.display = 'none';
                 noDateMessage.style.display = 'block';
+                
+                // Modifier le contenu du message
+                noDateMessage.innerHTML = `
+                    <p style="font-size: 48px; margin-bottom: 15px;">📅</p>
+                    <p style="color: #666; font-size: 16px; margin: 0 0 20px 0;">
+                        Aucune date disponible pour ce professionnel
+                    </p>
+                    <div style="
+                        background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+                        color: white;
+                        padding: 20px;
+                        border-radius: 12px;
+                        margin-top: 20px;
+                        box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
+                    ">
+                        <p style="font-size: 20px; margin: 0 0 10px 0;">🚨 EN CAS D'URGENCE</p>
+                        <p style="font-size: 14px; margin: 0; line-height: 1.6;">
+                            Vous pouvez vous présenter <strong>directement à la clinique</strong> sans rendez-vous.<br>
+                            Nos équipes vous prendront en charge dans les plus brefs délais.
+                        </p>
+                    </div>
+                `;
+                
                 return;
             }
             
@@ -953,13 +1174,17 @@
                 card.onclick = () => selectProfessional(card, prof);
                 const name = 'Dr. ' + prof.first_name + ' ' + prof.last_name;
                 const initials = prof.first_name.split(' ').map(n => n[0]).join('');
+                
+                // Formater les jours de disponibilité
+                const workingDays = formatWorkingDays(prof.working_day);
 
                 card.innerHTML = `
                     <div class="professional-avatar">${initials}</div>
                     <div class="professional-name">${name}</div>
                     <div class="professional-specialty">${prof.speciality || 'Spécialiste'}</div>
-                    <div class="professional-schedule">${prof.working_day || 'Disponible'}</div>
+                    <div class="professional-schedule">${workingDays}</div>
                 `;
+
                 grid.appendChild(card);
             });
         } catch (error) {
@@ -973,6 +1198,14 @@
         card.classList.add('selected');
         selectedProfessional = professional;
         selectedProfessionalId = professional.id;
+
+        updateReasonOptions();
+
+        // Afficher message d'information sur les urgences
+        // showAlert(
+        //     '💡 Information : Si vous avez une urgence médicale, vous pouvez vous présenter directement à la clinique sans rendez-vous.',
+        //     'info'
+        // );
     }
 
     // Mettre à jour les créneaux horaires disponibles
@@ -1213,13 +1446,11 @@
         }
     }
 
-    // Finaliser le rendez-vous
+    // Dans finalizeAppointment()
     async function finalizeAppointment() {
         try {
             showLoading(true);
-
             const phone = document.getElementById('patient-phone').value.trim();
-
             const response = await authenticatePatient(phone);
 
             if (response.error) {
@@ -1230,15 +1461,25 @@
             const appointmentResult = await saveAppointment(userId);
 
             showLoading(false);
-            showAlert('🎉 Rendez-vous confirmé avec succès! Vous recevrez un SMS de confirmation.', 'success');
+            
+            // Message de succès enrichi
+            const appointment = appointmentResult.appointment;
+            showAlert(
+                `🎉 Rendez-vous confirmé!\n` +
+                `📅 ${appointment.date} à ${appointment.time}\n` +
+                `👨‍⚕️ ${appointment.doctor}\n` +
+                `Vous recevrez un SMS de confirmation.`,
+                'success'
+            );
 
             setTimeout(() => {
                 resetForm();
-            }, 3000);
+            }, 4000);
 
         } catch (error) {
             showLoading(false);
-            showAlert(error.message);
+            // Afficher l'erreur retournée par le backend
+            showAlert(error.message || 'Une erreur est survenue', 'error');
         }
     }
 

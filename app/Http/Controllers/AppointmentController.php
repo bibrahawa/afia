@@ -188,7 +188,19 @@ class AppointmentController extends Controller
 
         $professionals = Employee::where('department_id', $departmentId)
             ->where('type', 'Medecin')
-            ->get();
+            ->with('availabilities')
+            ->get()
+            ->map(function ($professional) {
+                // Extraire et formater les jours de travail
+                $workDays = $professional->availabilities
+                    ->pluck('day_of_week')
+                    ->unique()
+                    ->join(', ');
+                
+                $professional->working_day = $workDays ?: 'Disponibilité à confirmer';
+                
+                return $professional;
+            });
 
         return response()->json($professionals);
     }
@@ -393,42 +405,95 @@ class AppointmentController extends Controller
     {
         $request->validate([
             'employee_id' => 'required|exists:employees,id',
+            'patient_id' => 'required|exists:users,id',
             'appointment_date' => 'required|date|after_or_equal:today',
             'appointment_time' => 'required',
             'reason' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000'
         ]);
 
-        // Vérifier la disponibilité
-        $employee = Employee::findOrFail($request->employee_id);
-        if (!$employee->isAvailableOn($request->appointment_date, $request->appointment_time)) {
-            return response()->json(['error' => 'Ce créneau n\'est plus disponible'], 400);
+        $patientId = $request->patient_id ?? Auth::id();
+
+        try {
+
+            $appointment = DB::transaction(function () use ($request, $patientId) {
+                
+                // 1. Vérifier et verrouiller le slot en une seule opération atomique
+                $slot = AppointmentSlot::where('employee_id', $request->employee_id)
+                    ->where('date', $request->appointment_date)
+                    ->where('time', $request->appointment_time)
+                    ->where('is_available', true)
+                    ->lockForUpdate() // Verrou pessimiste pour éviter les doubles réservations
+                    ->first();
+
+                if (!$slot) {
+                    throw new \Exception('Ce créneau n\'est plus disponible ou n\'existe pas');
+                }
+
+                // 2. Vérifier si le patient a déjà un RDV avec CE médecin le même jour
+                $existingAppointment = Appointment::where('patient_id', $patientId)
+                    ->where('employee_id', $request->employee_id)
+                    ->where('appointment_date', $request->appointment_date)
+                    ->whereIn('status', ['pending', 'confirmed'])
+                    ->first();
+
+                if ($existingAppointment) {
+                    throw new \Exception(
+                        "Vous avez déjà un rendez-vous avec ce médecin le " . 
+                        Carbon::parse($existingAppointment->appointment_date)->format('d/m/Y') . 
+                        " à " . Carbon::parse($existingAppointment->appointment_time)->format('H:i')
+                    );
+                }
+
+                // 3. Vérifier si le patient a trop de RDV en attente (optionnel - anti-spam)
+                $pendingAppointmentsCount = Appointment::where('patient_id', $patientId)
+                    ->where('status', 'pending')
+                    ->count();
+
+                if ($pendingAppointmentsCount >= 5) {
+                    throw new \Exception('Vous avez trop de rendez-vous en attente. Veuillez finaliser ou annuler vos rendez-vous existants.');
+                }
+
+                // 4. Créer le rendez-vous
+                $appointment = Appointment::create([
+                    'employee_id' => $request->employee_id,
+                    'patient_id' => $patientId,
+                    'appointment_date' => $request->appointment_date,
+                    'appointment_time' => $request->appointment_time,
+                    'reason' => $request->reason,
+                    'description' => $request->description,
+                    'status' => 'pending'
+                ]);
+
+                // 5. Marquer le slot comme indisponible
+                $slot->update(['is_available' => false]);
+
+                // 6. Confirmer le rendez-vous et envoyer les notifications
+                $this->confirmAppointment($appointment);
+
+                return $appointment;
+            });
+
+            // Charger les relations pour la réponse
+            $appointment->load(['employee', 'patient']);
+
+            return response()->json([
+                'message' => 'Rendez-vous créé avec succès',
+                'appointment' => [
+                    'id' => $appointment->id,
+                    'date' => Carbon::parse($appointment->appointment_date)->format('d/m/Y'),
+                    'time' => Carbon::parse($appointment->appointment_time)->format('H:i'),
+                    'doctor' => 'Dr. ' . $appointment->employee->first_name . ' ' . $appointment->employee->last_name,
+                    'reason' => $appointment->reason,
+                    'status' => $appointment->status
+                ]
+            ], 201);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => $e->getMessage()
+            ], 400);
         }
-
-        $appointment = null;
-
-        DB::transaction(function () use ($request, &$appointment) {
-            // Créer le rendez-vous
-            $appointment = Appointment::create([
-                'employee_id' => $request->employee_id,
-                'patient_id' => $request->patient_id ?? Auth::id(),
-                'appointment_date' => $request->appointment_date,
-                'appointment_time' => $request->appointment_time,
-                'reason' => $request->reason,
-                'description' => $request->description,
-                'status' => 'pending'
-            ]);
-
-            // Marquer le slot comme indisponible
-            AppointmentSlot::where('employee_id', $request->employee_id)
-                ->where('date', $request->appointment_date)
-                ->where('time', $request->appointment_time)
-                ->update(['is_available' => false]);
-        });
-
-        $this->confirmAppointment($appointment);
-
-        return response()->json(['message' => 'Rendez-vous créé avec succès']);
     }
 
     public function myAppointments()

@@ -173,6 +173,7 @@ class DashboardController extends Controller
         
         return view('appointments.appointment', compact('appointments', 'stats'));
     }
+    
 
     /**
      * Confirme un rendez-vous

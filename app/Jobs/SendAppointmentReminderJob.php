@@ -132,18 +132,20 @@ class SendAppointmentReminderJob implements ShouldQueue
         $appointmentTime = $appointment->getFormattedTimeAttribute();
         
         $clinicName = config('app.name', 'Clinique Aprosafe');
-        $clinicPhone = config('clinic.phone', '622 00 00 00');
-        
+        $clinicPhone = config('clinic.phone', '628 16 44 22');
+
         $messages = [
             'reminder_24h' => "Bonjour {$patientName}, nous vous rappelons votre RDV avec Dr {$doctorName} demain le {$appointmentDate} à {$appointmentTime}. N'oubliez pas vos documents médicaux. {$clinicName}",
             
             'reminder_2h' => "Rappel {$patientName} : Votre RDV avec Dr {$doctorName} est dans 2h à {$appointmentTime}. Arrivée conseillée 15min avant. Tel: {$clinicPhone}",
             
-            'confirmation' => "Confirmation {$patientName} : Votre RDV avec Dr {$doctorName} le {$appointmentDate} à {$appointmentTime} est confirmé. {$clinicName}",
+            'confirmation' => "{$patientName} : Votre RDV avec Dr {$doctorName} le {$appointmentDate} à {$appointmentTime} est confirmé. {$clinicName}",
             
-            'cancellation' => "Annulation {$patientName} : Votre RDV du {$appointmentDate} avec Dr {$doctorName} est annulé. Reprenez RDV via l'app ou au {$clinicPhone}",
+            'cancellation' => "Annulation {$patientName} : Votre RDV du {$appointmentDate} avec Dr {$doctorName} est annulé. Reprenez RDV via l'app ou au {$clinicPhone}. {$clinicName}",
             
-            'rescheduling' => "Report {$patientName} : Votre RDV avec Dr {$doctorName} a été reporté au {$appointmentDate} à {$appointmentTime}. Merci de confirmer. {$clinicName}"
+            'rescheduling' => "Report {$patientName} : Votre RDV avec Dr {$doctorName} a été reporté au {$appointmentDate} à {$appointmentTime}. Merci de confirmer. {$clinicName}",
+            
+            'no_availability' => "Bonjour {$patientName}, aucun créneau disponible actuellement avec Dr {$doctorName}. Nous vous contacterons dès qu'un créneau se libère. Contact: {$clinicPhone}"
         ];
 
         return $messages[$this->reminderType] ?? $messages['reminder_24h'];
