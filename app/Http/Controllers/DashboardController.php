@@ -264,8 +264,6 @@ class DashboardController extends Controller
                 'is_active' => true
             ]);
 
-            dd($availability);
-
             // FIX: Générer les créneaux en incluant aujourd'hui si applicable
             $this->generateAppointmentSlotsImproved($validated, 8);
 
