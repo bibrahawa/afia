@@ -76,22 +76,31 @@ class DashboardController extends Controller
         return view('professional.dashboard', compact('professional'));
     }
 
+
     /**
      * Récupère les rendez-vous
+     * 
+     * @param Request $request
+     * @return \Illuminate\View\View|string
      */
     public function appointments(Request $request)
     {
-        $query = Appointment::with(['patient.user']);
-
-        $employeeId = Auth::user()->employee->id;
-
-        //Si c'est un admin affiche tous si non afficher uniquement les rendez du medecin connecter
-        if (Auth::user()->roles()->first()->name == 'medecin') {
-            $query = $query->where('employee_id', $employeeId);
+        // Récupérer l'utilisateur connecté et son rôle
+        $user = Auth::user();
+        $employeeId = $user->employee->id ?? null;
+        $userRole = $user->roles()->first()->name ?? null;
+        
+        // Base query avec relations
+        $query = Appointment::with(['patient.user', 'employee']);
+        
+        // ⚠️ PROBLÈME 1 CORRIGÉ: Filtrer par médecin pour TOUS les cas (pas seulement pour les stats)
+        // Si c'est un médecin, afficher uniquement ses rendez-vous
+        if ($userRole === 'medecin' && $employeeId) {
+            $query->where('employee_id', $employeeId);
         }
         
         // Recherche
-        if ($request->has('search') && $request->search != '') {
+        if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->whereHas('patient', function($patientQuery) use ($search) {
@@ -102,17 +111,18 @@ class DashboardController extends Controller
                                 });
                 })
                 ->orWhere('notes', 'LIKE', "%{$search}%")
+                ->orWhere('reason', 'LIKE', "%{$search}%") // ✅ Ajout de la recherche par motif
                 ->orWhere('appointment_date', 'LIKE', "%{$search}%");
             });
         }
         
         // Filtre par statut
-        if ($request->has('status') && $request->status != '') {
+        if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
         
         // Filtre par date
-        if ($request->has('date_filter') && $request->date_filter != '') {
+        if ($request->filled('date_filter')) {
             $dateFilter = $request->date_filter;
             
             switch ($dateFilter) {
@@ -144,41 +154,46 @@ class DashboardController extends Controller
             }
         }
         
+        // Pagination avec tri
         $appointments = $query->orderBy('appointment_date', 'asc')
                             ->orderBy('appointment_time', 'asc')
                             ->paginate(20);
         
-        // IMPORTANT: Ajouter les paramètres à la pagination
-        $appointments->appends([
-            'search' => $request->search,
-            'status' => $request->status,
-            'date_filter' => $request->date_filter
-        ]);
+        // Ajouter les paramètres de recherche à la pagination
+        $appointments->appends($request->only(['search', 'status', 'date_filter']));
         
-        // Calculer les statistiques pour les filtres
+        // ⚠️ PROBLÈME 2 CORRIGÉ: Les statistiques doivent aussi être filtrées par médecin
+        // Créer la base query pour les stats
+        $statsQuery = Appointment::query();
+        if ($userRole === 'medecin' && $employeeId) {
+            $statsQuery->where('employee_id', $employeeId);
+        }
+        
+        // Calculer les statistiques
         $stats = [
-            'today' => Appointment::whereDate('appointment_date', Carbon::today())->count(),
-            'tomorrow' => Appointment::whereDate('appointment_date', Carbon::tomorrow())->count(),
-            'day_after_tomorrow' => Appointment::whereDate('appointment_date', Carbon::today()->addDays(2))->count(),
-            'this_week' => Appointment::whereBetween('appointment_date', [
+            'today' => (clone $statsQuery)->whereDate('appointment_date', Carbon::today())->count(),
+            'tomorrow' => (clone $statsQuery)->whereDate('appointment_date', Carbon::tomorrow())->count(),
+            'day_after_tomorrow' => (clone $statsQuery)->whereDate('appointment_date', Carbon::today()->addDays(2))->count(),
+            'this_week' => (clone $statsQuery)->whereBetween('appointment_date', [
                 Carbon::now()->startOfWeek(),
                 Carbon::now()->endOfWeek()
             ])->count(),
-            'next_week' => Appointment::whereBetween('appointment_date', [
+            'next_week' => (clone $statsQuery)->whereBetween('appointment_date', [
                 Carbon::now()->addWeek()->startOfWeek(),
                 Carbon::now()->addWeek()->endOfWeek()
             ])->count(),
-            'this_month' => Appointment::whereMonth('appointment_date', Carbon::now()->month)
+            'this_month' => (clone $statsQuery)->whereMonth('appointment_date', Carbon::now()->month)
                                     ->whereYear('appointment_date', Carbon::now()->year)
                                     ->count(),
-            'total' => Appointment::count(),
+            'total' => (clone $statsQuery)->count(),
         ];
-
+        
         // Si c'est une requête AJAX, retourner seulement la liste
         if ($request->ajax()) {
             return view('appointments.partials.list', compact('appointments'))->render();
         }
         
+        // Retourner la vue complète
         return view('appointments.appointment', compact('appointments', 'stats'));
     }
     
