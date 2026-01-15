@@ -18,6 +18,62 @@
             cursor: pointer;
         }
         
+        /* Stats cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.25rem;
+            border-radius: 0.75rem;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-card.stat-today {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .stat-card.stat-tomorrow {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+
+        .stat-card.stat-week {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+
+        .stat-card.stat-month {
+            background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+        }
+
+        .stat-card.stat-total {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            color: #333;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            opacity: 0.95;
+            font-weight: 500;
+        }
+        
         /* Filtres de date avec compteurs */
         .date-filters-container {
             background: white;
@@ -217,6 +273,11 @@
             color: #065f46;
         }
 
+        .status-cancelled {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+
         @media (max-width: 576px) {
             .date-filter-btn {
                 padding: 0.75rem;
@@ -269,11 +330,70 @@
             text-align: center;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
         }
+
+        /* Avatar amélioré */
+        .avatar {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+        }
+
+        .avatar-title {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        /* Boutons d'action améliorés */
+        .btn-sm {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.85rem;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border: none;
+        }
+
+        .btn-success:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            border: none;
+        }
+
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+            border: none;
+            color: white;
+        }
+
+        .btn-info:hover {
+            background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(6, 182, 212, 0.3);
+            color: white;
+        }
     </style>
 @endsection
 
 @section('content')
-
     <div class="container">
         <div class="page-inner">
             <div class="page-header">
@@ -293,9 +413,33 @@
                         <i class="icon-arrow-right"></i>
                     </li>
                     <li class="nav-item">
-                        <a href="#">Appointments</a>
+                        <a href="#">Rendez-vous</a>
                     </li>
                 </ul>
+            </div>
+
+            {{-- Statistiques Cards --}}
+            <div class="stats-grid">
+                <div class="stat-card stat-today">
+                    <div class="stat-number">{{ $stats['today'] ?? 0 }}</div>
+                    <div class="stat-label">☀️ Aujourd'hui</div>
+                </div>
+                <div class="stat-card stat-tomorrow">
+                    <div class="stat-number">{{ $stats['tomorrow'] ?? 0 }}</div>
+                    <div class="stat-label">🌤️ Demain</div>
+                </div>
+                <div class="stat-card stat-week">
+                    <div class="stat-number">{{ $stats['this_week'] ?? 0 }}</div>
+                    <div class="stat-label">📆 Cette semaine</div>
+                </div>
+                <div class="stat-card stat-month">
+                    <div class="stat-number">{{ $stats['this_month'] ?? 0 }}</div>
+                    <div class="stat-label">🗓️ Ce mois</div>
+                </div>
+                <div class="stat-card stat-total">
+                    <div class="stat-number">{{ $stats['total'] ?? 0 }}</div>
+                    <div class="stat-label">📋 Total</div>
+                </div>
             </div>
 
             <div class="row">
@@ -304,9 +448,9 @@
                         <div class="card-header">
                             <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                                 <div>
-                                    <h4 class="card-title mb-1">Liste des rendez-vous</h4>
+                                    <h4 class="card-title mb-1">📋 Liste des rendez-vous</h4>
                                     <div class="badge bg-primary">
-                                        <span id="totalAppointments">{{ count($appointments) }}</span> rendez-vous
+                                        <span id="totalAppointments">{{ $appointments->total() }}</span> rendez-vous
                                     </div>
                                 </div>
                                 <button type="button" class="btn export-btn" id="exportPdfBtn">
@@ -412,21 +556,23 @@
                                         <input type="text" 
                                             id="searchInput" 
                                             class="form-control" 
-                                            placeholder="Rechercher par nom de patient, date, statut...">
+                                            placeholder="Rechercher par nom de patient, téléphone, notes..."
+                                            value="{{ request('search') }}">
                                         <button class="btn btn-outline-secondary" type="button" id="clearSearch">
                                             <i class="fas fa-times"></i>
                                         </button>
                                     </div>
                                     <small class="text-muted">
-                                        Tapez le nom du patient pour vérifier s'il a un rendez-vous
+                                        🔍 Tapez le nom du patient pour vérifier s'il a un rendez-vous
                                     </small>
                                 </div>
                                 <div class="col-md-4">
                                     <select id="statusFilter" class="form-select">
                                         <option value="">Tous les statuts</option>
-                                        <option value="pending">En attente</option>
-                                        <option value="confirmed">Confirmé</option>
-                                        <option value="completed">Terminé</option>
+                                        <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>En attente</option>
+                                        <option value="confirmed" {{ request('status') == 'confirmed' ? 'selected' : '' }}>Confirmé</option>
+                                        <option value="completed" {{ request('status') == 'completed' ? 'selected' : '' }}>Terminé</option>
+                                        <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Annulé</option>
                                     </select>
                                 </div>
                             </div>
@@ -437,121 +583,10 @@
                             </div>
 
                             {{-- Tableau des rendez-vous --}}
-                            <div class="table-responsive" id="appointmentsList">
-                                <table class="table table-hover">
-                                    <thead>
-                                        <tr>
-                                            <th>#</th>
-                                            <th>Patient</th>
-                                            <th>Téléphone</th>
-                                            <th>Date</th>
-                                            <th>Heure</th>
-                                            <th>Notes</th>
-                                            <th>Statut</th>
-                                            <th class="text-center">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach ($appointments as $index => $item)
-                                            <tr data-patient="{{ strtolower($item['patient']['first_name'] ?? '') }} {{ strtolower($item['patient']['last_name'] ?? '') }}"
-                                                data-date="{{ \Carbon\Carbon::parse($item['appointment_date'])->format('Y-m-d') }}"
-                                                data-status="{{ $item['status'] }}"
-                                                data-notes="{{ strtolower($item['notes'] ?? '') }}">
-                                                <td>{{ $appointments->firstItem() + $index }}</td>
-                                                <td>
-                                                    <div class="d-flex align-items-center">
-                                                        <div class="avatar avatar-sm me-2">
-                                                            <span class="avatar-title rounded-circle bg-primary">
-                                                                {{ substr($item['patient']['first_name'] ?? 'N', 0, 1) }}
-                                                            </span>
-                                                        </div>
-                                                        <div>
-                                                            <strong>{{ $item['patient']['first_name'] ?? 'Nom' }} {{ $item['patient']['last_name'] ?? 'inconnu' }}</strong>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    @if(isset($item->patient->user->phone))
-                                                        <i class="fas fa-phone text-muted me-1"></i>
-                                                        {{ $item->patient->user->phone }}
-                                                    @else
-                                                        <span class="text-muted">-</span>
-                                                    @endif
-                                                </td>
-                                                <td>
-                                                    <i class="far fa-calendar text-muted me-1"></i>
-                                                    {{ \Carbon\Carbon::parse($item['appointment_date'])->locale('fr')->isoFormat('DD MMM YYYY') }}
-                                                </td>
-                                                <td>
-                                                    <i class="far fa-clock text-muted me-1"></i>
-                                                    {{ $item['appointment_time']->format('H:i') }}
-                                                </td>
-                                                <td>
-                                                    @if ($item['reason'])
-                                                        <span class="text-truncate d-inline-block" title="{{ $item['notes'] }}">
-                                                            {{ $item['reason'] }}
-                                                        </span>
-                                                    @else
-                                                        <span class="text-muted">-</span>
-                                                    @endif
-                                                </td>
-                                                <td>
-                                                    <span class="status-badge 
-                                                        {{ $item['status'] === 'pending' ? 'status-pending' :
-                                                        ($item['status'] === 'confirmed' ? 'status-confirmed' :
-                                                        ($item['status'] === 'completed' ? 'status-completed' : '')) }}">
-                                                        @if($item['status'] === 'pending')
-                                                            <i class="fas fa-clock me-1"></i> En attente
-                                                        @elseif($item['status'] === 'confirmed')
-                                                            <i class="fas fa-check me-1"></i> Confirmé
-                                                        @elseif($item['status'] === 'completed')
-                                                            <i class="fas fa-check-double me-1"></i> Terminé
-                                                        @endif
-                                                    </span>
-                                                </td>
-                                                <td class="text-center">
-                                                    @if ($item['status'] === 'pending')
-                                                        @can('medecin.confirm_appointment')
-                                                            <form method="POST" action="{{ route('medecin.appointments.confirm', $item['id']) }}" class="d-inline">
-                                                                @csrf
-                                                                <button type="submit" class="btn btn-sm btn-success" title="Confirmer">
-                                                                    <i class="fas fa-check"></i>
-                                                                </button>
-                                                            </form>
-                                                        @endcan
-                                                    @elseif ($item['status'] === 'confirmed')
-                                                        @can('medecin.complete_appointment')
-                                                            <form method="POST" action="{{ route('medecin.appointments.complete', $item['id']) }}" class="d-inline">
-                                                                @csrf
-                                                                <button type="submit" class="text-blue-600 hover:text-blue-800" title="Terminer">
-                                                                    <i class="fas fa-check-double"></i>
-                                                                </button>
-                                                            </form>
-
-                                                            &nbsp;&nbsp;
-
-                                                            <form method="POST" action="{{ route('medecin.appointments.cancel', $item['id']) }}" class="d-inline">
-                                                                @csrf
-                                                                @method('DELETE')
-                                                                <button type="submit" class="text-red-600 hover:text-red-800">
-                                                                    <i class="fas fa-trash"></i>
-                                                                </button>
-                                                            </form>
-                                                        @endcan
-                                                    @else
-                                                        <button type="button" class="btn btn-sm btn-secondary" disabled>
-                                                            <i class="fas fa-check-circle"></i>
-                                                        </button>
-                                                    @endif
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
+                            <div id="appointmentsList">
+                                @include('appointments.partials.list')
                             </div>
-
                         </div>
-
                     </div>
                 </div>
             </div>
@@ -568,16 +603,15 @@
             <p class="text-muted mb-0">Veuillez patienter</p>
         </div>
     </div>
-
 @endsection
 
 @section('script')
     <script type="text/javascript">
         $(document).ready(function() {
             let searchTimeout;
-            let currentDateFilter = '';
-            let currentStatusFilter = '';
-            let currentSearchText = '';
+            let currentDateFilter = '{{ request("date_filter", "") }}';
+            let currentStatusFilter = '{{ request("status", "") }}';
+            let currentSearchText = '{{ request("search", "") }}';
             
             // Fonction pour mettre à jour visuellement le filtre actif
             function updateActiveFilter() {
@@ -590,6 +624,9 @@
                 }
             }
             
+            // Initialiser le filtre actif au chargement
+            updateActiveFilter();
+            
             // Fonction de recherche AJAX
             function performSearch(page = 1) {
                 currentSearchText = $('#searchInput').val();
@@ -601,7 +638,7 @@
                         <div class="spinner-border text-primary" role="status">
                             <span class="visually-hidden">Chargement...</span>
                         </div>
-                        <p class="mt-2 text-muted">Recherche en cours...</p>
+                        <p class="mt-2 text-muted">🔄 Recherche en cours...</p>
                     </div>
                 `);
                 
@@ -620,6 +657,7 @@
                         
                         updateActiveFilter();
                         
+                        // Compter les lignes du tableau
                         const count = $('#appointmentsList tbody tr').length;
                         $('#totalAppointments').text(count);
                         
@@ -701,6 +739,7 @@
                         $('#appointmentsList').html(response);
                         updateActiveFilter();
                         
+                        // Scroll vers le haut du tableau
                         $('html, body').animate({
                             scrollTop: $('#appointmentsList').offset().top - 100
                         }, 300);
@@ -737,27 +776,6 @@
                     $('#exportLoading').removeClass('active');
                 }, 2000);
             });
-            
-            // Vérifier les paramètres URL au chargement
-            const urlParams = new URLSearchParams(window.location.search);
-            const initialDateFilter = urlParams.get('date_filter');
-            const initialStatus = urlParams.get('status');
-            const initialSearch = urlParams.get('search');
-            
-            if (initialDateFilter) {
-                currentDateFilter = initialDateFilter;
-                updateActiveFilter();
-            }
-            
-            if (initialStatus) {
-                currentStatusFilter = initialStatus;
-                $('#statusFilter').val(initialStatus);
-            }
-            
-            if (initialSearch) {
-                currentSearchText = initialSearch;
-                $('#searchInput').val(initialSearch);
-            }
         });
     </script>
 @endsection

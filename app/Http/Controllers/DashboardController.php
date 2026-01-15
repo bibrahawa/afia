@@ -22,6 +22,7 @@ use App\Models\Medicament;
 use App\Jobs\ProcessDoctorUnavailabilityJob;
 use Carbon\Carbon;
 use App\Models\EmployeeBreak;
+use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
@@ -81,6 +82,13 @@ class DashboardController extends Controller
     public function appointments(Request $request)
     {
         $query = Appointment::with(['patient.user']);
+
+        $employeeId = Auth::user()->employee->id;
+
+        //Si c'est un admin affiche tous si non afficher uniquement les rendez du medecin connecter
+        if (Auth::user()->roles()->first()->name == 'medecin') {
+            $query = $query->where('employee_id', $employeeId);
+        }
         
         // Recherche
         if ($request->has('search') && $request->search != '') {
@@ -138,7 +146,7 @@ class DashboardController extends Controller
         
         $appointments = $query->orderBy('appointment_date', 'asc')
                             ->orderBy('appointment_time', 'asc')
-                            ->paginate(30);
+                            ->paginate(20);
         
         // IMPORTANT: Ajouter les paramètres à la pagination
         $appointments->appends([
@@ -165,7 +173,7 @@ class DashboardController extends Controller
                                     ->count(),
             'total' => Appointment::count(),
         ];
-        
+
         // Si c'est une requête AJAX, retourner seulement la liste
         if ($request->ajax()) {
             return view('appointments.partials.list', compact('appointments'))->render();
