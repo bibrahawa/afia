@@ -289,7 +289,7 @@ class DashboardController extends Controller
             ]);
 
             // FIX: Générer les créneaux en incluant aujourd'hui si applicable
-            $this->generateAppointmentSlotsImproved($validated, 8);
+            $this->generateAppointmentSlotsImproved($validated, 16);
 
             DB::commit();
             return redirect()->back()->with('success', 'Disponibilité et créneaux créés avec succès');
@@ -304,7 +304,7 @@ class DashboardController extends Controller
     /**
      * Met à jour une disponibilité
      */
-    public function updateAvailability(Request $request): RedirectResponse
+    public function updateAvailability_old(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'id' => 'required|integer|exists:employee_availabilities,id',
@@ -315,7 +315,9 @@ class DashboardController extends Controller
         ]);
 
         DB::beginTransaction();
+
         try {
+
             $availability = EmployeeAvailability::findOrFail($request->id);
 
             if ($availability->employee_id !== auth()->id()) {
@@ -329,7 +331,7 @@ class DashboardController extends Controller
             $availability->update($validated);
 
             // Générer les nouveaux créneaux (incluant aujourd'hui)
-            $this->generateAppointmentSlotsImproved($validated, 8);
+            $this->generateAppointmentSlotsImproved($validated, 16);
 
             DB::commit();
             return redirect()->back()->with('success', 'Disponibilité mise à jour avec succès');
@@ -339,6 +341,113 @@ class DashboardController extends Controller
             Log::error('Erreur mise à jour disponibilité: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Erreur lors de la mise à jour de la disponibilité');
         }
+    }
+
+    public function updateAvailability(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'id' => 'required|integer|exists:employee_availabilities,id',
+            'day_of_week' => 'required|string|in:Lundi,Mardi,Mercredi,Jeudi,Vendredi,Samedi,Dimanche',
+            'start_time' => 'required|date_format:H:i',
+            'end_time' => 'required|date_format:H:i|after:start_time',
+            'slot_duration' => 'required|integer|min:10|max:180'
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+
+            $availability = EmployeeAvailability::findOrFail($request->id);
+
+            if ($availability->employee_id !== auth()->user()->employee->id) {
+                return redirect()->back()->with('error', 'Vous n\'êtes pas autorisé à modifier cette disponibilité');
+            }
+
+            $employeeId = auth()->user()->employee->id;
+            $dayOfWeekEn = $this->getDayOfWeek($validated['day_of_week']);
+
+            // 1. Trouver et annuler les RDV hors du nouvel intervalle
+            $cancelledCount = $this->cancelAppointmentsOutsideNewSchedule(
+                $employeeId,
+                $dayOfWeekEn,
+                $validated['start_time'],
+                $validated['end_time']
+            );
+
+            // 2. Supprimer tous les créneaux libres futurs pour ce jour
+            $this->deleteExistingSlotsImproved($validated['day_of_week']);
+
+            // 3. Mettre à jour la disponibilité
+            $availability->update($validated);
+
+            // 4. Régénérer les créneaux avec le nouvel horaire
+            $this->generateAppointmentSlotsImproved($validated, 16);
+
+            DB::commit();
+
+            $message = 'Disponibilité mise à jour avec succès.';
+            if ($cancelledCount > 0) {
+                $message .= " {$cancelledCount} rendez-vous annulé(s) et patients notifiés.";
+            }
+
+            return redirect()->back()->with('success', $message);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Erreur mise à jour disponibilité: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Erreur lors de la mise à jour de la disponibilité');
+        }
+    }
+
+    /**
+     * Annule les RDV qui tombent en dehors du nouvel intervalle horaire
+     * et notifie les patients concernés
+     */
+    private function cancelAppointmentsOutsideNewSchedule(
+        int $employeeId,
+        string $dayOfWeekEn,
+        string $newStartTime,
+        string $newEndTime
+    ): int {
+        // Récupérer tous les RDV futurs actifs pour ce jour de semaine
+        $appointmentsToCancel = Appointment::with(['patient.user'])
+            ->where('employee_id', $employeeId)
+            ->whereIn('status', ['pending', 'confirmed'])
+            ->where('appointment_date', '>=', Carbon::today())
+            ->whereRaw('DAYNAME(appointment_date) = ?', [$dayOfWeekEn])
+            ->where(function ($query) use ($newStartTime, $newEndTime) {
+                // RDV dont l'heure est AVANT le nouveau début OU APRÈS/ÉGAL à la nouvelle fin
+                $query->where('appointment_time', '<', $newStartTime)
+                    ->orWhere('appointment_time', '>=', $newEndTime);
+            })
+            ->get();
+
+        $cancelledCount = 0;
+
+        foreach ($appointmentsToCancel as $appointment) {
+            // Annuler le RDV
+            $appointment->update(['status' => 'cancelled']);
+
+            // Libérer le créneau s'il existe
+            AppointmentSlot::where('employee_id', $employeeId)
+                ->where('date', $appointment->appointment_date)
+                ->where('time', $appointment->appointment_time)
+                ->update(['is_available' => true]);
+
+            // Notifier le patient
+            // $this->notifyPatientCancelledAppointment($appointment);
+
+            Log::info('RDV annulé suite à modification de disponibilité', [
+                'appointment_id' => $appointment->id,
+                'patient_id' => $appointment->patient_id,
+                'date' => $appointment->appointment_date,
+                'time' => $appointment->appointment_time,
+            ]);
+
+            $cancelledCount++;
+        }
+
+        return $cancelledCount;
     }
 
     /**
@@ -373,7 +482,7 @@ class DashboardController extends Controller
     /**
      * FIX: Génère les créneaux en incluant aujourd'hui si le jour correspond
      */
-    private function generateAppointmentSlotsImproved(array $availability, int $weeks = 8): void
+    private function generateAppointmentSlotsImproved(array $availability, int $weeks = 16): void
     {
         $dayOfWeek = $this->getDayOfWeek($availability['day_of_week']);
         $today = Carbon::now();
