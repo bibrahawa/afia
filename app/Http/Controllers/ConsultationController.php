@@ -82,7 +82,7 @@ class ConsultationController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store_old_2(Request $request)
     {
         $validated = $request->validate([
             'patient_id' => 'required|exists:patients,id',
@@ -92,6 +92,7 @@ class ConsultationController extends Controller
             'observation' => 'nullable|string',
             'prochain_rdv' => 'nullable|date'
         ]);
+
 
 
         DB::beginTransaction();
@@ -185,6 +186,131 @@ class ConsultationController extends Controller
                 return redirect()->back()->with('error', 'Erreur lors du traitement: ' . $e->getMessage());
             }
         
+    }
+
+    public function store(Request $request)
+    {
+        $isMedecin = auth()->user()->hasRole('medecin');
+
+        // Validation adaptée selon le rôle
+        $rules = [
+            'patient_id' => 'required|exists:patients,id',
+            'motif'          => $isMedecin ? 'required|string' : 'nullable|string',
+            'signes_cliniques' => 'nullable|string',
+            'diagnostic'     => $isMedecin ? 'required|string' : 'nullable|string',
+            'observation'    => 'nullable|string',
+            'prochain_rdv'   => 'nullable|date'
+        ];
+
+        $validated = $request->validate($rules);
+
+        // Si pas médecin, forcer N/A sur les champs obligatoires absents
+        if (!$isMedecin) {
+            $validated['motif']      = $validated['motif']      ?? 'N/A';
+            $validated['diagnostic'] = $validated['diagnostic'] ?? 'N/A';
+        }
+
+        DB::beginTransaction();
+
+        try {
+            $consultationData = [
+                ...$validated,
+                'department_id'   => auth()->user()->employee->department_id,
+                'signes_cliniques' => $request->signes_cliniques
+                    ? explode(',', $request->signes_cliniques)
+                    : [],
+            ];
+
+            // medecin_id seulement si employee existe
+            if (auth()->user()->employee) {
+                $consultationData['medecin_id'] = auth()->user()->employee->id;
+            }
+
+            $consultation = Consultation::create($consultationData);
+
+            ConsultationService::attachItems($consultation, json_decode($request->selected_items, true));
+
+            $consultation->load(['services', 'packages', 'tests', 'medicaments']);
+
+            $items  = $this->consultationService->calculateAmountAndReturnItems($consultation);
+            $amount = $items['total_amount'];
+
+            $accountID = ConsultationService::mettreAJourCompte(
+                $request->patient_id,
+                Patient::class,
+                $amount,
+                'credit'
+            );
+
+            $transaction = $consultation->transaction()->create([
+                'user_id'     => auth()->id(),
+                'account_id'  => $accountID,
+                'patient_id'  => $validated['patient_id'],
+                'description' => $consultation->motif,
+                'tax_amount'  => 0,
+                'discount'    => 0,
+                'sub_total'   => $amount,
+                'total'       => $amount
+            ]);
+
+            $consultation->update(['est_facturee' => true]);
+
+            $this->insuranceCalculation->createInvoiceForConsulation(
+                $request->patient_id,
+                $transaction->id,
+                $consultation,
+                $items
+            );
+
+            $patient = Patient::find($request->patient_id);
+            $patient->first_visit = false;
+            $patient->save();
+
+            // Antécédents — uniquement si médecin et première visite
+            if ($isMedecin && !$patient->antecedant()->exists()) {
+                Antecedent::updateOrCreate(
+                    ['patient_id' => $request->patient_id],
+                    [
+                        'antecedents_medicaux'            => $request->antecedents_medicaux,
+                        'antecedents_chirurgicaux'        => $request->antecedents_chirurgicaux,
+                        'antecedents_gyneco_obstetricaux' => $request->antecedents_gyneco_obstetricaux,
+                        'antecedents_familiaux'           => $request->antecedents_familiaux,
+                        'allergies'                       => $request->allergies,
+                        'traitements_cours'               => $request->traitements_cours,
+                    ]
+                );
+            }
+
+            // Rendez-vous — uniquement si médecin ET date fournie
+            if ($isMedecin && $request->filled('prochain_rdv')) {
+                $rdvDate = Carbon::parse($request->prochain_rdv);
+
+                Appointment::create([
+                    'employee_id'      => auth()->user()->employee->id,
+                    'patient_id'       => $request->patient_id,
+                    'appointment_date' => $rdvDate->format('Y-m-d'),
+                    'appointment_time' => $rdvDate->format('H:i:s'),
+                    'reason'           => 'autre',
+                    'description'      => 'Reservation de rendez vous pris direction avec le medecin',
+                    'status'           => 'confirmed'
+                ]);
+
+                AppointmentSlot::where('employee_id', auth()->user()->employee->id)
+                    ->where('date', $rdvDate->format('Y-m-d'))
+                    ->where('time', $rdvDate->format('H:i:s'))
+                    ->update(['is_available' => false]);
+            }
+
+            DB::commit();
+
+            return redirect()->route('consultation.index')
+                ->with('success', 'Consultation enregistrée.');
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            return redirect()->back()
+                ->with('error', 'Erreur lors du traitement: ' . $e->getMessage());
+        }
     }
 
     public function facture($id){
