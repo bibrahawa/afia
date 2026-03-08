@@ -167,9 +167,9 @@
                                         <span class="badge badge-secondary">0</span>
                                     @endif
                                 <td>
-                                    <a href="{{ route('patient.show', $transaction->patient->id) }}" class="btn btn-sm btn-primary">
+                                    {{-- <a href="{{ route('patient.show', $transaction->patient->id) }}" class="btn btn-sm btn-primary">
                                         <i class="fa fa-eye"></i>
-                                    </a>
+                                    </a> --}}
                                     <button
                                         type="button"
                                         class="btn btn-success btn-sm payer-button"

@@ -7,6 +7,7 @@ use App\Services\InsuranceCalculationService;
 use App\Services\ConsultationService;
 use App\Services\TransactionService;
 use App\Models\Patient;
+use App\Models\Paiement;
 use App\Models\Consultation;
 use App\Models\InsuranceCompany;
 use App\Models\PatientInsurance;
@@ -94,6 +95,7 @@ class PaymentController extends Controller
         ]);
 
         try {
+
             DB::beginTransaction();
 
             $patient = Patient::findOrFail($request->patient_id);
@@ -332,7 +334,7 @@ class PaymentController extends Controller
             $assurance_2            = $request->selected_insurances[1] ?? false;
             $insuranceCompanyIds    = array_filter([$assurance_1, $assurance_2]);
             $transaction = Transaction::where('id',$request->transaction_id)->with('patient', 'invoice')->first();
-
+            
             $this->transactionPay->paiementTransaction($request->source, $request->montant, $request->description, $transaction, $request->part_patient);
             
             // Si il y a des assurances, créer la facture avec couverture
