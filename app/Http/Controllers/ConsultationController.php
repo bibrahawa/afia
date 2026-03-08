@@ -52,11 +52,9 @@ class ConsultationController extends Controller
         // }
 
         $employeeDepartmentId = auth()->user()->employee->department_id;
-
         // Une seule requête optimisée pour tout charger en parallèle
         return view('consultations.new', [
-            'patients' => Patient::select('id', 'first_name', 'last_name', 'first_visit')
-                ->orderBy('first_name')
+            'patients' => Patient::orderBy('first_name')
                 ->get(),
             
             'services' => Service::select('id', 'name', 'amount')

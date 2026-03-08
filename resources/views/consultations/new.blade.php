@@ -565,7 +565,7 @@
                                 </label>
                                 <select id="patient_id" class="form-control selectpicker" data-live-search="true" name="patient_id" data-container="body" title="Choisir un patient...">
                                     @foreach ($patients as $patient)
-                                        <option value="{{ $patient->id }}"> {{ $patient->getFullNameAttribute()." ".$patient->phone }} </option>
+                                        <option value="{{ $patient->id }}"> {{ $patient->getFullNameAttribute()." - ".$patient->user->phone }} </option>
                                     @endforeach
                                 </select>
                             </div>
