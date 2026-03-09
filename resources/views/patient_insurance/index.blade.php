@@ -52,7 +52,7 @@
                         <th style="width: 5%">ID</th>
                         <th>Patient</th>
                         <th>Compagnie</th>
-                        <th>N°</th>
+                        {{-- <th>N°</th> --}}
                         <th>Couverture</th>
 
                         {{-- <th>Début</th> --}}
@@ -68,7 +68,7 @@
                         <th>ID</th>
                         <th>Patient</th>
                         <th>Compagnie</th>
-                        <th>N°</th>
+                        {{-- <th>N°</th> --}}
                         <th>Couverture</th>
                         <th>Validite</th>
                         <th>Statut</th>
@@ -83,7 +83,7 @@
                                 <td>{{ $insurance->id}}</td>
                                 <td>{{ $insurance->patient->first_name }} {{ $insurance->patient->last_name }}</td>
                                 <td>{{ $insurance->insuranceCompany->name }}</td>
-                                <td>{{ $insurance->policy_number }}</td>
+                                {{-- <td>{{ $insurance->policy_number }}</td> --}}
                                 <td>{{ $insurance->coverage_percentage }}</td>
                                 <td>
                                     {{ \Carbon\Carbon::parse($insurance->start_date)->format('d/m/Y') }} -
@@ -146,145 +146,143 @@
                         </button>
                         </div>
                         <div class="modal-body">
-                        <p class="small">Créez une nouvelle assurance patient en remplissant le formulaire ci-dessous.</p>
-                        <form id="addInsuranceForm" action="{{ route('insurance_patient.store') }}" method="POST">
-                            @csrf
-                            <div class="row">
-                                <div class="col-sm-6">
-                                    <div class="form-group form-group-default">
-                                        <label>Patient</label>
-                                        <select id="patient_id" name="patient_id" class="form-control" required>
-                                            <option value="">Sélectionner un patient</option>
-                                            @foreach($patients as $patient)
-                                                <option value="{{ $patient->id }}">{{ $patient->first_name }} {{ $patient->last_name }}</option>
-                                            @endforeach
-                                        </select>
+                            <p class="small">Créez une nouvelle assurance patient en remplissant le formulaire ci-dessous.</p>
+                            <form id="addInsuranceForm" action="{{ route('insurance_patient.store') }}" method="POST">
+                                @csrf
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <div class="form-group">
+                                            <label>Patient</label>
+                                            <select id="patient_id" class="form-control selectpicker" data-live-search="true" name="patient_id" title="Choisir un patient...">
+                                                @foreach ($patients as $patient)
+                                                    <option value="{{ $patient->id }}"> {{ $patient->getFullNameAttribute()." - ".$patient->user->phone }} </option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <div class="form-group">
+                                            <label>Compagnie d'assurance</label>
+                                            <select id="insurance_company_id" name="insurance_company_id" class="form-control selectpicker" data-live-search="true" required>
+                                                @foreach($insuranceCompanies as $company)
+                                                    <option value="{{ $company->id }}">{{ $company->name }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="col-sm-6">
-                                    <div class="form-group form-group-default">
-                                        <label>Compagnie d'assurance</label>
-                                        <select id="insurance_company_id" name="insurance_company_id" class="form-control" required>
-                                            <option value="">Sélectionner une compagnie</option>
-                                            @foreach($insuranceCompanies as $company)
-                                                <option value="{{ $company->id }}">{{ $company->name }}</option>
-                                            @endforeach
-                                        </select>
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <div class="form-group form-group-default">
+                                            <label>Numéro de police</label>
+                                            <input
+                                                id="policy_number"
+                                                name="policy_number"
+                                                type="text"
+                                                class="form-control"
+                                                placeholder="Entrez le numéro de police"
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <div class="form-group form-group-default">
+                                            <label>Statut</label>
+                                            <select id="status" name="status" class="form-control" required>
+                                                <option value="active">Actif</option>
+                                                <option value="suspended">Suspendu</option>
+                                                <option value="expired">Expiré</option>
+                                            </select>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-sm-6">
-                                    <div class="form-group form-group-default">
-                                        <label>Numéro de police</label>
-                                        <input
-                                            id="policy_number"
-                                            name="policy_number"
-                                            type="text"
-                                            class="form-control"
-                                            placeholder="Entrez le numéro de police"
-                                            required
-                                        />
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <div class="form-group form-group-default">
+                                            <label>Date de début</label>
+                                            <input
+                                                id="start_date"
+                                                name="start_date"
+                                                type="date"
+                                                class="form-control"
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <div class="form-group form-group-default">
+                                            <label>Date de fin</label>
+                                            <input
+                                                id="end_date"
+                                                name="end_date"
+                                                type="date"
+                                                class="form-control"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="col-sm-6">
-                                    <div class="form-group form-group-default">
-                                        <label>Statut</label>
-                                        <select id="status" name="status" class="form-control" required>
-                                            <option value="active">Actif</option>
-                                            <option value="suspended">Suspendu</option>
-                                            <option value="expired">Expiré</option>
-                                        </select>
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <div class="form-group form-group-default">
+                                            <label>Plafond annuel (GNF)</label>
+                                            <input
+                                                id="annual_limit"
+                                                name="annual_limit"
+                                                type="number"
+                                                step="0.01"
+                                                class="form-control"
+                                                placeholder="Ex: 1000000"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <div class="form-group form-group-default">
+                                            <label>Montant utilisé (GNF)</label>
+                                            <input
+                                                id="used_amount"
+                                                name="used_amount"
+                                                type="number"
+                                                step="0.01"
+                                                class="form-control"
+                                                placeholder="Ex: 250000"
+                                                value="0"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-sm-6">
-                                    <div class="form-group form-group-default">
-                                        <label>Date de début</label>
-                                        <input
-                                            id="start_date"
-                                            name="start_date"
-                                            type="date"
-                                            class="form-control"
-                                            required
-                                        />
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <div class="form-group form-group-default">
+                                            <label>Couverture (%) <span class="text-danger">*</span></label>
+                                            <input type="number" name="coverage_percentage" class="form-control" step="0.01" min="0" max="100" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <div class="form-group form-group-default">
+                                            <label>Notes</label>
+                                            <textarea
+                                                id="notes"
+                                                name="notes"
+                                                class="form-control"
+                                                placeholder="Notes ou commentaires"
+                                                rows="3"
+                                            ></textarea>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="col-sm-6">
-                                    <div class="form-group form-group-default">
-                                        <label>Date de fin</label>
-                                        <input
-                                            id="end_date"
-                                            name="end_date"
-                                            type="date"
-                                            class="form-control"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-sm-6">
-                                    <div class="form-group form-group-default">
-                                        <label>Plafond annuel (GNF)</label>
-                                        <input
-                                            id="annual_limit"
-                                            name="annual_limit"
-                                            type="number"
-                                            step="0.01"
-                                            class="form-control"
-                                            placeholder="Ex: 1000000"
-                                        />
-                                    </div>
-                                </div>
-                                <div class="col-sm-6">
-                                    <div class="form-group form-group-default">
-                                        <label>Montant utilisé (GNF)</label>
-                                        <input
-                                            id="used_amount"
-                                            name="used_amount"
-                                            type="number"
-                                            step="0.01"
-                                            class="form-control"
-                                            placeholder="Ex: 250000"
-                                            value="0"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-sm-6">
-                                    <div class="form-group form-group-default">
-                                        <label>Couverture (%) <span class="text-danger">*</span></label>
-                                        <input type="number" name="coverage_percentage" class="form-control" step="0.01" min="0" max="100" required>
-                                    </div>
-                                </div>
-                                <div class="col-sm-6">
-                                    <div class="form-group form-group-default">
-                                        <label>Notes</label>
-                                        <textarea
-                                            id="notes"
-                                            name="notes"
-                                            class="form-control"
-                                            placeholder="Notes ou commentaires"
-                                            rows="3"
-                                        ></textarea>
-                                    </div>
-                                </div>
-                            </div>
-                        </form>
+                            </form>
                         </div>
                         <div class="modal-footer border-0">
-                        <button type="submit" id="addRowButton" class="btn btn-primary" form="addInsuranceForm">
-                            Ajouter
-                            <div class="spinner-border spinner-border-sm text-light" role="status" id="addLoader" style="display: none;">
-                                <span class="sr-only">Loading...</span>
-                            </div>
-                        </button>
+                            <button type="submit" id="addRowButton" class="btn btn-primary" form="addInsuranceForm">
+                                Ajouter
+                                <div class="spinner-border spinner-border-sm text-light" role="status" id="addLoader" style="display: none;">
+                                    <span class="sr-only">Loading...</span>
+                                </div>
+                            </button>
 
-                        <button type="button" class="btn btn-danger" data-bs-dismiss="modal">
-                            Fermer
-                        </button>
+                            <button type="button" class="btn btn-danger" data-bs-dismiss="modal">
+                                Fermer
+                            </button>
                         </div>
                     </div>
                     </div>
@@ -312,11 +310,12 @@
                                         <div class="col-sm-6">
                                             <div class="form-group form-group-default">
                                                 <label>Patient</label>
-                                                <select id="edit_patient_id" name="patient_id" class="form-control" required>
-                                                    <option value="">Sélectionner un patient</option>
-                                                    @foreach($patients as $patient)
-                                                        <option value="{{ $patient->id }}">{{ $patient->first_name }} {{ $patient->last_name }}</option>
-                                                    @endforeach
+                                                <select id="edit_patient_id" name="patient_id" 
+                                                    class="form-control selectpicker" 
+                                                    data-live-search="true"
+                                                    data-live-search-placeholder="Rechercher un patient..."
+                                                    data-container="body"
+                                                    title="Choisir un patient..." required>
                                                 </select>
                                             </div>
                                         </div>
@@ -430,6 +429,7 @@
                                             </div>
                                         </div>
                                     </div>
+                                </form>
                             </div>
                             <div class="modal-footer border-0">
                                 <button type="submit" class="btn btn-success" id="editRowButton" form="editInsuranceForm">
@@ -440,7 +440,6 @@
                                 </button>
                                 <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Fermer</button>
                             </div>
-                            </form>
                         </div>
                     </div>
                 </div>
@@ -504,7 +503,8 @@
 
             // Mettre à jour les champs du modal
             $('#edit_id').val(id);
-            $('#edit_patient_id').val(patientId);
+            // $('#edit_patient_id').val(patientId);
+            $('#edit_patient_id').val(patientId).selectpicker('refresh');
             $('#edit_insurance_company_id').val(insuranceCompanyId);
             $('#edit_policy_number').val(policyNumber);
             $('#edit_start_date').val(startDate);

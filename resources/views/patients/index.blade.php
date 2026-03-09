@@ -325,360 +325,384 @@
 
 @section('content')
     <div class="container">
-        <!-- Header -->
-        <div class="page-header">
-            <h1>
-                <i class="fas fa-users"></i>
-                Liste des Patientes
-            </h1>
-            <button class="btn-add-patient" data-bs-toggle="modal" data-bs-target="#addRowModal">
-                <i class="fas fa-plus"></i>
-                Nouvelle Patiente
-            </button>
-        </div>
+        <div class="page-inner">
 
-        <!-- Barre de recherche -->
-        <div class="search-filter-bar">
-            <div class="search-box">
-                <i class="fas fa-search"></i>
-                <input type="text" id="searchInput" placeholder="Rechercher une patiente par nom, téléphone ou ID...">
+            <!-- Header -->
+            <div class="page-header">
+                <h1>
+                    <i class="fas fa-users"></i>
+                    Liste des Patientes
+                </h1>
+                <button class="btn-add-patient" data-bs-toggle="modal" data-bs-target="#addRowModal">
+                    <i class="fas fa-plus"></i>
+                    Nouvelle Patiente
+                </button>
             </div>
-        </div>
 
-        <!-- Grid de cards -->
-        <div class="patients-grid" id="patientsGrid">
-            @forelse($patients as $patient)
-                <div class="patient-card" data-patient-name="{{ strtolower($patient->first_name . ' ' . $patient->last_name) }}" 
-                     data-patient-phone="{{ $patient->user->phone ?? '' }}" 
-                     data-patient-id="{{ $patient->id }}">
-                    
-                    <!-- Header -->
-                    <div class="patient-card-header">
-                        <div class="patient-avatar">
-                            {{ strtoupper(substr($patient->first_name ?? 'P', 0, 1)) }}
-                        </div>
-                        <div class="patient-info">
-                            <div class="patient-name">
-                                {{ $patient->first_name }} {{ $patient->last_name }}
-                            </div>
-                            <div class="patient-id">
-                                #{{ str_pad($patient->id, 4, '0', STR_PAD_LEFT) }}
-                            </div>
-                        </div>
-                    </div>
+            <!-- Barre de recherche -->
+            {{-- <div class="search-filter-bar">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="Rechercher une patiente par nom, téléphone ou ID...">
+                </div>
+            </div> --}}
 
-                    <!-- Body -->
-                    <div class="patient-card-body">
-                        <div class="patient-detail">
-                            <i class="fas fa-phone"></i>
-                            <span class="patient-detail-label">Téléphone:</span>
-                            <span class="patient-detail-value">{{ $patient->user->phone ?? 'N/A' }}</span>
-                        </div>
-
-                        <div class="patient-detail">
-                            <i class="fas fa-map-marker-alt"></i>
-                            <span class="patient-detail-label">Adresse:</span>
-                            <span class="patient-detail-value">{{ $patient->location ?? 'Non renseignée' }}</span>
-                        </div>
-
-                        <div class="patient-detail">
-                            <i class="fas fa-calendar"></i>
-                            <span class="patient-detail-label">Âge:</span>
-                            <span class="patient-detail-value">{{ $patient->age ?? '-' }} ans</span>
-                        </div>
-
-                        <div class="patient-detail">
-                            <i class="fas fa-wallet"></i>
-                            <span class="patient-detail-label">Solde:</span>
-                            <span class="balance-badge">
-                                {{ number_format($patient->solde ?? 0, 0, ',', ' ') }} GNF
-                            </span>
-                        </div>
-                    </div>
-
-                    <!-- Footer Actions -->
-                    <div class="patient-card-footer">
-                        @can('patient.view')
-                            <a href="{{ route('patient.show', $patient->id) }}" class="card-action-btn btn-view">
-                                <i class="fas fa-eye"></i>
-                                
+            <div class="search-filter-bar">
+                <form method="GET" action="{{ route('patient.index') }}" id="searchForm">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input 
+                            type="text" 
+                            name="search"
+                            id="searchInput" 
+                            placeholder="Rechercher une patiente par nom, téléphone ou ID..."
+                            value="{{ $search ?? '' }}"
+                            autocomplete="off"
+                        >
+                        @if($search)
+                            <a href="{{ route('patient.index') }}" style="position:absolute; right:1rem; top:50%; transform:translateY(-50%); color:#6b7280;">
+                                <i class="fas fa-times"></i>
                             </a>
-                        @endcan
+                        @endif
+                    </div>
+                </form>
+            </div>
 
-                        @can('patient.edit')
-                            <button class="card-action-btn btn-edit edit-button"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#editRowModal"
-                                    data-patient='@json($patient)'
-                                    data-phone="{{ $patient->user->phone ?? '' }}">
-                                <i class="fas fa-edit"></i>
-                                
-                            </button>
-                        @endcan
+            <!-- Grid de cards -->
+            <div class="patients-grid" id="patientsGrid">
+                @forelse($patients as $patient)
+                    <div class="patient-card" data-patient-name="{{ strtolower($patient->first_name . ' ' . $patient->last_name) }}" 
+                        data-patient-phone="{{ $patient->user->phone ?? '' }}" 
+                        data-patient-id="{{ $patient->id }}">
                         
-                        @can('patient.delete')
-                            <button class="card-action-btn btn-delete delete-button"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#deleteRowModal"
-                                    data-patient='@json($patient)'>
-                                <i class="fas fa-trash"></i>
-                                
-                            </button>
-                        @endcan
-                        
-                        @can('patient.add_file')
-                            <button class="card-action-btn btn-upload add-file-button"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#uploadFileModal"
-                                    data-patient='@json($patient)'>
-                                <i class="fas fa-upload"></i>
-                                Fichier
-                            </button>
-                        @endcan
+                        <!-- Header -->
+                        <div class="patient-card-header">
+                            <div class="patient-avatar">
+                                {{ strtoupper(substr($patient->first_name ?? 'P', 0, 1)) }}
+                            </div>
+                            <div class="patient-info">
+                                <div class="patient-name">
+                                    {{ $patient->first_name }} {{ $patient->last_name }}
+                                </div>
+                                <div class="patient-id">
+                                    #{{ str_pad($patient->id, 4, '0', STR_PAD_LEFT) }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Body -->
+                        <div class="patient-card-body">
+                            <div class="patient-detail">
+                                <i class="fas fa-phone"></i>
+                                <span class="patient-detail-label">Téléphone:</span>
+                                <span class="patient-detail-value">{{ $patient->user->phone ?? 'N/A' }}</span>
+                            </div>
+
+                            <div class="patient-detail">
+                                <i class="fas fa-map-marker-alt"></i>
+                                <span class="patient-detail-label">Adresse:</span>
+                                <span class="patient-detail-value">{{ $patient->location ?? 'Non renseignée' }}</span>
+                            </div>
+
+                            <div class="patient-detail">
+                                <i class="fas fa-calendar"></i>
+                                <span class="patient-detail-label">Âge:</span>
+                                <span class="patient-detail-value">{{ $patient->age ?? '-' }} ans</span>
+                            </div>
+
+                            <div class="patient-detail">
+                                <i class="fas fa-wallet"></i>
+                                <span class="patient-detail-label">Solde:</span>
+                                <span class="balance-badge">
+                                    {{ number_format($patient->solde ?? 0, 0, ',', ' ') }} GNF
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Footer Actions -->
+                        <div class="patient-card-footer">
+                            @can('patient.view')
+                                <a href="{{ route('patient.show', $patient->id) }}" class="card-action-btn btn-view">
+                                    <i class="fas fa-eye"></i>
+                                    
+                                </a>
+                            @endcan
+
+                            @can('patient.edit')
+                                <button class="card-action-btn btn-edit edit-button"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#editRowModal"
+                                        data-patient='@json($patient)'
+                                        data-phone="{{ $patient->user->phone ?? '' }}">
+                                    <i class="fas fa-edit"></i>
+                                    
+                                </button>
+                            @endcan
+                            
+                            @can('patient.delete')
+                                <button class="card-action-btn btn-delete delete-button"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#deleteRowModal"
+                                        data-patient='@json($patient)'>
+                                    <i class="fas fa-trash"></i>
+                                    
+                                </button>
+                            @endcan
+                            
+                            @can('patient.add_file')
+                                <button class="card-action-btn btn-upload add-file-button"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#uploadFileModal"
+                                        data-patient='@json($patient)'>
+                                    <i class="fas fa-upload"></i>
+                                    Fichier
+                                </button>
+                            @endcan
+                        </div>
+                    </div>
+                @empty
+                    <div class="empty-state" style="grid-column: 1 / -1;">
+                        <i class="fas fa-users-slash"></i>
+                        <h3>Aucune patiente trouvée</h3>
+                        <p>Ajoutez votre première patiente en cliquant sur le bouton ci-dessus</p>
+                    </div>
+                @endforelse
+            </div>
+
+            <!-- Pagination -->
+            <div class="d-flex justify-content-center">
+                {{ $patients->links() }}
+            </div>
+
+            <!-- MODAL AJOUT -->
+                <div class="modal fade" id="addRowModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content modal-content-enhanced">
+                            <div class="modal-header modal-header-enhanced">
+                                <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i>Nouvelle Patiente</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <form id="addPatientForm" action="{{ route('patient.store') }}" method="POST">
+                                @csrf
+                                <div class="modal-body p-4">
+                                    <!-- Informations Personnelles -->
+                                    <div class="form-section">
+                                        <div class="form-section-title">
+                                            <i class="fas fa-user"></i>Informations Personnelles
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label-enhanced">Prénom <span class="text-danger">*</span></label>
+                                                <input type="text" name="first_name" class="form-control form-control-enhanced" required>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label-enhanced">Nom <span class="text-danger">*</span></label>
+                                                <input type="text" name="last_name" class="form-control form-control-enhanced" required>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label-enhanced">Téléphone <span class="text-danger">*</span></label>
+                                                <input type="tel" name="phone" class="form-control form-control-enhanced" required>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label-enhanced">Âge <span class="text-danger">*</span></label>
+                                                <input type="number" name="age" class="form-control form-control-enhanced" required>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Informations Médicales -->
+                                    <div class="form-section">
+                                        <div class="form-section-title">
+                                            <i class="fas fa-heartbeat"></i>Informations Médicales
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label-enhanced">Situation Matrimoniale</label>
+                                                <select name="marital_status" class="form-control form-control-enhanced">
+                                                    <option value="">-- Sélectionner --</option>
+                                                    <option value="Marie">Mariée</option>
+                                                    <option value="Celibataire">Célibataire</option>
+                                                    <option value="Autre">Autre</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label-enhanced">Groupe Sanguin</label>
+                                                <select name="blood_group" class="form-control form-control-enhanced">
+                                                    <option value="">-- Sélectionner --</option>
+                                                    @foreach(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] as $group)
+                                                        <option value="{{ $group }}">{{ $group }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Contact et Localisation -->
+                                    <div class="form-section">
+                                        <div class="form-section-title">
+                                            <i class="fas fa-map-marker-alt"></i>Contact et Localisation
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label-enhanced">Nom du Proche</label>
+                                                <input type="text" name="relative_name" class="form-control form-control-enhanced">
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label-enhanced">Téléphone du Proche</label>
+                                                <input type="tel" name="relative_phone" class="form-control form-control-enhanced">
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label-enhanced">Profession</label>
+                                                <input type="text" name="occupation" class="form-control form-control-enhanced">
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label-enhanced">Localisation</label>
+                                                <input type="text" name="location" class="form-control form-control-enhanced">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <input type="hidden" name="gender" value="Femme">
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                                    <button type="submit" class="btn btn-primary" id="btnAddPatient">
+                                        <i class="fas fa-save me-2"></i>Enregistrer
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
-            @empty
-                <div class="empty-state" style="grid-column: 1 / -1;">
-                    <i class="fas fa-users-slash"></i>
-                    <h3>Aucune patiente trouvée</h3>
-                    <p>Ajoutez votre première patiente en cliquant sur le bouton ci-dessus</p>
+
+                <!-- MODAL MODIFICATION -->
+                <div class="modal fade" id="editRowModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content modal-content-enhanced">
+                            <div class="modal-header modal-header-enhanced">
+                                <h5 class="modal-title"><i class="fas fa-user-edit me-2"></i>Modifier Patiente</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <form id="editPatientForm" method="POST">
+                                @csrf
+                                @method('PUT')
+                                <div class="modal-body p-4">
+                                    <div class="form-section">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label-enhanced">Prénom</label>
+                                                <input type="text" name="first_name" id="edit_first_name" class="form-control form-control-enhanced">
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label-enhanced">Nom</label>
+                                                <input type="text" name="last_name" id="edit_last_name" class="form-control form-control-enhanced">
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label-enhanced">Téléphone</label>
+                                                <input type="tel" name="phone" id="edit_phone" class="form-control form-control-enhanced">
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label-enhanced">Âge</label>
+                                                <input type="number" name="age" id="edit_age" class="form-control form-control-enhanced">
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label-enhanced">Situation Matrimoniale</label>
+                                                <select name="marital_status" id="edit_marital_status" class="form-control form-control-enhanced">
+                                                    <option value="">-- Sélectionner --</option>
+                                                    <option value="Marie">Mariée</option>
+                                                    <option value="Celibataire">Célibataire</option>
+                                                    <option value="Autre">Autre</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label-enhanced">Groupe Sanguin</label>
+                                                <select name="blood_group" id="edit_blood_group" class="form-control form-control-enhanced">
+                                                    @foreach(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] as $group)
+                                                        <option value="{{ $group }}">{{ $group }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                            <div class="col-md-12 mb-3">
+                                                <label class="form-label-enhanced">Localisation</label>
+                                                <input type="text" name="location" id="edit_location" class="form-control form-control-enhanced">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <input type="hidden" name="gender" value="Femme">
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                                    <button type="submit" class="btn btn-warning" id="btnEditPatient">
+                                        <i class="fas fa-save me-2"></i>Modifier
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
                 </div>
-            @endforelse
+
+                <!-- MODAL SUPPRESSION -->
+                <div class="modal fade" id="deleteRowModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content modal-content-enhanced">
+                            <div class="modal-header bg-danger text-white">
+                                <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Confirmation</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <form id="deletePatientForm" method="POST">
+                                @csrf
+                                @method('DELETE')
+                                <div class="modal-body text-center p-4">
+                                    <i class="fas fa-user-times fa-3x text-danger mb-3"></i>
+                                    <p class="h5 mb-3" id="delete_patient_name"></p>
+                                    <p class="text-muted">Cette action est irréversible</p>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                                    <button type="submit" class="btn btn-danger" id="btnDeletePatient">
+                                        <i class="fas fa-trash me-2"></i>Supprimer
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MODAL UPLOAD -->
+                <div class="modal fade" id="uploadFileModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content modal-content-enhanced">
+                            <div class="modal-header modal-header-enhanced">
+                                <h5 class="modal-title"><i class="fas fa-cloud-upload-alt me-2"></i>Ajouter un Document</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <form id="uploadFileForm" method="POST" enctype="multipart/form-data">
+                                @csrf
+                                <div class="modal-body p-4">
+                                    <div class="file-upload-zone" onclick="document.getElementById('fileInput').click()">
+                                        <i class="fas fa-cloud-upload-alt text-primary fa-3x mb-3"></i>
+                                        <h6>Glissez ou cliquez pour parcourir</h6>
+                                        <p class="text-muted mb-0">PDF, JPG, PNG - Max 10MB</p>
+                                        <input type="file" id="fileInput" name="file" class="d-none" accept=".pdf,.jpg,.jpeg,.png">
+                                    </div>
+                                    <div class="file-name-display" id="fileNameDisplay"></div>
+                                    <div class="mt-3">
+                                        <label class="form-label-enhanced">Description</label>
+                                        <input type="text" name="name" class="form-control form-control-enhanced" placeholder="Ex: Radiographie du 02/06/2025">
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                                    <button type="submit" class="btn btn-primary" id="btnUploadFile">
+                                        <i class="fas fa-upload me-2"></i>Uploader
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+
         </div>
-
-        <!-- Pagination -->
-        <div class="d-flex justify-content-center">
-            {{ $patients->links() }}
-        </div>
-
-        <!-- MODAL AJOUT -->
-            <div class="modal fade" id="addRowModal" tabindex="-1">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content modal-content-enhanced">
-                        <div class="modal-header modal-header-enhanced">
-                            <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i>Nouvelle Patiente</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <form id="addPatientForm" action="{{ route('patient.store') }}" method="POST">
-                            @csrf
-                            <div class="modal-body p-4">
-                                <!-- Informations Personnelles -->
-                                <div class="form-section">
-                                    <div class="form-section-title">
-                                        <i class="fas fa-user"></i>Informations Personnelles
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label-enhanced">Prénom <span class="text-danger">*</span></label>
-                                            <input type="text" name="first_name" class="form-control form-control-enhanced" required>
-                                        </div>
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label-enhanced">Nom <span class="text-danger">*</span></label>
-                                            <input type="text" name="last_name" class="form-control form-control-enhanced" required>
-                                        </div>
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label-enhanced">Téléphone <span class="text-danger">*</span></label>
-                                            <input type="tel" name="phone" class="form-control form-control-enhanced" required>
-                                        </div>
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label-enhanced">Âge <span class="text-danger">*</span></label>
-                                            <input type="number" name="age" class="form-control form-control-enhanced" required>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Informations Médicales -->
-                                <div class="form-section">
-                                    <div class="form-section-title">
-                                        <i class="fas fa-heartbeat"></i>Informations Médicales
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label-enhanced">Situation Matrimoniale</label>
-                                            <select name="marital_status" class="form-control form-control-enhanced">
-                                                <option value="">-- Sélectionner --</option>
-                                                <option value="Marie">Mariée</option>
-                                                <option value="Celibataire">Célibataire</option>
-                                                <option value="Autre">Autre</option>
-                                            </select>
-                                        </div>
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label-enhanced">Groupe Sanguin</label>
-                                            <select name="blood_group" class="form-control form-control-enhanced">
-                                                <option value="">-- Sélectionner --</option>
-                                                @foreach(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] as $group)
-                                                    <option value="{{ $group }}">{{ $group }}</option>
-                                                @endforeach
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Contact et Localisation -->
-                                <div class="form-section">
-                                    <div class="form-section-title">
-                                        <i class="fas fa-map-marker-alt"></i>Contact et Localisation
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label-enhanced">Nom du Proche</label>
-                                            <input type="text" name="relative_name" class="form-control form-control-enhanced">
-                                        </div>
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label-enhanced">Téléphone du Proche</label>
-                                            <input type="tel" name="relative_phone" class="form-control form-control-enhanced">
-                                        </div>
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label-enhanced">Profession</label>
-                                            <input type="text" name="occupation" class="form-control form-control-enhanced">
-                                        </div>
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label-enhanced">Localisation</label>
-                                            <input type="text" name="location" class="form-control form-control-enhanced">
-                                        </div>
-                                    </div>
-                                </div>
-                                <input type="hidden" name="gender" value="Femme">
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                                <button type="submit" class="btn btn-primary" id="btnAddPatient">
-                                    <i class="fas fa-save me-2"></i>Enregistrer
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            <!-- MODAL MODIFICATION -->
-            <div class="modal fade" id="editRowModal" tabindex="-1">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content modal-content-enhanced">
-                        <div class="modal-header modal-header-enhanced">
-                            <h5 class="modal-title"><i class="fas fa-user-edit me-2"></i>Modifier Patiente</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <form id="editPatientForm" method="POST">
-                            @csrf
-                            @method('PUT')
-                            <div class="modal-body p-4">
-                                <div class="form-section">
-                                    <div class="row">
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label-enhanced">Prénom</label>
-                                            <input type="text" name="first_name" id="edit_first_name" class="form-control form-control-enhanced">
-                                        </div>
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label-enhanced">Nom</label>
-                                            <input type="text" name="last_name" id="edit_last_name" class="form-control form-control-enhanced">
-                                        </div>
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label-enhanced">Téléphone</label>
-                                            <input type="tel" name="phone" id="edit_phone" class="form-control form-control-enhanced">
-                                        </div>
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label-enhanced">Âge</label>
-                                            <input type="number" name="age" id="edit_age" class="form-control form-control-enhanced">
-                                        </div>
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label-enhanced">Situation Matrimoniale</label>
-                                            <select name="marital_status" id="edit_marital_status" class="form-control form-control-enhanced">
-                                                <option value="">-- Sélectionner --</option>
-                                                <option value="Marie">Mariée</option>
-                                                <option value="Celibataire">Célibataire</option>
-                                                <option value="Autre">Autre</option>
-                                            </select>
-                                        </div>
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label-enhanced">Groupe Sanguin</label>
-                                            <select name="blood_group" id="edit_blood_group" class="form-control form-control-enhanced">
-                                                @foreach(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] as $group)
-                                                    <option value="{{ $group }}">{{ $group }}</option>
-                                                @endforeach
-                                            </select>
-                                        </div>
-                                        <div class="col-md-12 mb-3">
-                                            <label class="form-label-enhanced">Localisation</label>
-                                            <input type="text" name="location" id="edit_location" class="form-control form-control-enhanced">
-                                        </div>
-                                    </div>
-                                </div>
-                                <input type="hidden" name="gender" value="Femme">
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                                <button type="submit" class="btn btn-warning" id="btnEditPatient">
-                                    <i class="fas fa-save me-2"></i>Modifier
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            <!-- MODAL SUPPRESSION -->
-            <div class="modal fade" id="deleteRowModal" tabindex="-1">
-                <div class="modal-dialog">
-                    <div class="modal-content modal-content-enhanced">
-                        <div class="modal-header bg-danger text-white">
-                            <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Confirmation</h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                        </div>
-                        <form id="deletePatientForm" method="POST">
-                            @csrf
-                            @method('DELETE')
-                            <div class="modal-body text-center p-4">
-                                <i class="fas fa-user-times fa-3x text-danger mb-3"></i>
-                                <p class="h5 mb-3" id="delete_patient_name"></p>
-                                <p class="text-muted">Cette action est irréversible</p>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                                <button type="submit" class="btn btn-danger" id="btnDeletePatient">
-                                    <i class="fas fa-trash me-2"></i>Supprimer
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            <!-- MODAL UPLOAD -->
-            <div class="modal fade" id="uploadFileModal" tabindex="-1">
-                <div class="modal-dialog">
-                    <div class="modal-content modal-content-enhanced">
-                        <div class="modal-header modal-header-enhanced">
-                            <h5 class="modal-title"><i class="fas fa-cloud-upload-alt me-2"></i>Ajouter un Document</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <form id="uploadFileForm" method="POST" enctype="multipart/form-data">
-                            @csrf
-                            <div class="modal-body p-4">
-                                <div class="file-upload-zone" onclick="document.getElementById('fileInput').click()">
-                                    <i class="fas fa-cloud-upload-alt text-primary fa-3x mb-3"></i>
-                                    <h6>Glissez ou cliquez pour parcourir</h6>
-                                    <p class="text-muted mb-0">PDF, JPG, PNG - Max 10MB</p>
-                                    <input type="file" id="fileInput" name="file" class="d-none" accept=".pdf,.jpg,.jpeg,.png">
-                                </div>
-                                <div class="file-name-display" id="fileNameDisplay"></div>
-                                <div class="mt-3">
-                                    <label class="form-label-enhanced">Description</label>
-                                    <input type="text" name="name" class="form-control form-control-enhanced" placeholder="Ex: Radiographie du 02/06/2025">
-                                </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                                <button type="submit" class="btn btn-primary" id="btnUploadFile">
-                                    <i class="fas fa-upload me-2"></i>Uploader
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-
     </div>
 @endsection
 

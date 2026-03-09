@@ -25,10 +25,24 @@ class PatientController extends Controller
      * @return \Illuminate\Http\Response
      */
 
-    public function index()
+    public function index(Request $request)
     {
-        $patients = Patient::paginate(20);
-        return view('patients.index' , compact('patients'));
+        $search = $request->get('search');
+    
+        $patients = Patient::when($search, function($query, $search) {
+                $query->where(function($q) use ($search) {
+                    $q->where('first_name', 'like', "%{$search}%")
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhereHas('user', function($q2) use ($search) {
+                        $q2->where('phone', 'like', "%{$search}%");
+                    })
+                    ->orWhere('id', 'like', "%{$search}%");
+                });
+            })
+            ->paginate(20)
+            ->withQueryString(); // ← conserve le paramètre search dans la pagination
+
+    return view('patients.index', compact('patients', 'search'));
     }
 
     /**

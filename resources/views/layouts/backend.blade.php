@@ -131,8 +131,28 @@
               table.DataTable({ pageLength: 5 });
           }
 
-          // Initialisation de Bootstrap Select
-          $('.selectpicker').selectpicker();
+          // ✅ Destruction puis réinitialisation propre
+          function initSelectPickers(context) {
+              $(context || 'body').find('.selectpicker').each(function() {
+                  // Détruire si déjà initialisé
+                  if ($(this).data('selectpicker')) {
+                      $(this).selectpicker('destroy');
+                  }
+                  // Réinitialiser proprement
+                  $(this).selectpicker({
+                      liveSearch: true,
+                      liveSearchPlaceholder: 'Rechercher...',
+                      noneResultsText: 'Aucun résultat pour {0}',
+                      noneSelectedText: 'Sélectionner...'
+                  });
+              });
+          }
+
+          initSelectPickers();
+
+          $(document).on('shown.bs.modal', function(e) {
+              initSelectPickers(e.target);
+          });
       });
 
     </script>
