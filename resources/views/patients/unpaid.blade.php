@@ -266,7 +266,7 @@
                                         </div>
                                     </div>
 
-                                    <!-- Champs cachés pour les assurances sélectionnées -->
+                                    <!-- Champs cachés pour les assurances sélectionnées --> 
                                     <div id="selectedInsurancesInputs"></div>
                                 </form>
                             </div>

@@ -81,7 +81,7 @@ class TransactionService
 
         if ($montant > 0) {
             $deja_payer = $transaction->montant_payer;
-            $total = $transaction->total;
+            $total = $transaction->total; 
 
             if ($deja_payer < $total) {
                 $montantRestant = $total - $deja_payer;

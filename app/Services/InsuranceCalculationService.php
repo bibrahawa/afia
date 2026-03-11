@@ -21,7 +21,7 @@ class InsuranceCalculationService{
 
     public function __construct(ConsultationService $consultationItem)
     {
-        $this->consultationItem = $consultationItem;
+        $this->consultationItem = $consultationItem; 
     }
 
     public function updateInvoiceWithInsurance($insuranceCompanyIds = [], $transaction, $amount)

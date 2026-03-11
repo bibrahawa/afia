@@ -494,6 +494,9 @@ Route::middleware('auth')->group(function () {
     Route::post('report/actes', [ReportController::class, 'rapportActes'])
         ->middleware('permission:report.actes')
         ->name('reports.actes');
+
+     Route::get('/reports/situation-par-acte', [ReportController::class, 'situationParActe'])
+     ->name('rapports.situation');
     
     Route::post('service/report', [ReportController::class, 'service'])
         ->middleware('permission:report.service')

@@ -24,7 +24,7 @@ class PaymentController extends Controller
         $this->insuranceService = $insuranceService;
         $this->consultationItem = $consultationItem;
         $this->transactionPay = $transactionPay;
-    }
+    } 
 
     /**
      * Afficher la page de paiement avec les assurances

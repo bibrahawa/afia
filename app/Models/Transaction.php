@@ -22,7 +22,7 @@ class Transaction extends Model
         'discount',
         'montant_payer',
         'total',
-        'status'
+        'status' 
     ];
 
     public function user()

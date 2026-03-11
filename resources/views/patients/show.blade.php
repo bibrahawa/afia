@@ -42,7 +42,7 @@
                         <h2>Information de la patiente</h2>
                         <ul>
                             <li><strong>Nom :</strong> {{ $patient->first_name." ".$patient->last_name }}</li>
-                            <li><strong>Phone :</strong> {{ $patient->phone }}</li>
+                            <li><strong>Phone :</strong> {{ $patient->user->phone }}</li>
                             <li><strong>Adresse :</strong> {{$patient->location}}, {{$patient->district}}, {{$patient->state}}, {{$patient->country}}</li>
                             @if ($patient->relative_name)
                                 <li><strong>Nom de son epoux :</strong> {{ $patient->relative_name }}</li>
@@ -106,7 +106,7 @@
                                             <td>{{ number_format($consultation->transaction->total ?? 0)." GNF" }}</td>
                                             <td>
                                                 <a href="{{ route('consultation.show', $consultation->id) }}" class="btn btn-sm btn-primary"><i class="fa fa-eye"></i></a>
-                                                <a href="{{ route('consultations.facturer', $consultation) }}" class="btn btn-sm btn-info"><i class="fa fa-file-invoice"></i></a>
+                                                {{-- <a href="{{ route('consultations.facturer', $consultation) }}" class="btn btn-sm btn-info"><i class="fa fa-file-invoice"></i></a> --}}
                                             </td>
                                         </tr>
                                     @empty
