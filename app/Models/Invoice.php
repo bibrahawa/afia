@@ -40,6 +40,11 @@ class Invoice extends Model
         return $query->where('insurance_status', 'pending');
     }
 
+    public function settlementItems()
+    {
+        return $this->hasMany(InsuranceSettlementItem::class);
+    }
+
     public function scopeApproved($query)
     {
         return $query->where('insurance_status', 'approved');
@@ -67,19 +72,19 @@ class Invoice extends Model
 
     }
 
-    public function getFormattedInsuranceAmountAttribute()
+    public function insuranceCompany()
     {
-        return number_format($this->insurance_amount, 0, ',', ' ') . ' GNF';
+        return $this->belongsTo(InsuranceCompany::class, 'insurance_company_id');
     }
 
     public function transaction()
     {
-        return $this->belongsTo(Transaction::class, 'transaction_id');
+        return $this->belongsTo(Transaction::class);
     }
 
-    public function insuranceCompany(): BelongsTo
+    public function getFormattedInsuranceAmountAttribute()
     {
-        return $this->belongsTo(InsuranceCompany::class);
+        return number_format($this->insurance_amount, 0, ',', ' ') . ' GNF';
     }
 
     public function patientInsurance(): BelongsTo

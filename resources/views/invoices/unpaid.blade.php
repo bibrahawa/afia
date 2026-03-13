@@ -175,12 +175,12 @@
                                         class="btn btn-success btn-sm payer-button"
                                         data-bs-toggle="modal"
                                         data-bs-target="#addNewPaiementModal"
-                                        data-patient="{{ json_encode($transaction->patient) }}"
-                                        data-invoice="{{ json_encode($transaction->invoice) }}"
-                                        data-transaction="{{ json_encode($transaction) }}">
+                                        data-patient='@json($transaction->patient)'
+                                        data-invoice='@json($transaction->invoice)'
+                                        data-transaction='@json($transaction)'
+                                        >
                                         <i class="fas fa-money-bill"></i>
                                     </button>
-
                                 </td>
                             </tr>
                         @endforeach
@@ -451,7 +451,7 @@
         // Charger toutes les données nécessaires
         function loadAllData() {
             Promise.all([
-                loadPatientActes(invoice.transaction_id),
+                loadTransactionActes(invoice.transaction_id),
                 loadPatientInsurances(currentPatient.id)
             ]).then(() => {
                 calculateInitialAmounts();
@@ -491,10 +491,10 @@
         }
 
         // Charger les actes médicaux du patient (retourne une Promise)
-        function loadPatientActes(transactionId) {
+        function loadTransactionActes(transactionId) {
             return new Promise((resolve, reject) => {
                 $.ajax({
-                    url: `/api/patient/${transactionId}/actes`,
+                    url: `/api/transactions/${transactionId}/actes`,
                     method: 'GET',
                     success: function(response) {
                         if (response.success && response.actes.length > 0) {

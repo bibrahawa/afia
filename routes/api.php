@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\Api_InsuranceCompanyController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\InsuranceBalanceController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\PaymentController;
 use Illuminate\Support\Facades\DB;
 
 /*
@@ -61,7 +62,7 @@ Route::post('check-account', [AuthController::class, 'checkAccountStatus']);
 
 // API pour récupérer les assurances d'un patient
 Route::get('/patient/{patient}/insurances', [Api_PatientInsuranceController::class, 'getPatientInsurances']);
-
+Route::get('/transactions/{transaction}/actes', [PaymentController::class, 'getTransactionActes']);
 // API pour calculer la couverture d'assurance
 Route::post('/insurance/calculate-coverage', [Api_InsuranceCalculationController::class, 'calculateCoverage']);
 

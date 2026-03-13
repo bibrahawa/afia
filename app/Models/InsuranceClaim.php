@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+
 class InsuranceClaim extends Model
 {
     use HasFactory;
@@ -14,6 +15,7 @@ class InsuranceClaim extends Model
         'claim_number',
         'invoice_id',
         'insurance_company_id',
+        'patient_insurance_id',
         'patient_id',
         'claimed_amount',
         'approved_amount',
@@ -42,6 +44,11 @@ class InsuranceClaim extends Model
     public function invoice(): BelongsTo
     {
         return $this->belongsTo(Invoice::class);
+    }
+
+    public function patientInsurance(): BelongsTo
+    {
+        return $this->belongsTo(PatientInsurance::class);
     }
 
     /**

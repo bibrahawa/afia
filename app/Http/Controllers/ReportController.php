@@ -8,6 +8,7 @@ use App\Models\Service;
 use App\Models\Department;
 use App\Models\Transaction;
 use App\Models\Consultation;
+use App\Models\Invoice;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
@@ -191,213 +192,6 @@ class ReportController extends Controller
         return implode(' | ', $actes);
     }
 
-    // ================================================================
-    // À ajouter dans : App\Http\Controllers\ReportController
-    // S'inspire de rapportActes() et services() déjà existants
-    // ================================================================
-
-
-    public function situationParActe_old(Request $request)
-    {
-        // ── 1. Validation (même pattern que rapportActes) ─────────────
-        $request->validate([
-            'from' => 'required|date',
-            'to'   => 'nullable|date|after_or_equal:from',
-        ]);
-
-        $from = $request->get('from');
-        $to   = $request->get('to') ?? date('Y-m-d');
-
-        $fromDate = Carbon::createFromFormat('Y-m-d', $from)->startOfDay();
-        $toDate   = Carbon::createFromFormat('Y-m-d', $to)->endOfDay();
-
-        // ── 2. Récupération des consultations (même pattern que services()) ──
-        //
-        // On charge toutes les relations nécessaires en eager loading
-        // pour éviter le N+1 (comme tu le fais avec ->with(['patient']))
-        // ─────────────────────────────────────────────────────────────────
-        $consultations = Consultation::with([
-                'services',
-                'packages',
-                'tests',
-                'medicaments',
-                'patient',
-                'department',
-                'transaction',
-                'transaction.paiements',          // ← source de paiement ici
-                'transaction.invoice',
-                'transaction.invoice.items',
-                'transaction.invoice.insuranceCompany',
-            ])
-            ->whereBetween('created_at', [$fromDate, $toDate])
-            ->orderBy('created_at')
-            ->get();
-
-        // ── 3. Construction du récapitulatif par service ───────────────
-        //
-        // Structure identique à l'Excel Aprosafe :
-        //   service → nb_actes | espece | pm | tpe | chq | assurance | total
-        //
-        // La source de paiement (ESPECE / PM / TPE / CHQ) est stockée dans
-        // invoice_items (via coverage_type polymorphe).
-        // On regroupe les items par coverage_type_type pour identifier
-        // à quel acte (service, package, test…) correspond chaque paiement.
-        // ─────────────────────────────────────────────────────────────────
-        $situationParService = []; // clé = nom du service
-
-        foreach ($consultations as $consultation) {
-
-            $transaction = $consultation->transaction ?? null;
-            $invoice     = $transaction?->invoice ?? null;
-
-            // -- Récupère les invoice_items et les paiements de la transaction --
-            $items     = $invoice?->items    ?? collect();
-            $paiements = $transaction?->paiements ?? collect();
-
-            // Ventilation par source : ESPECE / PM / TPE / CHQ
-            // On groupe les paiements par source et on somme les montants
-            $montantParSource = $paiements
-                ->where('type', 'paiement')
-                ->groupBy(fn($p) => strtoupper($p->source))
-                ->map(fn($groupe) => $groupe->sum('montant'));
-
-            // -- Itération sur chaque invoice_item --
-            // Si aucun item → fallback sur les services de la consultation
-            if ($items->isNotEmpty()) {
-
-                foreach ($items as $item) {
-                    $nomService    = $item->description ?? 'Non défini';
-                    $montantItem   = (float) ($item->total_amount             ?? 0);
-                    $partPatient   = (float) ($item->patient_amount           ?? 0);
-                    $partAssurance = (float) ($item->insurance_covered_amount ?? 0);
-
-                    // Proportion du montant patient ventilée par source
-                    // Si plusieurs sources (paiement mixte), on répartit au prorata
-                    $totalPaye = $montantParSource->sum();
-                    $ratio     = $totalPaye > 0 ? $partPatient / $totalPaye : 0;
-
-                    $espece = ($montantParSource->get('CASH', 0)) * $ratio;
-                    $pm     = ($montantParSource->get('MOBILE',     0)) * $ratio;
-                    $tpe    = ($montantParSource->get('CARD',    0)) * $ratio;
-                    $chq    = ($montantParSource->get('CHQ',    0)) * $ratio;
-
-                    if (!isset($situationParService[$nomService])) {
-                        $situationParService[$nomService] = [
-                            'service'         => $nomService,
-                            'nb_actes'        => 0,
-                            'total_espece'    => 0,
-                            'total_pm'        => 0,
-                            'total_tpe'       => 0,
-                            'total_chq'       => 0,
-                            'total_assurance' => 0,
-                            'total_general'   => 0,
-                        ];
-                    }
-
-                    $situationParService[$nomService]['nb_actes']++;
-                    $situationParService[$nomService]['total_espece']    += $espece;
-                    $situationParService[$nomService]['total_pm']        += $pm;
-                    $situationParService[$nomService]['total_tpe']       += $tpe;
-                    $situationParService[$nomService]['total_chq']       += $chq;
-                    $situationParService[$nomService]['total_assurance'] += $partAssurance;
-                    $situationParService[$nomService]['total_general']   += $montantItem;
-                }
-
-            } else {
-                // -- Fallback : pas d'invoice_items → on lit les services
-                //    directement sur la consultation (même logique que services())
-                $tousLesActes = collect()
-                    ->merge($consultation->services  ?? collect())
-                    ->merge($consultation->packages  ?? collect())
-                    ->merge($consultation->tests     ?? collect());
-
-                if ($tousLesActes->isEmpty()) {
-                    $tousLesActes = collect([
-                        (object)['name' => 'Consultation générale', 'amount' => $transaction?->total ?? 0]
-                    ]);
-                }
-
-                $montantTotal  = (float) ($transaction?->total ?? 0);
-                $partAssurance = (float) ($invoice?->insurance_amount ?? 0);
-                $partPatient   = $montantTotal - $partAssurance;
-
-                $totalPaye = $montantParSource->sum();
-                $ratio     = $totalPaye > 0 ? $partPatient / $totalPaye : 0;
-
-                $espece = ($montantParSource->get('CASH', 0)) * $ratio;
-                $pm     = ($montantParSource->get('MOBILE',     0)) * $ratio;
-                $tpe    = ($montantParSource->get('CARD',    0)) * $ratio;
-                $chq    = ($montantParSource->get('CHQ',    0)) * $ratio;
-
-                foreach ($tousLesActes as $acte) {
-                    $nomService = $acte->name ?? 'Non défini';
-
-                    if (!isset($situationParService[$nomService])) {
-                        $situationParService[$nomService] = [
-                            'service'         => $nomService,
-                            'nb_actes'        => 0,
-                            'total_espece'    => 0,
-                            'total_pm'        => 0,
-                            'total_tpe'       => 0,
-                            'total_chq'       => 0,
-                            'total_assurance' => 0,
-                            'total_general'   => 0,
-                        ];
-                    }
-
-                    $situationParService[$nomService]['nb_actes']++;
-                    $situationParService[$nomService]['total_espece']    += $espece;
-                    $situationParService[$nomService]['total_pm']        += $pm;
-                    $situationParService[$nomService]['total_tpe']       += $tpe;
-                    $situationParService[$nomService]['total_chq']       += $chq;
-                    $situationParService[$nomService]['total_assurance'] += $partAssurance;
-                    $situationParService[$nomService]['total_general']   += $montantTotal;
-                }
-            }
-        }
-
-        // Trier par total décroissant (comme ORDER BY total_general DESC)
-        usort($situationParService, fn($a, $b) => $b['total_general'] <=> $a['total_general']);
-
-        // ── 4. Totaux ligne de bas de tableau ─────────────────────────
-        $totaux = [
-            'nb_actes'   => array_sum(array_column($situationParService, 'nb_actes')),
-            'espece'     => array_sum(array_column($situationParService, 'total_espece')),
-            'pm'         => array_sum(array_column($situationParService, 'total_pm')),
-            'tpe'        => array_sum(array_column($situationParService, 'total_tpe')),
-            'chq'        => array_sum(array_column($situationParService, 'total_chq')),
-            'assurance'  => array_sum(array_column($situationParService, 'total_assurance')),
-            'general'    => array_sum(array_column($situationParService, 'total_general')),
-        ];
-
-        // ── 5. KPI cards ──────────────────────────────────────────────
-        $kpi = [
-            'total_patients'    => $consultations->pluck('patient_id')->unique()->count(),
-            'total_actes'       => $totaux['nb_actes'],
-            'total_espece'      => $totaux['espece'],
-            'total_pm'          => $totaux['pm'],
-            'total_tpe'         => $totaux['tpe'],
-            'total_chq'         => $totaux['chq'],
-            'total_assurance'   => $totaux['assurance'],
-            'grand_total'       => $totaux['general'],
-
-            // Montant restant à encaisser (debit - credit, comme rapportActes)
-            'reste_a_encaisser' => $consultations->sum(function ($c) {
-                $t = $c->transaction;
-                return max(($t?->total ?? 0) - ($t?->montant_payer ?? 0), 0);
-            }),
-        ];
-
-        // ── 6. Retour à la vue ────────────────────────────────────────
-        return view('reports.tools.compta', compact(
-            'situationParService',
-            'totaux',
-            'kpi',
-            'from',
-            'to',
-        ));
-    }
-
     public function situationParActe(Request $request)
     {
         $request->validate([
@@ -536,6 +330,241 @@ class ReportController extends Controller
 
         return view('reports.tools.compta', compact(
             'situationParService',
+            'totaux',
+            'kpi',
+            'from',
+            'to'
+        ));
+    }
+
+    public function actesParAssurance(Request $request)
+    {
+        $request->validate([
+            'from' => 'required|date',
+            'to'   => 'nullable|date|after_or_equal:from',
+        ], [
+            'to.after_or_equal' => 'La date de fin doit être supérieure ou égale à la date de début',
+        ]);
+
+        $from = $request->get('from');
+        $to   = $request->get('to') ?? now()->format('Y-m-d');
+
+        $fromDate = Carbon::createFromFormat('Y-m-d', $from)->startOfDay();
+        $toDate   = Carbon::createFromFormat('Y-m-d', $to)->endOfDay();
+
+        $invoices = Invoice::with([
+            'insuranceCompany',
+            'items',
+            'transaction.patient',
+        ])
+        ->whereBetween('created_at', [$fromDate, $toDate])
+        ->whereNotNull('insurance_company_id')
+        ->orderBy('created_at', 'asc')
+        ->get();
+
+        $rapportParAssurance = [];
+
+        foreach ($invoices as $invoice) {
+            $insuranceCompany = $invoice->insuranceCompany;
+
+            if (!$insuranceCompany) {
+                continue;
+            }
+
+            $companyName = trim($insuranceCompany->name ?? 'Assurance non définie');
+
+            if (!isset($rapportParAssurance[$companyName])) {
+                $rapportParAssurance[$companyName] = [
+                    'assurance'        => $companyName,
+                    'nb_actes'         => 0,
+                    'nb_factures'      => 0,
+                    'patients'         => [],
+                    'total_assurance'  => 0,
+                    'total_patient'    => 0,
+                    'total_general'    => 0,
+                ];
+            }
+
+            $rapportParAssurance[$companyName]['nb_factures']++;
+
+            $patientId = $invoice->transaction?->patient?->id;
+            if ($patientId) {
+                $rapportParAssurance[$companyName]['patients'][$patientId] = true;
+            }
+
+            foreach ($invoice->items as $item) {
+                $insuranceCovered = (float) ($item->insurance_covered_amount ?? 0);
+
+                // On ne compte que les actes réellement couverts par assurance
+                if ($insuranceCovered <= 0) {
+                    continue;
+                }
+
+                $quantite      = (int) ($item->quantity ?? 1);
+                $montantTotal  = (float) ($item->total_amount ?? 0);
+                $montantPatient = (float) ($item->patient_amount ?? 0);
+
+                $rapportParAssurance[$companyName]['nb_actes']        += $quantite;
+                $rapportParAssurance[$companyName]['total_assurance'] += $insuranceCovered;
+                $rapportParAssurance[$companyName]['total_patient']   += $montantPatient;
+                $rapportParAssurance[$companyName]['total_general']   += $montantTotal;
+            }
+        }
+
+        // Transformer la liste des patients en compteur
+        $rapportParAssurance = array_map(function ($row) {
+            $row['nb_patients'] = count($row['patients']);
+            unset($row['patients']);
+            return $row;
+        }, $rapportParAssurance);
+
+        $rapportParAssurance = array_values($rapportParAssurance);
+
+        usort($rapportParAssurance, function ($a, $b) {
+            return $b['total_assurance'] <=> $a['total_assurance'];
+        });
+
+        $totaux = [
+            'nb_actes'        => array_sum(array_column($rapportParAssurance, 'nb_actes')),
+            'nb_factures'     => array_sum(array_column($rapportParAssurance, 'nb_factures')),
+            'nb_patients'     => array_sum(array_column($rapportParAssurance, 'nb_patients')),
+            'total_assurance' => array_sum(array_column($rapportParAssurance, 'total_assurance')),
+            'total_patient'   => array_sum(array_column($rapportParAssurance, 'total_patient')),
+            'total_general'   => array_sum(array_column($rapportParAssurance, 'total_general')),
+        ];
+
+        $kpi = [
+            'nb_assurances'    => count($rapportParAssurance),
+            'nb_actes'         => $totaux['nb_actes'],
+            'nb_factures'      => $totaux['nb_factures'],
+            'nb_patients'      => $totaux['nb_patients'],
+            'total_assurance'  => $totaux['total_assurance'],
+            'total_patient'    => $totaux['total_patient'],
+            'total_general'    => $totaux['total_general'],
+        ];
+
+        return view('reports.tools.acteParAssurance', compact(
+            'rapportParAssurance',
+            'totaux',
+            'kpi',
+            'from',
+            'to'
+        ));
+    }
+
+    public function actesParAssuranceEtParActe(Request $request)
+    {
+        $request->validate([
+            'from' => 'required|date',
+            'to'   => 'nullable|date|after_or_equal:from',
+        ], [
+            'to.after_or_equal' => 'La date de fin doit être supérieure ou égale à la date de début',
+        ]);
+
+        $from = $request->get('from');
+        $to   = $request->get('to') ?? now()->format('Y-m-d');
+
+        $fromDate = Carbon::createFromFormat('Y-m-d', $from)->startOfDay();
+        $toDate   = Carbon::createFromFormat('Y-m-d', $to)->endOfDay();
+
+        $invoices = \App\Models\Invoice::with([
+            'insuranceCompany',
+            'items',
+            'transaction.patient',
+        ])
+        ->whereBetween('created_at', [$fromDate, $toDate])
+        ->whereNotNull('insurance_company_id')
+        ->orderBy('created_at', 'asc')
+        ->get();
+
+        $rapport = [];
+
+        foreach ($invoices as $invoice) {
+            $assurance = $invoice->insuranceCompany;
+
+            if (!$assurance) {
+                continue;
+            }
+
+            $assuranceNom = trim($assurance->name ?? 'Assurance non définie');
+
+            foreach ($invoice->items as $item) {
+                $montantAssurance = (float) ($item->insurance_covered_amount ?? 0);
+
+                // On ne prend que les actes réellement couverts par assurance
+                if ($montantAssurance <= 0) {
+                    continue;
+                }
+
+                $acte = trim($item->description ?? 'Acte non défini');
+                $quantite = (int) ($item->quantity ?? 1);
+                $montantPatient = (float) ($item->patient_amount ?? 0);
+                $montantTotal = (float) ($item->total_amount ?? 0);
+
+                $key = $assuranceNom . '||' . $acte;
+
+                if (!isset($rapport[$key])) {
+                    $rapport[$key] = [
+                        'assurance'        => $assuranceNom,
+                        'acte'             => $acte,
+                        'nb_actes'         => 0,
+                        'nb_factures'      => 0,
+                        'patients'         => [],
+                        'total_assurance'  => 0,
+                        'total_patient'    => 0,
+                        'total_general'    => 0,
+                    ];
+                }
+
+                $rapport[$key]['nb_actes'] += $quantite;
+                $rapport[$key]['total_assurance'] += $montantAssurance;
+                $rapport[$key]['total_patient'] += $montantPatient;
+                $rapport[$key]['total_general'] += $montantTotal;
+                $rapport[$key]['nb_factures'] += 1;
+
+                $patientId = $invoice->transaction?->patient?->id;
+                if ($patientId) {
+                    $rapport[$key]['patients'][$patientId] = true;
+                }
+            }
+        }
+
+        $rapport = array_map(function ($row) {
+            $row['nb_patients'] = count($row['patients']);
+            unset($row['patients']);
+            return $row;
+        }, $rapport);
+
+        $rapport = array_values($rapport);
+
+        usort($rapport, function ($a, $b) {
+            if ($a['assurance'] === $b['assurance']) {
+                return $b['nb_actes'] <=> $a['nb_actes'];
+            }
+
+            return strcmp($a['assurance'], $b['assurance']);
+        });
+
+        $totaux = [
+            'nb_actes'        => array_sum(array_column($rapport, 'nb_actes')),
+            'nb_factures'     => array_sum(array_column($rapport, 'nb_factures')),
+            'nb_patients'     => array_sum(array_column($rapport, 'nb_patients')),
+            'total_assurance' => array_sum(array_column($rapport, 'total_assurance')),
+            'total_patient'   => array_sum(array_column($rapport, 'total_patient')),
+            'total_general'   => array_sum(array_column($rapport, 'total_general')),
+        ];
+
+        $kpi = [
+            'nb_assurances'    => collect($rapport)->pluck('assurance')->unique()->count(),
+            'nb_types_actes'   => collect($rapport)->pluck('acte')->unique()->count(),
+            'nb_lignes'        => count($rapport),
+            'nb_actes'         => $totaux['nb_actes'],
+            'total_assurance'  => $totaux['total_assurance'],
+            'total_general'    => $totaux['total_general'],
+        ];
+
+        return view('reports.tools.actes_par_assurance_detail', compact(
+            'rapport',
             'totaux',
             'kpi',
             'from',

@@ -9,7 +9,7 @@ use App\Http\Controllers\{
     ProfileController, ConsultationController, MedicamentController,
     HospitalisationController, ChambreController, InsuranceClaimController, InsuranceCompanyController,
     InsuranceCoverageController, InvoiceItemController, InvoicesController, PatientInsuranceController, 
-    PaymentController, InsuranceBalanceController, SmsController, SmsReportController
+    PaymentController, InsuranceBalanceController, SmsController, SmsReportController, InsuranceSettlementController
 };
 // Authentification
 Route::get('/', [DashboardController::class, 'index'])->name('rdv');
@@ -105,6 +105,10 @@ Route::middleware('auth')->group(function () {
     Route::post('change/password', [UserController::class, 'changePassword'])
         ->middleware('permission:users.change_password')
         ->name('change.password');
+
+    Route::post('/insurance/settlements', [InsuranceSettlementController::class, 'store'])
+        ->middleware('permission:insurance_balance.payment')
+        ->name('insurance.settlements.store');
 
     // ============================================
     // HÔPITAL CONFIGURATION (Admin uniquement)
@@ -497,6 +501,14 @@ Route::middleware('auth')->group(function () {
 
      Route::get('/reports/situation-par-acte', [ReportController::class, 'situationParActe'])
      ->name('rapports.situation');
+
+     Route::get('/reports/actes-par-assurance', [ReportController::class, 'actesParAssurance'])
+        ->middleware('permission:report.view')
+        ->name('rapports.actes.assurance');
+
+    Route::get('/reports/actes-par-assurance-detail', [ReportController::class, 'actesParAssuranceEtParActe'])
+        ->middleware('permission:report.view')
+        ->name('rapports.actes.assurance.detail');
     
     Route::post('service/report', [ReportController::class, 'service'])
         ->middleware('permission:report.service')
@@ -537,6 +549,7 @@ Route::middleware('auth')->group(function () {
     Route::get('hospitalisations/{hospitalisation}/facture', [HospitalisationController::class, 'facture'])
         ->middleware('permission:hospitalisation.facture')
         ->name('hospitalisations.facture');
+        
 
     // ============================================
     // CHAMBRES
@@ -659,24 +672,42 @@ Route::middleware('auth')->group(function () {
             ->middleware('permission:invoice_item.delete')
             ->name('invoice.item.delete');
 
-        // SOLDES ASSURANCE
-        Route::prefix('balances')->name('insurance.balances.')->group(function() {
-            Route::get('/', [InsuranceBalanceController::class, 'index'])
-                ->middleware('permission:insurance_balance.view')
-                ->name('index');
-            
-            Route::get('/{insurance}', [InsuranceBalanceController::class, 'show'])
-                ->middleware('permission:insurance_balance.show')
-                ->name('show');
-            
-            Route::post('/paiement', [InsuranceBalanceController::class, 'ProcessPaiement'])
-                ->middleware('permission:insurance_balance.payment')
-                ->name('payment');
-            
-            Route::get('/export/csv', [InsuranceBalanceController::class, 'export'])
-                ->middleware('permission:insurance_balance.export')
-                ->name('export');
-        });
+        
+    });
+
+    Route::prefix('insurance')->group(function () {
+
+        Route::get('insurance-companies', [InsuranceCompanyController::class, 'index'])
+            ->middleware('permission:insurance_company.view')
+            ->name('insurance-companies.index');
+
+        Route::post('insurance-companies', [InsuranceCompanyController::class, 'store'])
+            ->middleware('permission:insurance_company.create')
+            ->name('insurance-companies.store');
+
+        Route::put('insurance-companies/update', [InsuranceCompanyController::class, 'update'])
+            ->middleware('permission:insurance_company.edit')
+            ->name('insurance-companies.update');
+
+        Route::delete('insurance-companies/delete', [InsuranceCompanyController::class, 'destroy'])
+            ->middleware('permission:insurance_company.delete')
+            ->name('insurance-companies.destroy');
+
+        Route::get('/', [InsuranceBalanceController::class, 'index'])
+            ->middleware('permission:insurance_balance.view')
+            ->name('insurance.balances.index');
+
+        Route::post('/paiement', [InsuranceBalanceController::class, 'processPaiement'])
+            ->middleware('permission:insurance_balance.payment')
+            ->name('insurance.balances.payment');
+
+        Route::get('/export/csv', [InsuranceBalanceController::class, 'export'])
+            ->middleware('permission:insurance_balance.export')
+            ->name('insurance.balances.export');
+
+        Route::get('/{insurance}', [InsuranceBalanceController::class, 'show'])
+            ->middleware('permission:insurance_balance.show')
+            ->name('insurance.balances.show');
     });
 
     // ============================================

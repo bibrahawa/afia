@@ -25,6 +25,11 @@ class InsuranceCompany extends Model
         return $this->hasMany(Invoice::class)->where('insurance_status', 'pending');
     }
 
+    public function settlements()
+    {
+        return $this->hasMany(InsuranceSettlement::class);
+    }
+
     public function approvedInvoices()
     {
         return $this->hasMany(Invoice::class)->where('insurance_status', 'approved');
