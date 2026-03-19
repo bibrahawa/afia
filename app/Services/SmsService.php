@@ -18,7 +18,7 @@ class SmsService
         $this->defaultSender = config('services.nimba_sms.default_sender', 'APROSAFE');
     }
 
-    public function sendSms(string $phoneNumber, string $message, string $sender = null): array
+    public function sendSms(string $phoneNumber, string $message): array
     {
         try {
             
@@ -124,7 +124,7 @@ class SmsService
         return preg_match('/^\+\d{10,15}$/', $phoneNumber);
     }
 
-    public function sendBulkSms(array $recipients, string $message, string $sender = null): array
+    public function sendBulkSms(array $recipients, string $message, string $sender): array
     {
         $results = [];
         $successCount = 0;

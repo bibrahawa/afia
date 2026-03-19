@@ -1,81 +1,74 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\AppointmentController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\PatientController;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\InsuranceBalanceController;
 use App\Http\Controllers\Api\Api_PatientInsuranceController;
 use App\Http\Controllers\Api\Api_InsuranceCalculationController;
 use App\Http\Controllers\Api\Api_InsuranceCompanyController;
-use App\Http\Controllers\PatientController;
-use App\Http\Controllers\InsuranceBalanceController;
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\PaymentController;
-use Illuminate\Support\Facades\DB;
 
 /*
 |--------------------------------------------------------------------------
-| API Routes
+| Appointment API
 |--------------------------------------------------------------------------
-|
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider within a group which
-| is assigned the "api" middleware group. Enjoy building your API!
-|
 */
 
-// Route::middleware('auth:api')->get('/user', function (Request $request) {
-//     return $request->user();
-// });
+Route::prefix('appointments')->group(function () {
+    Route::post('/', [AppointmentController::class, 'store']);
+    Route::get('/available-dates', [AppointmentController::class, 'getAvailableDates']);
+    Route::get('/slots', [AppointmentController::class, 'getAvailableSlots']);
+    Route::get('/slots/{id}', [AppointmentController::class, 'getAvailableSlotsByProfessional']);
+    Route::get('/slots/{id}/{date}', [AppointmentController::class, 'getAvailableSlotsByProfessionalAndDate']);
+    Route::get('/slots/{id}/{date}/{time}', [AppointmentController::class, 'getAvailableSlotsByProfessionalDateAndTime']);
+    Route::get('/slots/{id}/{date}/{time}/{duration}', [AppointmentController::class, 'getAvailableSlotsByProfessionalDateTimeAndDuration']);
 
+    Route::post('/{appointment}/confirm', [AppointmentController::class, 'confirmAppointment']);
+    Route::post('/{appointment}/cancel', [AppointmentController::class, 'cancelAppointment']);
+    Route::post('/{appointment}/reschedule', [AppointmentController::class, 'rescheduleAppointment']);
+});
 
 Route::post('check-patient', [AppointmentController::class, 'checkPatient']);
-
 Route::get('departments', [AppointmentController::class, 'getDepartments']);
 Route::get('professionals/{id}', [AppointmentController::class, 'getProfessionals']);
 
-// NOUVELLE ROUTE pour les dates disponibles
-Route::get('appointments/available-dates', [AppointmentController::class, 'getAvailableDates']);
+/*
+|--------------------------------------------------------------------------
+| Auth / Patient bootstrap
+|--------------------------------------------------------------------------
+*/
 
-Route::get('appointments/slots', [AppointmentController::class, 'getAvailableSlots']);
-Route::get('appointments/slots/{id}', [AppointmentController::class, 'getAvailableSlotsByProfessional']);
-Route::get('appointments/slots/{id}/{date}', [AppointmentController::class, 'getAvailableSlotsByProfessionalAndDate']);
-Route::get('appointments/slots/{id}/{date}/{time}', [AppointmentController::class, 'getAvailableSlotsByProfessionalDateAndTime']);
-Route::get('appointments/slots/{id}/{date}/{time}/{duration}', [AppointmentController::class, 'getAvailableSlotsByProfessionalDateTimeAndDuration']);
-
-Route::post('appointments', [AppointmentController::class, 'store']);
-
-// Gestion des rendez-vous
-Route::post('/appointments/{appointment}/confirm', [AppointmentController::class, 'confirmAppointment']);
-Route::post('/appointments/{appointment}/cancel', [AppointmentController::class, 'cancelAppointment']);
-Route::post('/appointments/{appointment}/reschedule', [AppointmentController::class, 'rescheduleAppointment']);
-
-// Indisponibilité médecin (admin/médecins seulement)
-Route::post('/doctors/set-unavailability', [AppointmentController::class, 'setDoctorUnavailability'])
-    ->middleware('role:admin,doctor');
-
-// Trouver ou créer un patient avec uniquement le téléphone
 Route::post('patient/find-or-create', [AuthController::class, 'findOrCreate']);
-
 Route::post('login', [AuthController::class, 'loginWithApi']);
 Route::post('register', [AuthController::class, 'register']);
 Route::post('logout', [AuthController::class, 'logoutApi'])->middleware('auth:sanctum');
 Route::post('check-account', [AuthController::class, 'checkAccountStatus']);
 
-// API pour récupérer les assurances d'un patient
-Route::get('/patient/{patient}/insurances', [Api_PatientInsuranceController::class, 'getPatientInsurances']);
-Route::get('/transactions/{transaction}/actes', [PaymentController::class, 'getTransactionActes']);
-// API pour calculer la couverture d'assurance
-Route::post('/insurance/calculate-coverage', [Api_InsuranceCalculationController::class, 'calculateCoverage']);
+/*
+|--------------------------------------------------------------------------
+| Doctor availability / admin actions
+|--------------------------------------------------------------------------
+*/
 
-// API pour les compagnies d'assurance actives
-Route::get('/insurance-companies/active', [Api_InsuranceCompanyController::class, 'getActiveCompanies']);
+Route::post('doctors/set-unavailability', [AppointmentController::class, 'setDoctorUnavailability'])
+    ->middleware('role:admin,medecin');
 
-// API pour vérifier la validité d'une police d'assurance
-// Route::post('/insurance/verify-policy', [Api_InsuranceVerificationController::class, 'verifyPolicy']);
-// Récupérer les actes médicaux d'un patient
-Route::get('/patient/{transactionId}/actes', [PatientController::class, 'getPatientActes']);
+/*
+|--------------------------------------------------------------------------
+| Insurance / payment APIs
+|--------------------------------------------------------------------------
+*/
 
-// Obtenir le solde d'une assurance spécifique
-Route::get('/balance/{insurance}', function($insuranceId) {
+Route::get('patient/{patient}/insurances', [Api_PatientInsuranceController::class, 'getPatientInsurances']);
+Route::get('transactions/{transaction}/actes', [PaymentController::class, 'getTransactionActes']);
+Route::post('insurance/calculate-coverage', [Api_InsuranceCalculationController::class, 'calculateCoverage']);
+Route::get('insurance-companies/active', [Api_InsuranceCompanyController::class, 'getActiveCompanies']);
+Route::get('patient/{transactionId}/actes', [PatientController::class, 'getPatientActes']);
+
+Route::get('balance/{insurance}', function ($insuranceId) {
     $balance = DB::table('insurance_companies')
         ->select([
             'insurance_companies.id',
@@ -90,12 +83,9 @@ Route::get('/balance/{insurance}', function($insuranceId) {
         ->where('insurance_companies.id', $insuranceId)
         ->groupBy('insurance_companies.id', 'insurance_companies.name', 'insurance_companies.code')
         ->first();
-        
+
     return response()->json($balance);
 })->name('balance');
 
-// Obtenir les factures impayées d'une assurance
-Route::get('insurance/pending-invoices/{insurance}',[InsuranceBalanceController::class, 'pendingInvoices'])->name('pending-invoices');
-    
-
-
+Route::get('insurance/pending-invoices/{insurance}', [InsuranceBalanceController::class, 'pendingInvoices'])
+    ->name('pending-invoices');

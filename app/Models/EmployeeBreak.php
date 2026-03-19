@@ -26,12 +26,9 @@ class EmployeeBreak extends Model
         'is_active' => 'boolean',
     ];
 
-    /**
-     * Relation avec l'employé
-     */
     public function employee()
     {
-        return $this->belongsTo(User::class, 'employee_id');
+        return $this->belongsTo(Employee::class);
     }
 
     /**

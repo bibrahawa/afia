@@ -151,7 +151,7 @@ class SendAppointmentReminderJob implements ShouldQueue
         return $messages[$this->reminderType] ?? $messages['reminder_24h'];
     }
 
-    public function failed(\Exception $exception)
+    public function failed(\Throwable $exception): void
     {
         Log::error("Échec définitif SendAppointmentReminderJob", [
             'appointment_id' => $this->appointment->id,

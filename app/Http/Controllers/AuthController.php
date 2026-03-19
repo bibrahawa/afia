@@ -135,35 +135,42 @@ class AuthController extends Controller
         ], 401);
     }
 
-        /**
-     * Trouver ou créer un patient avec uniquement le numéro de téléphone
-     */
     public function findOrCreate(Request $request): JsonResponse
     {
-        // Limitation du taux par IP (5 tentatives par heure)
         $ipKey = 'findOrCreate.ip.' . $request->ip();
+
         if (RateLimiter::tooManyAttempts($ipKey, 5)) {
             $seconds = RateLimiter::availableIn($ipKey);
+
             return response()->json([
                 'error' => true,
                 'message' => "Trop de tentatives. Réessayez dans " . gmdate('H:i:s', $seconds) . "."
             ], 429);
         }
 
-        $validated = $request->validate([
-            'phone' => ['required', 'string', 'regex:/^[0-9]{9}$/'],
-            'name' => ['nullable', 'string', 'min:2', 'max:100'], // AJOUTER CETTE LIGNE
-        ], [
-            'phone.regex' => 'Le numéro de téléphone doit contenir exactement 9 chiffres.',
-            'name.min' => 'Le nom doit contenir au moins 2 caractères.', // AJOUTER
-            'name.max' => 'Le nom ne peut pas dépasser 100 caractères.', // AJOUTER
-        ]);
+        $normalizedPhone = preg_replace('/\D/', '', $request->phone ?? '');
+
+        $validated = validator(
+            [
+                'phone' => $normalizedPhone,
+                'name' => $request->name,
+            ],
+            [
+                'phone' => ['required', 'string', 'regex:/^[0-9]{9}$/'],
+                'name' => ['nullable', 'string', 'min:2', 'max:100'],
+            ],
+            [
+                'phone.regex' => 'Le numéro de téléphone doit contenir exactement 9 chiffres.',
+                'name.min' => 'Le nom doit contenir au moins 2 caractères.',
+                'name.max' => 'Le nom ne peut pas dépasser 100 caractères.',
+            ]
+        )->validate();
 
         try {
-            // Chercher l'utilisateur par téléphone
+
             $user = User::where('phone', $validated['phone'])->first();
+
             if ($user) {
-                // Vérifier si le compte est verrouillé
                 if ($user->locked_until && Carbon::now()->lt($user->locked_until)) {
                     return response()->json([
                         'error' => true,
@@ -171,9 +178,8 @@ class AuthController extends Controller
                     ], 403);
                 }
 
-                // Vérifier si l'utilisateur a un profil patient
                 $patient = $user->patient;
-                
+
                 if (!$patient) {
                     return response()->json([
                         'error' => true,
@@ -181,88 +187,20 @@ class AuthController extends Controller
                     ], 403);
                 }
 
-                // Mettre à jour la dernière connexion
                 $user->update(['last_login_at' => Carbon::now()]);
-                                
-                // Nettoyage des limitations
                 RateLimiter::clear($ipKey);
-                
-                // Log de connexion réussie
+
                 Log::info('Patient trouvé via findOrCreate', [
                     'user_id' => $user->id,
+                    'patient_id' => $patient->id,
                     'phone' => $user->phone,
                     'ip' => $request->ip(),
                 ]);
-                
+
                 return response()->json([
                     'error' => false,
                     'exists' => true,
                     'message' => 'Patient trouvé',
-                    'patient' => [
-                        'id' => $patient->id,
-                        'name' => $user->name, 
-                        'phone' => $user->phone,
-                        'first_name' => $patient->first_name,
-                        'last_name' => $patient->last_name,
-                    ],
-                    'is_new' => false
-                ], 200);
-                
-            } else {
-                // Créer un nouveau patient
-                DB::beginTransaction();
-
-                // Générer un mot de passe aléatoire de 6 chiffres
-                $generatedPassword = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
-
-                // Déterminer le nom à utiliser
-                $providedName = $validated['name'] ?? null;
-                $nameParts = $providedName ? explode(' ', trim($providedName), 2) : ['Patient', substr($validated['phone'], -4)];
-
-                $firstName = $nameParts[0];
-                $lastName = $nameParts[1] ?? substr($validated['phone'], -4);
-
-                $user = User::create([
-                    'email' => strtolower(trim(random_int(1000000000, 9999999999) . '@aprosafe.com')),
-                    'phone' => $validated['phone'],
-                    'name' => $providedName ?? 'Patient ' . substr($validated['phone'], -4), // MODIFIÉ
-                    'password' => Hash::make($generatedPassword),
-                    'last_login_at' => Carbon::now(),
-                    'login_attempts' => 0,
-                    'locked_until' => null,
-                ]);
-
-                // Créer le profil patient
-                $patient = Patient::create([
-                    'user_id' => $user->id,
-                    'first_name' => $firstName, // MODIFIÉ
-                    'last_name' => $lastName, // MODIFIÉ
-                    'age' => 0,
-                    'marital_status' => '',
-                ]);
-
-                // Assigner le rôle patient
-                $user->assignRole('patient');
-
-                DB::commit();
-
-                // Nettoyage des limitations
-                RateLimiter::clear($ipKey);
-
-                // TODO: Envoyer le mot de passe par SMS
-                // SmsService::send($validated['phone'], "Bienvenue! Votre mot de passe: $generatedPassword");
-
-                // Log de création de compte
-                Log::info('Nouveau patient créé via findOrCreate', [
-                    'user_id' => $user->id,
-                    'phone' => $user->phone,
-                    'ip' => $request->ip(),
-                ]);
-
-                return response()->json([
-                    'error' => false,
-                    'exists' => false, // AJOUTER
-                    'message' => 'Nouveau compte créé',
                     'patient' => [
                         'id' => $patient->id,
                         'name' => $user->name,
@@ -270,14 +208,70 @@ class AuthController extends Controller
                         'first_name' => $patient->first_name,
                         'last_name' => $patient->last_name,
                     ],
-                    'is_new' => true,
-                ], 201);
+                    'is_new' => false
+                ], 200);
             }
 
+            $result = DB::transaction(function () use ($validated) {
+                $generatedPassword = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
+
+                $providedName = $validated['name'] ?? null;
+                $nameParts = $providedName
+                    ? explode(' ', trim($providedName), 2)
+                    : ['Patient', substr($validated['phone'], -4)];
+
+                $firstName = $nameParts[0];
+                $lastName = $nameParts[1] ?? substr($validated['phone'], -4);
+
+                $user = User::create([
+                    'email' => strtolower(trim(random_int(1000000000, 9999999999) . '@aprosafe.com')),
+                    'phone' => $validated['phone'],
+                    'name' => $providedName ?? 'Patient ' . substr($validated['phone'], -4),
+                    'password' => Hash::make($generatedPassword),
+                    'last_login_at' => Carbon::now(),
+                    'login_attempts' => 0,
+                    'locked_until' => null,
+                ]);
+
+                $patient = Patient::create([
+                    'user_id' => $user->id,
+                    'first_name' => $firstName,
+                    'last_name' => $lastName,
+                    'age' => 0,
+                    'marital_status' => '',
+                ]);
+
+                $user->assignRole('patient');
+
+                return compact('user', 'patient');
+            });
+
+            RateLimiter::clear($ipKey);
+
+            Log::info('Nouveau patient créé via findOrCreate', [
+                'user_id' => $result['user']->id,
+                'patient_id' => $result['patient']->id,
+                'phone' => $result['user']->phone,
+                'ip' => $request->ip(),
+            ]);
+
+            return response()->json([
+                'error' => false,
+                'exists' => false,
+                'message' => 'Nouveau compte créé',
+                'patient' => [
+                    'id' => $result['patient']->id,
+                    'name' => $result['user']->name,
+                    'phone' => $result['user']->phone,
+                    'first_name' => $result['patient']->first_name,
+                    'last_name' => $result['patient']->last_name,
+                ],
+                'is_new' => true,
+            ], 201);
+
         } catch (\Exception $e) {
-            DB::rollBack();
             RateLimiter::increment($ipKey, 3600);
-            
+
             Log::error('Erreur findOrCreate', [
                 'error' => $e->getMessage(),
                 'phone' => $validated['phone'] ?? null,

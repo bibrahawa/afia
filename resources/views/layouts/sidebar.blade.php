@@ -94,7 +94,7 @@
 
                 @can('medecin.availabilities')
                     <li class="nav-item {{ request()->routeIs('medecin.*') && request()->routeIs('*.availabilities') ? 'active' : '' }}">
-                        <a href="{{ route('medecin.availabilities') }}">
+                        <a href="{{ route('medecin.availabilities.index') }}">
                             <i class="fas fa-calendar-check"></i>
                             <p>Disponibilités</p>
                         </a>
@@ -103,7 +103,7 @@
 
                 @can('medecin.leaves')
                     <li class="nav-item {{ request()->routeIs('medecin.*') && request()->routeIs('*.leaves') ? 'active' : '' }}">
-                        <a href="{{ route('medecin.leaves') }}">
+                        <a href="{{ route('medecin.leaves.index') }}">
                             <i class="fas fa-plane"></i>
                             <p>Congés & Absences</p>
                         </a>

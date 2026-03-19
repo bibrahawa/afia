@@ -9,19 +9,22 @@ use App\Http\Controllers\{
     ProfileController, ConsultationController, MedicamentController,
     HospitalisationController, ChambreController, InsuranceClaimController, InsuranceCompanyController,
     InsuranceCoverageController, InvoiceItemController, InvoicesController, PatientInsuranceController, 
-    PaymentController, InsuranceBalanceController, SmsController, SmsReportController, InsuranceSettlementController
+    PaymentController, InsuranceBalanceController, SmsController, SmsReportController, InsuranceSettlementController,
+    AppointmentExportController,DoctorAppointmentController,DoctorAvailabilityController,DoctorLeaveController, DoctorBreakController
 };
-// Authentification
-Route::get('/', [DashboardController::class, 'index'])->name('rdv');
 
+
+
+Route::get('/', [AppointmentController::class, 'makeAppointment'])->name('rdv');
 Route::middleware('guest')->group(function () {
     Route::view('login', 'auth.login');
     Route::post('login', [AuthController::class, 'login'])->name('login');
 });
 
-Route::post('logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
 
 Route::middleware('auth')->group(function () {
+    
+    Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 
     // SMS - À définir selon vos besoins
     Route::middleware('permission:dashboard.view')->group(function () {
@@ -31,6 +34,122 @@ Route::middleware('auth')->group(function () {
         Route::post('/sms/send-bulk', [SmsController::class, 'sendBulk'])->name('sms.send-bulk');
         Route::get('/sms-report', [SmsReportController::class, 'index'])->name('admin.sms-report');
         Route::post('/sms-report/resend-failed', [SmsReportController::class, 'resendFailed']);
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | RENDEZ-VOUS PUBLIC / ADMIN
+    |--------------------------------------------------------------------------
+    */
+
+    Route::middleware('permission:appointment.view')->group(function () {
+        Route::get('appointment', [AppointmentController::class, 'index'])->name('appointment.index');
+        Route::get('appointment/{appointment}', [AppointmentController::class, 'show'])->name('appointment.show');
+    });
+
+    Route::get('appointment/create', [AppointmentController::class, 'create'])
+        ->middleware('permission:appointment.create')
+        ->name('appointment.create');
+
+    Route::post('appointment', [AppointmentController::class, 'store'])
+        ->middleware('permission:appointment.create')
+        ->name('appointment.store');
+
+    Route::get('appointment/{appointment}/edit', [AppointmentController::class, 'edit'])
+        ->middleware('permission:appointment.edit')
+        ->name('appointment.edit');
+
+    Route::put('appointment/{appointment}', [AppointmentController::class, 'update'])
+        ->middleware('permission:appointment.edit')
+        ->name('appointment.update');
+
+    Route::delete('appointment/{appointment}/cancel', [AppointmentController::class, 'cancel'])
+        ->middleware('permission:appointment.edit')
+        ->name('appointment.cancel');
+
+    Route::get('appointments/export-pdf', [AppointmentExportController::class, 'exportPdf'])
+        ->middleware('permission:appointment.view')
+        ->name('appointments.export-pdf');
+
+    /*
+    |--------------------------------------------------------------------------
+    | MÉDECIN
+    |--------------------------------------------------------------------------
+    */
+
+    Route::prefix('medecin')->name('medecin.')->group(function () {
+
+        // Route::get('dashboard', [DoctorDashboardController::class, 'index'])
+        //     ->middleware('permission:dashboard.medecin')
+        //     ->name('dashboard');
+
+        Route::get('appointments', [DoctorAppointmentController::class, 'index'])
+            ->middleware('permission:medecin.appointments')
+            ->name('appointments');
+
+        Route::post('appointments/{appointment}/confirm', [DoctorAppointmentController::class, 'confirm'])
+            ->middleware('permission:medecin.confirm_appointment')
+            ->name('appointments.confirm');
+
+        Route::post('appointments/{appointment}/complete', [DoctorAppointmentController::class, 'complete'])
+            ->middleware('permission:medecin.complete_appointment')
+            ->name('appointments.complete');
+
+        Route::delete('appointments/{appointment}/cancel', [DoctorAppointmentController::class, 'cancel'])
+            ->middleware('permission:medecin.confirm_appointment')
+            ->name('appointments.cancel');
+
+        Route::get('availabilities', [DoctorAvailabilityController::class, 'index'])
+            ->middleware('permission:medecin.availabilities')
+            ->name('availabilities.index');
+
+        Route::post('availabilities', [DoctorAvailabilityController::class, 'store'])
+            ->middleware('permission:medecin.availabilities')
+            ->name('availabilities.store');
+
+        Route::put('availabilities/{availability}', [DoctorAvailabilityController::class, 'update'])
+            ->middleware('permission:medecin.availabilities')
+            ->name('availabilities.update');
+
+        Route::delete('availabilities/{availability}', [DoctorAvailabilityController::class, 'destroy'])
+            ->middleware('permission:medecin.availabilities')
+            ->name('availabilities.destroy');
+
+        Route::get('leaves', [DoctorLeaveController::class, 'index'])
+            ->middleware('permission:medecin.leaves')
+            ->name('leaves.index');
+
+        Route::post('leaves', [DoctorLeaveController::class, 'store'])
+            ->middleware('permission:medecin.leaves')
+            ->name('leaves.store');
+
+        Route::put('leaves/{leave}', [DoctorLeaveController::class, 'update'])
+            ->middleware('permission:medecin.leaves')
+            ->name('leaves.update');
+
+        Route::delete('leaves/{leave}', [DoctorLeaveController::class, 'destroy'])
+            ->middleware('permission:medecin.leaves')
+            ->name('leaves.destroy');
+
+        Route::get('breaks', [DoctorBreakController::class, 'index'])
+            ->middleware('permission:medecin.leaves')
+            ->name('breaks.index');
+
+        Route::post('breaks', [DoctorBreakController::class, 'store'])
+            ->middleware('permission:medecin.leaves')
+            ->name('breaks.store');
+
+        Route::put('breaks/{break}', [DoctorBreakController::class, 'update'])
+            ->middleware('permission:medecin.leaves')
+            ->name('breaks.update');
+
+        Route::delete('breaks/{break}', [DoctorBreakController::class, 'destroy'])
+            ->middleware('permission:medecin.leaves')
+            ->name('breaks.destroy');
+
+        Route::patch('breaks/{break}/toggle', [DoctorBreakController::class, 'toggle'])
+            ->middleware('permission:medecin.leaves')
+            ->name('breaks.toggle');
     });
 
     // Dashboard
@@ -155,47 +274,6 @@ Route::middleware('auth')->group(function () {
     Route::delete('employee/{employee}', [EmployeeController::class, 'destroy'])
         ->middleware('permission:employee.delete')
         ->name('employee.destroy');
-
-    // ============================================
-    // MÉDECIN
-    // ============================================
-    Route::prefix('medecin')->name('medecin.')->group(function () {
-        Route::get('dashboard', [DashboardController::class, 'index'])
-            ->middleware('permission:dashboard.medecin')
-            ->name('dashboard');
-        
-        Route::get('appointments', [DashboardController::class, 'appointments'])
-            ->middleware('permission:medecin.appointments')
-            ->name('appointments');
-        
-        Route::post('appointments/{id}/confirm', [DashboardController::class, 'confirmAppointment'])
-            ->middleware('permission:medecin.confirm_appointment')
-            ->name('appointments.confirm');
-        
-        Route::post('appointments/{id}/complete', [DashboardController::class, 'completeAppointment'])
-            ->middleware('permission:medecin.complete_appointment')
-            ->name('appointments.complete');
-
-        Route::delete('appointments/{id}/cancel', [AppointmentController::class, 'cancel'])
-            ->name('appointments.cancel');
-
-
-        // Disponibilités
-        Route::middleware('permission:medecin.availabilities')->group(function () {
-            Route::get('availabilities', [DashboardController::class, 'availabilities'])->name('availabilities');
-            Route::post('availabilities', [DashboardController::class, 'storeAvailability'])->name('availabilities.store');
-            Route::put('availabilities', [DashboardController::class, 'updateAvailability'])->name('availabilities.update');
-            Route::delete('availabilities/{id}', [DashboardController::class, 'destroyAvailability'])->name('availabilities.destroy');
-        });
-
-        // Congés
-        Route::middleware('permission:medecin.leaves')->group(function () {
-            Route::get('leaves', [DashboardController::class, 'leaves'])->name('leaves');
-            Route::post('leaves', [DashboardController::class, 'storeLeave'])->name('leaves.store');
-            Route::put('leaves/update', [DashboardController::class, 'updateLeave'])->name('leaves.update');
-            Route::delete('leaves', [DashboardController::class, 'destroyLeaves'])->name('leaves.destroy');
-        });
-    });
 
     // ============================================
     // DÉPARTEMENTS
@@ -329,49 +407,6 @@ Route::middleware('auth')->group(function () {
     Route::view('/facture', 'consultations.facture.facture_consultation')
         ->middleware('permission:consultation.facture')
         ->name('facture.consultation');
-
-    // ============================================
-    // RENDEZ-VOUS
-    // ============================================
-    Route::middleware('permission:appointment.view')->group(function () {
-        Route::get('appointment', [AppointmentController::class, 'index'])->name('appointment.index');
-        Route::get('appointment/{appointment}', [AppointmentController::class, 'show'])->name('appointment.show');
-    });
-    
-    Route::get('appointment/create', [AppointmentController::class, 'create'])
-        ->middleware('permission:appointment.create')
-        ->name('appointment.create');
-    
-    Route::post('appointment', [AppointmentController::class, 'store'])
-        ->middleware('permission:appointment.create')
-        ->name('appointment.store');
-    
-    Route::get('appointment/{appointment}/edit', [AppointmentController::class, 'edit'])
-        ->middleware('permission:appointment.edit')
-        ->name('appointment.edit');
-    
-    Route::put('appointment/{appointment}', [AppointmentController::class, 'update'])
-        ->middleware('permission:appointment.edit')
-        ->name('appointment.update');
-    
-    Route::post('appointment/updated', [AppointmentController::class, 'updated'])
-        ->middleware('permission:appointment.edit')
-        ->name('appointment.updated');
-    
-    // Route::delete('appointment/{appointment}', [AppointmentController::class, 'destroy'])
-    //     ->middleware('permission:appointment.delete')
-    //     ->name('appointment.destroy');
-
-    // Route pour l'export PDF des rendez-vous
-    Route::get('/appointments/export-pdf', [AppointmentController::class, 'exportPdf'])
-        ->name('appointments.export-pdf');
-
-    // Gestion des pauses
-    Route::post('/breaks', [DashboardController::class, 'storeBreak'])->name('breaks.store');
-    Route::put('/breaks', [DashboardController::class, 'updateBreak'])->name('breaks.update');
-    Route::delete('/breaks', [DashboardController::class, 'destroyBreak'])->name('breaks.destroy');
-    Route::post('/breaks/{id}/toggle', [DashboardController::class, 'toggleBreak'])->name('breaks.toggle');
-
 
     // ============================================
     // MÉDICAMENTS
