@@ -130,7 +130,6 @@ class AccountController extends Controller
    public function packageReport(Request $request)
    {
 
-
 	   	$packages = Package::get();
 	   	//return PackageSale::get();
         $user = '';
@@ -184,15 +183,16 @@ class AccountController extends Controller
         return view('invoices.account.package', compact('invoices', 'total', 'packages'));
    }
 
-   public function factureNonPayer(){
+    public function factureNonPayer()
+    {
+        $transactionsDu = Transaction::whereIn('status', ['pending', 'partial'])
+            ->with('patient', 'invoice')
+            ->whereRaw('total > 0')
+            ->orderBy('created_at', 'DESC')
+            ->get();
 
-    $transactionsDu = Transaction::whereIn('status', ['pending', 'partial'])
-                                ->with('patient', 'invoice')
-                                ->orderBy('created_at', 'DESC')
-                                ->get();
-                                
         return view('invoices.unpaid', compact('transactionsDu'));
-   }
+    }
 
    public function payer(Request $request)
    {

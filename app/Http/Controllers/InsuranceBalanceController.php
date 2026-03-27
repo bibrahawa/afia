@@ -70,6 +70,7 @@ class InsuranceBalanceController extends Controller
         ])->findOrFail($id);
 
         $invoices = Invoice::where('insurance_company_id', $id)
+            ->where('insurance_amount', '>', 0)
             ->with([
                 'transaction.patient',
                 'settlementItems',
@@ -78,6 +79,7 @@ class InsuranceBalanceController extends Controller
             ->paginate(20);
 
         $allInvoices = Invoice::where('insurance_company_id', $id)
+            ->where('insurance_amount', '>', 0)
             ->with('settlementItems')
             ->get();
 
@@ -126,11 +128,12 @@ class InsuranceBalanceController extends Controller
 
     public function processPaiement(Request $request)
     {
+
         $request->validate([
             'insurance_companies_id' => 'required|exists:insurance_companies,id',
             'montant' => 'required|numeric|min:0',
             'discount_amount' => 'nullable|numeric|min:0',
-            'payment_method' => 'nullable|string|in:CASH,CARD,MOBILE,TRANSFER,CHEQUE,OTHER',
+            'payment_method' => 'nullable|string|in:CASH,CARD,MOBILE',
             'payment_reference' => 'nullable|string|max:255',
             'payment_date' => 'nullable|date',
             'period_start' => 'nullable|date',

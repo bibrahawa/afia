@@ -40,13 +40,13 @@ class ConsultationController extends Controller
 
     public function create()
     {
-        $employeeDepartmentId = auth()->user()->employee->department_id;
+        // $employeeDepartmentId = auth()->user()->employee->department_id;
 
         return view('consultations.new', [
             'patients' => Patient::orderBy('first_name')->get(),
 
             'services' => Service::select('id', 'name', 'amount')
-                ->where('department_id', $employeeDepartmentId)
+                // ->where('department_id', $employeeDepartmentId)
                 ->orderBy('name')
                 ->get(),
 

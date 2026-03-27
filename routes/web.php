@@ -544,6 +544,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/reports/actes-par-assurance-detail', [ReportController::class, 'actesParAssuranceEtParActe'])
         ->middleware('permission:report.view')
         ->name('rapports.actes.assurance.detail');
+
+    Route::get('/reports/bordereau-assurance', [ReportController::class, 'bordereauAssurance'])
+        ->middleware('permission:report.view')
+        ->name('rapports.bordereau.assurance');
     
     Route::post('service/report', [ReportController::class, 'service'])
         ->middleware('permission:report.service')

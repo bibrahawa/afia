@@ -11,6 +11,7 @@ use App\Models\Consultation;
 use App\Models\Invoice;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use App\Models\InsuranceCompany;
 
 class ReportController extends Controller
 {
@@ -567,6 +568,89 @@ class ReportController extends Controller
             'rapport',
             'totaux',
             'kpi',
+            'from',
+            'to'
+        ));
+    }
+
+    public function bordereauAssurance(Request $request)
+    {
+        // $request->validate([
+        //     'insurance_company_id' => 'required|exists:insurance_companies,id',
+        //     'from' => 'required|date',
+        //     'to'   => 'nullable|date|after_or_equal:from',
+        // ], [
+        //     'insurance_company_id.required' => 'Veuillez sélectionner une assurance',
+        //     'to.after_or_equal' => 'La date de fin doit être supérieure ou égale à la date de début',
+        // ]);
+
+        $insuranceCompanyId = $request->get('insurance_company_id') ?? 1;
+
+        $from = $request->get('from') ?? now()->format('Y-m-d');
+        $to   = $request->get('to') ?? now()->format('Y-m-d');
+
+        $fromDate = Carbon::createFromFormat('Y-m-d', $from)->startOfDay();
+        $toDate   = Carbon::createFromFormat('Y-m-d', $to)->endOfDay();
+        
+
+        $insuranceCompany = InsuranceCompany::findOrFail($insuranceCompanyId);
+
+        $invoices = Invoice::with([
+            'insuranceCompany',
+            'patientInsurance',
+            'items',
+            'transaction.patient',
+        ])
+        ->where('insurance_company_id', $insuranceCompanyId)
+        ->whereBetween('created_at', [$fromDate, $toDate])
+        ->orderBy('created_at', 'asc')
+        ->get();
+
+        $lignes = [];
+
+        foreach ($invoices as $invoice) {
+            $transaction = $invoice->transaction;
+            $patient = $transaction?->patient;
+            $patientInsurance = $invoice->patientInsurance;
+
+            $nomAssurePrincipal = trim(($patient?->first_name ?? '') . ' ' . ($patient?->last_name ?? ''));
+
+            $beneficiaire = $nomAssurePrincipal;
+
+            $numeroCarte = $patientInsurance?->policy_number
+                ?? '—';
+
+            foreach ($invoice->items as $item) {
+                $montantAssureur = (float) ($item->insurance_covered_amount ?? 0);
+
+                // On ne garde que les lignes réellement couvertes par assurance
+                if ($montantAssureur <= 0) {
+                    continue;
+                }
+
+                $lignes[] = [
+                    'date'               => optional($invoice->created_at)->format('d/m/Y'),
+                    'nom_assure'         => $nomAssurePrincipal ?: 'Patient inconnu',
+                    'beneficiaire'       => $beneficiaire ?: 'Patient inconnu',
+                    'numero_carte'       => $numeroCarte,
+                    'nature_prestation'  => $item->description ?? 'Acte non défini',
+                    'montant_prestation' => (float) ($item->total_amount ?? 0),
+                    'part_assure'        => (float) ($item->patient_amount ?? 0),
+                    'part_assureur'      => $montantAssureur,
+                ];
+            }
+        }
+
+        $totaux = [
+            'montant_prestation' => array_sum(array_column($lignes, 'montant_prestation')),
+            'part_assure'        => array_sum(array_column($lignes, 'part_assure')),
+            'part_assureur'      => array_sum(array_column($lignes, 'part_assureur')),
+        ];
+
+        return view('reports.tools.bordereau_assurance', compact(
+            'insuranceCompany',
+            'lignes',
+            'totaux',
             'from',
             'to'
         ));

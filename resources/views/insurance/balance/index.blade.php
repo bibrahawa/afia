@@ -36,6 +36,10 @@
                             Soldes des Assurances
                         </h3>
                         <div>
+                            <a href="{{ route('rapports.bordereau.assurance') }}" class="btn btn-warning">
+                                <i class="fas fa-info mr-1"></i>
+                                Situation par assurance
+                            </a>
                             <a href="{{ route('insurance.balances.export') }}" class="btn btn-success">
                                 <i class="fas fa-download mr-1"></i>
                                 Exporter CSV

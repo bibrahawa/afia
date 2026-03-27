@@ -149,10 +149,10 @@
                                             <th>Patient</th>
                                             <th>Description</th>
                                             <th>Date</th>
-                                            <th class="text-end">Montant assurance</th>
-                                            <th class="text-end">Déjà payé</th>
-                                            <th class="text-end">Remise</th>
-                                            <th class="text-end">Reste</th>
+                                            <th class="text-center">Montant assurance</th>
+                                            <th class="text-center">Déjà payé</th>
+                                            <th class="text-center">Remise</th>
+                                            <th class="text-center">Reste</th>
                                             <th class="text-center">Statut patient</th>
                                             <th class="text-center">Statut assurance</th>
                                         </tr>
@@ -324,9 +324,6 @@
                             <option value="CASH">Espèces</option>
                             <option value="CARD">Carte</option>
                             <option value="MOBILE">Mobile Money</option>
-                            <option value="TRANSFER">Virement</option>
-                            <option value="CHEQUE">Chèque</option>
-                            <option value="OTHER">Autre</option>
                         </select>
                     </div>
 
@@ -347,7 +344,7 @@
                         <input type="number" name="discount_amount" id="discount_amount" class="form-control"
                                min="0" step="0.01" value="0">
                         <small class="text-muted">
-                            Remise appliquée sur le total assurance à solder, pas sur chaque item.
+                            Remise appliquée sur le total assurance à solder, pas sur chaque element.
                         </small>
                     </div>
 
