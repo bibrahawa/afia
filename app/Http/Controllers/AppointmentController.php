@@ -74,11 +74,13 @@ class AppointmentController extends Controller
         return redirect()->route('appointment.show', $appointment)->with('success', 'Rendez-vous mis à jour.');
     }
 
-    public function store(StoreAppointmentRequest $request, AppointmentBookingService $bookingService)
+    public function store(StoreAppointmentRequest $request, AppointmentBookingService $bookingService, AppointmentStatusService $statusService)
     {
         try {
             
             $appointment = $bookingService->book($request->validated());
+
+            $statusService->confirm($appointment);
 
             return response()->json([
                 'message' => 'Rendez-vous créé avec succès.',

@@ -57,7 +57,7 @@ class AppointmentBookingService
                 'appointment_time' => $appointmentTime,
                 'reason' => $data['reason'],
                 'description' => $data['description'] ?? null,
-                'status' => 'confirmed'
+                'status' => 'pending'
             ]);
 
             $slot->update([

@@ -12,8 +12,8 @@ class AppointmentQueryService
 {
     public function paginatedForDoctor(Request $request, int $employeeId): LengthAwarePaginator
     {
-        $query = Appointment::with(['patient.user', 'employee'])
-                            ->where('employee_id', $employeeId);
+        $query = Appointment::with(['patient.user', 'employee']);
+                            // ->where('employee_id', $employeeId);
 
         $this->applyFilters($query, $request);
 
@@ -25,7 +25,8 @@ class AppointmentQueryService
 
     public function statsForDoctor(int $employeeId): array
     {
-        $base = Appointment::query()->where('employee_id', $employeeId);
+        $base = Appointment::query();
+        // ->where('employee_id', $employeeId);
 
         return [
             'today' => (clone $base)->whereDate('appointment_date', Carbon::today())->count(),
