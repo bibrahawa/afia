@@ -35,14 +35,14 @@ class DoctorLeaveService
                 'status' => 'pending',
             ]);
 
-            $this->slotService->deleteSlotsInPeriod($employeeId, $startDate, $endDate);
-
             $this->cancelAppointmentsForLeave(
                 $employeeId,
                 $startDate,
                 $endDate,
                 $data['type']
             );
+
+            $this->slotService->deleteSlotsInPeriod($employeeId, $startDate, $endDate);
 
             return $leave;
         });
@@ -143,37 +143,54 @@ class DoctorLeaveService
         });
     }
 
+    // protected function cancelAppointmentsForLeave(
+    //     int $employeeId,
+    //     Carbon $startDate,
+    //     Carbon $endDate,
+    //     string $reason
+    // ): int {
+
+    //     $appointments = Appointment::where('employee_id', $employeeId)
+    //         ->whereIn('status', ['pending', 'confirmed'])
+    //         ->whereBetween('appointment_datetime', [$startDate, $endDate])
+    //         ->get();
+
+    //     $count = 0;
+
+    //     foreach ($appointments as $appointment) {
+    //         $appointment->update([
+    //             'status' => 'cancelled',
+    //             'cancelled_at' => now(),
+    //             'cancellation_reason' => "Indisponibilité du médecin : {$reason}",
+    //         ]);
+
+    //         AppointmentSlot::where('employee_id', $employeeId)
+    //             ->whereDate('date', $appointment->appointment_date)
+    //             ->where('time', $appointment->appointment_time)
+    //             ->update([
+    //                 'is_available' => false,
+    //             ]);
+
+    //         $count++;
+    //     }
+
+    //     return $count;
+    // }
+
     protected function cancelAppointmentsForLeave(
         int $employeeId,
         Carbon $startDate,
         Carbon $endDate,
         string $reason
     ): int {
-        $appointments = Appointment::where('employee_id', $employeeId)
+        return Appointment::where('employee_id', $employeeId)
             ->whereIn('status', ['pending', 'confirmed'])
             ->whereBetween('appointment_datetime', [$startDate, $endDate])
-            ->get();
-
-        $count = 0;
-
-        foreach ($appointments as $appointment) {
-            $appointment->update([
+            ->update([
                 'status' => 'cancelled',
                 'cancelled_at' => now(),
                 'cancellation_reason' => "Indisponibilité du médecin : {$reason}",
             ]);
-
-            AppointmentSlot::where('employee_id', $employeeId)
-                ->whereDate('date', $appointment->appointment_date)
-                ->where('time', $appointment->appointment_time)
-                ->update([
-                    'is_available' => true,
-                ]);
-
-            $count++;
-        }
-
-        return $count;
     }
 
     protected function restoreCancelledAppointmentsForLeavePeriod(

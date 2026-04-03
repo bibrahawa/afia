@@ -89,6 +89,92 @@ class AppointmentSlotService
         }
     }
 
+    // public function restoreSlotsInPeriod(int $employeeId, $startDate, $endDate): int
+    // {
+    //     $start = Carbon::parse($startDate);
+    //     $end = Carbon::parse($endDate);
+    //     $restoredCount = 0;
+    //     $currentDate = $start->copy()->startOfDay();
+
+    //     while ($currentDate <= $end->copy()->endOfDay()) {
+    //         $dayName = ucfirst($currentDate->locale('fr')->isoFormat('dddd'));
+
+    //         $availability = EmployeeAvailability::where('employee_id', $employeeId)
+    //             ->where('day_of_week', $dayName)
+    //             ->where('is_active', true)
+    //             ->first();
+
+    //         if ($availability) {
+    //             $slotTime = Carbon::createFromFormat('H:i', $availability->start_time->format('H:i'));
+    //             $endTime = Carbon::createFromFormat('H:i', $availability->end_time->format('H:i'));
+    //             $duration = (int) $availability->slot_duration;
+
+    //             if ($currentDate->isToday()) {
+    //                 $slotTime = $slotTime->max(now());
+    //             }
+
+    //             while ($slotTime < $endTime) {
+    //                 $slot = AppointmentSlot::updateOrCreate([
+    //                     'employee_id' => $employeeId,
+    //                     'date' => $currentDate->format('Y-m-d'),
+    //                     'time' => $slotTime->format('H:i:s'),
+    //                 ], [
+    //                     'is_available' => true,
+    //                 ]);
+
+    //                 if ($slot->wasRecentlyCreated) {
+    //                     $restoredCount++;
+    //                 }
+
+    //                 $slotTime->addMinutes($duration);
+    //             }
+    //         }
+
+    //         $currentDate->addDay();
+    //     }
+
+    //     return $restoredCount;
+    // }
+
+
+    // public function deleteSlotsInPeriod(int $employeeId, $startDate, $endDate): int
+    // {
+    //     $start = Carbon::parse($startDate);
+    //     $end = Carbon::parse($endDate);
+    //     $deletedCount = 0;
+    //     $currentDate = $start->copy()->startOfDay();
+
+    //     while ($currentDate <= $end->copy()->endOfDay()) {
+    //         $dayName = ucfirst($currentDate->locale('fr')->isoFormat('dddd'));
+
+    //         $availability = EmployeeAvailability::where('employee_id', $employeeId)
+    //             ->where('day_of_week', $dayName)
+    //             ->where('is_active', true)
+    //             ->first();
+
+    //         if ($availability) {
+    //             $slotTime = Carbon::createFromFormat('H:i', $availability->start_time->format('H:i'));
+    //             $endTime = Carbon::createFromFormat('H:i', $availability->end_time->format('H:i'));
+    //             $duration = (int) $availability->slot_duration;
+
+    //             while ($slotTime < $endTime) {
+    //                 $deleted = AppointmentSlot::where('employee_id', $employeeId)
+    //                     ->where('date', $currentDate->format('Y-m-d'))
+    //                     ->where('time', $slotTime->format('H:i:s'))
+    //                     // ->where('is_available', false)
+    //                     ->delete();
+
+    //                 $deletedCount += $deleted;
+    //                 $slotTime->addMinutes($duration);
+    //             }
+    //         }
+
+    //         $currentDate->addDay();
+    //     }
+
+    //     return $deletedCount;
+    // }
+
     public function restoreSlotsInPeriod(int $employeeId, $startDate, $endDate): int
     {
         $start = Carbon::parse($startDate);
@@ -114,15 +200,26 @@ class AppointmentSlotService
                 }
 
                 while ($slotTime < $endTime) {
-                    $slot = AppointmentSlot::firstOrCreate([
-                        'employee_id' => $employeeId,
-                        'date' => $currentDate->format('Y-m-d'),
-                        'time' => $slotTime->format('H:i:s'),
-                    ], [
-                        'is_available' => true,
-                    ]);
+                    // Vérifie qu'aucun rendez-vous actif n'occupe ce slot
+                    $hasActiveAppointment = \App\Models\Appointment::where('employee_id', $employeeId)
+                        ->whereIn('status', ['pending', 'confirmed'])
+                        ->whereDate('appointment_datetime', $currentDate->format('Y-m-d'))
+                        ->whereTime('appointment_datetime', $slotTime->format('H:i:s'))
+                        ->exists();
 
-                    if ($slot->wasRecentlyCreated) {
+                    $slot = AppointmentSlot::updateOrCreate(
+                        [
+                            'employee_id' => $employeeId,
+                            'date' => $currentDate->format('Y-m-d'),
+                            'time' => $slotTime->format('H:i:s'),
+                        ],
+                        [
+                            // Libre seulement si pas de rendez-vous actif dessus
+                            'is_available' => !$hasActiveAppointment,
+                        ]
+                    );
+
+                    if ($slot->wasRecentlyCreated || $slot->wasChanged('is_available')) {
                         $restoredCount++;
                     }
 
@@ -140,37 +237,18 @@ class AppointmentSlotService
     {
         $start = Carbon::parse($startDate);
         $end = Carbon::parse($endDate);
-        $deletedCount = 0;
-        $currentDate = $start->copy()->startOfDay();
 
-        while ($currentDate <= $end->copy()->endOfDay()) {
-            $dayName = ucfirst($currentDate->locale('fr')->isoFormat('dddd'));
+        $deleted = AppointmentSlot::where('employee_id', $employeeId)
+            ->whereBetween('date', [
+                $start->toDateString(),
+                $end->toDateString(),
+            ])
+            ->whereBetween('time', [
+                $start->toTimeString(),
+                $end->toTimeString(),
+            ])
+            ->delete();
 
-            $availability = EmployeeAvailability::where('employee_id', $employeeId)
-                ->where('day_of_week', $dayName)
-                ->where('is_active', true)
-                ->first();
-
-            if ($availability) {
-                $slotTime = Carbon::createFromFormat('H:i', $availability->start_time->format('H:i'));
-                $endTime = Carbon::createFromFormat('H:i', $availability->end_time->format('H:i'));
-                $duration = (int) $availability->slot_duration;
-
-                while ($slotTime < $endTime) {
-                    $deleted = AppointmentSlot::where('employee_id', $employeeId)
-                        ->where('date', $currentDate->format('Y-m-d'))
-                        ->where('time', $slotTime->format('H:i:s'))
-                        ->where('is_available', true)
-                        ->delete();
-
-                    $deletedCount += $deleted;
-                    $slotTime->addMinutes($duration);
-                }
-            }
-
-            $currentDate->addDay();
-        }
-
-        return $deletedCount;
+        return $deleted;
     }
 }
