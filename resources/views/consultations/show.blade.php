@@ -528,7 +528,28 @@
             width: 100%;
         }
     }
+    
 </style>
+
+<style>
+    .action-buttons-fixed .dropdown-menu {
+        border: none;
+        border-radius: 12px;
+        padding: 8px;
+        min-width: 180px;
+    }
+
+    .action-buttons-fixed .dropdown-item {
+        border-radius: 8px;
+        padding: 10px 12px;
+        font-weight: 500;
+    }
+
+    .action-buttons-fixed .dropdown-item:hover {
+        background: #f8f9fa;
+    }
+</style>
+
 @endsection
 
 @section('content')
@@ -631,7 +652,7 @@
         </div>
 
         <div class="action-buttons-fixed no-print">
-            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
                 <div>
                     <h5 class="mb-0">
                         <i class="fas fa-file-medical text-primary"></i>
@@ -640,25 +661,90 @@
                     <small class="text-muted">{{ $consultation->created_at->format('d/m/Y à H:i') }}</small>
                 </div>
 
-                <div class="d-flex gap-2 flex-wrap">
-                    <button class="btn btn-sm btn-outline-warning" data-bs-toggle="modal" data-bs-target="#ordonnanceModal">
-                        <i class="fas fa-prescription"></i> Ordonnance
-                    </button>
+                <div class="d-flex flex-wrap gap-2">
 
-                    <button class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#examensModal">
-                        <i class="fas fa-microscope"></i> Examens
-                    </button>
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-sm btn-outline-warning dropdown-toggle" data-bs-toggle="dropdown">
+                            <i class="fas fa-prescription me-1"></i> Ordonnance
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                            <li>
+                                <a class="dropdown-item" target="_blank"
+                                href="{{ route('consultation.rapport.ordonnance.a80', $consultation->id) }}">
+                                    <i class="fas fa-receipt me-2 text-secondary"></i>Format A80
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" target="_blank"
+                                href="{{ route('consultation.rapport.ordonnance.a5', $consultation->id) }}">
+                                    <i class="fas fa-file-alt me-2 text-warning"></i>Format A5
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
 
-                    <button class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#factureModal">
-                        <i class="fas fa-file-invoice-dollar"></i> Facture
-                    </button>
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-sm btn-outline-success dropdown-toggle" data-bs-toggle="dropdown">
+                            <i class="fas fa-microscope me-1"></i> Examens
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                            <li>
+                                <a class="dropdown-item" target="_blank"
+                                href="{{ route('consultation.rapport.examens.a80', $consultation->id) }}">
+                                    <i class="fas fa-receipt me-2 text-secondary"></i>Format A80
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" target="_blank"
+                                href="{{ route('consultation.rapport.examens.a5', $consultation->id) }}">
+                                    <i class="fas fa-file-alt me-2 text-success"></i>Format A5
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
 
-                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#recuPaiementModal">
-                        <i class="fas fa-money-check-alt"></i> Reçu
-                    </button>
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-sm btn-outline-info dropdown-toggle" data-bs-toggle="dropdown">
+                            <i class="fas fa-file-invoice-dollar me-1"></i> Facture
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                            <li>
+                                <a class="dropdown-item" target="_blank"
+                                href="{{ route('consultation.pdf.facture.a80', $consultation->id) }}">
+                                    <i class="fas fa-receipt me-2 text-secondary"></i>Format A80
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" target="_blank"
+                                href="{{ route('consultation.pdf.facture.a5', $consultation->id) }}">
+                                    <i class="fas fa-file-alt me-2 text-info"></i>Format A5
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
+                            <i class="fas fa-money-check-alt me-1"></i> Reçu
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                            <li>
+                                <a class="dropdown-item" target="_blank"
+                                href="{{ route('consultation.pdf.recu.a80', $consultation->id) }}">
+                                    <i class="fas fa-receipt me-2 text-secondary"></i>Format A80
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" target="_blank"
+                                href="{{ route('consultation.pdf.recu.a5', $consultation->id) }}">
+                                    <i class="fas fa-file-alt me-2 text-primary"></i>Format A5
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
 
                     <a href="{{ route('consultation.index') }}" class="btn btn-sm btn-secondary">
-                        <i class="fas fa-arrow-left"></i> Retour
+                        <i class="fas fa-arrow-left me-1"></i> Retour
                     </a>
                 </div>
             </div>
@@ -730,12 +816,12 @@
                                     <div class="info-value">{{ $consultation->patient->blood_group ?? 'Non précisé' }}</div>
                                 </div>
 
-                                <div class="info-item">
+                                {{-- <div class="info-item">
                                     <div class="info-label">Médecin traitant</div>
                                     <div class="info-value">
                                         Dr. {{ $consultation->medecin->first_name . ' ' . $consultation->medecin->last_name }}
                                     </div>
-                                </div>
+                                </div> --}}
 
                                 <div class="info-item">
                                     <div class="info-label">Prochain rendez-vous</div>
@@ -1173,481 +1259,6 @@
             </div>
         </div>
 
-        <!-- ========================= MODAL ORDONNANCE ========================= -->
-        <div class="modal fade" id="ordonnanceModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-xl" role="document">
-                <div class="modal-content">
-                    <div class="modal-header bg-warning text-dark border-0">
-                        <h5 class="modal-title">
-                            <i class="fas fa-prescription me-2"></i>Ordonnance Médicale
-                        </h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-
-                    <div class="modal-body p-0">
-                        <div class="modal-print-buttons no-print">
-                            <div class="d-flex justify-content-center gap-2">
-                                <button type="button" class="btn btn-success" onclick="printDocument('prescriptionContent', 'Ordonnance Médicale')">
-                                    <i class="fas fa-print me-2"></i>Imprimer
-                                </button>
-                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-                                    Fermer
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="document-print" id="prescriptionContent">
-                            <div class="document-header">
-                                <div class="document-left">
-                                    <div class="document-logo">
-                                        <img src="{{ asset('assets/img/aprosafe.png') }}" alt="Logo {{ $hopital->name }}">
-                                    </div>
-                                    <div class="document-clinic-name">{{ $hopital->name }}</div>
-                                    <div class="document-clinic-line">{{ $hopital->address }}</div>
-                                    <div class="document-clinic-line">Tél : {{ $hopital->contact }}</div>
-                                    <div class="document-clinic-line">Email : {{ $hopital->email }}</div>
-                                </div>
-
-                                <div class="document-right">
-                                    <div class="document-title">Ordonnance</div>
-                                    <div class="document-date">
-                                        Conakry, le {{ $consultation->created_at->translatedFormat('d F Y') }}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="document-meta-box">
-                                <strong>Patient :</strong> {{ $consultation->patient->first_name . ' ' . $consultation->patient->last_name }}<br>
-                                <strong>Âge :</strong> {{ $consultation->patient->age ?? 'N/A' }} ans<br>
-                                <strong>Médecin :</strong> Dr. {{ $consultation->medecin->first_name . ' ' . $consultation->medecin->last_name }}<br>
-                                <strong>Service :</strong> {{ $consultation->department->name }}
-                            </div>
-
-                            <div style="min-height: 420px;">
-                                @if($consultation->medicaments->count() > 0)
-                                    @foreach($consultation->medicaments as $index => $medicament)
-                                        <div style="display:flex; margin-bottom:18px; font-size:15px; line-height:1.6;">
-                                            <div style="min-width:28px; font-weight:700;">{{ $index + 1 }}.</div>
-                                            <div style="flex:1;">
-                                                <div style="font-weight:700;">{{ $medicament->nom }}</div>
-                                                <div>{{ $medicament->frequence }} - {{ $medicament->duree }}</div>
-                                                @if($medicament->instructions)
-                                                    <div><em>{{ $medicament->instructions }}</em></div>
-                                                @endif
-                                            </div>
-                                            <div style="min-width:90px; text-align:right; font-weight:700;">
-                                                Qté : {{ $medicament->pivot->quantity }}
-                                            </div>
-                                        </div>
-                                    @endforeach
-                                @else
-                                    <div class="text-center text-muted" style="padding-top:90px;">
-                                        Aucun médicament prescrit.
-                                    </div>
-                                @endif
-                            </div>
-
-                            <div style="margin-top:50px; text-align:right;">
-                                <div>{{ $hopital->name }}</div>
-                                <div style="margin-top:45px; font-weight:700;">
-                                    Dr. {{ $consultation->medecin->first_name . ' ' . $consultation->medecin->last_name }}
-                                </div>
-                            </div>
-
-                            <div class="document-footer-note">
-                                Tél : {{ $hopital->contact }} - Adresse : {{ $hopital->address }}<br>
-                                Email : {{ $hopital->email }} - Site web : {{ $hopital->website ?? '' }}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ========================= MODAL EXAMENS ========================= -->
-        <div class="modal fade" id="examensModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-xl" role="document">
-                <div class="modal-content">
-                    <div class="modal-header bg-success text-white border-0">
-                        <h5 class="modal-title">
-                            <i class="fas fa-microscope me-2"></i>Demande d'Examens Médicaux
-                        </h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                    </div>
-
-                    <div class="modal-body p-0">
-                        <div class="modal-print-buttons no-print">
-                            <div class="d-flex justify-content-center gap-2">
-                                <button type="button" class="btn btn-success" onclick="printDocument('examensContent', 'Demande Examens Médicaux')">
-                                    <i class="fas fa-print me-2"></i>Imprimer
-                                </button>
-                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-                                    Fermer
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="document-print" id="examensContent">
-                            <div class="document-header">
-                                <div class="document-left">
-                                    <div class="document-logo">
-                                        <img src="{{ asset('assets/img/aprosafe.png') }}" alt="Logo {{ $hopital->name }}">
-                                    </div>
-                                    <div class="document-clinic-name">{{ $hopital->name }}</div>
-                                    <div class="document-clinic-line">{{ $hopital->address }}</div>
-                                    <div class="document-clinic-line">Tél : {{ $hopital->contact }}</div>
-                                    <div class="document-clinic-line">Email : {{ $hopital->email }}</div>
-                                </div>
-
-                                <div class="document-right">
-                                    <div class="document-title">Demande d'examens</div>
-                                    <div class="document-date">
-                                        {{ $consultation->created_at->translatedFormat('d F Y') }}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="document-meta-box">
-                                <div class="row">
-                                    <div class="col-6">
-                                        <strong>Patient :</strong> {{ $consultation->patient->first_name . ' ' . $consultation->patient->last_name }}<br>
-                                        <strong>Téléphone :</strong> {{ $consultation->patient->phone }}<br>
-                                        <strong>Adresse :</strong> {{ $consultation->patient->district }}
-                                    </div>
-                                    <div class="col-6">
-                                        <strong>Médecin :</strong> Dr. {{ $consultation->medecin->first_name . ' ' . $consultation->medecin->last_name }}<br>
-                                        <strong>Département :</strong> {{ $consultation->department->name }}<br>
-                                        <strong>Diagnostic :</strong> {{ $consultation->diagnostic ?? 'En cours' }}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div style="margin-bottom:18px;">
-                                <strong>Motif de consultation :</strong> {{ $consultation->motif ?? 'Non précisé' }}
-                            </div>
-
-                            <div class="document-section-title">Examens demandés</div>
-
-                            @if($consultation->tests->count() > 0)
-                                <table class="document-table">
-                                    <thead>
-                                        <tr>
-                                            <th style="width: 8%;">N°</th>
-                                            <th>Examen</th>
-                                            <th style="width: 22%;">Montant</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach($consultation->tests as $index => $test)
-                                            <tr>
-                                                <td class="text-center-doc">{{ $index + 1 }}</td>
-                                                <td><strong>{{ $test->name }}</strong></td>
-                                                <td class="text-right-doc">{{ number_format($test->amount, 0, ',', ' ') }} GNF</td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-
-                                <div class="totals-box">
-                                    <div class="totals-line gray">
-                                        <div class="label">Total examens</div>
-                                        <div class="value">{{ number_format($consultation->tests->sum('amount'), 0, ',', ' ') }} GNF</div>
-                                    </div>
-                                </div>
-                            @else
-                                <div class="text-center text-muted" style="padding:80px 0;">
-                                    Aucun examen prescrit pour cette consultation.
-                                </div>
-                            @endif
-
-                            @if($consultation->observation)
-                                <div style="margin-top:30px;">
-                                    <div class="document-section-title">Instructions spéciales</div>
-                                    <div style="border:1px solid #ddd; padding:15px; min-height:90px; background:#f9f9f9;">
-                                        {{ $consultation->observation }}
-                                    </div>
-                                </div>
-                            @endif
-
-                            <div style="margin-top:50px; text-align:right;">
-                                <div>Le service médical</div>
-                                <div style="margin-top:45px; font-weight:700;">
-                                    Dr. {{ $consultation->medecin->first_name . ' ' . $consultation->medecin->last_name }}
-                                </div>
-                            </div>
-
-                            <div class="document-footer-note">
-                                Tél : {{ $hopital->contact }} - Adresse : {{ $hopital->address }}<br>
-                                Email : {{ $hopital->email }} - Site web : {{ $hopital->website ?? '' }}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ========================= MODAL FACTURE ========================= -->
-        <div class="modal fade" id="factureModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-xl" role="document">
-                <div class="modal-content">
-                    <div class="modal-header bg-info text-white border-0">
-                        <h5 class="modal-title">
-                            <i class="fas fa-file-invoice-dollar me-2"></i>Facture Complète
-                        </h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                    </div>
-
-                    <div class="modal-body p-0">
-                        <div class="modal-print-buttons no-print">
-                            <div class="d-flex justify-content-center gap-2">
-                                <button type="button" class="btn btn-info text-white" onclick="printDocument('factureContent', 'Facture')">
-                                    <i class="fas fa-print me-2"></i>Imprimer
-                                </button>
-                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-                                    Fermer
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="document-print" id="factureContent">
-                            <div class="document-header">
-                                <div class="document-left">
-                                    <div class="document-logo">
-                                        <img src="{{ asset('assets/img/aprosafe.png') }}" alt="Logo {{ $hopital->name }}">
-                                    </div>
-
-                                    <div class="document-clinic-name">{{ $hopital->name }}</div>
-                                    <div class="document-clinic-line">{{ $hopital->address }}</div>
-                                    <br>
-                                    <div class="document-clinic-line">{{ $hopital->city ?? 'Conakry' }}</div>
-                                    <div class="document-clinic-line">{{ $hopital->contact }}</div>
-                                    <div class="document-clinic-line"><strong>Email :</strong> {{ $hopital->email }}</div>
-                                </div>
-
-                                <div class="document-right">
-                                    <div class="document-title">Facture</div>
-
-                                    <div class="document-subtitle">Destinataire :</div>
-                                    <div class="document-recipient-name">
-                                        {{ strtoupper($consultation->patient->first_name . ' ' . $consultation->patient->last_name) }}
-                                    </div>
-                                    <div class="document-recipient-phone">
-                                        {{ $consultation->patient->phone ?? '---' }}
-                                    </div>
-
-                                    <div class="document-date">
-                                        Date de facture : {{ $consultation->created_at->translatedFormat('d F Y') }}
-                                    </div>
-
-                                    <div class="document-ref">
-                                        <strong>N° Facture :</strong> {{ $invoiceNumber }}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <table class="document-table">
-                                <thead>
-                                    <tr>
-                                        <th style="width:5%;">N°</th>
-                                        <th style="width:40%;">Désignation</th>
-                                        <th style="width:15%;">Quantité</th>
-                                        <th style="width:20%;">Prix unitaire</th>
-                                        <th style="width:20%;">Montant HT</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @forelse($displayItems as $index => $item)
-                                        <tr>
-                                            <td class="text-center-doc">{{ $index + 1 }}</td>
-                                            <td><strong>{{ $item->description }}</strong></td>
-                                            <td class="text-center-doc">{{ str_pad($item->quantity, 2, '0', STR_PAD_LEFT) }}</td>
-                                            <td class="text-right-doc">{{ number_format($item->unit_price, 0, ',', ' ') }} GNF</td>
-                                            <td class="text-right-doc">{{ number_format($item->total_amount, 0, ',', ' ') }} GNF</td>
-                                        </tr>
-                                    @empty
-                                        <tr>
-                                            <td colspan="5" class="text-center-doc">Aucune ligne de facturation</td>
-                                        </tr>
-                                    @endforelse
-                                </tbody>
-                            </table>
-
-                            <div class="totals-box">
-                                <div class="totals-line">
-                                    <div class="label">Total HT</div>
-                                    <div class="value">{{ number_format($totalFacture, 0, ',', ' ') }} GNF</div>
-                                </div>
-                                <div class="totals-line gray">
-                                    <div class="label">Total TTC</div>
-                                    <div class="value">{{ number_format($totalFacture, 0, ',', ' ') }} GNF</div>
-                                </div>
-                                <div class="totals-line">
-                                    <div class="label">Total payé</div>
-                                    <div class="value">{{ number_format($montantPaye, 0, ',', ' ') }} GNF</div>
-                                </div>
-                                <div class="totals-line gray">
-                                    <div class="label">Solde à payer</div>
-                                    <div class="value">{{ number_format($solde, 0, ',', ' ') }} GNF</div>
-                                </div>
-                            </div>
-
-                            <div class="amount-words">
-                                EN LETTRES :
-                                <span>{{ strtoupper($amountInWords) }}</span>
-                            </div>
-
-                            <div class="document-footer-note">
-                                Tél : {{ $hopital->contact }} - Adresse : {{ $hopital->address }}
-                                @if(!empty($hopital->email))
-                                    <br>Email : {{ $hopital->email }}
-                                @endif
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ========================= MODAL RECU ========================= -->
-        <div class="modal fade" id="recuPaiementModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-xl" role="document">
-                <div class="modal-content">
-                    <div class="modal-header bg-primary text-white border-0">
-                        <h5 class="modal-title">
-                            <i class="fas fa-money-check-alt me-2"></i>Reçu de Paiement
-                        </h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                    </div>
-
-                    <div class="modal-body p-0">
-                        <div class="modal-print-buttons no-print">
-                            <div class="d-flex justify-content-center gap-2">
-                                <button type="button" class="btn btn-primary" onclick="printDocument('recuPaiementContent', 'Reçu de Paiement')">
-                                    <i class="fas fa-print me-2"></i>Imprimer
-                                </button>
-                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-                                    Fermer
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="document-print" id="recuPaiementContent">
-                            <div class="document-header">
-                                <div class="document-left">
-                                    <div class="document-logo">
-                                        <img src="{{ asset('assets/img/aprosafe.png') }}" alt="Logo {{ $hopital->name }}">
-                                    </div>
-
-                                    <div class="document-clinic-name">{{ $hopital->name }}</div>
-                                    <div class="document-clinic-line">{{ $hopital->address }}</div>
-                                    <br>
-                                    <div class="document-clinic-line">{{ $hopital->city ?? 'Conakry' }}</div>
-                                    <div class="document-clinic-line">{{ $hopital->contact }}</div>
-                                    <div class="document-clinic-line"><strong>Email :</strong> {{ $hopital->email }}</div>
-                                </div>
-
-                                <div class="document-right">
-                                    <div class="document-title">Reçu de paiement</div>
-
-                                    <div class="document-subtitle">Reçu pour :</div>
-                                    <div class="document-recipient-name">
-                                        {{ strtoupper($consultation->patient->first_name . ' ' . $consultation->patient->last_name) }}
-                                    </div>
-                                    <div class="document-recipient-phone">
-                                        {{ $consultation->patient->phone ?? '---' }}
-                                    </div>
-
-                                    <div class="document-date">
-                                        Date : {{ ($dernierPaiement?->created_at ?? $consultation->created_at)->translatedFormat('d F Y') }}
-                                    </div>
-
-                                    <div class="document-ref">
-                                        <strong>N° Reçu :</strong> {{ $receiptNumber }}<br>
-                                        <strong>Référence :</strong> {{ $referenceTransaction }}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <table class="document-table">
-                                <thead>
-                                    <tr>
-                                        <th style="width:5%;">N°</th>
-                                        <th style="width:45%;">Désignation</th>
-                                        <th style="width:15%;">Mode</th>
-                                        <th style="width:15%;">Date</th>
-                                        <th style="width:20%;">Montant payé</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @if($paiements && $paiements->count() > 0)
-                                        @foreach($paiements as $index => $paiement)
-                                            <tr>
-                                                <td class="text-center-doc">{{ $index + 1 }}</td>
-                                                <td><strong>Paiement consultation </strong></td>
-                                                <td class="text-center-doc">{{ $paiement->source ?? '-' }}</td>
-                                                <td class="text-center-doc">{{ $paiement->created_at->format('d/m/Y') }}</td>
-                                                <td class="text-right-doc">{{ number_format($paiement->montant, 0, ',', ' ') }} GNF</td>
-                                            </tr>
-                                        @endforeach
-                                    @else
-                                        <tr>
-                                            <td class="text-center-doc">1</td>
-                                            <td><strong>Paiement consultation</strong></td>
-                                            <td class="text-center-doc">{{ $sourceDernierPaiement }}</td>
-                                            <td class="text-center-doc">{{ $consultation->created_at->format('d/m/Y') }}</td>
-                                            <td class="text-right-doc">{{ number_format($montantDernierPaiement, 0, ',', ' ') }} GNF</td>
-                                        </tr>
-                                    @endif
-                                </tbody>
-                            </table>
-
-                            <div class="totals-box">
-                                <div class="totals-line">
-                                    <div class="label">Montant facture</div>
-                                    <div class="value">{{ number_format($totalFacture, 0, ',', ' ') }} GNF</div>
-                                </div>
-                                <div class="totals-line gray">
-                                    <div class="label">Total encaissé</div>
-                                    <div class="value">{{ number_format($montantPaye, 0, ',', ' ') }} GNF</div>
-                                </div>
-                                <div class="totals-line">
-                                    <div class="label">Dernier paiement</div>
-                                    <div class="value">{{ number_format($montantDernierPaiement, 0, ',', ' ') }} GNF</div>
-                                </div>
-                                <div class="totals-line gray">
-                                    <div class="label">Reste à payer</div>
-                                    <div class="value">{{ number_format($solde, 0, ',', ' ') }} GNF</div>
-                                </div>
-                            </div>
-
-                            <div class="amount-words">
-                                ARRÊTÉ LE PRÉSENT REÇU À LA SOMME DE :
-                                <span>{{ strtoupper($paymentAmountInWords) }}</span>
-                            </div>
-
-                            <div class="signature-zone">
-                                <div class="signature-box">
-                                    <div>Signature du patient</div>
-                                    <div class="line">Le patient</div>
-                                </div>
-                                <div class="signature-box">
-                                    <div>Cachet et signature</div>
-                                    <div class="line">{{ $hopital->name }}</div>
-                                </div>
-                            </div>
-
-                            <div class="document-footer-note">
-                                Tél : {{ $hopital->contact }} - Adresse : {{ $hopital->address }}
-                                @if(!empty($hopital->email))
-                                    <br>Email : {{ $hopital->email }}
-                                @endif
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
     </div>
 </div>
 @endsection
@@ -1657,193 +1268,5 @@
     setTimeout(function () {
         $('.alert').fadeOut('slow');
     }, 5000);
-
-    function printDocument(elementId, title) {
-        const content = document.getElementById(elementId).outerHTML;
-
-        const printWindow = window.open('', '_blank', 'width=1000,height=800');
-
-        printWindow.document.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>${title}</title>
-                <meta charset="utf-8">
-                <style>
-                    * { margin: 0; padding: 0; box-sizing: border-box; }
-                    body {
-                        font-family: "Times New Roman", serif;
-                        background: #fff;
-                        color: #000;
-                        padding: 20px;
-                    }
-                    .document-print {
-                        max-width: 900px;
-                        margin: 0 auto;
-                        background: #fff;
-                        padding: 40px 50px;
-                        color: #000;
-                        font-family: "Times New Roman", serif;
-                        position: relative;
-                    }
-                    .document-header {
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: flex-start;
-                        gap: 20px;
-                        margin-bottom: 32px;
-                    }
-                    .document-left { width: 48%; }
-                    .document-right { width: 42%; text-align: center; }
-                    .document-logo { width: 160px; margin-bottom: 14px; }
-                    .document-logo img { max-width: 100%; max-height: 120px; object-fit: contain; }
-                    .document-clinic-name {
-                        font-size: 19px;
-                        font-weight: 700;
-                        text-transform: uppercase;
-                        line-height: 1.35;
-                        margin-bottom: 4px;
-                    }
-                    .document-clinic-line { font-size: 13px; line-height: 1.6; }
-                    .document-title {
-                        font-size: 24px;
-                        font-weight: 700;
-                        text-transform: uppercase;
-                        text-decoration: underline;
-                        margin-bottom: 28px;
-                    }
-                    .document-subtitle {
-                        font-size: 16px;
-                        font-weight: 700;
-                        text-transform: uppercase;
-                        margin-bottom: 8px;
-                    }
-                    .document-recipient-name,
-                    .document-recipient-phone {
-                        font-size: 15px;
-                        font-weight: 700;
-                        line-height: 1.5;
-                    }
-                    .document-date {
-                        margin-top: 20px;
-                        font-size: 15px;
-                        font-weight: 700;
-                    }
-                    .document-ref {
-                        margin-top: 10px;
-                        font-size: 14px;
-                    }
-                    .document-table {
-                        width: 100%;
-                        border-collapse: collapse;
-                        margin-top: 25px;
-                        margin-bottom: 36px;
-                    }
-                    .document-table th {
-                        background: #7433a6;
-                        color: #fff;
-                        border: 1px solid #666;
-                        padding: 10px 8px;
-                        font-size: 14px;
-                        text-transform: uppercase;
-                        text-align: center;
-                    }
-                    .document-table td {
-                        border: 1px solid #666;
-                        padding: 10px 8px;
-                        font-size: 14px;
-                        vertical-align: top;
-                    }
-                    .text-center-doc { text-align: center; }
-                    .text-right-doc { text-align: right; }
-                    .document-meta-box {
-                        border: 1px solid #d8d8d8;
-                        padding: 14px 16px;
-                        background: #f9f9f9;
-                        margin-bottom: 22px;
-                        font-size: 14px;
-                    }
-                    .document-section-title {
-                        font-size: 16px;
-                        font-weight: 700;
-                        text-transform: uppercase;
-                        margin-bottom: 12px;
-                    }
-                    .totals-box {
-                        width: 420px;
-                        margin-left: auto;
-                        margin-bottom: 25px;
-                    }
-                    .totals-line {
-                        display: flex;
-                        justify-content: space-between;
-                        padding: 10px 14px;
-                        font-size: 14px;
-                        font-weight: 700;
-                    }
-                    .totals-line.gray { background: #d9d9d9; }
-                    .totals-line .label {
-                        width: 60%;
-                        text-align: right;
-                        padding-right: 12px;
-                    }
-                    .totals-line .value {
-                        width: 40%;
-                        text-align: right;
-                    }
-                    .amount-words {
-                        margin-top: 22px;
-                        font-size: 15px;
-                        font-weight: 700;
-                    }
-                    .amount-words span {
-                        font-size: 17px;
-                        text-transform: uppercase;
-                    }
-                    .signature-zone {
-                        margin-top: 55px;
-                        display: flex;
-                        justify-content: space-between;
-                        gap: 25px;
-                    }
-                    .signature-box {
-                        width: 45%;
-                        text-align: center;
-                    }
-                    .signature-box .line {
-                        margin-top: 60px;
-                        border-top: 1px solid #000;
-                        padding-top: 8px;
-                        font-size: 13px;
-                        font-weight: 700;
-                    }
-                    .document-footer-note {
-                        margin-top: 40px;
-                        text-align: center;
-                        font-size: 11px;
-                        color: #444;
-                        border-top: 1px solid #999;
-                        padding-top: 10px;
-                    }
-                    @media print {
-                        body { padding: 0; }
-                        .document-print {
-                            max-width: 100%;
-                            margin: 0;
-                            padding: 25px 35px;
-                        }
-                    }
-                </style>
-            </head>
-            <body>${content}</body>
-            </html>
-        `);
-
-        printWindow.document.close();
-        setTimeout(() => {
-            printWindow.print();
-            printWindow.close();
-        }, 300);
-    }
 </script>
 @endsection

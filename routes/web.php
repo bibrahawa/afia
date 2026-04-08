@@ -376,37 +376,23 @@ Route::middleware('auth')->group(function () {
     Route::delete('consultation/{consultation}', [ConsultationController::class, 'destroy'])
         ->middleware('permission:consultation.delete')
         ->name('consultation.destroy');
-    
-    Route::post('consultations/{consultation}/facturer', [ConsultationController::class, 'facturer'])
-        ->middleware('permission:consultation.facturer')
-        ->name('consultations.facturer');
 
-    // Factures de consultations
-    Route::prefix('consultations/{id}/facture')->name('consultations.facture.')->group(function () {
-        Route::get('/', [ConsultationController::class, 'facture'])
-            ->middleware('permission:consultation.facture')
-            ->name('');
-        
-        Route::get('/ordonnance', [ConsultationController::class, 'facture_ordonnance'])
-            ->middleware('permission:consultation.ordonnance')
-            ->name('ordonnance');
-        
-        Route::get('/medicament', [ConsultationController::class, 'facture_medicament'])
-            ->middleware('permission:consultation.medicament')
-            ->name('medicament');
-        
-        Route::get('/paiement', [ConsultationController::class, 'facture_paiement'])
-            ->middleware('permission:consultation.paiement')
-            ->name('paiement');
-        
-        Route::get('/examen', [ConsultationController::class, 'facture_examen'])
-            ->middleware('permission:consultation.examen')
-            ->name('examen');
-    });
+    Route::prefix('consultation')->name('consultation.')->group(function () {
+
+        Route::get('/{consultation}/rapport/ordonnance-a80', [ConsultationController::class, 'ordonnanceA80'])->name('rapport.ordonnance.a80');
+        Route::get('/{consultation}/rapport/ordonnance-a5', [ConsultationController::class, 'ordonnanceA5'])->name('rapport.ordonnance.a5');
+
+        Route::get('/{consultation}/rapport/examens-a80', [ConsultationController::class, 'examensA80'])->name('rapport.examens.a80');
+        Route::get('/{consultation}/rapport/examens-a5', [ConsultationController::class, 'examensA5'])->name('rapport.examens.a5');
+
+        Route::get('/{consultation}/pdf/facture-a5', [ConsultationController::class, 'facturePdfA5'])->name('pdf.facture.a5');
+        Route::get('/{consultation}/pdf/facture-a80', [ConsultationController::class, 'facturePdfA80'])->name('pdf.facture.a80');
+
+        Route::get('/{consultation}/pdf/recu-a80', [ConsultationController::class, 'recuPdfA80'])->name('pdf.recu.a80');
+        Route::get('/{consultation}/pdf/recu-a5', [ConsultationController::class, 'recuPdfA5'])->name('pdf.recu.a5');
+   });
+
     
-    Route::view('/facture', 'consultations.facture.facture_consultation')
-        ->middleware('permission:consultation.facture')
-        ->name('facture.consultation');
 
     // ============================================
     // MÉDICAMENTS

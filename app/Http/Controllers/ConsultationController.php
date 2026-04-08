@@ -17,11 +17,11 @@ use App\Models\Service;
 use App\Models\Test;
 use App\Services\BillingService;
 use App\Services\ConsultationService;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ConsultationController extends Controller
 {
@@ -30,6 +30,183 @@ class ConsultationController extends Controller
         private BillingService $billingService
     ) {
     }
+
+    public function show(Consultation $consultation)
+    {
+        $consultation->load([
+            'patient.antecedant',
+            'medecin',
+            // 'prochainMedecin',
+            'department',
+            'packages',
+            'services',
+            'tests',
+            'medicaments',
+            'fichiers',
+            'transaction.invoice.items',
+            'transaction.paiements',
+        ]);
+
+        $hopital = auth()->user()->hospital ?? null;
+
+        return view('consultations.show', compact('consultation', 'hopital'));
+        
+    }
+
+    public function ordonnanceA80(Consultation $consultation)
+    {
+        $consultation->load(['patient', 'medecin', 'department', 'medicaments']);
+        $hopital = auth()->user()->hospital ?? null;
+
+        return view('consultations.rapport.ordonnance-a80', compact('consultation', 'hopital'));
+    }
+
+    public function ordonnanceA5(Consultation $consultation)
+    {
+        $consultation->load(['patient', 'medecin', 'department', 'medicaments']);
+        $hopital = auth()->user()->hospital ?? null;
+
+        return view('consultations.rapport.ordonnance-a5', compact('consultation', 'hopital'));
+    }
+
+    public function examensA80(Consultation $consultation)
+    {
+        $consultation->load(['patient', 'medecin', 'department', 'tests']);
+        $hopital = auth()->user()->hospital ?? null;
+
+        return view('consultations.rapport.examens-a80', compact('consultation', 'hopital'));
+    }
+
+    public function examensA5(Consultation $consultation)
+    {
+        $consultation->load(['patient', 'medecin', 'department', 'tests']);
+        $hopital = auth()->user()->hospital ?? null;
+
+        return view('consultations.rapport.examens-a5', compact('consultation', 'hopital'));
+    }
+
+    public function facturePdfA5(Consultation $consultation)
+    {
+        $consultation->load([
+            'patient',
+            'medecin',
+            'department',
+            'transaction.invoice.items'
+        ]);
+
+        $hopital = auth()->user()->hospital ?? null;
+
+        $invoiceData = $this->prepareInvoiceData($consultation);
+
+
+        $pdf = Pdf::loadView('consultations.rapport.facture-a5', [
+            'consultation' => $consultation,
+            'hopital' => $hopital,
+            'invoiceData' => $invoiceData
+        ]);
+
+        return $pdf
+            ->setPaper('A5', 'portrait')
+            ->stream('ticket-'.$consultation->id.'.pdf');
+    }
+
+
+    public function facturePdfA80(Consultation $consultation)
+    {
+        $consultation->load([
+            'patient',
+            'transaction.invoice.items'
+        ]);
+
+        $hopital = auth()->user()->hospital ?? null;
+        $invoiceData = $this->prepareInvoiceData($consultation);
+
+        $itemCount = optional($invoiceData['invoice'])->items->count() ?? 1;
+
+        $height = 200 + ($itemCount * 35);
+
+        $pdf = Pdf::loadView('consultations.rapport.facture-a80', compact(
+            'consultation',
+            'hopital',
+            'invoiceData'
+        ));
+
+        return $pdf
+            ->setPaper([0, 0, 226.77, $height], 'portrait')
+            ->stream('ticket-'.$consultation->id.'.pdf');
+    }
+
+    public function recuPdfA80(Consultation $consultation)
+    {
+        $consultation->load([
+            'patient',
+            'transaction.invoice',
+            'transaction.paiements'
+        ]);
+
+        $hopital = auth()->user()->hospital ?? null;
+
+        $invoiceData = $this->prepareInvoiceData($consultation);
+
+        $pdf = Pdf::loadView('consultations.rapport.paiement-a80', compact(
+            'consultation','hopital','invoiceData'
+        ));
+
+        return $pdf
+            ->setPaper([0, 0, 226.77, 600], 'portrait') // A80
+            ->stream('recu-'.$consultation->id.'.pdf');
+    }
+
+     public function recuPdfA5(Consultation $consultation)
+    {
+        $consultation->load([
+            'patient',
+            'transaction.invoice',
+            'transaction.paiements'
+        ]);
+
+        $hopital = auth()->user()->hospital ?? null;
+
+        $invoiceData = $this->prepareInvoiceData($consultation);
+
+        $pdf = Pdf::loadView('consultations.rapport.paiement-a5', compact(
+            'consultation','hopital','invoiceData'
+        ));
+
+        return $pdf
+            ->setPaper('A5', 'portrait') // A5
+            ->stream('recu-'.$consultation->id.'.pdf');
+    }
+
+    private function prepareInvoiceData($consultation)
+    {
+        $invoice = optional($consultation->transaction)->invoice;
+
+        if (!$invoice) {
+            return null;
+        }
+
+        // 🧠 PART PATIENT = montant réel à payer
+        $patientAmount = $invoice->patient_amount ?? 0;
+
+        // 💰 MONTANT PAYÉ
+        $paidAmount = $consultation->transaction->montant_payer ?? 0;
+
+        // 📊 RESTE À PAYER (UNIQUEMENT PATIENT)
+        $remaining = max($patientAmount - $paidAmount, 0);
+
+        // ✅ STATUT
+        $status = $remaining <= 0 ? 'paid' : ($paidAmount > 0 ? 'partial' : 'unpaid');
+
+        return [
+            'invoice' => $invoice,
+            'patient_amount' => $patientAmount,
+            'paid_amount' => $paidAmount,
+            'remaining' => $remaining,
+            'status' => $status,
+        ];
+    }
+
 
     public function index()
     {
@@ -150,26 +327,6 @@ class ConsultationController extends Controller
                 ->withInput()
                 ->with('error', 'Erreur lors du traitement: ' . $e->getMessage());
         }
-    }
-
-    public function show($id)
-    {
-        $consultation = Consultation::with([
-            'patient.antecedant',
-            'medecin',
-            'department',
-            'medicaments',
-            'services',
-            'packages',
-            'tests',
-            'transaction.paiements',
-            'transaction.invoice.items.coverageType',
-            'fichiers',
-        ])->findOrFail($id);
-
-        $hopital = Hospital::first();
-
-        return view('consultations.show', compact('consultation', 'hopital'));
     }
 
     public function edit($id)
@@ -330,6 +487,8 @@ class ConsultationController extends Controller
                 ->with('error', 'Erreur lors de la suppression: ' . $e->getMessage());
         }
     }
+
+    
 
     public function facture($id)
     {

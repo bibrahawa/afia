@@ -269,6 +269,8 @@ return [
          */
         'enable_remote' => false,
 
+        'isRemoteEnabled' => true, // pour images logo
+
         /**
          * List of allowed remote hosts
          *
