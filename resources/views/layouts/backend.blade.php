@@ -9,6 +9,14 @@
       content="width=device-width, initial-scale=1.0, shrink-to-fit=no"
       name="viewport"
     />
+
+    {{-- <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="Aprosafe" />
+    <link rel="manifest" href="/site.webmanifest" /> --}}
+
     <link
       rel="icon"
       href="{{asset('assets/img/kaiadmin/favicon.ico')}}"
@@ -128,7 +136,7 @@
       $(document).ready(function () {
           const table = $('#add-row');
           if (table.length && table.find('tbody tr').length) {
-              table.DataTable({ pageLength: 5 });
+              table.DataTable({ pageLength: 15 });
           }
 
           // ✅ Destruction puis réinitialisation propre

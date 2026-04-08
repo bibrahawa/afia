@@ -210,7 +210,7 @@ class ConsultationController extends Controller
 
     public function index()
     {
-        $consultations = Consultation::latest()->paginate(10);
+        $consultations = Consultation::latest()->paginate(15);
 
         return view('consultations.index', compact('consultations'));
     }
