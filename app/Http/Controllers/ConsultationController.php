@@ -210,7 +210,7 @@ class ConsultationController extends Controller
 
     public function index()
     {
-        $consultations = Consultation::latest()->paginate(15);
+        $consultations = Consultation::latest()->get();
 
         return view('consultations.index', compact('consultations'));
     }
@@ -269,6 +269,7 @@ class ConsultationController extends Controller
         DB::beginTransaction();
 
         try {
+            
             $consultationData = [
                 ...$validated,
                 'department_id' => auth()->user()->employee->department_id,
@@ -369,6 +370,7 @@ class ConsultationController extends Controller
         DB::beginTransaction();
 
         try {
+
             $consultation = Consultation::with(['transaction', 'patient'])->findOrFail($id);
 
             $this->consultationService->updateNextAppointment(
@@ -486,66 +488,5 @@ class ConsultationController extends Controller
             return redirect()->back()
                 ->with('error', 'Erreur lors de la suppression: ' . $e->getMessage());
         }
-    }
-
-    
-
-    public function facture($id)
-    {
-        $consultation = Consultation::findOrFail($id);
-
-        return view('consultations.facture.facture_consultation', compact('consultation'));
-    }
-
-    public function facture_ordonnance($id)
-    {
-        $consultation = Consultation::findOrFail($id);
-        $hopital = Hospital::first();
-
-        return view('consultations.facture.new_ordonnance', compact('consultation', 'hopital'));
-    }
-
-    public function facture_medicament($id)
-    {
-        $consultation = Consultation::findOrFail($id);
-
-        return view('consultations.facture.facture_medicament', compact('consultation'));
-    }
-
-    public function facture_paiement($id)
-    {
-        $consultation = Consultation::findOrFail($id);
-
-        return view('consultations.facture.facture_paiement', compact('consultation'));
-    }
-
-    public function facture_examen($id)
-    {
-        $consultation = Consultation::findOrFail($id);
-
-        return view('consultations.facture.facture_examen', compact('consultation'));
-    }
-
-    public function facturer(Consultation $consultation)
-    {
-        $pdf = Pdf::loadView('consultations.facture.facture', compact('consultation'));
-
-        $filename = 'facture_consultation_' . $consultation->id . '.pdf';
-        $path = 'factures/' . $filename;
-
-        Storage::makeDirectory('public/factures');
-        Storage::disk('public')->put($path, $pdf->output());
-
-        if (!Storage::disk('public')->exists($path)) {
-            return back()->with('error', 'Erreur lors de la génération de la facture.');
-        }
-
-        $fullPath = storage_path('app/public/' . $path);
-
-        if (!file_exists($fullPath)) {
-            return back()->with('error', 'Le fichier de facture n\'a pas été trouvé.');
-        }
-
-        return response()->download($fullPath);
     }
 }

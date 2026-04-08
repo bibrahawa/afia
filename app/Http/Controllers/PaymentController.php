@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Hospitalisation;
 use App\Models\InsuranceCompany;
+use App\Models\Invoice;
 use App\Models\Patient;
 use App\Models\PatientInsurance;
 use App\Models\Transaction;
@@ -28,31 +29,15 @@ class PaymentController extends Controller
     ) {
     }
 
-    public function showPaymentPage($patientId)
+    public function factureNonPayer()
     {
-        $patientsDu = Patient::select([
-                'patients.id',
-                'patients.first_name',
-                'patients.middle_name',
-                'patients.last_name',
-                'patients.district',
-                'patients.location',
-                \DB::raw('SUM(transactions.total - transactions.montant_payer) as montant_du')
-            ])
-            ->join('transactions', 'patients.id', '=', 'transactions.patient_id')
-            ->whereIn('transactions.status', ['pending', 'partial', 'approved'])
-            ->groupBy('patients.id', 'patients.first_name', 'patients.middle_name', 'patients.last_name', 'patients.district', 'patients.location')
-            ->having('montant_du', '>', 0)
+        $transactionsDu = Transaction::whereIn('status', ['pending', 'partial'])
+            ->with('patient', 'invoice')
+            ->whereRaw('total > 0')
+            ->orderBy('created_at', 'DESC')
             ->get();
 
-        $assurances = InsuranceCompany::where('status', 'active')->get();
-
-        $patientInsurances = PatientInsurance::where('patient_id', $patientId)
-            ->where('status', 'active')
-            ->with('insuranceCompany')
-            ->get();
-
-        return view('payments.index', compact('patientsDu', 'assurances', 'patientInsurances'));
+        return view('payments.unpaid', compact('transactionsDu'));
     }
 
     public function calculateCoverage(Request $request)

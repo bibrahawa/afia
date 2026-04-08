@@ -41,7 +41,10 @@ class PaymentService
             $patientDue = max(0, (float) $invoice->patient_amount - $alreadyPaid);
 
             if ($patientDue <= 0) {
-                throw new InvalidArgumentException('La part patient est déjà réglée.');
+                $transaction->update(['status' => 'paid']);
+                $invoice->update(['patient_amount_status' => 'paid']);
+
+                // throw new InvalidArgumentException('La part patient est déjà réglée.');
             }
 
             $amountToApply = min($amount, $patientDue);

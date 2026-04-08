@@ -68,8 +68,18 @@ class InsuranceConsumptionService
         InsuranceClaim::where('invoice_id', $invoice->id)->delete();
     }
 
-    private function generateClaimNumber(): string
+   private function generateClaimNumber(): string
     {
-        return 'CLM-' . date('Ymd') . '-' . str_pad(InsuranceClaim::count() + 1, 6, '0', STR_PAD_LEFT);
+        $today = now()->format('Ymd');
+
+        $last = InsuranceClaim::whereDate('created_at', now())
+            ->orderByDesc('id')
+            ->first();
+
+        $number = $last 
+            ? intval(substr($last->claim_number, -6)) + 1 
+            : 1;
+
+        return 'CLM-' . $today . '-' . str_pad($number, 6, '0', STR_PAD_LEFT);
     }
 }
