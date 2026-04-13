@@ -122,10 +122,11 @@
                     <thead class="bg-primary text-white">
                         <tr>
                             <th>ID</th>
-					        <th>Nom du patient</th>
-					        <th>Assurances</th>
+					        <th>Date</th> 
+					        <th>Patiente</th> 
+					        <th>est_assure</th>
 					        <th>Total</th>
-					        <th>Part Patient</th>
+					        <th>Part Patiente</th>
 					        <th>Montant Du</th>
 					        <th>Action</th>
                         </tr>
@@ -133,10 +134,11 @@
                     <tfoot>
                         <tr>
                             <th>ID</th>
-					        <th>Nom du patient</th>
-					        <th>Assurances</th>
+					        <th>Date</th> 
+					        <th>Patiente</th> 
+					        <th>est_assure</th>
 					        <th>Total</th>
-					        <th>Part Patient</th>
+					        <th>Part Patiente</th>
 					        <th>Montant Du</th>
 					        <th>Action</th>
                         </tr>
@@ -146,14 +148,16 @@
                             
                             <tr>
                                 <td>{{++$index}}</td>
+                                <td>{{$transaction->created_at->format('d/m H:i')}}</td>
                                 <td>{{$transaction->patient->getFullNameAttribute()."-".$transaction->patient->phone}}</td>
                                 <td>
                                     @if($transaction->patient->patientInsurances && $transaction->patient->patientInsurances->count() > 0)
                                         <span class="badge badge-success">
-                                            {{ $transaction->patient->patientInsurances->count() }} Assurance(s)
+                                            Oui
+                                            {{-- {{ $transaction->patient->patientInsurances->count() }} Assurance(s) --}}
                                         </span>
                                     @else
-                                        <span class="badge badge-secondary">Aucune</span>
+                                        <span class="badge badge-secondary">Non</span>
                                     @endif
                                 </td>
                                 <td>{{number_format($transaction->invoice->total_amount)." GNF"}}</td>

@@ -244,7 +244,7 @@
 
                 <!-- COMMUNICATION -->
                 {{-- @can('sms.access') --}}
-                <li class="nav-section">
+                {{-- <li class="nav-section">
                     <span class="sidebar-mini-icon">
                         <i class="fa fa-ellipsis-h"></i>
                     </span>
@@ -256,7 +256,7 @@
                         <i class="fas fa-list"></i>
                         <p>Sms envoyés</p>
                     </a>
-                </li>
+                </li> --}}
                 {{-- @endcan --}}
 
                 {{-- @can('sms.new') --}}

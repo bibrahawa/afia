@@ -28,7 +28,7 @@
         <div class="panel-body">
             <div class="row">
                 <!-- Rapport Service -->
-                <div class="col-md-6 col-lg-4 mb-4">
+                {{-- <div class="col-md-6 col-lg-4 mb-4">
                     <div class="card bg-primary text-white shadow-sm h-100">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h5 class="mb-0"><i class="fas fa-users me-2"></i> Rapports par service</h5>
@@ -45,9 +45,9 @@
                             </a>
                         </div>
                     </div>
-                </div>
+                </div> --}}
 
-                <div class="col-md-6 col-lg-4 mb-4">
+                {{-- <div class="col-md-6 col-lg-4 mb-4">
                     <div class="card text-white shadow-sm h-100" style="background-color: #14205b;">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i> Rapports Paie</h5>
@@ -64,7 +64,7 @@
                             </a>
                         </div>
                     </div>
-                </div>
+                </div> --}}
                 
                 <!-- Rapport Consultation -->
                 <div class="col-md-6 col-lg-4 mb-4">
@@ -107,7 +107,7 @@
                 </div>
 
                 <!-- Rapport d'actes par assurance -->
-                <div class="col-md-6 col-lg-4 mb-4">
+                {{-- <div class="col-md-6 col-lg-4 mb-4">
                     <div class="card text-white shadow-sm h-100" style="background-color: #5e6460;">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h5 class="mb-0"><i class="fas fa-cash-register me-2"></i> Rapports d'actes par assurance</h5>
@@ -124,7 +124,7 @@
                             </a>
                         </div>
                     </div>
-                </div>
+                </div> --}}
 
                 <div class="col-md-6 col-lg-4 mb-4">
                     <div class="card text-white shadow-sm h-100" style="background-color: #a8ab85;">

@@ -144,7 +144,7 @@
                     <i class="fa fa-arrow-left"></i> Retour
                 </a>
             </div>
-        </div>
+        </div> 
 
         {{-- ── FILTRE ── --}}
         <form method="GET" action="{{ route('rapports.situation') }}">
@@ -179,6 +179,11 @@
                 <div class="kpi-ico t3"><i class="fa fa-money-bill-wave"></i></div>
                 <div class="kpi-lbl">Espèces</div>
                 <div class="kpi-val amt">{{ number_format($kpi['total_espece'],0,',',' ') }}<span class="kpi-unit">GNF</span></div>
+            </div>
+            <div class="kpi t4">
+                <div class="kpi-ico t4"><i class="fa fa-cart-alt"></i></div>
+                <div class="kpi-lbl">TPE</div>
+                <div class="kpi-val amt">{{ number_format($kpi['total_tpe'],0,',',' ') }}<span class="kpi-unit">GNF</span></div>
             </div>
             <div class="kpi t4">
                 <div class="kpi-ico t4"><i class="fa fa-mobile-alt"></i></div>

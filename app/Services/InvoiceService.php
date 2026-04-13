@@ -19,6 +19,7 @@ class InvoiceService
         array $calculation,
         array $items
     ): Invoice {
+        
         $invoice = $transaction->invoice ?: new Invoice([
             'transaction_id' => $transaction->id
         ]);
@@ -56,11 +57,14 @@ class InvoiceService
                 'quantity' => (int) ($source['quantity'] ?? 1),
                 'total_amount' => (float) ($source['item_amount'] ?? $source['total'] ?? 0),
                 'insurance_covered_amount' => (float) ($source['insurance_amount'] ?? 0),
-                'patient_amount' => (float) ($source['patient_amount'] ?? 0),
+                'patient_amount' => empty($source['insurances_applied']) 
+                    ? (float) ($source['item_amount'] ?? $source['total'])
+                    : (float) ($source['patient_amount']),
                 'coverage_percentage_applied' => !empty($source['insurances_applied'])
                     ? $this->insuranceCalculationService->getAverageCoveragePercentage($source['insurances_applied'])
                     : 0,
             ]);
+            
         }
 
         return $invoice;

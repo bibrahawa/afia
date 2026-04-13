@@ -111,10 +111,10 @@ class ReportController extends Controller
         $rapports = [];
         $soldeAccumule = 0; // Pour calculer le solde cumulé
 
-        foreach ($transactions as $transaction) {
+        foreach ($transactions as $key => $transaction) {
             $debit = $transaction->total ?? 0;
             $credit = $transaction->montant_payer ?? 0;
-            $soldeLigne = $debit - $credit;
+            $soldeLigne = $credit;
             $soldeAccumule += $soldeLigne;
 
             $rapports[] = [
@@ -123,8 +123,9 @@ class ReportController extends Controller
                 'actes' => $this->getActes($transaction),
                 'debit' => $debit,
                 'credit' => $credit,
-                'solde' => $soldeLigne, // Solde de la ligne
             ];
+
+            $rapports[$key]['solde'] = $soldeAccumule; // Solde cumulé jusqu'à cette ligne
         }
 
         // Données pour la vue
@@ -216,7 +217,7 @@ class ReportController extends Controller
             'transaction.invoice.items',
         ])
         ->whereBetween('created_at', [$fromDate, $toDate])
-        ->orderBy('created_at', 'asc')
+        ->orderBy('created_at', 'desc')
         ->get();
 
         $situationParService = [];

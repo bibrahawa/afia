@@ -45,16 +45,9 @@
                     </thead>
                     <tbody>
                         @php
-                            $donnees = $donnees ?? [
-                                ['date' => '10/07/2025', 'patient' => 'Oury Bah', 'actes' => 'Consultation', 'debit' => 250000, 'credit' => 200000, 'solde' => 50000],
-                                ['date' => '11/07/2025', 'patient' => 'Ibrahim Barry', 'actes' => 'Échographie', 'debit' => 200000, 'credit' => 200000, 'solde' => 0],
-                                ['date' => '12/07/2025', 'patient' => '', 'actes' => '', 'debit' => 0, 'credit' => 0, 'solde' => 0],
-                                ['date' => '13/07/2025', 'patient' => '', 'actes' => '', 'debit' => 0, 'credit' => 0, 'solde' => 0],
-                                ['date' => '14/07/2025', 'patient' => '', 'actes' => '', 'debit' => 0, 'credit' => 0, 'solde' => 0]
-                            ];
                             $totalDebit = array_sum(array_column($donnees, 'debit'));
                             $totalCredit = array_sum(array_column($donnees, 'credit'));
-                            $soldeNet = array_sum(array_column($donnees, 'solde'));
+                            $soldeNet = array_sum(array_column($donnees, 'credit'));
                         @endphp
 
                         @foreach($donnees as $ligne)
