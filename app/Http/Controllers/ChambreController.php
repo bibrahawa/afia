@@ -10,7 +10,7 @@ class ChambreController extends Controller
 {
     public function index()
     {
-        $chambres = Chambre::latest()->paginate(10);
+        $chambres = Chambre::latest()->get();
         return view('chambres.index', compact('chambres'));
     }
 

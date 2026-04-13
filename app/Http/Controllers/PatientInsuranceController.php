@@ -11,7 +11,7 @@ class PatientInsuranceController extends Controller
 {
     public function index()
     {
-        $patientInsurances = PatientInsurance::with('patient', 'insuranceCompany')->latest()->paginate(10);
+        $patientInsurances = PatientInsurance::with('patient', 'insuranceCompany')->latest()->get();
         $patients = Patient::all();
         $insuranceCompanies = InsuranceCompany::all();
 

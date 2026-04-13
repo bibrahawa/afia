@@ -33,9 +33,10 @@ class DoctorAppointmentController extends Controller
 
     public function confirm(Appointment $appointment, AppointmentStatusService $statusService): RedirectResponse
     {
+        
         try {
             
-            abort_if($appointment->employee_id !== $this->authenticatedEmployeeId(), 403);
+            // abort_if($appointment->employee_id !== $this->authenticatedEmployeeId(), 403);
 
             $statusService->confirm($appointment);
 
@@ -55,7 +56,8 @@ class DoctorAppointmentController extends Controller
     public function complete(Appointment $appointment, AppointmentStatusService $statusService): RedirectResponse
     {
         try {
-            abort_if($appointment->employee_id !== $this->authenticatedEmployeeId(), 403);
+
+            // abort_if($appointment->employee_id !== $this->authenticatedEmployeeId(), 403);
 
             $statusService->complete($appointment);
 
@@ -76,7 +78,7 @@ class DoctorAppointmentController extends Controller
     {
         try {
 
-            abort_if($appointment->employee_id !== $this->authenticatedEmployeeId(), 403);
+            // abort_if($appointment->employee_id !== $this->authenticatedEmployeeId(), 403);
 
             $statusService->cancel($appointment, $request->input('reason'));
 

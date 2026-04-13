@@ -9,7 +9,7 @@ class InsuranceCompanyController extends Controller
 {
     public function index()
     {
-        $companies = InsuranceCompany::latest()->paginate(10);
+        $companies = InsuranceCompany::latest()->get();
         return view('insurance_companies.index', compact('companies'));
     }
 

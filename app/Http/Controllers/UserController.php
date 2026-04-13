@@ -143,7 +143,7 @@ class UserController extends Controller
     {
         $users = User::with(['employee.department', 'roles'])
             ->latest()
-            ->paginate(20);
+            ->get();
 
         return view('users.index', compact('users'));
     }

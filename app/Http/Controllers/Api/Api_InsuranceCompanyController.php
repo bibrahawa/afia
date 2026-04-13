@@ -16,7 +16,7 @@ class Api_InsuranceCompanyController extends Controller
     {
         $companies = InsuranceCompany::with(['patientInsurances', 'claims'])
             ->withCount(['patientInsurances', 'claims'])
-            ->paginate(15);
+            ->get();
 
         return view('insurance-companies.index', compact('companies'));
     }

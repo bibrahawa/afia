@@ -34,6 +34,8 @@ class AppointmentStatusService
             'status' => 'completed',
         ]);
 
+        
+
         return $appointment->fresh(['employee', 'patient']);
     }
 

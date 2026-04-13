@@ -17,7 +17,7 @@ class InsuranceClaimController extends Controller
     public function index()
     {
         // Charge les relations nécessaires pour l'affichage
-        $claims = InsuranceClaim::with(['invoice', 'insuranceCompany', 'patient'])->paginate(10);
+        $claims = InsuranceClaim::with(['invoice', 'insuranceCompany', 'patient'])->get();
         return view('insurance_claims.index', compact('claims'));
     }
 

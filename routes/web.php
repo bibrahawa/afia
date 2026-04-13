@@ -487,27 +487,11 @@ Route::middleware('auth')->group(function () {
     // ============================================
     // COMPTABILITÉ
     // ============================================
-    Route::prefix('account')->name('account.')->group(function () {
-        Route::get('facture', [AccountController::class, 'factureNonPayer'])
-            ->middleware('permission:account.facture')
-            ->name('facture');
-        
-        // Route::post('facture', [AccountController::class, 'payer'])
-        //     ->middleware('permission:account.payer')
-        //     ->name('payer');
-        
-        Route::get('service', [AccountController::class, 'serviceReport'])
-            ->middleware('permission:account.service_report')
-            ->name('service');
-        
-        Route::get('opd', [AccountController::class, 'opdReport'])
-            ->middleware('permission:account.opd_report')
-            ->name('opd');
-        
-        Route::get('package', [AccountController::class, 'packageReport'])
-            ->middleware('permission:account.package_report')
-            ->name('package');
-    });
+    // Route::prefix('account')->name('account.')->group(function () {
+    //     Route::get('facture', [AccountController::class, 'factureNonPayer'])
+    //         ->middleware('permission:account.facture')
+    //         ->name('facture');
+    // });
 
     // ============================================
     // RAPPORTS
@@ -738,9 +722,13 @@ Route::middleware('auth')->group(function () {
     // ============================================
     // PAIEMENTS
     // ============================================
-    Route::get('/payment/{patient}', [PaymentController::class, 'showPaymentPage'])
-        ->middleware('permission:payment.view')
-        ->name('payment.show');
+    // Route::get('/payment/{patient}', [PaymentController::class, 'showPaymentPage'])
+    //     ->middleware('permission:payment.view')
+    //     ->name('payment.show');
+
+    Route::get('facture', [PaymentController::class, 'factureNonPayer'])
+            ->middleware('permission:account.facture')
+            ->name('account.facture');
     
     Route::get('/payment/{patient}/{amount}/{assurance}', [PaymentController::class, 'calculateCoverage'])
         ->middleware('permission:payment.calculate');
