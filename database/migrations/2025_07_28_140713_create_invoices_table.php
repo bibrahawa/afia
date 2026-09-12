@@ -33,7 +33,7 @@ return new class extends Migration
         Schema::create('invoice_items', function (Blueprint $table) {
             $table->id();
             $table->foreignId('invoice_id')->constrained()->onDelete('cascade');
-            $table->morphs('coverage_type'); // Pour les types de couverture polymorphes
+            $table->morphs('coverage_type');
             $table->string('description');
             $table->decimal('unit_price', 10, 2);
             $table->integer('quantity')->default(1);
