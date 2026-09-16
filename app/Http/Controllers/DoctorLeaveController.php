@@ -20,14 +20,8 @@ class DoctorLeaveController extends Controller
     {
         $employeeId = $this->authenticatedEmployeeId();
 
-        $leaves = EmployeeLeave::where('employee_id', $employeeId)
-            ->orderBy('start_date', 'desc')
-            ->get();
-
-        $breaks = EmployeeBreak::where('employee_id', $employeeId)
-            ->orderBy('day_of_week')
-            ->orderBy('start_time')
-            ->get();
+        $leaves = EmployeeLeave::where('employee_id', $employeeId)->orderBy('start_date', 'desc')->get();
+        $breaks = EmployeeBreak::where('employee_id', $employeeId)->orderBy('day_of_week')->orderBy('start_time')->get();
 
         return view('appointments.leaves', compact('leaves', 'breaks'));
     }
@@ -37,15 +31,11 @@ class DoctorLeaveController extends Controller
         try {
             $service->create($this->authenticatedEmployeeId(), $request->validated());
 
-            return back()->with('success', 'Congé créé avec succès. Les créneaux et rendez-vous concernés ont été mis à jour.');
+            return back()->with('success', 'Congé créé avec succès. Les rendez-vous concernés ont été annulés.');
         } catch (DomainException $e) {
             return back()->with('error', $e->getMessage());
         } catch (\Throwable $e) {
-            Log::error('Erreur création congé', [
-                'error' => $e->getMessage(),
-                'line' => $e->getLine(),
-            ]);
-
+            Log::error('Erreur création congé', ['error' => $e->getMessage()]);
             return back()->with('error', 'Erreur lors de la création du congé.');
         }
     }
@@ -53,25 +43,16 @@ class DoctorLeaveController extends Controller
     public function update(UpdateLeaveRequest $request, EmployeeLeave $leave, DoctorLeaveService $service)
     {
         try {
-            $result = $service->update(
-                $leave,
-                $this->authenticatedEmployeeId(),
-                $request->validated()
-            );
+            $result = $service->update($leave, $this->authenticatedEmployeeId(), $request->validated());
 
             return back()->with(
                 'success',
-                "Congé mis à jour. {$result['restored_slots']} créneaux restaurés, {$result['restored_appointments']} rendez-vous réactivés, {$result['deleted_slots']} créneaux supprimés, {$result['cancelled_appointments']} rendez-vous annulés."
+                "Congé mis à jour. {$result['restored_appointments']} rendez-vous réactivés, {$result['cancelled_appointments']} annulés."
             );
         } catch (DomainException $e) {
             return back()->with('error', $e->getMessage());
         } catch (\Throwable $e) {
-            Log::error('Erreur mise à jour congé', [
-                'leave_id' => $leave->id,
-                'error' => $e->getMessage(),
-                'line' => $e->getLine(),
-            ]);
-
+            Log::error('Erreur mise à jour congé', ['leave_id' => $leave->id, 'error' => $e->getMessage()]);
             return back()->with('error', 'Erreur lors de la mise à jour du congé.');
         }
     }
@@ -81,19 +62,11 @@ class DoctorLeaveController extends Controller
         try {
             $result = $service->delete($leave, $this->authenticatedEmployeeId());
 
-            return back()->with(
-                'success',
-                "Congé supprimé avec succès. {$result['restored_slots']} créneaux restaurés et {$result['restored_appointments']} rendez-vous réactivés."
-            );
+            return back()->with('success', "Congé supprimé. {$result['restored_appointments']} rendez-vous réactivés.");
         } catch (DomainException $e) {
             return back()->with('error', $e->getMessage());
         } catch (\Throwable $e) {
-            Log::error('Erreur suppression congé', [
-                'leave_id' => $leave->id,
-                'error' => $e->getMessage(),
-                'line' => $e->getLine(),
-            ]);
-
+            Log::error('Erreur suppression congé', ['leave_id' => $leave->id, 'error' => $e->getMessage()]);
             return back()->with('error', 'Erreur lors de la suppression du congé.');
         }
     }

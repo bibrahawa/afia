@@ -3,19 +3,26 @@
 namespace App\Services;
 
 use App\Models\Appointment;
-use App\Models\AppointmentSlot;
 use App\Models\EmployeeAvailability;
 use Carbon\Carbon;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * SIMPLIFIÉ — cette classe déléguait auparavant à AppointmentSlotService
+ * pour générer/supprimer des lignes `appointment_slots` à chaque
+ * changement d'horaire. Ce mécanisme est mort depuis DisponibiliteService
+ * (Phase Rdv) : la disponibilité se calcule maintenant à la volée à
+ * partir de EmployeeAvailability/EmployeeBreak/EmployeeLeave/Appointment,
+ * jamais d'une grille pré-générée. Le garder aurait continué à faire un
+ * travail réel (écritures en base) pour un résultat que plus rien ne lit.
+ *
+ * `slot_duration` reste en base par compatibilité mais n'est plus utilisé
+ * par le calcul de disponibilité (la durée vient désormais du motif) —
+ * champ à retirer du formulaire côté vue si tu veux nettoyer complètement.
+ */
 class DoctorAvailabilityService
 {
-    public function __construct(
-        protected AppointmentSlotService $slotService
-    ) {
-    }
-
     public function create(int $employeeId, array $data): EmployeeAvailability
     {
         $exists = EmployeeAvailability::where('employee_id', $employeeId)
@@ -26,20 +33,13 @@ class DoctorAvailabilityService
             throw new DomainException('Une disponibilité existe déjà pour ce jour.');
         }
 
-        return DB::transaction(function () use ($employeeId, $data) {
-            $availability = EmployeeAvailability::create([
-                'employee_id' => $employeeId,
-                'day_of_week' => $data['day_of_week'],
-                'start_time' => $data['start_time'],
-                'end_time' => $data['end_time'],
-                'slot_duration' => $data['slot_duration'],
-                'is_active' => true,
-            ]);
-
-            $this->slotService->generateSlotsForAvailability($employeeId, $data);
-
-            return $availability;
-        });
+        return EmployeeAvailability::create([
+            'employee_id' => $employeeId,
+            'day_of_week' => $data['day_of_week'],
+            'start_time' => $data['start_time'],
+            'end_time' => $data['end_time'],
+            'is_active' => true,
+        ]);
     }
 
     public function update(EmployeeAvailability $availability, int $employeeId, array $data): int
@@ -48,17 +48,19 @@ class DoctorAvailabilityService
             throw new DomainException('Non autorisé.');
         }
 
-        return DB::transaction(function () use ($availability, $employeeId, $data) {
+        return DB::transaction(function () use ($availability, $data) {
             $cancelledCount = $this->cancelAppointmentsOutsideNewSchedule(
-                $employeeId,
-                $this->slotService->dayToEnglish($data['day_of_week']),
+                $availability->employee_id,
+                $data['day_of_week'],
                 $data['start_time'],
                 $data['end_time']
             );
 
-            $this->slotService->deleteFutureAvailableSlotsForDay($employeeId, $data['day_of_week']);
-            $availability->update($data);
-            $this->slotService->generateSlotsForAvailability($employeeId, $data);
+            $availability->update([
+                'day_of_week' => $data['day_of_week'],
+                'start_time' => $data['start_time'],
+                'end_time' => $data['end_time'],
+            ]);
 
             return $cancelledCount;
         });
@@ -70,37 +72,46 @@ class DoctorAvailabilityService
             throw new DomainException('Non autorisé.');
         }
 
-        DB::transaction(function () use ($availability, $employeeId) {
-            $this->slotService->deleteFutureAvailableSlotsForDay($employeeId, $availability->day_of_week);
-            $availability->delete();
-        });
+        $availability->delete();
     }
 
+    /**
+     * Toujours nécessaire : si un médecin retire un créneau horaire alors
+     * que des rendez-vous y sont déjà pris, ces rendez-vous doivent être
+     * signalés/annulés plutôt que de rester "fantômes" en dehors de tout
+     * planning déclaré.
+     */
     protected function cancelAppointmentsOutsideNewSchedule(
         int $employeeId,
-        string $dayOfWeekEn,
+        string $dayOfWeekFr,
         string $newStartTime,
         string $newEndTime
     ): int {
         $appointments = Appointment::where('employee_id', $employeeId)
             ->whereIn('status', ['pending', 'confirmed'])
             ->where('appointment_date', '>=', Carbon::today())
-            ->whereRaw('DAYNAME(appointment_date) = ?', [$dayOfWeekEn])
-            ->where(function ($query) use ($newStartTime, $newEndTime) {
-                $query->where('appointment_time', '<', $newStartTime)
-                    ->orWhere('appointment_time', '>=', $newEndTime);
+            ->get()
+            ->filter(function (Appointment $a) use ($dayOfWeekFr) {
+                return self::JOURS_FR[$a->appointment_date->dayOfWeekIso] === $dayOfWeekFr;
             })
-            ->get();
+            ->filter(function (Appointment $a) use ($newStartTime, $newEndTime) {
+                $heure = $a->appointment_time->format('H:i:s');
+                return $heure < $newStartTime || $heure >= $newEndTime;
+            });
 
         foreach ($appointments as $appointment) {
-            $appointment->update(['status' => 'cancelled']);
-
-            AppointmentSlot::where('employee_id', $employeeId)
-                ->where('date', $appointment->appointment_date)
-                ->where('time', $appointment->appointment_time)
-                ->update(['is_available' => true]);
+            $appointment->update([
+                'status' => 'cancelled',
+                'cancelled_at' => now(),
+                'cancellation_reason' => 'Modification des horaires du médecin',
+            ]);
         }
 
         return $appointments->count();
     }
+
+    protected const JOURS_FR = [
+        1 => 'Lundi', 2 => 'Mardi', 3 => 'Mercredi', 4 => 'Jeudi',
+        5 => 'Vendredi', 6 => 'Samedi', 7 => 'Dimanche',
+    ];
 }

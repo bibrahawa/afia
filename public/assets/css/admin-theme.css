@@ -1,0 +1,173 @@
+/* =========================================================
+   ADMIN-THEME.CSS
+   Reskin de KaiAdmin vers la palette Aprosafe (teal/santé),
+   pour unifier le back-office avec l'interface patient.
+
+   Principe : on ne renomme AUCUNE valeur de data-background-color
+   dans le HTML. On cible les valeurs réelles trouvées dans les
+   fichiers (orange, orange2, white-color) et on ne surcharge que
+   la couleur de remplissage — les règles de contraste que KaiAdmin
+   associe déjà à ces valeurs connues (couleur du texte, des icônes)
+   restent actives. Renommer vers une valeur inconnue aurait fait
+   perdre ce traitement de contraste sans qu'on le voie avant un
+   test réel — c'est pour ça qu'on ne touche pas au HTML ici.
+
+   À charger APRÈS kaiadmin.min.css.
+========================================================= */
+
+:root {
+    --aprosafe-primary: #087f6b;
+    --aprosafe-primary-dark: #056655;
+    --aprosafe-primary-soft: #e9f7f3;
+    --aprosafe-accent: #e5a23c;
+    --aprosafe-ink: #17231f;
+    --aprosafe-ink-soft: #66756f;
+    --aprosafe-border: #e1e8e5;
+    --aprosafe-bg: #f5f7f6;
+}
+
+body {
+    background: var(--aprosafe-bg);
+    color: var(--aprosafe-ink);
+}
+
+/* ---------------------------------------------------------
+   BANDEAUX COLORÉS
+   logo-header (sidebar ET main-header), navbar supérieure —
+   trois usages différents de la même paire de valeurs
+   "orange" / "orange2" dans tes fichiers.
+--------------------------------------------------------- */
+
+.logo-header[data-background-color="orange"],
+.logo-header[data-background-color="orange2"],
+.sidebar[data-background-color="orange"],
+.sidebar[data-background-color="orange2"],
+.navbar[data-background-color="orange"],
+.navbar[data-background-color="orange2"],
+.navbar-header[data-background-color="orange"],
+.navbar-header[data-background-color="orange2"] {
+    background: linear-gradient(180deg, var(--aprosafe-primary-dark), var(--aprosafe-primary)) !important;
+}
+
+/* La navbar supérieure a des icônes/texte posés directement sur
+   le fond coloré (cloche, actions rapides, "Bonjour, X") — on
+   s'assure explicitement qu'ils restent lisibles, sans toucher
+   à l'icône de recherche qui elle repose sur un encart blanc. */
+.navbar[data-background-color="orange"] .topbar-nav .nav-link,
+.navbar[data-background-color="orange"] .topbar-nav .nav-link i,
+.navbar[data-background-color="orange"] .profile-username,
+.navbar[data-background-color="orange2"] .topbar-nav .nav-link,
+.navbar[data-background-color="orange2"] .topbar-nav .nav-link i,
+.navbar[data-background-color="orange2"] .profile-username {
+    color: #fff !important;
+}
+
+.navbar[data-background-color="orange"] .profile-username .op-7,
+.navbar[data-background-color="orange2"] .profile-username .op-7 {
+    color: rgba(255, 255, 255, .75) !important;
+}
+
+/* ---------------------------------------------------------
+   BOUTONS & LIENS
+--------------------------------------------------------- */
+
+.btn-primary {
+    background-color: var(--aprosafe-primary) !important;
+    border-color: var(--aprosafe-primary) !important;
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+    background-color: var(--aprosafe-primary-dark) !important;
+    border-color: var(--aprosafe-primary-dark) !important;
+}
+
+.btn-outline-primary {
+    color: var(--aprosafe-primary) !important;
+    border-color: var(--aprosafe-primary) !important;
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--aprosafe-primary) !important;
+    color: #fff !important;
+}
+
+a { color: var(--aprosafe-primary); }
+a:hover { color: var(--aprosafe-primary-dark); }
+
+/* ---------------------------------------------------------
+   CARTES, TABLEAUX, BADGES
+--------------------------------------------------------- */
+
+.card {
+    border: 1px solid var(--aprosafe-border);
+    border-radius: 14px;
+    box-shadow: 0 2px 8px rgba(20, 40, 34, .04);
+}
+
+.card-header {
+    background: transparent;
+    border-bottom: 1px solid var(--aprosafe-border);
+    font-weight: 650;
+}
+
+.table thead th {
+    color: var(--aprosafe-ink-soft);
+    font-size: .78rem;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    border-bottom: 2px solid var(--aprosafe-border);
+}
+
+.badge-primary,
+.bg-primary {
+    background-color: var(--aprosafe-primary) !important;
+}
+
+.text-primary { color: var(--aprosafe-primary) !important; }
+
+/* Avatar de profil : petit anneau teal pour la cohérence visuelle,
+   sans changer la photo elle-même */
+.avatar-sm .avatar-img,
+.avatar-lg .avatar-img {
+    box-shadow: 0 0 0 2px var(--aprosafe-primary-soft);
+}
+
+/* ---------------------------------------------------------
+   FORMULAIRES
+--------------------------------------------------------- */
+
+.form-control,
+.form-select,
+.bootstrap-select .dropdown-toggle {
+    border-radius: 10px;
+    border-color: var(--aprosafe-border);
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--aprosafe-primary);
+    box-shadow: 0 0 0 3px rgba(8, 127, 107, .12);
+}
+
+/* ---------------------------------------------------------
+   NOTIFICATIONS bootstrap-notify (succès/erreur)
+--------------------------------------------------------- */
+
+.alert-success,
+.notifyjs-bootstrap-success {
+    background-color: var(--aprosafe-primary-soft) !important;
+    color: var(--aprosafe-primary-dark) !important;
+    border-color: #cde9e1 !important;
+}
+
+/* ---------------------------------------------------------
+   FOOTER
+--------------------------------------------------------- */
+
+.footer {
+    border-top: 1px solid var(--aprosafe-border);
+    color: var(--aprosafe-ink-soft);
+}
+
+.footer a { font-weight: 600; }

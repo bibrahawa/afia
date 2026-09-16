@@ -43,12 +43,9 @@ class DoctorBreakController extends Controller
     public function update(UpdateBreakRequest $request, EmployeeBreak $break, DoctorBreakService $service)
     {
         try {
-            $result = $service->update($break, $this->authenticatedEmployeeId(), $request->validated());
+            $service->update($break, $this->authenticatedEmployeeId(), $request->validated());
 
-            return back()->with(
-                'success',
-                "Pause mise à jour. {$result['restored_slots']} créneau(x) restauré(s), {$result['deleted_slots']} supprimé(s)."
-            );
+            return back()->with('success', 'Pause mise à jour avec succès.');
         } catch (DomainException $e) {
             return back()->with('error', $e->getMessage());
         } catch (\Throwable $e) {
@@ -60,9 +57,9 @@ class DoctorBreakController extends Controller
     public function destroy(EmployeeBreak $break, DoctorBreakService $service)
     {
         try {
-            $restored = $service->delete($break, $this->authenticatedEmployeeId());
+            $service->delete($break, $this->authenticatedEmployeeId());
 
-            return back()->with('success', "Pause supprimée. {$restored} créneau(x) restauré(s).");
+            return back()->with('success', 'Pause supprimée.');
         } catch (DomainException $e) {
             return back()->with('error', $e->getMessage());
         } catch (\Throwable $e) {
@@ -80,22 +77,12 @@ class DoctorBreakController extends Controller
                 filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN)
             );
 
-            return response()->json([
-                'success' => true,
-                'message' => $message,
-            ]);
+            return response()->json(['success' => true, 'message' => $message]);
         } catch (DomainException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 422);
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         } catch (\Throwable $e) {
             Log::error('Erreur toggle pause', ['error' => $e->getMessage()]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Erreur lors de la mise à jour de la pause.',
-            ], 500);
+            return response()->json(['success' => false, 'message' => 'Erreur lors de la mise à jour de la pause.'], 500);
         }
     }
 }

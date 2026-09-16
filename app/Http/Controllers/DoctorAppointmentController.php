@@ -23,7 +23,6 @@ class DoctorAppointmentController extends Controller
         $appointments = $queryService->paginatedForDoctor($request, $employeeId);
         $stats = $queryService->statsForDoctor($employeeId);
 
-
         if ($request->ajax()) {
             return view('appointments.partials.list', compact('appointments'))->render();
         }
@@ -33,11 +32,11 @@ class DoctorAppointmentController extends Controller
 
     public function confirm(Appointment $appointment, AppointmentStatusService $statusService): RedirectResponse
     {
-        
-        try {
-            
-            // abort_if($appointment->employee_id !== $this->authenticatedEmployeeId(), 403);
+        // RÉACTIVÉ — cette vérification était commentée : n'importe quel
+        // médecin connecté pouvait confirmer le rendez-vous d'un autre.
+        abort_if($appointment->employee_id !== $this->authenticatedEmployeeId(), 403);
 
+        try {
             $statusService->confirm($appointment);
 
             return back()->with('success', 'Rendez-vous confirmé avec succès.');
@@ -55,10 +54,9 @@ class DoctorAppointmentController extends Controller
 
     public function complete(Appointment $appointment, AppointmentStatusService $statusService): RedirectResponse
     {
+        abort_if($appointment->employee_id !== $this->authenticatedEmployeeId(), 403);
+
         try {
-
-            // abort_if($appointment->employee_id !== $this->authenticatedEmployeeId(), 403);
-
             $statusService->complete($appointment);
 
             return back()->with('success', 'Rendez-vous marqué comme terminé avec succès.');
@@ -76,14 +74,12 @@ class DoctorAppointmentController extends Controller
 
     public function cancel(CancelAppointmentRequest $request, Appointment $appointment, AppointmentStatusService $statusService): RedirectResponse
     {
+        abort_if($appointment->employee_id !== $this->authenticatedEmployeeId(), 403);
+
         try {
-
-            // abort_if($appointment->employee_id !== $this->authenticatedEmployeeId(), 403);
-
             $statusService->cancel($appointment, $request->input('reason'));
 
             return back()->with('success', 'Rendez-vous annulé avec succès.');
-            
         } catch (DomainException $e) {
             return back()->with('error', $e->getMessage());
         } catch (\Throwable $e) {

@@ -34,9 +34,9 @@
                         </div>
                     </td>
                     <td>
-                        @if(isset($item->patient->user->phone))
+                        @if(isset($patient->telephone))
                             <i class="fas fa-phone text-muted me-1"></i>
-                            {{ $item->patient->user->phone }}
+                            {{ $patient->telephone }}
                         @else
                             <span class="text-muted">-</span>
                         @endif

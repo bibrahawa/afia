@@ -3,10 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\HasSanteIdentite;
 
 class Patient extends Model
 {
 
+    use HasSanteIdentite;
 
 	protected $fillable =
 	[

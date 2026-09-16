@@ -25,7 +25,7 @@ class DashboardController extends Controller
         $medicaments_stock_faible = Medicament::count();
         $reclamations_en_attente = InsuranceClaim::where('status', 'draft')->count();
 
-        $rdv_aujourdhui = Appointment::with(['patient.user', 'employee'])
+        $rdv_aujourdhui = Appointment::with(['patient.comptesPatients', 'employee'])
             ->whereDate('appointment_date', today())
             ->orderBy('appointment_time')
             ->get();

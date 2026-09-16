@@ -42,7 +42,7 @@
                         <h2>Information de la patiente</h2>
                         <ul>
                             <li><strong>Nom :</strong> {{ $patient->first_name." ".$patient->last_name }}</li>
-                            <li><strong>Phone :</strong> {{ $patient->user->phone }}</li>
+                            <li><strong>Phone :</strong> {{ $patient->telephone ?? 'N/A' }}</li>
                             <li><strong>Adresse :</strong> {{$patient->location}}, {{$patient->district}}, {{$patient->state}}, {{$patient->country}}</li>
                             @if ($patient->relative_name)
                                 <li><strong>Nom de son epoux :</strong> {{ $patient->relative_name }}</li>

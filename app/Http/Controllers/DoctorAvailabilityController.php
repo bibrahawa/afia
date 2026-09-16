@@ -27,10 +27,9 @@ class DoctorAvailabilityController extends Controller
     public function store(StoreAvailabilityRequest $request, DoctorAvailabilityService $service)
     {
         try {
-
             $service->create($this->authenticatedEmployeeId(), $request->validated());
 
-            return back()->with('success', 'Disponibilité et créneaux créés avec succès.');
+            return back()->with('success', 'Disponibilité créée avec succès.');
         } catch (DomainException $e) {
             return back()->with('error', $e->getMessage());
         } catch (\Throwable $e) {
@@ -42,13 +41,11 @@ class DoctorAvailabilityController extends Controller
     public function update(UpdateAvailabilityRequest $request, EmployeeAvailability $availability, DoctorAvailabilityService $service)
     {
         try {
-
             $cancelledCount = $service->update($availability, $this->authenticatedEmployeeId(), $request->validated());
 
             $message = 'Disponibilité mise à jour avec succès.';
-            
             if ($cancelledCount > 0) {
-                $message .= " {$cancelledCount} rendez-vous annulé(s).";
+                $message .= " {$cancelledCount} rendez-vous annulé(s) car hors du nouvel horaire.";
             }
 
             return back()->with('success', $message);
@@ -63,7 +60,6 @@ class DoctorAvailabilityController extends Controller
     public function destroy(EmployeeAvailability $availability, DoctorAvailabilityService $service)
     {
         try {
-
             $service->delete($availability, $this->authenticatedEmployeeId());
 
             return back()->with('success', 'Disponibilité supprimée avec succès.');

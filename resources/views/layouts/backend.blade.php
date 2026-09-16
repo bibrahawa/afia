@@ -10,13 +10,6 @@
       name="viewport"
     />
 
-    {{-- <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="shortcut icon" href="/favicon.ico" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <meta name="apple-mobile-web-app-title" content="Aprosafe" />
-    <link rel="manifest" href="/site.webmanifest" /> --}}
-
     <link
       rel="icon"
       href="{{asset('assets/img/kaiadmin/favicon.ico')}}"
@@ -46,30 +39,28 @@
     <link rel="stylesheet" href="{{asset("assets/css/plugins.min.css")}}" />
     <link rel="stylesheet" href="{{asset("assets/css/kaiadmin.min.css")}}" />
 
+    {{--
+        Reskin teal/santé Aprosafe — charge APRÈS kaiadmin.min.css pour
+        pouvoir surcharger ses classes sans !important à outrance.
+        Unifie visuellement le back-office avec l'interface patient.
+    --}}
+    <link rel="stylesheet" href="{{ asset('assets/css/admin-theme.css') }}" />
+
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta3/dist/css/bootstrap-select.min.css">
 
-    {{-- Tailwind CSS pour la prévisualisation (le CDN doit être dans le head pour être analysé avant le rendu) --}}
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        medical: {
-                            50: '#f0f9ff',
-                            100: '#e0f2fe',
-                            500: '#0ea5e9',
-                            600: '#0284c7',
-                            700: '#0369a1'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+    {{--
+        Le CDN Tailwind a été retiré : il tournait en parallèle de
+        KaiAdmin (Bootstrap 4), avec des classes utilitaires qui se
+        chevauchent et des priorités CSS imprévisibles selon l'ordre
+        de chargement — en plus d'un runtime JS complet téléchargé à
+        chaque page, coûteux sur connexion faible. Si un besoin
+        Tailwind précis se présente sur une page donnée, on l'isole
+        dans un composant compilé plutôt que de charger le CDN
+        globalement.
+    --}}
 
     @yield('style') {{-- Pour les styles spécifiques à une page --}}
-    
+
     <!-- jQuery EN PREMIER -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
@@ -85,14 +76,6 @@
         <div class="main-header">
           <div class="main-header-logo">
             <div class="logo-header" data-background-color="orange">
-              {{-- <a href="index.html" class="logo">
-                <img
-                  src="{{ asset("assets/img/kaiadmin/logo_light.svg")}}"
-                  alt="navbar brand"
-                  class="navbar-brand"
-                  height="20"
-                />
-              </a> --}}
               <div class="nav-toggle">
                 <button class="btn btn-toggle toggle-sidebar">
                   <i class="gg-menu-right"></i>
@@ -115,7 +98,7 @@
       </div>
 
     </div>
-    
+
     <script src="{{ asset("assets/js/core/popper.min.js") }} "></script>
     <script src="{{ asset("assets/js/core/bootstrap.min.js") }} "></script>
 
@@ -204,7 +187,6 @@
             @endif
         });
     </script>
-    {{-- <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script> --}}
 
     @yield('script')
 

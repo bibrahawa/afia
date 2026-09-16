@@ -3,19 +3,21 @@
 namespace App\Services;
 
 use App\Models\Appointment;
-use App\Models\AppointmentSlot;
 use App\Models\EmployeeLeave;
 use Carbon\Carbon;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * SIMPLIFIÉ — voir DoctorAvailabilityService pour le contexte général :
+ * plus de bookkeeping sur `appointment_slots`, DisponibiliteService lit
+ * directement EmployeeLeave pour savoir qu'une période est bloquée. La
+ * logique métier réelle (annuler/restaurer les rendez-vous concernés par
+ * un congé) reste inchangée, elle n'a jamais dépendu des slots pour son
+ * SENS — seulement pour sa mécanique interne, maintenant retirée.
+ */
 class DoctorLeaveService
 {
-    public function __construct(
-        protected AppointmentSlotService $slotService
-    ) {
-    }
-
     public function create(int $employeeId, array $data): EmployeeLeave
     {
         $startDate = Carbon::parse($data['start_date']);
@@ -35,14 +37,7 @@ class DoctorLeaveService
                 'status' => 'pending',
             ]);
 
-            $this->cancelAppointmentsForLeave(
-                $employeeId,
-                $startDate,
-                $endDate,
-                $data['type']
-            );
-
-            $this->slotService->deleteSlotsInPeriod($employeeId, $startDate, $endDate);
+            $this->cancelAppointmentsForLeave($employeeId, $startDate, $endDate, $data['type']);
 
             return $leave;
         });
@@ -69,18 +64,8 @@ class DoctorLeaveService
             $oldStart = $leave->start_date->copy();
             $oldEnd = $leave->end_date->copy();
 
-            // 1. Restaurer les slots de l’ancienne période
-            $restoredSlots = $this->slotService->restoreSlotsInPeriod($employeeId, $oldStart, $oldEnd);
+            $restoredAppointments = $this->restoreCancelledAppointmentsForLeavePeriod($employeeId, $oldStart, $oldEnd, $leave->id);
 
-            // 2. Restaurer les rendez-vous annulés dans l’ancienne période
-            $restoredAppointments = $this->restoreCancelledAppointmentsForLeavePeriod(
-                $employeeId,
-                $oldStart,
-                $oldEnd,
-                $leave->id
-            );
-
-            // 3. Mettre à jour le congé
             $leave->update([
                 'type' => $data['type'],
                 'start_date' => $newStart,
@@ -88,21 +73,10 @@ class DoctorLeaveService
                 'reason' => $data['reason'] ?? null,
             ]);
 
-            // 4. Supprimer les slots de la nouvelle période
-            $deletedSlots = $this->slotService->deleteSlotsInPeriod($employeeId, $newStart, $newEnd);
-
-            // 5. Ré-annuler les rendez-vous de la nouvelle période
-            $cancelledAppointments = $this->cancelAppointmentsForLeave(
-                $employeeId,
-                $newStart,
-                $newEnd,
-                $data['type']
-            );
+            $cancelledAppointments = $this->cancelAppointmentsForLeave($employeeId, $newStart, $newEnd, $data['type']);
 
             return [
-                'restored_slots' => $restoredSlots,
                 'restored_appointments' => $restoredAppointments,
-                'deleted_slots' => $deletedSlots,
                 'cancelled_appointments' => $cancelledAppointments,
             ];
         });
@@ -119,70 +93,18 @@ class DoctorLeaveService
         }
 
         return DB::transaction(function () use ($leave, $employeeId) {
-            $startDate = $leave->start_date->copy();
-            $endDate = $leave->end_date->copy();
-
-            // 1. Restaurer les slots
-            $restoredSlots = $this->slotService->restoreSlotsInPeriod($employeeId, $startDate, $endDate);
-
-            // 2. Restaurer les rendez-vous annulés à cause du congé
             $restoredAppointments = $this->restoreCancelledAppointmentsForLeavePeriod(
-                $employeeId,
-                $startDate,
-                $endDate,
-                $leave->id
+                $employeeId, $leave->start_date->copy(), $leave->end_date->copy(), $leave->id
             );
 
-            // 3. Supprimer le congé
             $leave->delete();
 
-            return [
-                'restored_slots' => $restoredSlots,
-                'restored_appointments' => $restoredAppointments,
-            ];
+            return ['restored_appointments' => $restoredAppointments];
         });
     }
 
-    // protected function cancelAppointmentsForLeave(
-    //     int $employeeId,
-    //     Carbon $startDate,
-    //     Carbon $endDate,
-    //     string $reason
-    // ): int {
-
-    //     $appointments = Appointment::where('employee_id', $employeeId)
-    //         ->whereIn('status', ['pending', 'confirmed'])
-    //         ->whereBetween('appointment_datetime', [$startDate, $endDate])
-    //         ->get();
-
-    //     $count = 0;
-
-    //     foreach ($appointments as $appointment) {
-    //         $appointment->update([
-    //             'status' => 'cancelled',
-    //             'cancelled_at' => now(),
-    //             'cancellation_reason' => "Indisponibilité du médecin : {$reason}",
-    //         ]);
-
-    //         AppointmentSlot::where('employee_id', $employeeId)
-    //             ->whereDate('date', $appointment->appointment_date)
-    //             ->where('time', $appointment->appointment_time)
-    //             ->update([
-    //                 'is_available' => false,
-    //             ]);
-
-    //         $count++;
-    //     }
-
-    //     return $count;
-    // }
-
-    protected function cancelAppointmentsForLeave(
-        int $employeeId,
-        Carbon $startDate,
-        Carbon $endDate,
-        string $reason
-    ): int {
+    protected function cancelAppointmentsForLeave(int $employeeId, Carbon $startDate, Carbon $endDate, string $reason): int
+    {
         return Appointment::where('employee_id', $employeeId)
             ->whereIn('status', ['pending', 'confirmed'])
             ->whereBetween('appointment_datetime', [$startDate, $endDate])
@@ -193,60 +115,33 @@ class DoctorLeaveService
             ]);
     }
 
-    protected function restoreCancelledAppointmentsForLeavePeriod(
-        int $employeeId,
-        Carbon $startDate,
-        Carbon $endDate,
-        ?int $excludeLeaveId = null
-    ): int {
+    protected function restoreCancelledAppointmentsForLeavePeriod(int $employeeId, Carbon $startDate, Carbon $endDate, ?int $excludeLeaveId = null): int
+    {
         $appointments = Appointment::where('employee_id', $employeeId)
             ->where('status', 'cancelled')
             ->whereBetween('appointment_datetime', [$startDate, $endDate])
-            ->whereNotNull('cancellation_reason')
             ->where('cancellation_reason', 'like', 'Indisponibilité du médecin :%')
             ->get();
 
-        $restoredCount = 0;
+        $restored = 0;
 
         foreach ($appointments as $appointment) {
-            // Vérifier qu’aucun autre congé ne couvre encore ce rendez-vous
-            $hasLeaveConflict = EmployeeLeave::where('employee_id', $employeeId)
-                ->when($excludeLeaveId, function ($query) use ($excludeLeaveId) {
-                    $query->where('id', '!=', $excludeLeaveId);
-                })
+            $conflitAvecAutreConge = EmployeeLeave::where('employee_id', $employeeId)
+                ->when($excludeLeaveId, fn ($q) => $q->where('id', '!=', $excludeLeaveId))
                 ->where('status', '!=', 'rejected')
                 ->where('start_date', '<=', $appointment->appointment_datetime)
                 ->where('end_date', '>=', $appointment->appointment_datetime)
                 ->exists();
 
-            if ($hasLeaveConflict) {
+            if ($conflitAvecAutreConge) {
                 continue;
             }
 
-            // Vérifier qu’un autre congé/pause/disponibilité ne bloque pas encore
-            $slot = AppointmentSlot::firstOrCreate([
-                'employee_id' => $employeeId,
-                'date' => $appointment->appointment_date->format('Y-m-d'),
-                'time' => Carbon::parse($appointment->appointment_time)->format('H:i:s'),
-            ], [
-                'is_available' => false,
-            ]);
-
-            // Si le slot est déjà libre, on le rebloque pour le rendez-vous restauré
-            $slot->update([
-                'is_available' => false,
-            ]);
-
-            $appointment->update([
-                'status' => 'pending',
-                'cancelled_at' => null,
-                'cancellation_reason' => null,
-            ]);
-
-            $restoredCount++;
+            $appointment->update(['status' => 'pending', 'cancelled_at' => null, 'cancellation_reason' => null]);
+            $restored++;
         }
 
-        return $restoredCount;
+        return $restored;
     }
 
     protected function hasConflict(int $employeeId, $startDate, $endDate, ?int $excludeId = null): bool
@@ -257,8 +152,7 @@ class DoctorLeaveService
                 $q->whereBetween('start_date', [$startDate, $endDate])
                     ->orWhereBetween('end_date', [$startDate, $endDate])
                     ->orWhere(function ($q2) use ($startDate, $endDate) {
-                        $q2->where('start_date', '<=', $startDate)
-                            ->where('end_date', '>=', $endDate);
+                        $q2->where('start_date', '<=', $startDate)->where('end_date', '>=', $endDate);
                     });
             });
 

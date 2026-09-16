@@ -13,10 +13,11 @@ class Appointment extends Model
     protected $fillable = [
         'employee_id',
         'patient_id',
+        'motif_rdv_id',
+        'duree_minutes',
         'appointment_date',
         'appointment_time',
-        'appointment_datetime', 
-        'reason',
+        'appointment_datetime',
         'description',
         'status',
         'notes',
@@ -24,7 +25,7 @@ class Appointment extends Model
         'cancelled_at',
         'cancellation_reason',
         'reminder_sent_at',
-        'last_minute_reminder_sent_at', 
+        'last_minute_reminder_sent_at',
         'confirmation_sent_at',
         'patient_confirmed'
     ];
@@ -32,11 +33,11 @@ class Appointment extends Model
     protected $casts = [
         'appointment_date' => 'date',
         'appointment_time' => 'datetime:H:i',
-        'appointment_datetime' => 'datetime', 
+        'appointment_datetime' => 'datetime',
         'confirmed_at' => 'datetime',
         'cancelled_at' => 'datetime',
         'reminder_sent_at' => 'datetime',
-        'last_minute_reminder_sent_at' => 'datetime', 
+        'last_minute_reminder_sent_at' => 'datetime',
         'confirmation_sent_at' => 'datetime',
         'patient_confirmed' => 'boolean'
     ];
@@ -55,6 +56,11 @@ class Appointment extends Model
         return $this->belongsTo(Patient::class, 'patient_id');
     }
 
+    public function motifRdv()
+    {
+        return $this->belongsTo(MotifRdv::class);
+    }
+
     public function smsLogs()
     {
         return $this->hasMany(AppointmentSmsLog::class);
@@ -68,11 +74,10 @@ class Appointment extends Model
     {
         parent::boot();
 
-        // Automatiquement remplir appointment_datetime quand on crée/modifie
         static::saving(function ($appointment) {
             if ($appointment->appointment_date && $appointment->appointment_time) {
                 $appointment->appointment_datetime = Carbon::parse(
-                    $appointment->appointment_date->format('Y-m-d') . ' ' . 
+                    $appointment->appointment_date->format('Y-m-d') . ' ' .
                     $appointment->appointment_time->format('H:i:s')
                 );
             }
@@ -83,59 +88,41 @@ class Appointment extends Model
     // SCOPES OPTIMISÉS POUR LES RAPPELS
     // ==========================================
 
-    /**
-     * RDV à venir (status valide et dans le futur)
-     */
     public function scopeUpcoming($query)
     {
         return $query->where('appointment_datetime', '>', now())
                     ->whereIn('status', ['pending', 'confirmed']);
     }
 
-    /**
-     * RDV nécessitant un rappel 24h avant
-     * Fenêtre large : entre 22h et 26h avant le RDV
-     * Évite de manquer un rappel si le CRON rate une exécution
-     */
     public function scopeNeedingReminder($query)
     {
         $start = now()->addHours(22);
         $end = now()->addHours(26);
-        
-        return $query
-            ->whereIn('status', ['pending', 'confirmed']) // Filtrer d'abord par status (index)
-            ->whereBetween('appointment_datetime', [$start, $end])
-            ->whereNull('reminder_sent_at') // Ne pas renvoyer
-            ->orderBy('appointment_datetime');
-    }
 
-    /**
-     * RDV nécessitant un rappel 2h avant
-     * Fenêtre large : entre 1h30 et 2h30 avant le RDV
-     */
-    public function scopeNeedingLastMinuteReminder($query)
-    {
-        $start = now()->addMinutes(90);  // 1h30
-        $end = now()->addMinutes(150);   // 2h30
-        
         return $query
             ->whereIn('status', ['pending', 'confirmed'])
             ->whereBetween('appointment_datetime', [$start, $end])
-            ->whereNull('last_minute_reminder_sent_at') // Pas encore reçu le rappel 2h
+            ->whereNull('reminder_sent_at')
             ->orderBy('appointment_datetime');
     }
 
-    /**
-     * RDV du jour
-     */
+    public function scopeNeedingLastMinuteReminder($query)
+    {
+        $start = now()->addMinutes(90);
+        $end = now()->addMinutes(150);
+
+        return $query
+            ->whereIn('status', ['pending', 'confirmed'])
+            ->whereBetween('appointment_datetime', [$start, $end])
+            ->whereNull('last_minute_reminder_sent_at')
+            ->orderBy('appointment_datetime');
+    }
+
     public function scopeToday($query)
     {
         return $query->whereDate('appointment_datetime', today());
     }
 
-    /**
-     * RDV de demain
-     */
     public function scopeTomorrow($query)
     {
         return $query->whereDate('appointment_datetime', today()->addDay());
@@ -166,7 +153,7 @@ class Appointment extends Model
 
     public function canBeCancelled()
     {
-        return in_array($this->status, ['pending', 'confirmed']) && 
+        return in_array($this->status, ['pending', 'confirmed']) &&
                $this->appointment_datetime > now()->addHours(2);
     }
 
@@ -190,10 +177,6 @@ class Appointment extends Model
         return $this->appointment_datetime->diffForHumans();
     }
 
-    // ==========================================
-    // MÉTHODES POUR MARQUER LES RAPPELS ENVOYÉS
-    // ==========================================
-
     public function markReminderSent()
     {
         $this->update(['reminder_sent_at' => now()]);
@@ -208,10 +191,6 @@ class Appointment extends Model
     {
         $this->update(['confirmation_sent_at' => now()]);
     }
-
-    // ==========================================
-    // MÉTHODES POUR VÉRIFIER L'ÉTAT DES RAPPELS
-    // ==========================================
 
     public function hasReminderBeenSent()
     {

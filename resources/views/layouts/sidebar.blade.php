@@ -269,12 +269,48 @@
                 {{-- @endcan --}}
 
                 <!-- ADMINISTRATION -->
+
                 <li class="nav-section">
-                    <span class="sidebar-mini-icon">
-                        <i class="fa fa-ellipsis-h"></i>
-                    </span>
-                    <h4 class="text-section">Administration</h4>
+                    <span class="sidebar-mini-icon"><i class="fa fa-minus"></i></span>
+                    <h4 class="text-section">Administration plateforme</h4>
                 </li>
+
+                @can('etablissement.view')
+                    <li class="nav-item {{ request()->routeIs('etablissement.*') ? 'active' : '' }}">
+                        <a href="{{ route('etablissement.index') }}">
+                            <i class="fas fa-hospital"></i>
+                            <p>Établissements</p>
+                        </a>
+                    </li>
+                @endcan
+
+                @can('module.view')
+                    <li class="nav-item {{ request()->routeIs('module.*') ? 'active' : '' }}">
+                        <a href="{{ route('module.index') }}">
+                            <i class="fas fa-th-large"></i>
+                            <p>Modules</p>
+                        </a>
+                    </li>
+                @endcan
+
+                @can('motif_rdv.view')
+                    <li class="nav-item {{ request()->routeIs('motifs-rdv.*') ? 'active' : '' }}">
+                        <a href="{{ route('motifs-rdv.index') }}">
+                            <i class="fas fa-stopwatch"></i>
+                            <p>Motifs de rendez-vous</p>
+                        </a>
+                    </li>
+                @endcan
+
+                @can('patient.view')
+                    <li class="nav-item {{ request()->routeIs('comptes-patients.*') ? 'active' : '' }}">
+                        <a href="{{ route('comptes-patients.index') }}">
+                            <i class="fas fa-user-lock"></i>
+                            <p>Comptes patients</p>
+                        </a>
+                    </li>
+                @endcan
+
                 @can('users.view')
 
                 <li class="nav-item {{ request()->routeIs('users.*') ? 'active' : '' }}">
@@ -300,11 +336,12 @@
 <!-- End Sidebar -->
 
 <style>
-    /* Styles pour le menu actif */
+    /* Styles pour le menu actif — recodés en teal (marque Aprosafe)
+       au lieu de l'orange d'origine du template KaiAdmin */
     .nav-item.active a {
-        background: linear-gradient(90deg, rgba(255, 149, 0, 0.1) 0%, transparent 100%);
-        color: #ff9500 !important;
-        border-left: 3px solid #ff9500;
+        background: linear-gradient(90deg, rgba(8, 127, 107, 0.1) 0%, transparent 100%);
+        color: #087f6b !important;
+        border-left: 3px solid #087f6b;
         font-weight: 600;
     }
 
@@ -315,9 +352,9 @@
     }
 
     .nav-item a:hover {
-        background: rgba(255, 149, 0, 0.05);
-        color: #ff9500;
-        border-left-color: #ff9500;
+        background: rgba(8, 127, 107, 0.05);
+        color: #087f6b;
+        border-left-color: #087f6b;
     }
 
     /* Sections du menu */
@@ -353,7 +390,7 @@
     /* Scroll personnalisé */
     .sidebar-wrapper.scrollbar-inner {
         scrollbar-width: thin;
-        scrollbar-color: rgba(255, 149, 0, 0.3) transparent;
+        scrollbar-color: rgba(8, 127, 107, 0.3) transparent;
     }
 
     .sidebar-wrapper.scrollbar-inner::-webkit-scrollbar {
@@ -365,12 +402,12 @@
     }
 
     .sidebar-wrapper.scrollbar-inner::-webkit-scrollbar-thumb {
-        background-color: rgba(255, 149, 0, 0.3);
+        background-color: rgba(8, 127, 107, 0.3);
         border-radius: 3px;
     }
 
     .sidebar-wrapper.scrollbar-inner::-webkit-scrollbar-thumb:hover {
-        background-color: rgba(255, 149, 0, 0.5);
+        background-color: rgba(8, 127, 107, 0.5);
     }
 </style>
 

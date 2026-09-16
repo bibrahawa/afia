@@ -3,8 +3,6 @@
 namespace App\Services;
 
 use App\Models\Appointment;
-use App\Models\AppointmentSlot;
-use Illuminate\Support\Facades\DB;
 use DomainException;
 
 class AppointmentStatusService
@@ -30,35 +28,29 @@ class AppointmentStatusService
             throw new DomainException('Ce rendez-vous ne peut pas être marqué comme terminé.');
         }
 
-        $appointment->update([
-            'status' => 'completed',
-        ]);
-
-        
+        $appointment->update(['status' => 'completed']);
 
         return $appointment->fresh(['employee', 'patient']);
     }
 
+    /**
+     * Plus besoin de libérer une ligne `appointment_slots` : la
+     * disponibilité est recalculée à la volée (DisponibiliteService) à
+     * partir des rendez-vous encore actifs — un rendez-vous annulé
+     * disparaît naturellement du calcul, sans étape de "libération"
+     * séparée à maintenir en cohérence.
+     */
     public function cancel(Appointment $appointment, ?string $reason = null): Appointment
     {
         if (!in_array($appointment->status, ['pending', 'confirmed'])) {
             throw new DomainException('Ce rendez-vous ne peut pas être annulé.');
         }
 
-        DB::transaction(function () use ($appointment, $reason) {
-            $appointment->update([
-                'status' => 'cancelled',
-                'cancelled_at' => now(),
-                'cancellation_reason' => $reason,
-            ]);
-
-            AppointmentSlot::where('employee_id', $appointment->employee_id)
-                ->whereDate('date', $appointment->appointment_date)
-                ->where('time', $appointment->appointment_time)
-                ->update([
-                    'is_available' => true,
-                ]);
-        });
+        $appointment->update([
+            'status' => 'cancelled',
+            'cancelled_at' => now(),
+            'cancellation_reason' => $reason,
+        ]);
 
         return $appointment->fresh(['employee', 'patient']);
     }

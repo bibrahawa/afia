@@ -283,8 +283,8 @@
                         </span>
                     </td>
                     <td>
-                        @if(isset($appointment->patient->user->phone))
-                            {{ $appointment->patient->user->phone }}
+                        @if(isset($patient->telephone))
+                            {{ $patient->telephone }}
                         @else
                             <span class="text-muted">-</span>
                         @endif

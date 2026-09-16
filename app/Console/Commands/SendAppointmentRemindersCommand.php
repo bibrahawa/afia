@@ -132,7 +132,7 @@ class SendAppointmentRemindersCommand extends Command
         $this->newLine();
 
         // Récupérer les appointments avec les relations
-        $appointments = $query->with(['patient.user', 'employee'])->get();
+        $appointments = $query->with(['patient.comptesPatients', 'employee'])->get();
 
         // Préparer les données pour le tableau
         $tableData = $appointments->map(function ($appointment) {
@@ -142,7 +142,7 @@ class SendAppointmentRemindersCommand extends Command
                 'Médecin' => $appointment->employee->getFullNameAttribute(),
                 'Date RDV' => $appointment->getFormattedDateAttribute(),
                 'Dans' => $appointment->getTimeUntilAppointment(),
-                'Téléphone' => $appointment->patient->user->phone ?? 'N/A',
+                'Téléphone' => $appointment->patient->telephone ?? 'N/A',
                 'Statut' => $appointment->status
             ];
         });
@@ -173,12 +173,12 @@ class SendAppointmentRemindersCommand extends Command
         $skippedCount = 0;
 
         try {
-            $query->with(['patient.user', 'employee'])
+            $query->with(['patient.comptesPatients', 'employee'])
                 ->chunk(50, function ($appointments) use (&$successCount, &$errorCount, &$skippedCount, $jobType, $reminderField, $bar) {
                     foreach ($appointments as $appointment) {
                         try {
                             // Vérifier que le patient a un téléphone
-                            if (!$appointment->patient->user->phone) {
+                            if (!$appointment->patient->telephone) {
                                 $skippedCount++;
                                 Log::warning("Téléphone manquant", [
                                     'appointment_id' => $appointment->id,

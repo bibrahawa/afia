@@ -1,0 +1,36 @@
+<div class="row">
+    <div class="col-sm-12 mb-2">
+        <label>Nom</label>
+        <input type="text" name="nom" class="form-control" required>
+    </div>
+    <div class="col-sm-6 mb-2">
+        <label>Type</label>
+        <select name="type" class="form-control" required>
+            <option value="clinique">Clinique</option>
+            <option value="laboratoire">Laboratoire</option>
+            <option value="pharmacie">Pharmacie</option>
+            <option value="cabinet">Cabinet</option>
+        </select>
+    </div>
+    <div class="col-sm-6 mb-2">
+        <label>Statut</label>
+        <select name="statut" class="form-control" required>
+            <option value="essai">Essai</option>
+            <option value="actif">Actif</option>
+            <option value="suspendu">Suspendu</option>
+            <option value="resilie">Résilié</option>
+        </select>
+    </div>
+    <div class="col-sm-12 mb-2">
+        <label>Adresse</label>
+        <input type="text" name="adresse" class="form-control">
+    </div>
+    <div class="col-sm-6 mb-2">
+        <label>Contact</label>
+        <input type="text" name="contact" class="form-control">
+    </div>
+    <div class="col-sm-6 mb-2">
+        <label>Email</label>
+        <input type="email" name="email" class="form-control">
+    </div>
+</div>

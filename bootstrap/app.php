@@ -21,6 +21,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,
             'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
             'permission' => \App\Http\Middleware\CheckPermission::class,
+            'module' => \App\Http\Middleware\EnsureModuleActive::class,
+            'etablissement' => \App\Http\Middleware\ResolveEtablissementPublic::class,
+            
         ]);
 
     })

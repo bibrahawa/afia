@@ -68,6 +68,16 @@
                     </div>
 
                     <div class="card-body">
+                        <p class="text-muted small">
+                            Ces plages définissent uniquement vos heures de travail par jour. La durée de
+                            chaque rendez-vous dépend désormais du motif choisi par le patient, pas d'une
+                            durée de créneau fixe — voir
+                            @can('motif_rdv.view')
+                                <a href="{{ route('motifs-rdv.index') }}">la configuration des motifs</a>
+                            @else
+                                la configuration des motifs (accès administrateur)
+                            @endcan.
+                        </p>
                         <div class="bg-white rounded-lg shadow-md">
                             <div class="p-3 p-md-4">
                                 <div class="row g-3">
@@ -88,7 +98,6 @@
                                                                 data-day="{{ $item->day_of_week }}"
                                                                 data-start="{{ $item->start_time->format('H:i') }}"
                                                                 data-end="{{ $item->end_time->format('H:i') }}"
-                                                                data-duration="{{ $item->slot_duration }}"
                                                                 data-active="{{ $item->is_active ? 1 : 0 }}"
                                                                 title="Modifier"
                                                             >
@@ -112,10 +121,6 @@
                                                     <span>{{ $item->start_time->format('H:i') }}</span>
                                                     -
                                                     <span>{{ $item->end_time->format('H:i') }}</span>
-                                                </p>
-
-                                                <p class="text-sm text-gray-600 mb-2">
-                                                    Durée : <span>{{ $item->slot_duration }}</span> min
                                                 </p>
 
                                                 <span class="px-2 py-1 rounded-full text-xs {{ $item->is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
@@ -175,19 +180,6 @@
                                                 </div>
                                             </div>
 
-                                            <div class="form-group">
-                                                <label>Durée des créneaux (minutes)</label>
-                                                <select name="slot_duration" class="form-control" required>
-                                                    <option value="10">10 minutes</option>
-                                                    <option value="15">15 minutes</option>
-                                                    <option value="20">20 minutes</option>
-                                                    <option value="30">30 minutes</option>
-                                                    <option value="45">45 minutes</option>
-                                                    <option value="60">1 heure</option>
-                                                    <option value="90">1h30</option>
-                                                    <option value="120">2 heures</option>
-                                                </select>
-                                            </div>
                                         </div>
 
                                         <div class="modal-footer border-0">
@@ -243,20 +235,6 @@
                                                     <label>Heure de fin</label>
                                                     <input type="time" name="end_time" id="edit_end_time" class="form-control" required>
                                                 </div>
-                                            </div>
-
-                                            <div class="form-group">
-                                                <label>Durée des créneaux (minutes)</label>
-                                                <select name="slot_duration" id="edit_slot_duration" class="form-control" required>
-                                                    <option value="10">10 minutes</option>
-                                                    <option value="15">15 minutes</option>
-                                                    <option value="20">20 minutes</option>
-                                                    <option value="30">30 minutes</option>
-                                                    <option value="45">45 minutes</option>
-                                                    <option value="60">1 heure</option>
-                                                    <option value="90">1h30</option>
-                                                    <option value="120">2 heures</option>
-                                                </select>
                                             </div>
 
                                             <div class="form-check mt-3">
@@ -329,14 +307,12 @@
         const day = $(this).data('day');
         const start = $(this).data('start');
         const end = $(this).data('end');
-        const duration = $(this).data('duration');
         const active = $(this).data('active');
 
         $('#edit_availability_id').val(id);
         $('#edit_day_of_week').val(day);
         $('#edit_start_time').val(start);
         $('#edit_end_time').val(end);
-        $('#edit_slot_duration').val(duration);
         $('#edit_is_active').prop('checked', Number(active) === 1);
 
         $('#editAvailabilityForm').attr('action', `/medecin/availabilities/${id}`);

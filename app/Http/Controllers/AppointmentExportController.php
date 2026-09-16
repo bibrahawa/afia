@@ -15,7 +15,7 @@ class AppointmentExportController extends Controller
             return back()->with('error', 'Le filtre de date est requis pour l’export PDF.');
         }
 
-        $query = Appointment::with(['patient.user'])
+        $query = Appointment::with(['patient.comptesPatients'])
             ->orderBy('appointment_date')
             ->orderBy('appointment_time');
 

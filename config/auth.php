@@ -45,6 +45,10 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+        'patient' => [
+            'driver' => 'session',
+            'provider' => 'comptes_patients',
+        ],
     ],
 
     /*
@@ -74,6 +78,10 @@ return [
         //     'driver' => 'database',
         //     'table' => 'users',
         // ],
+        'comptes_patients' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\ComptePatient::class,
+        ],
     ],
 
     /*

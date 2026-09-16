@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class SmsService
@@ -21,10 +20,9 @@ class SmsService
     public function sendSms(string $phoneNumber, string $message): array
     {
         try {
-            
+
             $sender = $this->defaultSender;
 
-            // Préparer les données
             $data = [
                 "to"          => [$phoneNumber],
                 "sender_name" => $sender,
@@ -41,14 +39,38 @@ class SmsService
                     "method"        => "POST",
                     "header"        => implode("\r\n", $headers),
                     "content"       => json_encode($data),
-                    "ignore_errors" => true
+                    "ignore_errors" => true,
+                    // CORRIGÉ — sans ceci, file_get_contents() attend
+                    // indéfiniment (jusqu'à la limite globale PHP, une
+                    // erreur fatale que le catch ci-dessous ne peut pas
+                    // intercepter) si Nimba est lent ou injoignable. 8s
+                    // laisse largement le temps à une réponse normale,
+                    // tout en échouant proprement bien avant que PHP ne
+                    // tue la requête entière de force.
+                    "timeout"       => 8,
                 ]
             ];
 
-            $context  = stream_context_create($options);
-            $response = file_get_contents($this->apiUrl, false, $context);
+            $context = stream_context_create($options);
 
-            // Récupérer le code HTTP de la réponse
+            // @ volontaire : file_get_contents émet un WARNING (pas une
+            // exception) en cas de timeout ou d'échec de connexion — on le
+            // traite nous-mêmes juste en dessous via $response === false,
+            // pas la peine de le laisser polluer les logs PHP en plus du
+            // Log::error() explicite qu'on fait ici.
+            $response = @file_get_contents($this->apiUrl, false, $context);
+
+            if ($response === false) {
+                Log::error("Échec envoi SMS — pas de réponse (timeout ou connexion)", [
+                    'phone' => $phoneNumber,
+                ]);
+
+                return [
+                    'success' => false,
+                    'error' => 'Le service SMS n’a pas répondu à temps.',
+                ];
+            }
+
             $http_response_header = $http_response_header ?? [];
             $status_line = $http_response_header[0] ?? '';
             preg_match('/HTTP\/\S*\s(\d{3})/', $status_line, $match);
@@ -56,7 +78,7 @@ class SmsService
 
             if ($status_code == 201) {
                 $responseData = $status_code;
-                
+
                 Log::info("SMS envoyé avec succès", [
                     'phone' => $phoneNumber,
                     'sender' => $sender,
@@ -69,11 +91,11 @@ class SmsService
                     'message_id' => $responseData['messageid'] ?? null,
                     'data' => $responseData
                 ];
-                
-            } else { 
+
+            } else {
 
                 $error = "Erreur (HTTP $status_code) : " . $response ?? 'Erreur API SMS';
-                
+
                 Log::error("Échec envoi SMS", [
                     'phone' => $phoneNumber,
                     'error' => $error,
@@ -102,15 +124,12 @@ class SmsService
 
     private function cleanPhoneNumber(string $phoneNumber): string
     {
-        // Supprimer tous les caractères non numériques sauf le +
         $cleaned = preg_replace('/[^\d+]/', '', $phoneNumber);
-        
-        // Si le numéro commence par 0, remplacer par +224 (Guinée)
+
         if (preg_match('/^0(\d{9})$/', $cleaned, $matches)) {
             $cleaned = '+224' . $matches[1];
         }
-        
-        // Si pas d'indicatif international, ajouter +224
+
         if (!preg_match('/^\+/', $cleaned) && strlen($cleaned) >= 9) {
             $cleaned = '+224' . $cleaned;
         }
@@ -120,7 +139,6 @@ class SmsService
 
     private function isValidPhoneNumber(string $phoneNumber): bool
     {
-        // Vérifier format international (au moins 10 chiffres après le +)
         return preg_match('/^\+\d{10,15}$/', $phoneNumber);
     }
 
@@ -144,8 +162,7 @@ class SmsService
                 $failureCount++;
             }
 
-            // Délai entre les envois pour éviter le rate limiting
-            usleep(200000); // 200ms
+            usleep(200000);
         }
 
         return [
