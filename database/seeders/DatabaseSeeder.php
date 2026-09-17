@@ -39,9 +39,16 @@ class DatabaseSeeder extends Seeder
                 $this->command?->info('Catalogue labo importé pour Aprosafe (prix à 0, normes à valider).');
             }
         }
-
         // MotifsRdvPermissionsSeeder et PilierABPermissionsSeeder ne sont plus
         // appelés : leurs permissions sont intégrées à PermissionSeeder.
+
+        if (class_exists(Facturation\FacturationPermissionsSeeder::class)) {
+            $this->call(Facturation\FacturationPermissionsSeeder::class);
+        }
+
+        if (class_exists(Assurance\AssurancePermissionsSeeder::class)) {
+            $this->call(Assurance\AssurancePermissionsSeeder::class);
+        }
 
         app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
     }
