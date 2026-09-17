@@ -98,7 +98,9 @@
                             @forelse($companies as $index => $company)
                                 <tr>
                                     <td>{{ ++$index }}</td>
-                                    <td>{{ $company->name }}</td>
+                                    <td>{{ $company->name }}
+                                        <div class="small text-muted">{{ \App\Enums\Assurance\TypeOrganismePayeur::tryFrom($company->type ?? 'assureur')?->libelle() }}</div>
+                                    </td>
                                     {{-- <td><span class="badge bg-secondary">{{ $company->code }}</span></td> --}}
                                     <td>{{ $company->contact_person ?: '-' }}</td>
                                     <td>
@@ -153,6 +155,7 @@
                                                     class="btn btn-warning btn-round btn-sm edit-button"
                                                     data-bs-toggle="modal"
                                                     data-bs-target="#editRowModal"
+                                                    data-type="{{ $company->type ?? 'assureur' }}"
                                                     data-info="{{ $company->id }},{{ $company->name }},{{ $company->code }},{{ $company->contact_person }},{{ $company->phone }},{{ $company->email }},{{ $company->default_coverage_percentage }},{{ $company->status }},{{ $company->contract_start_date }},{{ $company->contract_end_date }}, {{ $company->address }},{{ $company->notes }}"
                                                 >
                                                     <i class="fa fa-edit"></i>
@@ -210,6 +213,18 @@
                         <p class="small">Créez une nouvelle compagnie d'assurance en remplissant le formulaire ci-dessous.</p>
                         <form id="addCompanyForm" action="{{ route('insurance-companies.store') }}" method="POST">
                             @csrf
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <div class="form-group form-group-default">
+                                    <label>Type d'organisme payeur</label>
+                                    <select id="type" name="type" class="form-control">
+                                        @foreach(\App\Enums\Assurance\TypeOrganismePayeur::cases() as $typeOrganisme)
+                                            <option value="{{ $typeOrganisme->value }}">{{ $typeOrganisme->libelle() }}</option>
+                                        @endforeach
+                                    </select>
+                                    </div>
+                                </div>
+                            </div>
                             <div class="row">
                                 <div class="col-sm-6">
                                     <div class="form-group form-group-default">
@@ -487,6 +502,18 @@
                                     @csrf
                                     @method('PUT')
                                     <input type="hidden" id="edit_id" name="id" />
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <div class="form-group form-group-default">
+                                    <label>Type d'organisme payeur</label>
+                                    <select id="edit_type" name="type" class="form-control">
+                                        @foreach(\App\Enums\Assurance\TypeOrganismePayeur::cases() as $typeOrganisme)
+                                            <option value="{{ $typeOrganisme->value }}">{{ $typeOrganisme->libelle() }}</option>
+                                        @endforeach
+                                    </select>
+                                    </div>
+                                </div>
+                            </div>
                                     <div class="row">
                                         <div class="col-sm-6">
                                             <div class="form-group form-group-default">
@@ -710,6 +737,7 @@
             var details = $(this).data('info').split(',');
             
             $('#edit_id').val(details[0]);
+            $('#edit_type').val($(this).data('type') || 'assureur');
             $('#edit_name').val(details[1]);
             $('#edit_code').val(details[2]);
             $('#edit_contact_person').val(details[3]);

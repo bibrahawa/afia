@@ -191,6 +191,21 @@
                 </li>
                 @endcan
 
+                @can('assurance.referentiel.view')
+                    <li class="nav-item {{ request()->routeIs('assurance.contrats.*', 'assurance.adhesions.*') ? 'active' : '' }}">
+                        <a href="{{ route('assurance.contrats.index') }}">
+                            <i class="fas fa-file-contract"></i>
+                            <p>Contrats</p>
+                        </a>
+                    </li>
+                    <li class="nav-item {{ request()->routeIs('assurance.entreprises.*') ? 'active' : '' }}">
+                        <a href="{{ route('assurance.entreprises.index') }}">
+                            <i class="fas fa-industry"></i>
+                            <p>Entreprises</p>
+                        </a>
+                    </li>
+                @endcan
+
                 @can('insurance_coverage.view')
                     <li class="nav-item {{ request()->routeIs('insurance-coverages.*') ? 'active' : '' }}">
                         <a href="{{ route('insurance-coverages.index') }}">

@@ -100,6 +100,18 @@ class Patient extends Model
         return $this->hasMany(Consultation::class);
     }
 
+    /** Employeurs (module Assurance). */
+    public function emplois()
+    {
+        return $this->hasMany(\App\Models\Assurance\PatientEmploi::class);
+    }
+
+    /** Couvertures du référentiel : comme adhérent, conjoint, enfant… */
+    public function beneficiairesAssurance()
+    {
+        return $this->hasMany(\App\Models\Assurance\Beneficiaire::class);
+    }
+
     // Nouvelles relations pour les assurances
     public function patientInsurances()
     {

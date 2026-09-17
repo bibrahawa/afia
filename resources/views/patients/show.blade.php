@@ -57,6 +57,8 @@
                 </div>
             </div>
 
+            @include('patients._couvertures')
+
             <div class="col-md-12">
                 <div class="card">
                     <div class="card-header">

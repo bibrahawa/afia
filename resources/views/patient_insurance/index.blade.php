@@ -45,6 +45,12 @@
             </div>
 
             <div class="card-body">
+                <div class="alert alert-info small">
+                    Saisie rapide d'une assurance <strong>individuelle</strong>. Pour un contrat d'entreprise, ou pour couvrir
+                    un conjoint ou un enfant par l'assurance d'un adhérent, utilisez
+                    @can('assurance.referentiel.view')<a href="{{ route('assurance.contrats.index') }}">Assurance &gt; Contrats</a>@else le menu Assurance &gt; Contrats @endcan.
+                    La suppression d'une ligne résilie la couverture à la date du jour.
+                </div>
                 <div class="table-responsive">
                     <table id="add-row" class="display table table-striped table-hover">
                     <thead class="bg-primary text-white">
@@ -239,7 +245,7 @@
                                         <div class="form-group form-group-default">
                                             <label>Montant utilisé (GNF)</label>
                                             <input
-                                                id="used_amount"
+                                                id="used_amount" readonly title="Calculé automatiquement"
                                                 name="used_amount"
                                                 type="number"
                                                 step="0.01"
@@ -399,7 +405,7 @@
                                             <div class="form-group form-group-default">
                                                 <label>Montant utilisé (GNF)</label>
                                                 <input
-                                                    id="edit_used_amount"
+                                                    id="edit_used_amount" readonly title="Calculé automatiquement"
                                                     name="used_amount"
                                                     type="number"
                                                     step="0.01"

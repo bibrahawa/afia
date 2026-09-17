@@ -17,7 +17,7 @@ class PatientInsurance extends Model
     use HasFactory;
 
     protected $fillable = [
-        'patient_id', 'insurance_company_id', 'policy_number',
+        'patient_id', 'insurance_company_id', 'beneficiaire_id', 'policy_number',
         'start_date', 'end_date', 'status', 'annual_limit',
         'used_amount', 'notes', 'coverage_percentage'
     ];
@@ -33,6 +33,16 @@ class PatientInsurance extends Model
     public function patient()
     {
         return $this->belongsTo(Patient::class);
+    }
+
+    /**
+     * Bénéficiaire du référentiel dont cette ligne est la projection (voir
+     * Assurance\ProjectionCouvertureService). Null pour une ligne ancienne
+     * non reprise.
+     */
+    public function beneficiaire()
+    {
+        return $this->belongsTo(\App\Models\Assurance\Beneficiaire::class);
     }
 
     public function insuranceCompany()

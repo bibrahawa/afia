@@ -20,10 +20,13 @@ class InsuranceCompanyController extends Controller
             'code' => 'required|unique_etablissement:insurance_companies,code',
             'email' => 'nullable|email',
             'default_coverage_percentage' => 'nullable|numeric|min:0|max:100',
+            // assureur | mutuelle | entreprise (convention directe) | etat
+            'type' => ['nullable', \Illuminate\Validation\Rule::enum(\App\Enums\Assurance\TypeOrganismePayeur::class)],
         ]);
 
 
         $data = $request->all();
+        $data['type'] = $data['type'] ?? 'assureur';
         if($data['default_coverage_percentage'] == null){
             $data['default_coverage_percentage'] = 0;
         }
@@ -41,9 +44,12 @@ class InsuranceCompanyController extends Controller
             'code' => 'required|unique_etablissement:insurance_companies,code,' . $insuranceCompany->id,
             'email' => 'nullable|email',
             'default_coverage_percentage' => 'nullable|numeric|min:0|max:100',
+            // assureur | mutuelle | entreprise (convention directe) | etat
+            'type' => ['nullable', \Illuminate\Validation\Rule::enum(\App\Enums\Assurance\TypeOrganismePayeur::class)],
         ]);
 
         $data = $request->all();
+        $data['type'] = $data['type'] ?? 'assureur';
         if($data['default_coverage_percentage'] == null){
             $data['default_coverage_percentage'] = 0;
         }

@@ -11,7 +11,7 @@ class InsuranceCompany extends Model
     use BelongsToEtablissement;
 
     protected $fillable = [
-        'name', 'code', 'contact_person', 'phone', 'email', 'address',
+        'name', 'type', 'code', 'contact_person', 'phone', 'email', 'address',
         'contract_start_date', 'contract_end_date', 'status',
         'default_coverage_percentage', 'notes'
     ];
