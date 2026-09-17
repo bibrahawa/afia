@@ -28,6 +28,7 @@ class DemandeService
     public function __construct(
         private NumerotationService $numerotation,
         private FacturationLaboService $facturation,
+        private FacturationPartenaireService $facturationPartenaire,
     ) {
     }
 
@@ -53,8 +54,14 @@ class DemandeService
                 'numero' => $numero,
                 'patient_id' => $patient->id,
                 'origine' => $donnees['origine'],
+                // Réseau (lot 4a) : demande envoyée par une clinique partenaire.
+                'etablissement_prescripteur_id' => $donnees['etablissement_prescripteur_id'] ?? null,
+                'partenariat_id' => $donnees['partenariat_id'] ?? null,
                 'consultation_id' => $donnees['consultation_id'] ?? null,
-                'prescripteur_employee_id' => $donnees['origine'] === OrigineDemande::INTERNE->value ? ($donnees['prescripteur_employee_id'] ?? null) : null,
+                // Le prescripteur peut être un médecin de la clinique partenaire (origine externe).
+                'prescripteur_employee_id' => in_array($donnees['origine'], [OrigineDemande::INTERNE->value, OrigineDemande::EXTERNE->value], true)
+                    ? ($donnees['prescripteur_employee_id'] ?? null)
+                    : null,
                 'prescripteur_externe' => $donnees['origine'] === OrigineDemande::EXTERNE->value ? ($donnees['prescripteur_externe'] ?? null) : null,
                 'prescripteur_telephone' => $donnees['prescripteur_telephone'] ?? null,
                 'renseignements_cliniques' => $donnees['renseignements_cliniques'] ?? null,
@@ -77,6 +84,11 @@ class DemandeService
 
             if ($demande->mode_facturation === ModeFacturation::LABO && ($donnees['facturer_maintenant'] ?? true)) {
                 $this->facturation->facturer($demande);
+            }
+
+            // Réseau (lot 4b) : le laboratoire facture la clinique prescriptrice.
+            if ($demande->mode_facturation === ModeFacturation::PARTENAIRE) {
+                $this->facturationPartenaire->enregistrerCreance($demande->fresh('examens'));
             }
 
             return $demande->fresh(['examens', 'echantillons']);
@@ -148,6 +160,14 @@ class DemandeService
                 $examen->update(['statut' => StatutExamen::ANNULE, 'annule_le' => now(), 'motif_annulation' => $motif]);
             }
 
+            // Créance envers la clinique partenaire : annulée si le relevé n'est pas parti.
+            $this->facturationPartenaire->annulerCreance($demande);
+
+            // Et, si la clinique avait facturé son patient, sa facture est annulée (lot 4c).
+            if ($demande->partenariat?->cliniqueFacturePatient()) {
+                app(\App\Services\Labo\FacturationCliniqueAnalysesService::class)->annuler($demande, $demande->partenariat);
+            }
+
             $demande->update([
                 'statut' => StatutDemande::ANNULEE,
                 'annule_le' => now(),
@@ -189,6 +209,7 @@ class DemandeService
 
             $this->rafraichirStatut($demande);
             $this->facturation->recalculerSiFacturee($demande);
+            $this->facturationPartenaire->recalculer($demande->fresh('examens'));
 
             ContexteLabo::journaliser('examen_annule', $examen, $motif);
         });

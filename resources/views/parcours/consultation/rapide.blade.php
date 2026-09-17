@@ -211,6 +211,9 @@
                                     <a href="{{ route('labo.demandes.create', ['consultation' => $consultation->id]) }}" class="btn btn-sm btn-outline-info">Demande d'analyses</a>
                                 @endcan
                             @endif
+                            @can('labo.reseau.demander')
+                                <a href="{{ route('labo.reseau.create', ['consultation_id' => $consultation->id, 'patient_id' => $consultation->patient_id]) }}" class="btn btn-sm btn-outline-info">Analyses — laboratoire partenaire</a>
+                            @endcan
                             @can('parcours.document')
                                 <button type="button" class="btn btn-sm btn-outline-warning" data-bs-toggle="modal" data-bs-target="#modalDocument">Certificat / arrêt de travail</button>
                             @endcan

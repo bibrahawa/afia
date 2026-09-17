@@ -23,9 +23,10 @@ class LaboDemande extends Model
     protected $fillable = [
         'etablissement_id', 'numero', 'patient_id', 'origine', 'consultation_id',
         'prescripteur_employee_id', 'prescripteur_externe', 'prescripteur_telephone',
-        'etablissement_prescripteur_id', 'renseignements_cliniques', 'grossesse',
+        'etablissement_prescripteur_id', 'partenariat_id', 'renseignements_cliniques', 'grossesse',
         'semaines_amenorrhee', 'a_jeun_confirme', 'urgence', 'statut', 'mode_facturation',
         'resultats_retenus_si_impaye', 'enregistre_par', 'annule_le', 'annule_par',
+        'resultat_notifie_le', 'resultat_vu_le', 'resultat_vu_par',
         'motif_annulation', 'premiere_publication_le',
     ];
 
@@ -39,6 +40,8 @@ class LaboDemande extends Model
         'resultats_retenus_si_impaye' => 'boolean',
         'annule_le' => 'datetime',
         'premiere_publication_le' => 'datetime',
+        'resultat_notifie_le' => 'datetime',
+        'resultat_vu_le' => 'datetime',
     ];
 
     public function getRouteKeyName(): string
@@ -133,5 +136,16 @@ class LaboDemande extends Model
     public function peutEtreRemisAuPatient(): bool
     {
         return ! $this->resultats_retenus_si_impaye || $this->partPatientReglee();
+    }
+
+    /** Partenariat qui a permis l'envoi (demande venue d'une clinique du réseau). */
+    public function partenariat()
+    {
+        return $this->belongsTo(LaboPartenariat::class, 'partenariat_id');
+    }
+
+    public function vientDuReseau(): bool
+    {
+        return $this->partenariat_id !== null;
     }
 }

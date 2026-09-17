@@ -6,6 +6,7 @@ enum ModeFacturation: string
 {
     case LABO = 'labo';                 // facturée par le labo (transaction propre à la demande)
     case CONSULTATION = 'consultation'; // déjà facturée via la consultation d'origine — NE PAS refacturer
+    case PARTENAIRE = 'partenaire';     // facturée à la clinique prescriptrice (réseau)
     case GRATUIT = 'gratuit';
 
     public function libelle(): string
@@ -13,6 +14,7 @@ enum ModeFacturation: string
         return match ($this) {
             self::LABO => 'Facturée au laboratoire',
             self::CONSULTATION => 'Incluse dans la consultation',
+            self::PARTENAIRE => 'Facturée à la clinique prescriptrice',
             self::GRATUIT => 'Gratuit',
         };
     }

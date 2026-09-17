@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Storage;
 
 class CompteRenduService
 {
-    public function __construct(private DemandeService $demandes)
+    public function __construct(private DemandeService $demandes, private NotificationReseauService $notifications)
     {
     }
 
@@ -76,6 +76,9 @@ class CompteRenduService
         if ($notifierPatient && $demande->fresh()->peutEtreRemisAuPatient()) {
             EnvoyerSmsResultatsJob::dispatch($compteRendu->id);
         }
+
+        // Réseau (lot 4c) : la clinique qui a prescrit est prévenue à la première publication.
+        $this->notifications->notifierPublication($demande->fresh('partenariat'));
 
         return $compteRendu;
     }

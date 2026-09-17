@@ -5,6 +5,9 @@ use App\Http\Controllers\Labo\CompteRenduController;
 use App\Http\Controllers\Labo\DeclarationController;
 use App\Http\Controllers\Labo\DemandeController;
 use App\Http\Controllers\Labo\PaillasseController;
+use App\Http\Controllers\Labo\CreancePartenaireController;
+use App\Http\Controllers\Labo\PartenariatController;
+use App\Http\Controllers\Labo\RelevePartenaireController;
 use App\Http\Controllers\Labo\PrelevementController;
 use App\Http\Controllers\Labo\ReceptionController;
 use App\Http\Controllers\Labo\TableauBordController;
@@ -106,4 +109,26 @@ Route::get('comptes-rendus/{laboCompteRendu}/pdf', [CompteRenduController::class
 Route::middleware('can:labo.validation.biologique')->prefix('declarations')->name('declarations.')->group(function () {
     Route::get('/', [DeclarationController::class, 'index'])->name('index');
     Route::post('{laboDeclarationMdo}/declaree', [DeclarationController::class, 'marquerDeclaree'])->name('declaree');
+});
+
+// ---------------------------------------------------------------- Partenariats (lot 4a)
+Route::prefix('partenariats')->name('partenariats.')->middleware('can:labo.partenariat.gerer')->group(function () {
+    Route::get('/', [PartenariatController::class, 'index'])->name('index');
+    Route::post('/', [PartenariatController::class, 'store'])->name('store');
+    Route::put('{laboPartenariat}', [PartenariatController::class, 'update'])->name('update');
+    Route::post('{laboPartenariat}/basculer', [PartenariatController::class, 'basculer'])->name('basculer');
+});
+
+// ---------------------------------------------------------------- Créances partenaires (lot 4b)
+Route::middleware('can:labo.partenariat.facturer')->group(function () {
+    Route::get('creances-partenaires', [CreancePartenaireController::class, 'index'])->name('creances.index');
+    Route::get('creances-partenaires/{laboPartenariat}', [CreancePartenaireController::class, 'show'])->name('creances.show');
+    Route::post('creances-partenaires/{laboPartenariat}/releves', [CreancePartenaireController::class, 'preparerReleve'])->name('creances.releves.store');
+    Route::post('creances-partenaires/{laboPartenariat}/reglements', [CreancePartenaireController::class, 'enregistrerReglement'])->name('creances.reglements.store');
+
+    Route::get('releves-partenaires/{laboReleve}', [RelevePartenaireController::class, 'show'])->name('releves.show');
+    Route::get('releves-partenaires/{laboReleve}/imprimer', [RelevePartenaireController::class, 'imprimer'])->name('releves.imprimer');
+    Route::post('releves-partenaires/{laboReleve}/envoyer', [RelevePartenaireController::class, 'envoyer'])->name('releves.envoyer');
+    Route::post('releves-partenaires/{laboReleve}/rouvrir', [RelevePartenaireController::class, 'rouvrir'])->name('releves.rouvrir');
+    Route::post('creances-partenaires/lignes/{laboCreance}/retirer', [RelevePartenaireController::class, 'retirer'])->name('creances.retirer');
 });

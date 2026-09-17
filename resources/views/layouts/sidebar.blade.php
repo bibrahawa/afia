@@ -122,6 +122,24 @@
 
                 @include('labo.partials.sidebar')
 
+                @can('labo.reseau.view')
+                    <li class="nav-item {{ request()->routeIs('labo.reseau.*') ? 'active' : '' }}">
+                        <a href="{{ route('labo.reseau.index') }}">
+                            <i class="fas fa-vials"></i>
+                            <p>Analyses envoyées</p>
+                        </a>
+                    </li>
+                @endcan
+
+                @can('labo.reseau.factures')
+                    <li class="nav-item {{ request()->routeIs('labo.reseau.facture*') ? 'active' : '' }}">
+                        <a href="{{ route('labo.reseau.factures') }}">
+                            <i class="fas fa-file-invoice"></i>
+                            <p>Factures laboratoires</p>
+                        </a>
+                    </li>
+                @endcan
+
                 @can('employee.view')
                 <!-- PERSONNEL MÉDICAL -->
                 <li class="nav-section">

@@ -48,6 +48,14 @@ class LaboServiceProvider extends ServiceProvider
             ->name('labo.')
             ->group(base_path('routes/labo.php'));
 
+        // RÉSEAU (lot 4a) : la clinique prescriptrice n'a PAS le module laboratoire
+        // activé — ces routes ne passent donc pas par EnsureModuleActive, la
+        // permission et le partenariat actif font l'autorisation.
+        Route::middleware(['web', 'auth'])
+            ->prefix('laboratoire-reseau')
+            ->name('labo.reseau.')
+            ->group(base_path('routes/labo-reseau.php'));
+
         // Lien envoyé par SMS au patient : pas de session ; l'autorisation est
         // la signature + l'expiration de l'URL (vérifiée dans le contrôleur,
         // pour tolérer le paramètre « pdf »), avec limitation de débit.
