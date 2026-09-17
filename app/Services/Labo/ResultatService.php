@@ -40,8 +40,7 @@ class ResultatService
     {
         ContexteLabo::verifierAppartenance($ligne);
 
-        $autorises = [StatutExamen::RECU, StatutExamen::EN_COURS, StatutExamen::VALIDE_TECHNIQUE];
-        if (! in_array($ligne->statut, $autorises, true)) {
+        if (! $ligne->statut->permetSaisie()) {
             throw new OperationLaboImpossible(match (true) {
                 $ligne->statut->estVerrouille() => 'Résultats validés par le biologiste : rouvrez l\'examen pour rectification.',
                 $ligne->statut === StatutExamen::ANNULE => 'Cet examen est annulé.',
@@ -148,7 +147,7 @@ class ResultatService
     {
         ContexteLabo::verifierAppartenance($ligne);
 
-        if (! in_array($ligne->statut, [StatutExamen::RECU, StatutExamen::EN_COURS, StatutExamen::VALIDE_TECHNIQUE], true)) {
+        if (! $ligne->statut->permetSaisie()) {
             throw new OperationLaboImpossible('Saisie impossible pour cet examen dans son état actuel.');
         }
 

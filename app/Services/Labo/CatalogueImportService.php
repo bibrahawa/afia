@@ -23,6 +23,15 @@ class CatalogueImportService
     /** @return array<string,int> nombre d'éléments ajoutés par type */
     public function importer(int $etablissementId): array
     {
+        // Importer pour un AUTRE établissement que celui de la session serait refusé
+        // ligne par ligne par BelongsToEtablissement : on le dit clairement d'emblée.
+        $courant = \App\Support\EtablissementContext::id();
+        if ($courant !== null && (int) $courant !== $etablissementId) {
+            throw new \App\Exceptions\Labo\OperationLaboImpossible(
+                'Import du catalogue pour un autre établissement : utilisez « php artisan labo:activer <slug> » (hors session).'
+            );
+        }
+
         return DB::transaction(function () use ($etablissementId) {
             $compte = ['sections' => 0, 'examens' => 0, 'bilans' => 0, 'germes' => 0, 'antibiotiques' => 0];
 

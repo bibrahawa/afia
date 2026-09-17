@@ -5,6 +5,10 @@
 <div class="container"><div class="page-inner">
     @include('labo.partials.entete', ['titre' => 'Nouvelle demande d\'analyses', 'fil' => [route('labo.demandes.index') => 'Demandes', 0 => 'Nouvelle']])
 
+    @if($consultation && $examensPrescrits)
+        <div class="alert alert-info">Les examens prescrits pendant la consultation sont pré-cochés. S'ils ont déjà été facturés avec la consultation, le mode « Incluse dans la facture de la consultation » est proposé pour ne pas les facturer deux fois. Tout examen ajouté ici en plus doit alors faire l'objet d'une demande séparée facturée au laboratoire.</div>
+    @endif
+
     @if($errors->any())
         <div class="alert alert-danger"><ul class="mb-0">@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>
     @endif
@@ -16,8 +20,13 @@
             <div class="card">
                 <div class="card-header"><h4 class="card-title">1. Patient</h4></div>
                 <div class="card-body">
-                    <input type="hidden" name="patient_id" id="patientId" value="{{ old('patient_id') }}">
-                    <div id="patientChoisi" class="alert alert-success py-2" @if(!old('patient_id')) hidden @endif>Patient sélectionné</div>
+                    @php($patientId = old('patient_id', $patient?->id))
+                    <input type="hidden" name="patient_id" id="patientId" value="{{ $patientId }}">
+                    @if($consultation)<input type="hidden" name="consultation_id" value="{{ $consultation->id }}">@endif
+                    <div id="patientChoisi" class="alert alert-success py-2" @if(!$patientId) hidden @endif>
+                        Patient : {{ $patient?->full_name ?? 'sélectionné' }}
+                        @if($consultation)<br><span class="small">Consultation du {{ $consultation->created_at->format('d/m/Y') }}</span>@endif
+                    </div>
                     <input type="text" id="patientRecherche" class="form-control" placeholder="Nom, téléphone ou identifiant santé (2 caractères min.)" autocomplete="off">
                     <div id="patientResultats" class="list-group mt-1"></div>
                     <button type="button" class="btn btn-link btn-sm px-0" id="btnNouveauPatient">+ Patient absent : le créer</button>
@@ -42,7 +51,7 @@
                     <div class="mb-2">
                         @foreach(\App\Enums\Labo\OrigineDemande::cases() as $o)
                             <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="origine" value="{{ $o->value }}" id="orig{{ $o->value }}" @checked(old('origine', 'externe') === $o->value)>
+                                <input class="form-check-input" type="radio" name="origine" value="{{ $o->value }}" id="orig{{ $o->value }}" @checked(old('origine', $consultation ? 'interne' : 'externe') === $o->value)>
                                 <label class="form-check-label" for="orig{{ $o->value }}">{{ $o->libelle() }}</label>
                             </div>
                         @endforeach
@@ -50,7 +59,7 @@
                     <div class="mb-2" data-origine="interne">
                         <label class="form-label">Médecin prescripteur</label>
                         <select name="prescripteur_employee_id" class="form-select"><option value="">—</option>
-                            @foreach($medecins as $m)<option value="{{ $m->id }}" @selected(old('prescripteur_employee_id') == $m->id)>Dr {{ $m->first_name }} {{ $m->last_name }}</option>@endforeach
+                            @foreach($medecins as $m)<option value="{{ $m->id }}" @selected(old('prescripteur_employee_id', $consultation?->medecin_id) == $m->id)>Dr {{ $m->first_name }} {{ $m->last_name }}</option>@endforeach
                         </select>
                     </div>
                     <div class="row g-2 mb-2" data-origine="externe">
@@ -58,7 +67,7 @@
                         <div class="col-5"><label class="form-label">Téléphone</label><input name="prescripteur_telephone" value="{{ old('prescripteur_telephone') }}" class="form-control"></div>
                     </div>
                     <div class="mb-2"><label class="form-label">Renseignements cliniques</label>
-                        <textarea name="renseignements_cliniques" rows="2" class="form-control" placeholder="Fièvre depuis 3 jours, suivi diabète…">{{ old('renseignements_cliniques') }}</textarea></div>
+                        <textarea name="renseignements_cliniques" rows="2" class="form-control" placeholder="Fièvre depuis 3 jours, suivi diabète…">{{ old('renseignements_cliniques', $consultation ? trim(($consultation->motif ?? '') . ($consultation->diagnostic ? ' — ' . $consultation->diagnostic : '')) : '') }}</textarea></div>
                     <div class="row g-2">
                         <div class="col-6"><div class="form-check"><input class="form-check-input" type="checkbox" name="urgence" value="1" id="urgence" @checked(old('urgence'))><label class="form-check-label text-danger fw-bold" for="urgence">Urgent</label></div></div>
                         <div class="col-6"><div class="form-check"><input class="form-check-input" type="checkbox" name="a_jeun_confirme" value="1" id="ajeun" @checked(old('a_jeun_confirme'))><label class="form-check-label" for="ajeun">Patient à jeun</label></div></div>
@@ -72,9 +81,13 @@
             <div class="card">
                 <div class="card-header"><h4 class="card-title">4. Facturation</h4></div>
                 <div class="card-body">
+                    @php($modeDefaut = old('mode_facturation', $consultation && $examensPrescrits && ($consultation->est_facturee || $consultation->transaction) ? 'consultation' : 'labo'))
                     <select name="mode_facturation" class="form-select mb-2">
-                        <option value="labo" @selected(old('mode_facturation', 'labo') === 'labo')>Facturée au laboratoire</option>
-                        <option value="gratuit" @selected(old('mode_facturation') === 'gratuit')>Gratuit</option>
+                        <option value="labo" @selected($modeDefaut === 'labo')>Facturée au laboratoire</option>
+                        @if($consultation)
+                            <option value="consultation" @selected($modeDefaut === 'consultation')>Incluse dans la facture de la consultation</option>
+                        @endif
+                        <option value="gratuit" @selected($modeDefaut === 'gratuit')>Gratuit</option>
                     </select>
                     <div class="form-check"><input class="form-check-input" type="checkbox" name="resultats_retenus_si_impaye" value="1" id="retenus" @checked(old('resultats_retenus_si_impaye', true))>
                         <label class="form-check-label" for="retenus">Retenir la remise des résultats au patient tant que la part patient n'est pas réglée</label></div>
@@ -108,7 +121,7 @@
                             @foreach($section->examens as $ex)
                                 <div class="col-md-6 examen-item" data-texte="{{ \Illuminate\Support\Str::lower(\Illuminate\Support\Str::ascii($ex->nom . ' ' . $ex->abreviation . ' ' . $ex->code)) }}">
                                     <div class="form-check">
-                                        <input class="form-check-input examen" type="checkbox" name="examens[]" value="{{ $ex->id }}" id="ex{{ $ex->id }}" data-prix="{{ (float) $ex->prix }}" data-ajeun="{{ $ex->a_jeun ? 1 : 0 }}" @checked(in_array($ex->id, old('examens', [])))>
+                                        <input class="form-check-input examen" type="checkbox" name="examens[]" value="{{ $ex->id }}" id="ex{{ $ex->id }}" data-prix="{{ (float) $ex->prix }}" data-ajeun="{{ $ex->a_jeun ? 1 : 0 }}" @checked(in_array($ex->id, old('examens', $examensPrescrits ?? [])))>
                                         <label class="form-check-label" for="ex{{ $ex->id }}">
                                             @if($ex->tube)<span class="labo-tube labo-tube-{{ $ex->tube }}"></span>@endif
                                             {{ $ex->nom }}

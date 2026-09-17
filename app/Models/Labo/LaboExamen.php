@@ -18,7 +18,7 @@ class LaboExamen extends Model
         'etablissement_id', 'modele_id', 'section_id', 'test_id',
         'code', 'nom', 'abreviation', 'type_examen', 'methode',
         'type_echantillon', 'tube', 'volume_ml', 'a_jeun', 'instructions_patient',
-        'delai_rendu_heures', 'prix', 'sous_traite', 'laboratoire_sous_traitant',
+        'delai_rendu_heures', 'prix', 'sous_traite', 'laboratoire_sous_traitant', 'mdo_maladie', 'mdo_immediate',
         'ordre', 'actif',
     ];
 
@@ -26,6 +26,7 @@ class LaboExamen extends Model
         'type_examen' => TypeExamen::class,
         'a_jeun' => 'boolean',
         'sous_traite' => 'boolean',
+        'mdo_immediate' => 'boolean',
         'actif' => 'boolean',
         'prix' => 'decimal:2',
         'volume_ml' => 'decimal:2',

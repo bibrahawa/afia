@@ -55,6 +55,27 @@ class CompteRenduController extends Controller
         return back()->with('success', 'SMS de résultats en cours d\'envoi.');
     }
 
+    public function remettre(Request $request, LaboDemande $laboDemande, \App\Services\Labo\RemiseService $remises)
+    {
+        $donnees = $request->validate([
+            'beneficiaire' => ['required', \Illuminate\Validation\Rule::in(array_keys(\App\Models\Labo\LaboRemise::BENEFICIAIRES))],
+            'nom_beneficiaire' => ['nullable', 'required_unless:beneficiaire,patient', 'string', 'max:150'],
+            'lien_patient' => ['nullable', 'required_if:beneficiaire,representant', 'string', 'max:50'],
+            'piece_justificative' => ['nullable', 'required_if:beneficiaire,representant', \Illuminate\Validation\Rule::in(array_keys(\App\Models\Labo\LaboRemise::PIECES))],
+            'motif_derogation' => ['nullable', 'string', 'max:255'],
+        ], [
+            'nom_beneficiaire.required_unless' => 'Indiquez le nom de la personne à qui le compte rendu est remis.',
+            'lien_patient.required_if' => 'Indiquez le lien du représentant avec le patient.',
+            'piece_justificative.required_if' => 'Indiquez la pièce présentée par le représentant.',
+        ]);
+
+        $remise = $remises->remettre($laboDemande, $donnees, $request->user());
+
+        return back()
+            ->with('success', "Remise enregistrée : version {$remise->version} à {$remise->nom_beneficiaire}.")
+            ->with('labo_imprimer_cr', $remise->compte_rendu_id);
+    }
+
     public function pdf(Request $request, LaboCompteRendu $laboCompteRendu)
     {
         $contenu = $this->comptesRendus->pdf($laboCompteRendu);

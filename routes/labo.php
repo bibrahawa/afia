@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Labo\CatalogueController;
 use App\Http\Controllers\Labo\CompteRenduController;
+use App\Http\Controllers\Labo\DeclarationController;
 use App\Http\Controllers\Labo\DemandeController;
 use App\Http\Controllers\Labo\PaillasseController;
 use App\Http\Controllers\Labo\PrelevementController;
@@ -56,6 +57,7 @@ Route::prefix('demandes')->name('demandes.')->group(function () {
 
     Route::post('{laboDemande}/sms-resultats', [CompteRenduController::class, 'renvoyerSms'])->name('sms')->middleware('can:labo.compte_rendu.publier');
     Route::post('{laboDemande}/publier', [CompteRenduController::class, 'publier'])->name('publier')->middleware('can:labo.compte_rendu.publier');
+    Route::post('{laboDemande}/remettre', [CompteRenduController::class, 'remettre'])->name('remettre')->middleware('can:labo.compte_rendu.view');
     Route::get('{laboDemande}/etiquettes', [PrelevementController::class, 'etiquettes'])->name('etiquettes')->middleware('can:labo.prelevement');
 });
 
@@ -99,3 +101,9 @@ Route::prefix('validation')->name('validation.')->group(function () {
 });
 
 Route::get('comptes-rendus/{laboCompteRendu}/pdf', [CompteRenduController::class, 'pdf'])->name('comptes-rendus.pdf')->middleware('can:labo.compte_rendu.view');
+
+// ---------------------------------------------------------------- Maladies à déclaration obligatoire
+Route::middleware('can:labo.validation.biologique')->prefix('declarations')->name('declarations.')->group(function () {
+    Route::get('/', [DeclarationController::class, 'index'])->name('index');
+    Route::post('{laboDeclarationMdo}/declaree', [DeclarationController::class, 'marquerDeclaree'])->name('declaree');
+});

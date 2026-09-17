@@ -47,6 +47,18 @@
                     <div class="form-check"><input class="form-check-input" type="checkbox" name="actif" value="1" id="actif" @checked(old('actif', $examen->actif ?? true))><label class="form-check-label" for="actif">Actif</label></div>
                 </div>
                 <div class="col-md-3 d-flex align-items-end"><div class="form-check"><input class="form-check-input" type="checkbox" name="sous_traite" value="1" id="st" @checked(old('sous_traite', $examen->sous_traite))><label class="form-check-label" for="st">Sous-traité</label></div></div>
+                <div class="col-md-6"><label class="form-label">Test de l'ancien catalogue (consultations)</label>
+                    <select name="test_id" class="form-select">
+                        <option value="">— Aucun —</option>
+                        @foreach($anciensTests as $t)<option value="{{ $t->id }}" @selected(old('test_id', $examen->test_id) == $t->id)>{{ $t->name }}</option>@endforeach
+                    </select>
+                    <div class="form-text">Relie cet examen au test coché par le médecin en consultation.</div>
+                </div>
+                <div class="col-md-4"><label class="form-label">Maladie à déclaration obligatoire</label>
+                    <input name="mdo_maladie" value="{{ old('mdo_maladie', $examen->mdo_maladie) }}" class="form-control" placeholder="ex. Paludisme, Choléra — vide si non concerné">
+                    <div class="form-text">Un résultat anormal validé ouvrira une déclaration à faire.</div>
+                </div>
+                <div class="col-md-2 d-flex align-items-center"><div class="form-check mt-3"><input class="form-check-input" type="checkbox" name="mdo_immediate" value="1" id="mdoImm" @checked(old('mdo_immediate', $examen->mdo_immediate))><label class="form-check-label" for="mdoImm">Notification immédiate</label></div></div>
                 <div class="col-md-6"><label class="form-label">Laboratoire sous-traitant</label><input name="laboratoire_sous_traitant" value="{{ old('laboratoire_sous_traitant', $examen->laboratoire_sous_traitant) }}" class="form-control"></div>
             </div>
         </div></div>

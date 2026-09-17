@@ -742,7 +742,9 @@
                             </li>
                         </ul>
                     </div>
-
+                    
+                    @include('labo.partials.consultation-bouton', ['consultation' => $consultation])
+                    
                     <a href="{{ route('consultation.index') }}" class="btn btn-sm btn-secondary">
                         <i class="fas fa-arrow-left me-1"></i> Retour
                     </a>
@@ -967,6 +969,8 @@
                 </div>
             </div>
         </div>
+
+        @include('labo.partials.consultation-analyses', ['consultation' => $consultation])
 
         <!-- Services / Facturation -->
         <div class="row mb-4">

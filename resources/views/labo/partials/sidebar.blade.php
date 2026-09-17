@@ -21,6 +21,7 @@
                 @can('labo.reception')<li class="{{ request()->routeIs('labo.reception.*') ? 'active' : '' }}"><a href="{{ route('labo.reception.index') }}"><span class="sub-item">Réception</span></a></li>@endcan
                 @can('labo.resultat.saisir')<li class="{{ request()->routeIs('labo.paillasse.*') ? 'active' : '' }}"><a href="{{ route('labo.paillasse.index') }}"><span class="sub-item">Paillasse</span></a></li>@endcan
                 @can('labo.validation.technique')<li class="{{ request()->routeIs('labo.validation.*') ? 'active' : '' }}"><a href="{{ route('labo.validation.index') }}"><span class="sub-item">Validation</span></a></li>@endcan
+                @can('labo.validation.biologique')<li class="{{ request()->routeIs('labo.declarations.*') ? 'active' : '' }}"><a href="{{ route('labo.declarations.index') }}"><span class="sub-item">Déclarations (MDO)</span></a></li>@endcan
                 @can('labo.catalogue.view')<li class="{{ request()->routeIs('labo.catalogue.*') ? 'active' : '' }}"><a href="{{ route('labo.catalogue.index') }}"><span class="sub-item">Catalogue</span></a></li>@endcan
             </ul>
         </div>

@@ -116,6 +116,10 @@ class CatalogueController extends Controller
             'typesResultat' => TypeResultat::cases(),
             'typesEchantillon' => LaboExamen::TYPES_ECHANTILLON,
             'tubes' => LaboExamen::TUBES,
+            // Anciens tests (prescrits en consultation) pas encore reliés à un autre examen du labo.
+            'anciensTests' => \App\Models\Test::orderBy('name')
+                ->whereNotIn('id', LaboExamen::whereNotNull('test_id')->where('id', '!=', $examen->id ?? 0)->pluck('test_id'))
+                ->get(['id', 'name']),
         ];
     }
 
@@ -125,6 +129,8 @@ class CatalogueController extends Controller
 
         $donnees = $request->validate([
             'section_id' => ['required', Rule::exists('labo_sections', 'id')->where('etablissement_id', $etab)],
+            // Correspondance avec l'ancien catalogue « tests » : permet « Envoyer au labo » depuis une consultation.
+            'test_id' => ['nullable', 'integer', 'exists_etablissement:tests,id', Rule::unique('labo_examens', 'test_id')->where('etablissement_id', $etab)->ignore($examen?->id)],
             'code' => ['required', 'alpha_dash', 'max:30', Rule::unique('labo_examens')->where('etablissement_id', $etab)->ignore($examen?->id)],
             'nom' => ['required', 'string', 'max:150'],
             'abreviation' => ['nullable', 'string', 'max:30'],
@@ -137,11 +143,13 @@ class CatalogueController extends Controller
             'delai_rendu_heures' => ['required', 'integer', 'min:1', 'max:2160'],
             'prix' => ['required', 'numeric', 'min:0'],
             'laboratoire_sous_traitant' => ['nullable', 'required_if:sous_traite,1', 'string', 'max:150'],
+            'mdo_maladie' => ['nullable', 'string', 'max:150'],
         ]);
 
         return $donnees + [
             'a_jeun' => $request->boolean('a_jeun'),
             'sous_traite' => $request->boolean('sous_traite'),
+            'mdo_immediate' => $request->filled('mdo_maladie') && $request->boolean('mdo_immediate'),
             'actif' => $request->boolean('actif', true),
         ];
     }

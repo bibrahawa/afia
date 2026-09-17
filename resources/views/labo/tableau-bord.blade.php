@@ -38,6 +38,16 @@
         @endforeach
     </div>
 
+    @if($compteurs['mdo_a_declarer'] > 0)
+        @can('labo.validation.biologique')
+            <div class="alert alert-warning d-flex align-items-center">
+                <i class="fas fa-bullhorn me-2"></i>
+                <div><strong>{{ $compteurs['mdo_a_declarer'] }}</strong> maladie(s) à déclaration obligatoire en attente de déclaration.</div>
+                <a href="{{ route('labo.declarations.index') }}" class="btn btn-sm btn-warning ms-auto">Voir</a>
+            </div>
+        @endcan
+    @endif
+
     <div class="row">
         <div class="col-lg-6">
             <div class="card">

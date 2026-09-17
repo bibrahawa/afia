@@ -19,6 +19,7 @@ class StoreDemandeRequest extends FormRequest
         return [
             'patient_id' => ['required', 'integer', 'exists:patients,id'],
             'origine' => ['required', Rule::enum(OrigineDemande::class)],
+            'consultation_id' => ['nullable', 'integer', 'exists_etablissement:consultations,id'],
             'prescripteur_employee_id' => ['nullable', 'required_if:origine,interne', 'integer', 'exists:employees,id'],
             'prescripteur_externe' => ['nullable', 'required_if:origine,externe', 'string', 'max:255'],
             'prescripteur_telephone' => ['nullable', 'string', 'max:30'],
@@ -27,7 +28,12 @@ class StoreDemandeRequest extends FormRequest
             'semaines_amenorrhee' => ['nullable', 'integer', 'min:1', 'max:45'],
             'a_jeun_confirme' => ['nullable', 'boolean'],
             'urgence' => ['sometimes', 'boolean'],
-            'mode_facturation' => ['required', Rule::in([ModeFacturation::LABO->value, ModeFacturation::GRATUIT->value])],
+            // « consultation » (déjà facturée avec la consultation) seulement si la demande en provient.
+            'mode_facturation' => ['required', Rule::in(array_filter([
+                ModeFacturation::LABO->value,
+                ModeFacturation::GRATUIT->value,
+                $this->filled('consultation_id') ? ModeFacturation::CONSULTATION->value : null,
+            ]))],
             'resultats_retenus_si_impaye' => ['sometimes', 'boolean'],
             'examens' => ['array'],
             'examens.*' => ['integer'],

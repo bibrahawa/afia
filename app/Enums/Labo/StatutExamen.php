@@ -64,8 +64,14 @@ enum StatutExamen: string
         return $this === self::VALIDE_BIOLOGIQUE || $this === self::PUBLIE;
     }
 
+    /**
+     * Saisie ou correction possible. CORRIGÉ : n'incluait pas « validé technique »,
+     * alors que la correction y est autorisée (elle annule la validation
+     * technique) — le bouton « Résultats » disparaissait de la fiche demande.
+     * Source unique utilisée par ResultatService, la fiche demande et la saisie.
+     */
     public function permetSaisie(): bool
     {
-        return $this === self::RECU || $this === self::EN_COURS;
+        return in_array($this, [self::RECU, self::EN_COURS, self::VALIDE_TECHNIQUE], true);
     }
 }

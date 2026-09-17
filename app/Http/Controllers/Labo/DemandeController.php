@@ -10,6 +10,7 @@ use App\Http\Requests\Labo\StoreDemandeRequest;
 use App\Models\Labo\LaboBilan;
 use App\Models\Labo\LaboDemande;
 use App\Models\Labo\LaboDemandeExamen;
+use App\Models\Labo\LaboExamen;
 use App\Models\Labo\LaboSection;
 use App\Services\Labo\DemandeService;
 use App\Services\Labo\FacturationLaboService;
@@ -53,11 +54,28 @@ class DemandeController extends Controller
 
     public function create(Request $request)
     {
+        // Pré-remplissage depuis une consultation (bouton « Nouvelle demande d'analyses »)
+        // ou depuis une fiche patient (?patient=ID). Les deux passent par le scope :
+        // une consultation d'un autre établissement donne 404.
+        $consultation = $request->filled('consultation')
+            ? Consultation::with(['patient', 'tests'])->findOrFail($request->integer('consultation'))
+            : null;
+
+        $patient = $consultation?->patient
+            ?? ($request->filled('patient') ? \App\Models\Patient::suivisParEtablissement()->find($request->integer('patient')) : null);
+
+        $examensPrescrits = $consultation
+            ? LaboExamen::where('actif', true)->whereIn('test_id', $consultation->tests->pluck('id'))->pluck('id')->all()
+            : [];
+
         return view('labo.demandes.create', [
             'sections' => LaboSection::where('actif', true)->orderBy('ordre')
                 ->with(['examens' => fn ($q) => $q->where('actif', true)])->get(),
             'bilans' => LaboBilan::where('actif', true)->with('examens:id')->orderBy('nom')->get(),
             'medecins' => Employee::where('type', 'Doctor')->where('is_active', true)->orderBy('last_name')->get(),
+            'consultation' => $consultation,
+            'patient' => $patient,
+            'examensPrescrits' => $examensPrescrits,
         ]);
     }
 
@@ -75,7 +93,7 @@ class DemandeController extends Controller
             'patient.comptesPatients', 'prescripteur', 'enregistrePar', 'consultation',
             'examens.examen.section', 'examens.validateurBiologique',
             'echantillons.examens', 'echantillons.preleveur',
-            'comptesRendus.publiePar', 'transaction.invoice', 'transaction.paiements',
+            'comptesRendus.publiePar', 'remises.remisPar', 'transaction.invoice', 'transaction.paiements',
         ]);
 
         ContexteLabo::journaliser('demande_consultee', $laboDemande);

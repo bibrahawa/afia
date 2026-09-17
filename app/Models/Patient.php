@@ -198,9 +198,52 @@ class Patient extends Model
         return $this->district . '/' . $this->location;
     }
 
-    public function getAgeAttribute()
+    /**
+     * CORRIGÉ — lisait une colonne `date_of_birth` inexistante et renvoyait
+     * toujours null, en masquant au passage la vraie colonne `age`.
+     *
+     * Âge en années révolues : calculé depuis `birth_date` (texte libre)
+     * quand il est lisible, sinon la colonne `age` saisie à la main.
+     */
+    public function getAgeAttribute($valeurColonne = null): ?int
     {
-        return $this->date_of_birth ? $this->date_of_birth->age : null;
+        if ($naissance = $this->dateNaissance()) {
+            return (int) $naissance->diffInYears(now());
+        }
+
+        return is_numeric($valeurColonne) ? (int) $valeurColonne : null;
+    }
+
+    /** Date de naissance exploitable, ou null (texte illisible, date future). */
+    public function dateNaissance(): ?\Carbon\Carbon
+    {
+        if (empty($this->birth_date)) {
+            return null;
+        }
+
+        try {
+            $date = \Carbon\Carbon::parse($this->birth_date);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return $date->isFuture() ? null : $date;
+    }
+
+    /** « 3 ans », « 8 mois », « 12 jours » — pour les en-têtes et les étiquettes. */
+    public function getAgeTexteAttribute(): string
+    {
+        $naissance = $this->dateNaissance();
+
+        if (! $naissance) {
+            return $this->age !== null ? "{$this->age} ans" : 'Âge non renseigné';
+        }
+
+        return match (true) {
+            ($ans = (int) $naissance->diffInYears(now())) >= 2 => "{$ans} ans",
+            ($mois = (int) $naissance->diffInMonths(now())) >= 1 => "{$mois} mois",
+            default => (int) $naissance->diffInDays(now()) . ' jours',
+        };
     }
 
     // Scopes

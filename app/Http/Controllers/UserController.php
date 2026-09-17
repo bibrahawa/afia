@@ -305,32 +305,80 @@ class UserController extends Controller
         }
     }
 
+    /**
+     * CORRIGÉ — un administrateur de clinique pouvait s'attribuer (ou attribuer)
+     * n'importe quelle permission ou rôle, y compris ceux de la plateforme
+     * (etablissement.*, module.*, super-admin) : escalade de privilèges.
+     *
+     * Règle : on ne peut donner que ce que l'on possède soi-même. Seul
+     * l'administrateur plateforme peut tout attribuer. Les éléments refusés
+     * sont signalés, jamais appliqués en silence.
+     */
     public function assignPermissions(Request $request, $id)
     {
+        $user = User::deMonEtablissement()->findOrFail($id);
+        $acteur = $request->user();
+        $plateforme = \App\Support\EtablissementContext::estAdministrateurPlateforme($acteur);
+
+        $demandees = collect($request->input('permissions', []))->filter()->unique()->values();
+        $autorisees = $plateforme
+            ? $demandees
+            : $demandees->filter(fn ($p) => $acteur->can($p) && ! str_starts_with($p, 'etablissement.') && ! str_starts_with($p, 'module.'));
+        $refusees = $demandees->diff($autorisees);
+
+        $rolesRefuses = collect();
+        $roles = null;
+        if ($request->has('roles')) {
+            $rolesDemandes = collect($request->input('roles', []))->filter()->unique();
+            $roles = $plateforme ? $rolesDemandes : $rolesDemandes->filter(function ($nom) use ($acteur) {
+                if ($nom === \App\Support\EtablissementContext::ROLE_PLATEFORME) {
+                    return false;
+                }
+                $role = Role::where('name', $nom)->first();
+
+                // Un rôle n'est attribuable que si l'acteur a déjà toutes ses permissions.
+                return $role && $role->permissions->every(fn ($perm) => $acteur->can($perm->name));
+            });
+            $rolesRefuses = $rolesDemandes->diff($roles);
+        }
+
+        if ($user->is($acteur) && ! $plateforme && $demandees->isNotEmpty()) {
+            // Personne ne modifie ses propres droits (hors plateforme) : un autre administrateur doit le faire.
+            return redirect()->back()->with('error', 'Vous ne pouvez pas modifier vos propres permissions.');
+        }
+
         try {
-            $user = User::deMonEtablissement()->findOrFail($id);
-            
-            // Permissions
-            $permissions = $request->input('permissions', []);
-            $user->syncPermissions($permissions);
-            
-            // Rôles (si vous avez un champ roles[] dans le formulaire)
-            if ($request->has('roles')) {
-                $roles = $request->input('roles', []);
-                $user->syncRoles($roles);
-            }
-            
-            // Effacer le cache
+            \Illuminate\Support\Facades\DB::transaction(function () use ($user, $autorisees, $roles) {
+                $user->syncPermissions($autorisees->all());
+                if ($roles !== null) {
+                    $user->syncRoles($roles->all());
+                }
+            });
+
             app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
-            
-            return redirect()->route('users.index')
-                ->with('success', 'Les permissions de ' . $user->name . ' ont été mises à jour avec succès. (' . count($permissions) . ' permissions assignées)');
-                
+
+            \App\Models\ActivityLog::create([
+                'etablissement_id' => \App\Support\EtablissementContext::id(),
+                'causer_type' => User::class, 'causer_id' => $acteur->id,
+                'subject_type' => User::class, 'subject_id' => $user->id,
+                'action' => 'users.permissions_modifiees',
+                'description' => $autorisees->count() . ' permission(s) attribuée(s)',
+                'proprietes' => ['permissions' => $autorisees->all(), 'roles' => $roles?->all(), 'refusees' => $refusees->merge($rolesRefuses)->all()],
+                'ip_address' => $request->ip(),
+            ]);
+
+            $message = 'Les permissions de ' . $user->name . ' ont été mises à jour (' . $autorisees->count() . ' permissions assignées).';
+            $redirection = redirect()->route('users.index')->with('success', $message);
+
+            return $refusees->isEmpty() && $rolesRefuses->isEmpty()
+                ? $redirection
+                : $redirection->with('error', 'Non attribués (vous ne les possédez pas ou ils sont réservés à la plateforme) : '
+                    . $refusees->merge($rolesRefuses)->implode(', '));
         } catch (\Exception $e) {
             \Log::error('Erreur assignPermissions: ' . $e->getMessage());
-            
+
             return redirect()->back()
-                ->with('error', 'Erreur lors de la mise à jour des permissions : ' . $e->getMessage())
+                ->with('error', 'Erreur lors de la mise à jour des permissions.')
                 ->withInput();
         }
     }

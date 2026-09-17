@@ -72,6 +72,9 @@ class ValidationService
             ]);
             $this->demandes->rafraichirStatut($ligne->demande);
 
+            // Maladie à déclaration obligatoire : ouverte (ou close) à chaque validation.
+            app(DeclarationMdoService::class)->detecter($ligne->fresh());
+
             ContexteLabo::journaliser('validation_biologique', $ligne);
         });
     }

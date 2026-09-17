@@ -106,6 +106,9 @@ class LaboCatalogueModeleSeeder extends Seeder
                 'instructions_patient' => $def['instructions'] ?? null,
                 'delai_rendu_heures' => $def['delai'] ?? 24,
                 'prix' => 0,
+                // Maladies à déclaration obligatoire : indicatif, à valider avec l'autorité sanitaire.
+                'mdo_maladie' => self::MDO[$def['code']][0] ?? null,
+                'mdo_immediate' => self::MDO[$def['code']][1] ?? false,
                 'ordre' => $def['ordre'] ?? 0,
                 'actif' => true,
             ]
@@ -157,6 +160,18 @@ class LaboCatalogueModeleSeeder extends Seeder
     }
 
     private const NEG_POS = ['Négatif', 'Positif'];
+    /** [code examen => [maladie, notification immédiate]] — même liste que la migration 2026_09_20_100001. */
+    private const MDO = [
+        'GE' => ['Paludisme', false],
+        'TDR_PALU' => ['Paludisme', false],
+        'WIDAL' => ['Fièvre typhoïde', false],
+        'VIH' => ['Infection à VIH', false],
+        'SYPH' => ['Syphilis', false],
+        'AGHBS' => ['Hépatite B', false],
+        'HCV' => ['Hépatite C', false],
+        'COPRO' => ['Diarrhée bactérienne (dont choléra, shigellose)', true],
+    ];
+
     private const NON_REACTIF = ['Non réactif', 'Réactif', 'Indéterminé'];
     private const CROIX = ['Négatif', 'Traces', '+', '++', '+++'];
 

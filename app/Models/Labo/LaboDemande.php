@@ -66,6 +66,11 @@ class LaboDemande extends Model
         return $this->hasMany(LaboCompteRendu::class, 'demande_id')->orderByDesc('version');
     }
 
+    public function remises()
+    {
+        return $this->hasMany(LaboRemise::class, 'demande_id')->latest('remis_le');
+    }
+
     public function consultation()
     {
         return $this->belongsTo(Consultation::class);
@@ -121,7 +126,8 @@ class LaboDemande extends Model
             return false;
         }
 
-        return in_array($transaction->status, ['paid', 'approved'], true);
+        // « completed » : posé par Invoice quand la part patient est réglée (voir Invoice::markAsPaid).
+        return in_array($transaction->status, ['paid', 'approved', 'completed'], true);
     }
 
     public function peutEtreRemisAuPatient(): bool

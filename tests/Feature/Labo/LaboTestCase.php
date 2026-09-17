@@ -36,21 +36,41 @@ abstract class LaboTestCase extends TestCase
         $module = Module::firstOrCreate(['code' => 'laboratoire'], ['nom' => 'Laboratoire']);
         $etab->modules()->attach($module->id, ['est_actif' => true, 'active_depuis' => now()]);
 
+        // Comme en production (commande labo:activer), l'import se fait hors session :
+        // un utilisateur déjà connecté ne peut pas écrire dans le catalogue d'un autre établissement.
+        $connecte = auth()->user();
+        if ($connecte) {
+            auth()->logout();
+        }
+
         app(CatalogueImportService::class)->importer($etab->id);
+
+        if ($connecte) {
+            $this->actingAs($connecte);
+        }
 
         return $etab;
     }
 
     protected function creerBiologiste(Etablissement $etab): User
     {
+        return $this->creerUtilisateur($etab, 'Biologiste');
+    }
+
+    /** Compte du personnel rattaché à l'établissement, avec un rôle (ou aucun). */
+    protected function creerUtilisateur(Etablissement $etab, ?string $role = null): User
+    {
         $user = User::create([
-            'name' => 'Bio ' . $etab->slug,
+            'name' => ($role ?? 'Sans rôle') . ' ' . $etab->slug,
             'phone' => (string) random_int(600000000, 699999999),
             'email' => Str::random(8) . '@test.gn',
             'password' => bcrypt('secret'),
         ]);
         $user->forceFill(['etablissement_id' => $etab->id])->save(); // hors $fillable, volontairement
-        $user->assignRole('Biologiste');
+
+        if ($role) {
+            $user->assignRole($role);
+        }
 
         return $user;
     }

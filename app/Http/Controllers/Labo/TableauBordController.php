@@ -25,6 +25,7 @@ class TableauBordController extends Controller
             'en_analyse' => LaboDemandeExamen::whereIn('statut', [StatutExamen::RECU->value, StatutExamen::EN_COURS->value])->count(),
             'a_valider' => LaboDemandeExamen::where('statut', StatutExamen::VALIDE_TECHNIQUE->value)->count(),
             'a_publier' => LaboDemandeExamen::where('statut', StatutExamen::VALIDE_BIOLOGIQUE->value)->count(),
+            'mdo_a_declarer' => \App\Models\Labo\LaboDeclarationMdo::where('statut', \App\Models\Labo\LaboDeclarationMdo::A_DECLARER)->count(),
             'urgences' => LaboDemande::where('urgence', true)->whereNotIn('statut', [StatutDemande::PUBLIEE->value, StatutDemande::ANNULEE->value])->count(),
         ];
 

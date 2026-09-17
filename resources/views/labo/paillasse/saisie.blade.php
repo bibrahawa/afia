@@ -9,7 +9,7 @@
     $patient = $demande->patient;
     $sexe = ContexteLabo::sexePatient($patient);
     $ageJours = ContexteLabo::ageEnJours($patient, $demande->created_at);
-    $modifiable = in_array($ligne->statut, [StatutExamen::RECU, StatutExamen::EN_COURS, StatutExamen::VALIDE_TECHNIQUE], true);
+    $modifiable = $ligne->statut->permetSaisie();
     $bacterio = $ligne->examen->estBacteriologie();
 @endphp
 
@@ -59,10 +59,10 @@
             <table class="table table-sm align-middle">
                 <thead><tr><th>Paramètre</th><th>Résultat</th><th>Unité</th><th>Norme</th><th>Antériorités</th></tr></thead>
                 <tbody>
-                @php($groupe = null)
+                @php $groupe = null; @endphp
                 @foreach($ligne->examen->parametres->sortBy('ordre') as $p)
                     @if($p->groupe && $p->groupe !== $groupe)
-                        @php($groupe = $p->groupe)
+                        @php $groupe = $p->groupe; @endphp
                         <tr><td colspan="5" class="fw-bold bg-light">{{ $groupe }}</td></tr>
                     @endif
                     @php
@@ -74,7 +74,7 @@
                     <tr class="{{ $r?->flag?->estCritique() ? 'labo-ligne-critique' : '' }}">
                         <td>{{ $p->libelle }} @if($p->obligatoire)<span class="text-danger">*</span>@endif</td>
                         <td>
-                            @php($valeur = old('valeurs.' . $p->id, $r?->valeurAffichee()))
+                            @php $valeur = old('valeurs.' . $p->id, $r?->valeurAffichee()); @endphp
                             @if($p->type_resultat === TypeResultat::CALCULE)
                                 <span class="{{ $r?->flag?->classeCss() }}">{{ $r?->valeurAffichee() ?: '—' }} {{ $r?->flag?->symbole() }}</span> <span class="small text-muted">(calculé)</span>
                             @elseif($p->type_resultat->utiliseOptions() && $p->options)
@@ -108,9 +108,9 @@
         <div class="card">
             <div class="card-header"><h4 class="card-title">Germes isolés et antibiogramme</h4></div>
             <div class="card-body">
-                @php($isoles = $ligne->germesIsoles->values())
+                @php $isoles = $ligne->germesIsoles->values(); @endphp
                 @for($i = 0; $i < max(2, $isoles->count() + 1); $i++)
-                    @php($iso = $isoles->get($i))
+                    @php $iso = $isoles->get($i); @endphp
                     <div class="border rounded p-2 mb-3">
                         <div class="row g-2 mb-2">
                             <div class="col-md-6"><label class="form-label small">Germe {{ $i + 1 }}</label>
@@ -125,7 +125,7 @@
                             <summary class="small">Antibiogramme</summary>
                             <div class="row mt-2">
                                 @foreach($antibiotiques as $ab)
-                                    @php($ag = $iso?->antibiogramme->firstWhere('antibiotique_id', $ab->id))
+                                    @php $ag = $iso?->antibiogramme->firstWhere('antibiotique_id', $ab->id); @endphp
                                     <div class="col-md-4 col-sm-6 d-flex align-items-center mb-1">
                                         <span class="small me-2" style="min-width:140px">{{ $ab->nom }}</span>
                                         <select name="germes[{{ $i }}][antibiogramme][{{ $ab->id }}][interpretation]" class="form-select form-select-sm" style="width:70px" @disabled(! $modifiable)>
