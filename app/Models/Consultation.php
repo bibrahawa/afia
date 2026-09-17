@@ -76,7 +76,7 @@ class Consultation extends Model
     public function invoice()
     {
         return $this->hasOneThrough(Invoice::class, Transaction::class, 'transactionable_id', 'transaction_id')
-            ->where('transactions.transactionable_type', Consultation::class);
+            ->whereIn('transactions.transactionable_type', \App\Support\Facturation\TypesFacturables::variantes(Consultation::class));
     }
 
 }

@@ -40,11 +40,11 @@ body {
 
 <body onload="window.print()">
 <div class="logo">
-    <img src="{{ public_path('assets/img/aprosafe.png') }}" alt="Logo">
+    @if($identite->logoPdf())<img src="{{ $identite->logoPdf() }}" alt="Logo">@endif
 </div>
-<div class="center bold">{{ $hopital->name ?? "CLINIQUE APROSAFE" }}</div>
-<div class="center">{{ $hopital->address ?? 'Kiroti, Conakry, Rep de Guinee' }}</div>
-<div class="center">{{ $hopital->email ?? 'boubacarbinta2015@gmail.com' }} / {{ $hopital->contact ?? "628 16 44 22 / 625 47 68 44" }}</div>
+<div class="center bold">{{ $identite->nom }}</div>
+<div class="center">{{ $identite->adresse }}</div>
+<div class="center">{{ $identite->email }} / {{ $identite->contact }}</div>
 
 <div class="separator"></div>
 

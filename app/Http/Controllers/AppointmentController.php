@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\CancelAppointmentRequest;
+use App\Http\Requests\PrendreRdvPublicRequest;
 use App\Http\Requests\StoreAppointmentRequest;
 use App\Models\Appointment;
+use App\Models\ComptePatient;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\MotifRdv;
@@ -13,10 +15,13 @@ use App\Models\User;
 use App\Services\AppointmentBookingService;
 use App\Services\AppointmentStatusService;
 use App\Services\DisponibiliteService;
+use App\Support\CacheDisponibilite;
 use Carbon\Carbon;
 use DomainException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 
 class AppointmentController extends Controller
 {
@@ -33,15 +38,17 @@ class AppointmentController extends Controller
 
     /**
      * Vue RÉCEPTION : tous les rendez-vous de la clinique (tous médecins),
-     * pas ceux d'un seul praticien — c'est ce qui manquait concrètement
-     * (cette méthode pointait vers une vue `appointments.index` qui
-     * n'existait pas du tout dans le projet). Filtrable par médecin et par
-     * recherche libre (patient, téléphone, motif), par défaut sur la
-     * journée en cours.
+     * filtrables par médecin et recherche libre, par défaut sur aujourd'hui.
      */
     public function index(Request $request, \App\Services\AppointmentQueryService $queryService)
     {
-        $date = $request->input('date', Carbon::today()->toDateString());
+        // Une date invalide dans l'URL ne doit pas provoquer d'erreur 500.
+        $date = rescue(
+            fn () => Carbon::parse($request->input('date', Carbon::today()->toDateString()))->toDateString(),
+            Carbon::today()->toDateString(),
+            false
+        );
+        $request->merge(['date' => $date]);
 
         $appointments = $queryService->paginatedForReception($request);
         $stats = $queryService->statsForReception($date);
@@ -135,7 +142,7 @@ class AppointmentController extends Controller
         return response()->json($medecins);
     }
 
-    public function staffDatesDisponibles(Request $request, \App\Services\DisponibiliteService $disponibilite)
+    public function staffDatesDisponibles(Request $request, DisponibiliteService $disponibilite)
     {
         $data = $request->validate([
             'employee_id' => ['required', 'exists_etablissement:employees,id'],
@@ -145,13 +152,7 @@ class AppointmentController extends Controller
         $medecin = Employee::findOrFail($data['employee_id']);
         $motif = MotifRdv::findOrFail($data['motif_rdv_id']);
 
-        $jours = collect(range(0, 13))
-            ->map(fn ($i) => Carbon::today()->addDays($i))
-            ->filter(fn (Carbon $d) => $disponibilite->creneauxDisponibles($medecin, $d, $motif)->isNotEmpty())
-            ->map(fn (Carbon $d) => $d->toDateString())
-            ->values();
-
-        return response()->json($jours);
+        return response()->json($disponibilite->joursDisponibles($medecin, Carbon::today(), 14, $motif));
     }
 
     public function staffCreneaux(Request $request, \App\Services\DisponibiliteService $disponibilite)
@@ -170,48 +171,54 @@ class AppointmentController extends Controller
         return response()->json($creneaux->map(fn ($c) => ['debut' => $c['debut']->format('H:i')]));
     }
 
-    public function store(\App\Models\Etablissement $etablissement, StoreAppointmentRequest $request, AppointmentBookingService $bookingService, AppointmentStatusService $statusService)
+    /**
+     * Prise de rdv PUBLIQUE.
+     *
+     * CORRIGÉ 21/09/2026 — le client n'envoie plus de patient_id : le dossier
+     * est retrouvé côté serveur à partir du téléphone (compte titulaire).
+     * Un nouveau patient a été créé juste avant par storeRapide(), après
+     * vérification OTP du numéro ; un patient déjà connu réserve sans OTP
+     * (choix assumé, compensé par le lien d'annulation du SMS de confirmation).
+     */
+    public function store(\App\Models\Etablissement $etablissement, PrendreRdvPublicRequest $request, AppointmentBookingService $bookingService, AppointmentStatusService $statusService)
     {
-        // Défense en profondeur, même principe qu'ailleurs dans ce
-        // contrôleur : vérifie explicitement que le médecin et le motif
-        // soumis appartiennent bien à l'établissement de l'URL, plutôt que
-        // de dépendre uniquement du global scope pour ce point d'entrée
-        // qui écrit des données (création d'un rendez-vous).
+        $data = $request->validated();
+
+        // Défense en profondeur : médecin et motif de l'établissement de l'URL.
         $employeeValide = Employee::where('etablissement_id', $etablissement->id)
-            ->where('id', $request->input('employee_id'))->exists();
+            ->where('id', $data['employee_id'])->exists();
         $motifValide = MotifRdv::where('etablissement_id', $etablissement->id)
-            ->where('id', $request->input('motif_rdv_id'))->exists();
+            ->where('id', $data['motif_rdv_id'])->exists();
 
         if (! $employeeValide || ! $motifValide) {
             return response()->json(['error' => 'Requête invalide pour cet établissement.'], 422);
         }
 
-        // Pas de vérification OTP ici, par choix assumé (pas un oubli) :
-        // l'OTP protège désormais la CRÉATION d'un dossier patient (voir
-        // PatientController::storeRapide()), pas chaque soumission de rdv.
-        // Un patient déjà connu ne revérifie plus son numéro à chaque
-        // rendez-vous. Le risque résiduel accepté : quelqu'un connaissant
-        // le numéro d'un patient déjà enregistré peut réserver en son nom
-        // sans preuve de possession. Compensé par le lien d'annulation
-        // intégré au SMS de confirmation (voir SendAppointmentReminderJob)
-        // — une détection après coup, pas une prévention, mais qui
-        // referme la fenêtre d'exposition rapidement et sans aucune
-        // friction pour le patient légitime.
+        $patient = $this->patientTitulaire($data['telephone']);
+
+        if (! $patient) {
+            return response()->json(['error' => 'Aucun dossier patient pour ce numéro. Merci de recommencer la saisie de vos informations.'], 422);
+        }
+
+        unset($data['telephone']);
+        $data['patient_id'] = $patient->id;
 
         try {
-            $appointment = $bookingService->book($request->validated());
+            $appointment = $bookingService->book($data);
             $statusService->confirm($appointment);
 
-            // Le SMS de confirmation (avec le lien d'annulation intégré)
-            // part déjà tout seul via AppointmentObserver ->
-            // HandleAppointmentStatusChange -> SendAppointmentReminderJob,
-            // déclenché par confirm() ci-dessus. Ne PAS en renvoyer un
-            // deuxième ici — c'était le doublon signalé.
+            // Le patient devient « suivi » par cet établissement : la réception
+            // doit pouvoir le retrouver par son nom. Pas de date de visite :
+            // réserver n'est pas venir.
+            $etablissement->patients()->syncWithoutDetaching([$patient->id]);
+
+            // Le SMS de confirmation (avec lien d'annulation) part via
+            // AppointmentObserver → HandleAppointmentStatusChange. Ne pas en
+            // renvoyer un second ici.
 
             return response()->json([
                 'message' => 'Rendez-vous créé avec succès.',
                 'appointment' => [
-                    'id' => $appointment->id,
                     'date' => $appointment->appointment_date->format('d/m/Y'),
                     'time' => $appointment->appointment_time->format('H:i'),
                     'doctor' => 'Dr. ' . $appointment->employee->first_name . ' ' . $appointment->employee->last_name,
@@ -229,18 +236,14 @@ class AppointmentController extends Controller
     }
 
     /**
-     * Page ouverte depuis le SMS — AUCUNE authentification requise, la
-     * signature de l'URL fait foi (même principe que le lien de
-     * confirmation de consentement). Une seule route, GET et POST
-     * confondus (même URL signée que celle envoyée par SMS) : GET affiche
-     * la page de confirmation, POST annule réellement. Les séparer sur
-     * deux URLs aurait cassé la signature du lien envoyé par SMS quand le
-     * formulaire soumet vers la même adresse.
+     * Page ouverte depuis le SMS — aucune authentification, la signature de
+     * l'URL fait foi. GET affiche la confirmation, POST annule réellement
+     * (même URL signée que celle envoyée par SMS).
      */
     public function gererAnnulationNonReconnue(Request $request, \App\Models\Etablissement $etablissement, Appointment $appointment, AppointmentStatusService $statusService)
     {
         abort_unless($request->hasValidSignature(), 403, 'Ce lien a expiré ou est invalide.');
-        abort_unless($appointment->employee->etablissement_id === $etablissement->id, 404);
+        abort_unless((int) $appointment->etablissement_id === (int) $etablissement->id, 404);
 
         if ($request->isMethod('post')) {
             if (in_array($appointment->status, ['pending', 'confirmed'])) {
@@ -292,7 +295,7 @@ class AppointmentController extends Controller
         try {
             $bookingService->reprogrammer($appointment, $data['appointment_date'], $data['appointment_time']);
 
-            return back()->with('success', 'Rendez-vous reprogrammé. Le patient doit être prévenu du nouvel horaire.');
+            return back()->with('success', 'Rendez-vous reprogrammé. Le patient est prévenu par SMS du nouvel horaire.');
         } catch (DomainException $e) {
             return back()->with('error', $e->getMessage());
         } catch (\Throwable $e) {
@@ -357,9 +360,12 @@ class AppointmentController extends Controller
     }
 
     /**
-     * Jours ayant au moins un créneau libre, sur une fenêtre donnée —
-     * alimente le sélecteur de date de l'interface (bande de jours plutôt
-     * qu'un calendrier mensuel complet, voir le choix de design).
+     * Jours ayant au moins un créneau libre — alimente la bande de jours.
+     *
+     * Cache 60 s, clé VERSIONNÉE par médecin (CacheDisponibilite) : toute
+     * réservation, annulation, congé ou pause invalide immédiatement le cache
+     * de ce médecin. La vérification qui fait foi reste celle, non cachée,
+     * d'AppointmentBookingService au moment de réserver.
      */
     public function getAvailableDates(\App\Models\Etablissement $etablissement, Request $request, DisponibiliteService $disponibilite)
     {
@@ -371,37 +377,23 @@ class AppointmentController extends Controller
 
         $medecin = Employee::where('etablissement_id', $etablissement->id)->findOrFail($data['employee_id']);
         $motif = MotifRdv::where('etablissement_id', $etablissement->id)->findOrFail($data['motif_rdv_id']);
-        $nbJours = $data['jours'] ?? 14;
+        $nbJours = (int) ($data['jours'] ?? 14);
 
-        // Mis en cache brièvement : ce calcul boucle sur jusqu'à 60 jours
-        // de l'algorithme de disponibilité. À l'échelle visée (200
-        // cliniques, ~50 rdv/jour/médecin), sans cache, ce point devient à
-        // la fois un coût réel en heures de pointe et une cible facile de
-        // sur-sollicitation (répéter l'appel force un recalcul complet à
-        // chaque fois). 60 secondes suffit : un rendez-vous qui vient
-        // d'être pris par quelqu'un d'autre reste visible au pire une
-        // minute de plus, sans risque réel de double réservation — la
-        // vérification faisant foi reste celle, non cachée, d'
-        // AppointmentBookingService au moment de la réservation.
-        $cle = "dispo:dates:{$medecin->id}:{$motif->id}:{$nbJours}:" . now()->format('Y-m-d');
-        $joursDisponibles = \Illuminate\Support\Facades\Cache::remember($cle, 60, function () use ($medecin, $motif, $disponibilite, $nbJours) {
-            return collect(range(0, $nbJours - 1))
-                ->map(fn ($i) => Carbon::today()->addDays($i))
-                ->filter(fn (Carbon $date) => $disponibilite->creneauxDisponibles($medecin, $date, $motif)->isNotEmpty())
-                ->map(fn (Carbon $date) => $date->toDateString())
-                ->values();
-        });
+        $cle = CacheDisponibilite::prefixe($medecin->id) . ":dates:{$motif->id}:{$nbJours}:" . now()->format('Y-m-d');
 
-        return response()->json($joursDisponibles);
+        $joursDisponibles = Cache::remember($cle, 60, fn () => $disponibilite
+            ->joursDisponibles($medecin, Carbon::today(), $nbJours, $motif)
+            ->all());
+
+        return response()->json(array_values($joursDisponibles));
     }
 
     /**
-     * CORRIGÉ — cette méthode vérifiait l'ancien lien Patient::user_id
-     * (le modèle `User` du personnel), un mécanisme distinct et
-     * maintenant obsolète depuis l'introduction de `ComptePatient` au
-     * Pilier B. Les deux ne se recoupaient pas : un patient créé via
-     * `storeRapide()` (ComptePatient) n'aurait jamais été retrouvé ici.
-     * Un seul système d'identité patient désormais : ComptePatient.
+     * CORRIGÉ 21/09/2026 — ne renvoie plus NI le nom NI l'identifiant du
+     * patient. Sans vérification de possession du numéro, ces informations
+     * permettaient de savoir qu'une personne est suivie (donnée de santé) et
+     * de réserver en son nom. On indique seulement si un dossier existe, pour
+     * orienter le parcours (connu → récapitulatif ; nouveau → formulaire + OTP).
      */
     public function checkPatient(Request $request)
     {
@@ -413,24 +405,16 @@ class AppointmentController extends Controller
             ['phone.regex' => 'Le numéro de téléphone doit contenir exactement 9 chiffres.']
         )->validate();
 
-        $compte = \App\Models\ComptePatient::where('telephone', $phone)->first();
-        $patient = $compte?->patients()->wherePivot('role', 'titulaire')->first();
-
-        if (!$compte || !$patient) {
-            return response()->json(['exists' => false, 'is_patient' => false]);
+        // Freine l'énumération de numéros par un script.
+        $cle = 'rdv-verifier-patient:' . $request->ip();
+        if (RateLimiter::tooManyAttempts($cle, 20)) {
+            return response()->json(['error' => 'Trop de recherches. Réessayez dans quelques minutes.'], 429);
         }
+        RateLimiter::hit($cle, 600);
 
-        return response()->json([
-            'exists' => true,
-            'is_patient' => true,
-            'patient' => [
-                'id' => $patient->id,
-                'name' => $patient->getFullName(),
-                'phone' => $compte->telephone,
-                'first_name' => $patient->first_name,
-                'last_name' => $patient->last_name,
-            ]
-        ]);
+        $existe = (bool) $this->patientTitulaire($phone);
+
+        return response()->json(['exists' => $existe, 'is_patient' => $existe]);
     }
 
     /*
@@ -441,34 +425,33 @@ class AppointmentController extends Controller
     |--------------------------------------------------------------------------
     */
 
+    /**
+     * CORRIGÉ 21/09/2026 :
+     *  - le code est stocké en CACHE, plus dans comptes_patients.code_otp :
+     *    demander un code de rdv écrasait le code de connexion au portail ;
+     *  - aucun ComptePatient n'est créé tant que le numéro n'est pas vérifié
+     *    (avant, chaque numéro essayé créait un compte) ;
+     *  - limite par IP en plus de la limite par numéro : sans elle, un script
+     *    pouvait envoyer un SMS à des milliers de numéros différents et vider
+     *    le crédit SMS.
+     */
     public function envoyerCodeRdv(Request $request, \App\Services\SmsService $sms, \App\Services\OtpService $otp)
     {
         $data = $request->validate(['telephone' => ['required', 'regex:/^[0-9]{9}$/']]);
 
-        // Ancré sur le numéro, pas seulement sur l'IP — voir l'analyse
-        // jointe sur pourquoi un throttle IP seul est insuffisant ici.
-        $cle = 'otp-rdv:' . $data['telephone'];
-        if (\Illuminate\Support\Facades\RateLimiter::tooManyAttempts($cle, 3)) {
-            return response()->json(['error' => 'Trop de tentatives pour ce numéro. Réessayez dans quelques minutes.'], 429);
-        }
-        \Illuminate\Support\Facades\RateLimiter::hit($cle, 600);
+        $cleNumero = 'otp-rdv:' . $data['telephone'];
+        $cleIp = 'otp-rdv-ip:' . $request->ip();
 
-        // On crée (ou réutilise) le compte MAINTENANT, avant même de savoir
-        // si c'est un nouveau patient — c'est ce qui permet de vérifier la
-        // possession du numéro avant de créer le moindre dossier médical
-        // en son nom.
-        $compte = \App\Models\ComptePatient::firstOrCreate(
-            ['telephone' => $data['telephone']],
-            ['statut' => 'actif']
-        );
+        if (RateLimiter::tooManyAttempts($cleNumero, 3) || RateLimiter::tooManyAttempts($cleIp, 10)) {
+            return response()->json(['error' => 'Trop de demandes de code. Réessayez dans quelques minutes.'], 429);
+        }
+        RateLimiter::hit($cleNumero, 600);
+        RateLimiter::hit($cleIp, 3600);
 
         $code = $otp->generer();
-        $compte->update([
-            'code_otp' => $otp->hacher($code),
-            'otp_expire_le' => now()->addMinutes(5),
-        ]);
+        Cache::put($this->cleOtpRdv($data['telephone']), $otp->hacher($code), now()->addMinutes(5));
 
-        $sms->sendSms($compte->telephone, "Votre code pour confirmer le rendez-vous : {$code} (valable 5 minutes).");
+        $sms->sendSms($data['telephone'], "Votre code pour confirmer le rendez-vous : {$code} (valable 5 minutes).");
 
         return response()->json(['message' => 'Code envoyé.']);
     }
@@ -477,35 +460,50 @@ class AppointmentController extends Controller
     {
         $data = $request->validate([
             'telephone' => ['required', 'regex:/^[0-9]{9}$/'],
-            'code' => ['required', 'string'],
+            'code' => ['required', 'string', 'max:10'],
         ]);
 
         $cle = 'otp-rdv-verif:' . $data['telephone'];
-        if (\Illuminate\Support\Facades\RateLimiter::tooManyAttempts($cle, 5)) {
+        if (RateLimiter::tooManyAttempts($cle, 5)) {
             return response()->json(['error' => 'Trop de tentatives. Redemandez un code.'], 429);
         }
 
-        $compte = \App\Models\ComptePatient::where('telephone', $data['telephone'])->first();
+        $hash = Cache::get($this->cleOtpRdv($data['telephone']));
 
-        if (! $compte || ! $compte->otp_expire_le || $compte->otp_expire_le->isPast()
-            || ! $otp->verifier($data['code'], $compte->code_otp)) {
-            \Illuminate\Support\Facades\RateLimiter::hit($cle, 600);
+        if (! $otp->verifier($data['code'], $hash)) {
+            RateLimiter::hit($cle, 600);
             return response()->json(['error' => 'Code invalide ou expiré.'], 422);
         }
 
-        \Illuminate\Support\Facades\RateLimiter::clear($cle);
+        RateLimiter::clear($cle);
+        Cache::forget($this->cleOtpRdv($data['telephone']));
 
-        $compte->update([
-            'code_otp' => null,
-            'otp_expire_le' => null,
-            'telephone_verifie_le' => $compte->telephone_verifie_le ?: now(),
-        ]);
+        // Le compte n'est créé QU'APRÈS preuve de possession du numéro.
+        $compte = ComptePatient::firstOrCreate(
+            ['telephone' => $data['telephone']],
+            ['statut' => 'actif']
+        );
 
-        // Le VRAI verrou : sans cette clé de session, storeRapide()
-        // n'acceptera pas ce numéro pour créer un dossier — voir cette
-        // méthode dans PatientController.
+        if (! $compte->telephone_verifie_le) {
+            $compte->update(['telephone_verifie_le' => now()]);
+        }
+
+        // Le VRAI verrou : sans cette clé de session, storeRapide() refuse de
+        // créer un dossier pour ce numéro.
         $request->session()->put('telephone_verifiee_rdv', $compte->telephone);
 
         return response()->json(['message' => 'Numéro vérifié.']);
+    }
+
+    protected function cleOtpRdv(string $telephone): string
+    {
+        return 'otp-rdv:code:' . $telephone;
+    }
+
+    /** Dossier du titulaire du compte associé à ce téléphone, s'il existe. */
+    protected function patientTitulaire(string $telephone): ?Patient
+    {
+        return ComptePatient::where('telephone', $telephone)->first()
+            ?->patients()->wherePivot('role', 'titulaire')->first();
     }
 }

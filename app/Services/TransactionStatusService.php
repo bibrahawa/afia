@@ -2,74 +2,58 @@
 
 namespace App\Services;
 
-use App\Models\Paiement;
 use App\Models\Transaction;
+use App\Support\Facturation\SoldeTransaction;
 
+/**
+ * Statuts d'une pièce, recalculés à partir de SoldeTransaction (règle unique).
+ *
+ * transactions.status
+ *   paid     : part patient ET part assurance réglées
+ *   approved : part patient réglée, assurance en attente (valeur historique)
+ *   partial  : quelque chose a été encaissé, la part patient n'est pas soldée
+ *   pending  : rien encaissé
+ *
+ * invoices.insurance_status : null (pas de part assurance) / pending / partial / paid
+ * invoices.patient_amount_status : pending / paid
+ *
+ * RÉVISION lot 1 :
+ *  - les bordereaux de règlement assurance comptent (avant, ce service
+ *    remettait « pending » juste après un règlement par bordereau) ;
+ *  - les paiements annulés ne comptent plus ;
+ *  - montant_payer est resynchronisé (patient + assurance), pour les écrans
+ *    qui l'affichent encore.
+ */
 class TransactionStatusService
 {
     public function refresh(Transaction $transaction): Transaction
     {
         $transaction->loadMissing('invoice');
-
         $invoice = $transaction->invoice;
+        $solde = SoldeTransaction::pour($transaction);
 
-        if (!$invoice) {
-            // CORRIGÉ : une pièce sans facture restait « pending » même intégralement payée.
-            $paye = (float) Paiement::where('transaction_id', $transaction->id)->sum('montant');
-            $transaction->status = match (true) {
-                $paye >= (float) $transaction->total - 0.01 => 'paid',
-                $paye > 0 => 'partial',
+        if ($invoice) {
+            $invoice->patient_amount_status = $solde->patientSolde() ? 'paid' : 'pending';
+
+            $invoice->insurance_status = match (true) {
+                $solde->partAssurance <= 0 => null,
+                $solde->assuranceSoldee() => 'paid',
+                $solde->regleAssurance > 0 => 'partial',
+                // Une réclamation déjà soumise / approuvée garde son statut.
+                in_array($invoice->insurance_status, ['submitted', 'approved', 'rejected'], true) => $invoice->insurance_status,
                 default => 'pending',
             };
-            $transaction->save();
 
-            return $transaction->fresh(['invoice']);
+            $invoice->save();
         }
 
-        $patientPaid = (float) Paiement::where('transaction_id', $transaction->id)
-            ->where('type', 'paiement')
-            ->sum('montant');
-
-        $insurancePaid = (float) Paiement::where('transaction_id', $transaction->id)
-            ->where('type', 'remboursement')
-            ->sum('montant');
-
-        $patientDue = (float) $invoice->patient_amount;
-        $insuranceDue = (float) $invoice->insurance_amount;
-
-        // Statut patient
-        if ($patientDue <= 0) {
-            $invoice->patient_amount_status = 'paid';
-        } else {
-            $invoice->patient_amount_status = $patientPaid >= $patientDue ? 'paid' : 'pending';
-        }
-
-        // Statut assurance
-        if ($insuranceDue <= 0) {
-            $invoice->insurance_status = null;
-        } elseif ($insurancePaid >= $insuranceDue) {
-            $invoice->insurance_status = 'paid';
-        } elseif ($insurancePaid > 0) {
-            $invoice->insurance_status = 'approved';
-        } else {
-            $invoice->insurance_status = 'pending';
-        }
-
-        $invoice->save();
-
-        $patientOk = $patientDue <= 0 || $patientPaid >= $patientDue;
-        $insuranceOk = $insuranceDue <= 0 || $insurancePaid >= $insuranceDue;
-
-        if ($patientOk && $insuranceOk) {
-            $transaction->status = 'paid';
-        } elseif ($patientOk && !$insuranceOk) {
-            $transaction->status = 'approved';
-        } elseif ($patientPaid > 0 || $insurancePaid > 0) {
-            $transaction->status = 'partial';
-        } else {
-            $transaction->status = 'pending';
-        }
-
+        $transaction->status = match (true) {
+            $solde->patientSolde() && $solde->assuranceSoldee() => 'paid',
+            $solde->patientSolde() => 'approved',
+            $solde->totalEncaisse() > 0 => 'partial',
+            default => 'pending',
+        };
+        $transaction->montant_payer = $solde->totalEncaisse();
         $transaction->save();
 
         return $transaction->fresh(['invoice']);

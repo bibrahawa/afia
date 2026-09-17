@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Support\Facturation\TypesFacturables;
 use App\Traits\BelongsToEtablissement;
+use App\Traits\Facturation\NormaliseTypesFacturables;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
@@ -10,7 +12,10 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class Transaction extends Model
 {
-    use BelongsToEtablissement;
+    use BelongsToEtablissement, NormaliseTypesFacturables;
+
+    /** Enregistré sous alias stable (« consultation »…), voir TypesFacturables. */
+    protected static array $colonnesTypesFacturables = ['transactionable_type'];
 
     protected $fillable = [
         'etablissement_id',
@@ -72,10 +77,13 @@ class Transaction extends Model
         static::creating(function ($transaction) {
             // Contexte sans utilisateur (job, callback de paiement) : on hérite
             // de l'établissement de l'acte facturé.
+            // La colonne contient désormais un alias (« consultation ») : on
+            // résout la classe avant de l'interroger.
+            $classeActe = TypesFacturables::classe($transaction->transactionable_type);
+
             if (empty($transaction->etablissement_id) && $transaction->transactionable_id
-                && $transaction->transactionable_type
-                && method_exists($transaction->transactionable_type, 'bootBelongsToEtablissement')) {
-                $transaction->etablissement_id = $transaction->transactionable_type::withoutGlobalScopes()
+                && $classeActe && method_exists($classeActe, 'bootBelongsToEtablissement')) {
+                $transaction->etablissement_id = $classeActe::withoutGlobalScopes()
                     ->whereKey($transaction->transactionable_id)->value('etablissement_id');
             }
 

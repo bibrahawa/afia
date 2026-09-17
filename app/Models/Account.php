@@ -3,13 +3,17 @@
 namespace App\Models;
 
 use App\Traits\BelongsToEtablissement;
+use App\Traits\Facturation\NormaliseTypesFacturables;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class Account extends Model
 {
-    use BelongsToEtablissement;
+    use BelongsToEtablissement, NormaliseTypesFacturables;
+
+    /** Enregistré sous alias stable (« patient »), voir TypesFacturables. */
+    protected static array $colonnesTypesFacturables = ['owner_type'];
 
     protected $fillable = [
         'etablissement_id',

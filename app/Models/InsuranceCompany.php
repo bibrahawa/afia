@@ -99,15 +99,11 @@ class InsuranceCompany extends Model
     // Obtenir la couverture pour un type de service spécifique
     public function getCoverageForService($serviceType, $serviceId, $insuranceId)
     {
+        // Alias (« service ») ou ancien nom de classe : voir TypesFacturables.
         return InsuranceCoverage::where('insurance_company_id', $insuranceId)
-                    ->where('coverageable_type', $serviceType)
-                    ->where('coverageable_id', $serviceId)
-                    ->where('status', 'active')
-                    ->where('valid_from', '<=', now())
-                    ->where(function($query) {
-                        $query->whereNull('valid_to')
-                            ->orWhere('valid_to', '>=', now());
-                    })->first();
+                    ->pourActe((string) $serviceType, (int) $serviceId)
+                    ->enVigueur()
+                    ->first();
     }
 
     public function getTotalAmountCoverage($serviceType, $serviceId, $insuranceId)

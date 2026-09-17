@@ -185,10 +185,12 @@ class HospitalisationController extends Controller
             if ($transaction) {
                 // CORRIGÉ : supprimer une pièce déjà encaissée effaçait la trace de l'argent reçu
                 // (paiements supprimés) et faussait le solde (on retirait le total, pas le reste dû).
-                if ($transaction->paiements()->exists()) {
+                // Paiements annulés compris : ils restent en base pour la traçabilité,
+                // la pièce ne peut donc plus être supprimée (contrainte RESTRICT).
+                if ($transaction->paiements()->avecAnnules()->exists()) {
                     DB::rollBack();
 
-                    return redirect()->back()->with('error', 'Des paiements ont déjà été enregistrés sur cette facture : suppression impossible. Remboursez ou annulez les paiements d\'abord.');
+                    return redirect()->back()->with('error', 'Cette facture a un historique de paiements (même annulés) : elle ne peut pas être supprimée, pour garder la trace des encaissements.');
                 }
 
                 app(\App\Services\PatientAccountService::class)->retirerTransaction($transaction);

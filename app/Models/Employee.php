@@ -73,29 +73,26 @@ class Employee extends Model
     }
 
     /**
-     * Comportement permissif par défaut : appartenir au département du
-     * motif suffit, SAUF si une association explicite existe dans
-     * `medecin_motif` avec `actif = false` (restriction), ou si le motif
-     * a au moins une association et que ce médecin n'en fait pas partie
-     * (liste blanche implicite dès qu'une clinique choisit de l'utiliser).
+     * RÈGLE RÉVISÉE (21/09/2026) — explicite et sans effet de bord :
+     *  - le médecin doit appartenir au département du motif ;
+     *  - il pratique le motif SAUF si une ligne `medecin_motif` le marque
+     *    actif = false pour lui.
+     *
+     * La surcharge de durée (duree_minutes) n'a plus AUCUN effet sur l'accès.
+     * Avant, une simple surcharge de durée pour un médecin A basculait tout
+     * le motif en liste blanche et excluait silencieusement le médecin B.
+     * La migration 2026_09_21_090002 a matérialisé ces exclusions implicites
+     * pour ne rien changer en production.
      */
     public function peutPratiquerMotif(MotifRdv $motif): bool
     {
-        if ($motif->department_id !== $this->department_id) {
+        if ((int) $motif->department_id !== (int) $this->department_id) {
             return false;
         }
 
         $association = $this->motifsAssocies()->where('motifs_rdv.id', $motif->id)->first();
 
-        if (! $association) {
-            // Aucune règle explicite pour ce médecin sur ce motif : permis
-            // par défaut via l'appartenance au département — SAUF si
-            // d'autres médecins ont, eux, une association active pour ce
-            // motif (signe que la clinique a choisi le mode restrictif).
-            return ! $motif->medecinsAssocies()->wherePivot('actif', true)->exists();
-        }
-
-        return (bool) $association->pivot->actif;
+        return ! $association || (bool) $association->pivot->actif;
     }
 
     // Legacy — conservé pour compatibilité, ne plus utiliser pour le calcul

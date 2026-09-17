@@ -6,7 +6,7 @@
     <div class="page-inner">
         <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-4">
             <div class="flex-grow-1">
-                <h3 class="fw-bold mb-3">Dashboard Aprosafe</h3>
+                <h3 class="fw-bold mb-3">Tableau de bord — {{ \App\Support\Etablissement\IdentiteDocument::courante()->nom }}</h3>
                 <h6 class="op-7 mb-2 d-none d-md-block">Tableau de bord médical - {{ now()->format('d M Y') }}</h6>
             </div>
             <div class="ms-md-auto py-2 py-md-0 d-flex flex-wrap gap-2">

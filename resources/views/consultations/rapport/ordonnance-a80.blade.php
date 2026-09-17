@@ -114,12 +114,12 @@
     </div>
 
     <div class="logo">
-        <img src="{{ asset($hopital->logo ?? 'assets/img/aprosafe.png') }}" alt="Logo">
+        @if($identite->logoWeb())<img src="{{ $identite->logoWeb() }}" alt="Logo">@endif
     </div>
 
-    <div class="clinic-name">{{ $hopital->name  ?? "CLINIQUE APROSAFE" }}</div>
-    <div class="clinic-line">{{ $hopital->address ?? 'Kiroti, Conakry, Rep de Guinee' }}</div>
-    <div class="clinic-line">Tél : {{ $hopital->contact ?? "628 16 44 22 / 625 47 68 44" }}</div>
+    <div class="clinic-name">{{ $identite->nom }}</div>
+    <div class="clinic-line">{{ $identite->adresse }}</div>
+    <div class="clinic-line">Tél : {{ $identite->contact }}</div>
 
     <div class="title">Ordonnance</div>
 
@@ -145,7 +145,7 @@
     <div class="separator"></div>
 
     <div class="footer">
-        <div>{{ $hopital->name  ?? "APROSAFE" }}</div>
+        <div>{{ $identite->nom }}</div>
         {{-- <div class="signature">Dr. {{ $consultation->medecin->first_name }}</div> --}}
     </div>
 </div>

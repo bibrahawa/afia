@@ -22,7 +22,7 @@ class TransactionService
     /** @deprecated utiliser PatientAccountService::credit()/debit() */
     public static function mettreAJourCompte($owner_id, $owner_type, $montant, $type)
     {
-        if ($owner_type !== Patient::class) {
+        if (! \App\Support\Facturation\TypesFacturables::est($owner_type, Patient::class)) {
             throw new \InvalidArgumentException('Seuls les comptes patients sont gérés.');
         }
 

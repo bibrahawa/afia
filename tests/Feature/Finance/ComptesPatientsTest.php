@@ -59,7 +59,8 @@ class ComptesPatientsTest extends TestCase
         $this->assertSame($a->id, $b->id);
 
         $this->expectException(QueryException::class);
-        DB::table('accounts')->insert(['etablissement_id' => $this->etab->id, 'owner_type' => Patient::class, 'owner_id' => $this->patient->id, 'balance' => 0]);
+        // owner_type stocké sous alias (« patient ») depuis la morph map de la facturation.
+        DB::table('accounts')->insert(['etablissement_id' => $this->etab->id, 'owner_type' => \App\Support\Facturation\TypesFacturables::alias(Patient::class), 'owner_id' => $this->patient->id, 'balance' => 0]);
     }
 
     public function test_montants_exacts_en_decimal(): void

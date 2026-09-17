@@ -2,7 +2,13 @@
 
 namespace App\Services;
 
+use App\Models\Chambre;
 use App\Models\Consultation;
+use App\Models\Medicament;
+use App\Models\Package;
+use App\Models\Service;
+use App\Models\Test;
+use App\Support\Facturation\TypesFacturables;
 use App\Models\Hospitalisation;
 use App\Models\Transaction;
 use App\Models\InsuranceCoverage;
@@ -15,7 +21,8 @@ class BillingItemBuilderService
 {
     public function buildFromTransaction(Transaction $transaction): array
     {
-        return match ($transaction->transactionable_type) {
+        // Alias (« consultation ») ou ancien nom de classe : on compare des classes.
+        return match (TypesFacturables::classe($transaction->transactionable_type)) {
             Consultation::class => $this->buildFromConsultation($transaction->transactionable),
             Hospitalisation::class => $this->buildFromHospitalisation($transaction->transactionable),
             LaboDemande::class => $this->buildFromLaboDemande($transaction->transactionable),
@@ -39,9 +46,9 @@ class BillingItemBuilderService
         $totalAmount = 0;
 
         foreach ($consultation->services ?? [] as $service) {
-            $amount = $this->resolveAmount('App\\Models\\Service', $service->id, $insuranceId, $service);
+            $amount = $this->resolveAmount(TypesFacturables::alias(Service::class), $service->id, $insuranceId, $service);
             $items[] = [
-                'acte_type' => 'App\\Models\\Service',
+                'acte_type' => TypesFacturables::alias(Service::class),
                 'acte_id' => $service->id,
                 'description' => $service->name,
                 'unit_price' => $amount,
@@ -52,9 +59,9 @@ class BillingItemBuilderService
         }
 
         foreach ($consultation->packages ?? [] as $package) {
-            $amount = $this->resolveAmount('App\\Models\\Package', $package->id, $insuranceId, $package);
+            $amount = $this->resolveAmount(TypesFacturables::alias(Package::class), $package->id, $insuranceId, $package);
             $items[] = [
-                'acte_type' => 'App\\Models\\Package',
+                'acte_type' => TypesFacturables::alias(Package::class),
                 'acte_id' => $package->id,
                 'description' => $package->name,
                 'unit_price' => $amount,
@@ -65,9 +72,9 @@ class BillingItemBuilderService
         }
 
         foreach ($consultation->tests ?? [] as $test) {
-            $amount = $this->resolveAmount('App\\Models\\Test', $test->id, $insuranceId, $test);
+            $amount = $this->resolveAmount(TypesFacturables::alias(Test::class), $test->id, $insuranceId, $test);
             $items[] = [
-                'acte_type' => 'App\\Models\\Test',
+                'acte_type' => TypesFacturables::alias(Test::class),
                 'acte_id' => $test->id,
                 'description' => $test->name,
                 'unit_price' => $amount,
@@ -78,14 +85,14 @@ class BillingItemBuilderService
         }
 
         foreach ($consultation->medicaments ?? [] as $medicament) {
-            $amount = $this->resolveAmount('App\\Models\\Medicament', $medicament->id, $insuranceId, $medicament);
+            $amount = $this->resolveAmount(TypesFacturables::alias(Medicament::class), $medicament->id, $insuranceId, $medicament);
             if($amount <= 0) {
                 continue;
             }
             $quantity = (int) ($medicament->pivot->quantity ?? 1);
 
             $items[] = [
-                'acte_type' => 'App\\Models\\Medicament',
+                'acte_type' => TypesFacturables::alias(Medicament::class),
                 'acte_id' => $medicament->id,
                 'description' => $medicament->nom,
                 'unit_price' => $amount,
@@ -126,7 +133,7 @@ class BillingItemBuilderService
             $amount = $coverage ? (float) $coverage->acte_price : (float) $ligne->prix_applique;
 
             $items[] = [
-                'acte_type' => LaboExamen::class,
+                'acte_type' => TypesFacturables::alias(LaboExamen::class),
                 'acte_id' => $ligne->examen_id,
                 'description' => $ligne->examen_nom,
                 'unit_price' => $amount,
@@ -152,14 +159,14 @@ class BillingItemBuilderService
         $insuranceId = optional($hospitalisation->patient->activeInsurances()->first())->insurance_company_id;
 
         $unitPrice = $this->resolveAmount(
-            'App\\Models\\Chambre',
+            TypesFacturables::alias(Chambre::class),
             $hospitalisation->chambre_id,
             $insuranceId,
             $hospitalisation
         );
 
         $total = $this->resolveHospitalisationTotal(
-            'App\\Models\\Chambre',
+            TypesFacturables::alias(Chambre::class),
             $hospitalisation->chambre_id,
             $insuranceId,
             $hospitalisation
@@ -167,7 +174,7 @@ class BillingItemBuilderService
 
         return [
             'items' => [[
-                'acte_type' => 'App\\Models\\Chambre',
+                'acte_type' => TypesFacturables::alias(Chambre::class),
                 'acte_id' => $hospitalisation->chambre_id,
                 'description' => 'Hospitalisation chambre ' . $hospitalisation->chambre->numero,
                 'unit_price' => $unitPrice,
@@ -207,14 +214,8 @@ class BillingItemBuilderService
         }
 
         return InsuranceCoverage::where('insurance_company_id', $insuranceId)
-            ->where('coverageable_type', $type)
-            ->where('coverageable_id', $id)
-            ->where('status', 'active')
-            ->where('valid_from', '<=', now())
-            ->where(function ($query) {
-                $query->whereNull('valid_to')
-                    ->orWhere('valid_to', '>=', now());
-            })
+            ->pourActe($type, $id)
+            ->enVigueur()
             ->first();
     }
 }

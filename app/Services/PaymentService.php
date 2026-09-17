@@ -6,13 +6,28 @@ use App\Models\InsuranceCompany;
 use App\Models\Paiement;
 use App\Models\Patient;
 use App\Models\Transaction;
+use App\Support\Facturation\SoldeTransaction;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
+/**
+ * Encaissements (part patient, part assurance).
+ *
+ * RÉVISION lot 1 :
+ *  - VERROU : chaque encaissement verrouille la ligne de la transaction
+ *    (SELECT … FOR UPDATE) avant de calculer le reste dû. Deux caisses qui
+ *    encaissent la même facture en même temps sont sérialisées : la seconde
+ *    voit le reste dû mis à jour au lieu d'encaisser une deuxième fois.
+ *  - Reste dû calculé par SoldeTransaction, part patient et part assurance
+ *    séparées (fini le « montant_payer » qui mélangeait les deux).
+ *  - montant_payer est maintenu par TransactionStatusService (plus
+ *    d'incrément manuel qui dérivait).
+ *
+ * Les montants saisis au-delà du reste dû ne sont PAS encaissés : le résultat
+ * indique ce qui a réellement été appliqué, à l'écran d'en informer la caisse.
+ */
 class PaymentService
 {
-
-
     public function __construct(
         private PatientAccountService $patientAccountService,
         private TransactionStatusService $transactionStatusService
@@ -25,39 +40,17 @@ class PaymentService
         string $paymentMethod,
         ?string $description = null
     ): Transaction {
+        $this->verifierMontant($amount);
+
         return DB::transaction(function () use ($transaction, $amount, $paymentMethod, $description) {
-            if ($amount <= 0) {
-                throw new InvalidArgumentException('Le montant doit être supérieur à zéro.');
-            }
+            $transaction = $this->verrouiller($transaction);
+            $resteDu = SoldeTransaction::pour($transaction)->resteDuPatient();
 
-            $transaction->loadMissing('patient.account', 'invoice');
-
-            $invoice = $transaction->invoice;
-            $patientDue = $this->resteDuPatient($transaction);
-
-            if ($patientDue <= 0) {
-                // CORRIGÉ : continuait et créait un paiement de 0 GNF.
+            if ($resteDu <= 0) {
                 throw new InvalidArgumentException('La part patient est déjà réglée.');
             }
 
-            $amountToApply = min($amount, $patientDue);
-
-            $this->createPayment(
-                transaction: $transaction,
-                patientId: $transaction->patient_id,
-                payerType: 'PATIENT',
-                paymentMethod: strtoupper($paymentMethod),
-                montant: $amountToApply,
-                description: $description ?? 'Paiement part patient'
-            );
-
-            $transaction->montant_payer += $amountToApply;
-            $transaction->save();
-
-            // Débite le compte de CETTE transaction, de façon atomique.
-            $this->patientAccountService->debiterPourTransaction($transaction, $amountToApply);
-
-            $this->refreshStatuses($transaction);
+            $this->encaisser($transaction, Paiement::TYPE_PATIENT, min($amount, $resteDu), strtoupper($paymentMethod), $description ?? 'Paiement part patient');
 
             return $transaction->fresh(['invoice', 'paiements']);
         });
@@ -68,43 +61,22 @@ class PaymentService
         float $amount,
         ?string $description = null
     ): Transaction {
+        $this->verifierMontant($amount);
+
         return DB::transaction(function () use ($transaction, $amount, $description) {
-            if ($amount <= 0) {
-                throw new InvalidArgumentException('Le montant doit être supérieur à zéro.');
-            }
+            $transaction = $this->verrouiller($transaction);
 
-            $transaction->loadMissing('patient.account', 'invoice');
-
-            $invoice = $transaction->invoice;
-            if (!$invoice) {
+            if (! $transaction->invoice) {
                 throw new InvalidArgumentException('Aucune facture liée à cette transaction.');
             }
 
-            $alreadyPaid = $this->getPaidAmountForTransaction($transaction, 'INSURANCE');
-            $insuranceDue = max(0, (float) $invoice->insurance_amount - $alreadyPaid);
+            $resteDu = SoldeTransaction::pour($transaction)->resteDuAssurance();
 
-            if ($insuranceDue <= 0) {
+            if ($resteDu <= 0) {
                 throw new InvalidArgumentException('La part assurance est déjà réglée.');
             }
 
-            $amountToApply = min($amount, $insuranceDue);
-
-            $this->createPayment(
-                transaction: $transaction,
-                patientId: $transaction->patient_id,
-                payerType: 'INSURANCE',
-                paymentMethod: null,
-                montant: $amountToApply,
-                description: $description ?? 'Paiement assurance'
-            );
-
-            $transaction->montant_payer += $amountToApply;
-            $transaction->save();
-
-            // Débite le compte de CETTE transaction, de façon atomique.
-            $this->patientAccountService->debiterPourTransaction($transaction, $amountToApply);
-
-            $this->refreshStatuses($transaction);
+            $this->encaisser($transaction, Paiement::TYPE_ASSURANCE, min($amount, $resteDu), null, $description ?? 'Paiement assurance');
 
             return $transaction->fresh(['invoice', 'paiements']);
         });
@@ -116,58 +88,39 @@ class PaymentService
         string $paymentMethod,
         ?string $description = null
     ): array {
+        $this->verifierMontant($amount);
+
         return DB::transaction(function () use ($patient, $amount, $paymentMethod, $description) {
-            if ($amount <= 0) {
-                throw new InvalidArgumentException('Le montant doit être supérieur à zéro.');
-            }
-
             $remaining = $amount;
-
-            $transactions = $patient->transactions()
-                ->with(['invoice', 'patient.account'])
-                ->whereIn('status', ['pending', 'partial', 'approved'])
-                ->orderBy('created_at')
-                ->get();
-
             $updatedTransactions = [];
 
-            foreach ($transactions as $transaction) {
-                if ($remaining <= 0) {
+            $ids = $patient->transactions()
+                ->whereIn('status', ['pending', 'partial', 'approved'])
+                ->orderBy('created_at')
+                ->orderBy('id')
+                ->pluck('id');
+
+            foreach ($ids as $id) {
+                if ($remaining < 0.01) {
                     break;
                 }
 
-                // CORRIGÉ : les pièces anciennes sans facture étaient ignorées (paiement non appliqué).
-                $patientDue = $this->resteDuPatient($transaction);
+                $transaction = $this->verrouiller($id);
+                $resteDu = SoldeTransaction::pour($transaction)->resteDuPatient();
 
-                if ($patientDue <= 0) {
+                if ($resteDu <= 0) {
                     continue;
                 }
 
-                $amountToApply = min($remaining, $patientDue);
-
-                $this->createPayment(
-                    transaction: $transaction,
-                    patientId: $patient->id,
-                    payerType: 'PATIENT',
-                    paymentMethod: strtoupper($paymentMethod),
-                    montant: $amountToApply,
-                    description: $description ?? 'Paiement part patient'
-                );
-
-                $transaction->montant_payer += $amountToApply;
-                $transaction->save();
-
-                // Débite le compte de CETTE transaction, de façon atomique.
-                $this->patientAccountService->debiterPourTransaction($transaction, $amountToApply);
-
-                $this->refreshStatuses($transaction);
+                $applique = min($remaining, $resteDu);
+                $this->encaisser($transaction, Paiement::TYPE_PATIENT, $applique, strtoupper($paymentMethod), $description ?? 'Paiement part patient');
 
                 $updatedTransactions[] = $transaction->fresh(['invoice', 'paiements']);
-                $remaining -= $amountToApply;
+                $remaining = round($remaining - $applique, 2);
             }
 
             return [
-                'paid_amount' => $amount - $remaining,
+                'paid_amount' => round($amount - $remaining, 2),
                 'remaining_amount' => $remaining,
                 'transactions' => $updatedTransactions,
             ];
@@ -179,118 +132,86 @@ class PaymentService
         float $amount,
         ?string $description = null
     ): array {
+        $this->verifierMontant($amount);
+
         return DB::transaction(function () use ($company, $amount, $description) {
-            if ($amount <= 0) {
-                throw new InvalidArgumentException('Le montant doit être supérieur à zéro.');
-            }
-
             $remaining = $amount;
-
-            $transactions = Transaction::query()
-                ->whereHas('invoice', function ($q) use ($company) {
-                    $q->where('insurance_company_id', $company->id)
-                        ->whereIn('insurance_status', ['pending', 'approved'])
-                        ->where('patient_amount_status', 'paid');
-                })
-                ->with(['invoice', 'patient.account'])
-                ->orderBy('created_at')
-                ->get();
-
             $updatedTransactions = [];
 
-            foreach ($transactions as $transaction) {
-                if ($remaining <= 0) {
+            $ids = Transaction::query()
+                ->whereHas('invoice', function ($q) use ($company) {
+                    $q->where('insurance_company_id', $company->id)
+                        ->whereIn('insurance_status', ['pending', 'submitted', 'approved', 'partial'])
+                        ->where('patient_amount_status', 'paid');
+                })
+                ->orderBy('created_at')
+                ->orderBy('id')
+                ->pluck('id');
+
+            foreach ($ids as $id) {
+                if ($remaining < 0.01) {
                     break;
                 }
 
-                $invoice = $transaction->invoice;
-                if (!$invoice) {
+                $transaction = $this->verrouiller($id);
+                $resteDu = SoldeTransaction::pour($transaction)->resteDuAssurance();
+
+                if ($resteDu <= 0) {
                     continue;
                 }
 
-                $alreadyPaid = $this->getPaidAmountForTransaction($transaction, 'INSURANCE');
-                $insuranceDue = max(0, (float) $invoice->insurance_amount - $alreadyPaid);
-
-                if ($insuranceDue <= 0) {
-                    continue;
-                }
-
-                $amountToApply = min($remaining, $insuranceDue);
-
-                $this->createPayment(
-                    transaction: $transaction,
-                    patientId: $transaction->patient_id,
-                    payerType: 'INSURANCE',
-                    paymentMethod: null,
-                    montant: $amountToApply,
-                    description: $description ?? 'Paiement assurance'
-                );
-
-                $transaction->montant_payer += $amountToApply;
-                $transaction->save();
-
-                // Débite le compte de CETTE transaction, de façon atomique.
-                $this->patientAccountService->debiterPourTransaction($transaction, $amountToApply);
-
-                $this->refreshStatuses($transaction);
+                $applique = min($remaining, $resteDu);
+                $this->encaisser($transaction, Paiement::TYPE_ASSURANCE, $applique, null, $description ?? 'Paiement assurance');
 
                 $updatedTransactions[] = $transaction->fresh(['invoice', 'paiements']);
-                $remaining -= $amountToApply;
+                $remaining = round($remaining - $applique, 2);
             }
 
             return [
-                'paid_amount' => $amount - $remaining,
+                'paid_amount' => round($amount - $remaining, 2),
                 'remaining_amount' => $remaining,
                 'transactions' => $updatedTransactions,
             ];
         });
     }
 
-    private function createPayment(
-        Transaction $transaction,
-        int $patientId,
-        string $payerType,
-        ?string $paymentMethod,
-        float $montant,
-        ?string $description
-    ): Paiement {
-        return Paiement::create([
+    /**
+     * Verrouille la ligne de la transaction jusqu'à la fin de la transaction SQL.
+     * À appeler DANS un DB::transaction().
+     */
+    private function verrouiller(Transaction|int $transaction): Transaction
+    {
+        $id = $transaction instanceof Transaction ? $transaction->id : $transaction;
+
+        return Transaction::whereKey($id)->lockForUpdate()->with(['invoice', 'patient'])->firstOrFail();
+    }
+
+    private function encaisser(Transaction $transaction, string $type, float $montant, ?string $source, ?string $description): Paiement
+    {
+        $montant = round($montant, 2);
+
+        $paiement = Paiement::create([
             'user_id' => auth()->id(),
-            'patient_id' => $patientId,
+            'patient_id' => $transaction->patient_id,
             'transaction_id' => $transaction->id,
-            'source' => $paymentMethod,
-            'type' => strtolower($payerType) === 'insurance' ? 'remboursement' : 'paiement',
+            'source' => $source,
+            'type' => $type,
             'description' => $description,
             'montant' => $montant,
         ]);
-    }
 
-    private function getPaidAmountForTransaction(Transaction $transaction, string $payerType): float
-    {
-        if (strtoupper($payerType) === 'PATIENT') {
-            return (float) Paiement::where('transaction_id', $transaction->id)
-                ->where('type', 'paiement')
-                ->sum('montant');
-        }
+        // Débite le compte de CETTE transaction, de façon atomique.
+        $this->patientAccountService->debiterPourTransaction($transaction, $montant);
 
-        return (float) Paiement::where('transaction_id', $transaction->id)
-            ->where('type', 'remboursement')
-            ->sum('montant');
-    }
-
-    /**
-     * Part patient restant due. Pièce sans facture (anciennes consultations) :
-     * pas de part assurance connue, tout le total est à la charge du patient.
-     */
-    private function resteDuPatient(Transaction $transaction): float
-    {
-        $partPatient = $transaction->invoice ? (float) $transaction->invoice->patient_amount : (float) $transaction->total;
-
-        return max(0, round($partPatient - $this->getPaidAmountForTransaction($transaction, 'PATIENT'), 2));
-    }
-
-    private function refreshStatuses(Transaction $transaction): void
-    {
         $this->transactionStatusService->refresh($transaction);
+
+        return $paiement;
+    }
+
+    private function verifierMontant(float $amount): void
+    {
+        if ($amount <= 0) {
+            throw new InvalidArgumentException('Le montant doit être supérieur à zéro.');
+        }
     }
 }

@@ -2,15 +2,20 @@
 
 namespace App\Models;
 
+use App\Traits\BelongsToEtablissement;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Carbon\Carbon;
 
 class Appointment extends Model
 {
-    use HasFactory;
+    // Cloisonnement direct (colonne etablissement_id depuis le 21/09/2026) :
+    // la liaison de route {appointment} et toute requête Eloquent sont
+    // filtrées sur l'établissement courant.
+    use HasFactory, BelongsToEtablissement;
 
     protected $fillable = [
+        'etablissement_id',
         'employee_id',
         'patient_id',
         'motif_rdv_id',
@@ -80,6 +85,27 @@ class Appointment extends Model
                     $appointment->appointment_date->format('Y-m-d') . ' ' .
                     $appointment->appointment_time->format('H:i:s')
                 );
+            }
+        });
+    }
+
+    protected static function booted(): void
+    {
+        // S'exécute APRÈS le `creating` du trait : si aucun contexte
+        // d'établissement n'existe (job, console), on prend celui du médecin.
+        // Et dans tous les cas, le rdv doit appartenir à l'établissement du
+        // médecin — jamais un médecin de la clinique A dans un rdv de B.
+        static::creating(function (Appointment $appointment) {
+            $etablissementMedecin = Employee::withoutGlobalScope('etablissement')
+                ->whereKey($appointment->employee_id)
+                ->value('etablissement_id');
+
+            if (empty($appointment->etablissement_id)) {
+                $appointment->etablissement_id = $etablissementMedecin;
+            }
+
+            if ($etablissementMedecin && (int) $appointment->etablissement_id !== (int) $etablissementMedecin) {
+                throw new \LogicException('Création refusée : le médecin appartient à un autre établissement.');
             }
         });
     }
@@ -175,6 +201,19 @@ class Appointment extends Model
     public function getTimeUntilAppointment()
     {
         return $this->appointment_datetime->diffForHumans();
+    }
+
+    /**
+     * Horaire modifié : les SMS déjà envoyés concernaient l'ANCIEN horaire,
+     * il faut que rappels 24h / 2h repartent pour le nouveau.
+     */
+    public function attributsReinitialisationRappels(): array
+    {
+        return [
+            'reminder_sent_at' => null,
+            'last_minute_reminder_sent_at' => null,
+            'confirmation_sent_at' => null,
+        ];
     }
 
     public function markReminderSent()

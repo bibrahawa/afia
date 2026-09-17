@@ -28,7 +28,7 @@ class VerifierComptesPatients extends Command
 
     public function handle(PatientAccountService $comptes): int
     {
-        $requete = Account::withoutGlobalScopes()->where('owner_type', Patient::class)->orderBy('etablissement_id')->orderBy('id');
+        $requete = Account::withoutGlobalScopes()->whereIn('owner_type', \App\Support\Facturation\TypesFacturables::variantes(Patient::class))->orderBy('etablissement_id')->orderBy('id');
 
         if ($slug = $this->option('etablissement')) {
             $etab = Etablissement::where('slug', $slug)->first();

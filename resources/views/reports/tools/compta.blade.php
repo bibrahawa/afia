@@ -124,8 +124,8 @@
             <div class="brand">
                 <div class="b-icon"><i class="fa fa-heartbeat"></i></div>
                 <div>
-                    <p class="b-name">{{ config('app.name', 'APROSAFE') }}</p>
-                    <p class="b-sub">Clinique Gynéco-Obstétricale &amp; Pédiatrique</p>
+                    <p class="b-name">{{ \App\Support\Etablissement\IdentiteDocument::courante()->nom }}</p>
+                    <p class="b-sub">Rapport de comptabilité</p>
                 </div>
             </div>
 
@@ -272,7 +272,7 @@
 
         <div class="foot">
             <i class="fa fa-clock me-1"></i>Généré le {{ now()->format('d/m/Y à H:i') }}
-            &mdash; {{ config('app.name', 'APROSAFE') }}
+            &mdash; {{ \App\Support\Etablissement\IdentiteDocument::courante()->nom }}
         </div>
 
     </div>
@@ -285,7 +285,7 @@
 <script>
 function exportToExcel() {
     const rows = [
-        ['{{ config('app.name', 'APROSAFE') }} — Situation par acte'],
+        ['{{ \App\Support\Etablissement\IdentiteDocument::courante()->nom }} — Situation par acte'],
         ['Période : du {{ $dateDebut }} au {{ $dateFin }}'],
         [],
         ['#', 'Service', 'Nb actes', 'Part patient', 'Espèce', 'PM', 'TPE', 'Assurance', 'Total général'],

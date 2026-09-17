@@ -63,10 +63,10 @@ class MotifRdv extends Model
                 ->first()?->pivot->duree_minutes;
 
             if ($surcharge) {
-                return $surcharge;
+                return (int) $surcharge;
             }
         }
 
-        return $this->duree_minutes_defaut;
+        return (int) $this->duree_minutes_defaut;
     }
 }

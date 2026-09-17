@@ -8,6 +8,7 @@ use App\Models\Patient;
 use App\Models\Transaction;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use App\Support\Facturation\TypesFacturables;
 use InvalidArgumentException;
 
 /**
@@ -28,16 +29,16 @@ class PatientAccountService
 {
     public function getOrCreate(Patient $patient): Account
     {
-        $existant = Account::where('owner_type', Patient::class)->where('owner_id', $patient->id)->first();
+        $existant = Account::whereIn('owner_type', TypesFacturables::variantes(Patient::class))->where('owner_id', $patient->id)->first();
         if ($existant) {
             return $existant;
         }
 
         try {
-            return Account::create(['owner_type' => Patient::class, 'owner_id' => $patient->id, 'balance' => 0]);
+            return Account::create(['owner_type' => TypesFacturables::alias(Patient::class), 'owner_id' => $patient->id, 'balance' => 0]);
         } catch (QueryException $e) {
             // Création concurrente : l'index unique a refusé le doublon, on relit.
-            return Account::where('owner_type', Patient::class)->where('owner_id', $patient->id)->firstOrFail();
+            return Account::whereIn('owner_type', TypesFacturables::variantes(Patient::class))->where('owner_id', $patient->id)->firstOrFail();
         }
     }
 
@@ -88,6 +89,31 @@ class PatientAccountService
     }
 
     /**
+     * Variation du montant d'une pièce (remise, recalcul) ou annulation d'un
+     * encaissement : ajuste le compte de CETTE transaction, de façon atomique.
+     * delta > 0 : le patient doit davantage ; delta < 0 : il doit moins.
+     */
+    public function ajusterPourTransaction(Transaction $transaction, float $delta): void
+    {
+        if (abs($delta) < 0.01) {
+            return;
+        }
+
+        $account = $transaction->account_id ? Account::find($transaction->account_id) : null;
+        $account ??= $transaction->patient ? $this->getOrCreate($transaction->patient) : null;
+
+        if (! $account) {
+            throw new InvalidArgumentException("Transaction #{$transaction->id} sans compte ni patient : ajustement impossible.");
+        }
+
+        if (! $transaction->account_id) {
+            $transaction->forceFill(['account_id' => $account->id])->save();
+        }
+
+        $this->ajuster($account, $delta);
+    }
+
+    /**
      * Suppression d'une pièce : retire du compte ce qui y restait dû (total − déjà payé).
      * Remplace l'ancien « balance -= sub_total », faux dès qu'un paiement avait eu lieu.
      */
@@ -111,7 +137,9 @@ class PatientAccountService
         $transactions = Transaction::withoutGlobalScopes()->where('account_id', $account->id);
 
         $total = (float) (clone $transactions)->sum('total');
-        $paye = (float) Paiement::withoutGlobalScopes()->whereIn('transaction_id', (clone $transactions)->select('id'))->sum('montant');
+        // withoutGlobalScope('etablissement') et NON withoutGlobalScopes() : le scope
+        // « valides » doit rester actif, un paiement annulé ne réduit pas le solde.
+        $paye = (float) Paiement::withoutGlobalScope('etablissement')->whereIn('transaction_id', (clone $transactions)->select('id'))->sum('montant');
 
         return round($total - $paye, 2);
     }

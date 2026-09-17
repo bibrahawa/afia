@@ -136,13 +136,13 @@
         <!-- LEFT -->
         <td style="width:50%; vertical-align:top;">
             <div class="logo">
-                <img src="{{ public_path('assets/img/aprosafe.png') }}" alt="Logo">
+                @if($identite->logoPdf())<img src="{{ $identite->logoPdf() }}" alt="Logo">@endif
             </div>
 
-            <div class="clinic-name">{{ $hopital->name ?? "CLINIQUE APROSAFE" }}</div>
-            <div class="clinic-line">{{ $hopital->address ?? 'Kiroti, Conakry, Rep de Guinee' }}</div>
-            <div class="clinic-line">{{ $hopital->email ?? 'boubacarbinta2015@gmail.com' }}</div>
-            <div class="clinic-line">{{ $hopital->contact ?? "628 16 44 22 / 625 47 68 44" }}</div>
+            <div class="clinic-name">{{ $identite->nom }}</div>
+            <div class="clinic-line">{{ $identite->adresse }}</div>
+            <div class="clinic-line">{{ $identite->email }}</div>
+            <div class="clinic-line">{{ $identite->contact }}</div>
  
         </td>
 

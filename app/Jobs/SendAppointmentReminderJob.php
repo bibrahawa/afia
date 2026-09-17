@@ -130,8 +130,11 @@ class SendAppointmentReminderJob implements ShouldQueue
         $appointmentDate = $appointment->getFormattedDateShortAttribute();
         $appointmentTime = $appointment->getFormattedTimeAttribute();
 
-        $clinicName = config('app.name', 'Clinique Aprosafe');
-        $clinicPhone = config('clinic.phone', '628 16 44 22');
+        // Nom et téléphone de la clinique DU RENDEZ-VOUS (et non plus
+        // « Clinique Aprosafe / 628 16 44 22 » pour toutes les cliniques).
+        $identite = \App\Support\Etablissement\IdentiteDocument::pour($appointment->etablissement);
+        $clinicName = $identite->nom;
+        $clinicPhone = $identite->contact ?: config('clinic.phone', '');
 
         // NOUVEAU — lien d'annulation intégré DANS le SMS de confirmation
         // lui-même plutôt que dans un second message séparé (c'était le
@@ -139,7 +142,7 @@ class SendAppointmentReminderJob implements ShouldQueue
         // Laravel brut dépasse 50 caractères, coûteux en SMS et peu
         // engageant à lire sur un téléphone d'entrée de gamme.
         $lienAnnulation = '';
-        if ($this->reminderType === 'confirmation') {
+        if (in_array($this->reminderType, ['confirmation', 'rescheduling'], true)) {
             $lienAnnulation = $this->genererLienAnnulationCourt($appointment);
         }
 
@@ -148,7 +151,7 @@ class SendAppointmentReminderJob implements ShouldQueue
             'reminder_2h' => "Rappel {$patientName} : Votre RDV avec Dr {$doctorName} est dans 2h à {$appointmentTime}. Arrivée conseillée 15min avant. Tel: {$clinicPhone}",
             'confirmation' => "{$patientName} : Votre RDV avec Dr {$doctorName} le {$appointmentDate} à {$appointmentTime} est confirmé. Pas vous ? Annulez : {$lienAnnulation}",
             'cancellation' => "Annulation {$patientName} : Votre RDV du {$appointmentDate} avec Dr {$doctorName} est annulé. Reprenez RDV via l'app ou au {$clinicPhone}. {$clinicName}",
-            'rescheduling' => "Report {$patientName} : Votre RDV avec Dr {$doctorName} a été reporté au {$appointmentDate} à {$appointmentTime}. Merci de confirmer. {$clinicName}",
+            'rescheduling' => "{$patientName} : votre RDV avec Dr {$doctorName} est déplacé au {$appointmentDate} à {$appointmentTime}. Pas d'accord ? Annulez : {$lienAnnulation}",
             'no_availability' => "Bonjour {$patientName}, aucun créneau disponible actuellement avec Dr {$doctorName}. Nous vous contacterons dès qu'un créneau se libère. Contact: {$clinicPhone}"
         ];
 

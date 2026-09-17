@@ -25,6 +25,15 @@ class EmployeeAvailability extends Model
         'is_active' => 'boolean'
     ];
 
+    /** Toute modification change les créneaux proposables : invalide le cache du médecin. */
+    protected static function booted(): void
+    {
+        $invalider = fn ($modele) => \App\Support\CacheDisponibilite::invalider($modele->employee_id);
+
+        static::saved($invalider);
+        static::deleted($invalider);
+    }
+
     public function employee()
     {
         return $this->belongsTo(Employee::class);

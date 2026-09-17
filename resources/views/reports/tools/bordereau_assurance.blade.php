@@ -598,7 +598,7 @@
             @endif
 
             <div class="page-foot">
-                {{ config('app.name', 'APROSAFE') }} — Bordereau assurance
+                {{ \App\Support\Etablissement\IdentiteDocument::courante()->nom }} — Bordereau assurance
             </div>
         </div>
     </div>

@@ -25,35 +25,22 @@ class AppointmentQueryService
 
     /**
      * Vue "réception" : tous les rendez-vous de la clinique (tous médecins
-     * confondus), pas ceux d'un seul praticien. `employee_id` reste un
-     * filtre OPTIONNEL, pas une restriction — c'est la différence avec
-     * paginatedForDoctor() ci-dessus.
+     * confondus). `employee_id` reste un filtre OPTIONNEL.
      *
-     * Le filtrage par établissement repose sur le global scope de
-     * `Employee` (n'importe quel employee_id présent dans `appointments`
-     * appartient forcément à un employé du tenant courant), mais on le
-     * rend explicite ici aussi — même principe de défense en profondeur
-     * appliqué partout ailleurs dans la refonte : une table qui n'a
-     * elle-même aucune colonne `etablissement_id` (le cas d'`appointments`)
-     * ne doit jamais dépendre d'un unique mécanisme indirect.
+     * Depuis le 21/09/2026, `appointments` porte sa propre colonne
+     * etablissement_id et le global scope BelongsToEtablissement filtre
+     * directement : le détour par Employee::pluck('id') n'a plus lieu d'être.
      */
     public function paginatedForReception(Request $request): LengthAwarePaginator
     {
-        $employeeIds = \App\Models\Employee::pluck('id');
-
-        $query = Appointment::with(['patient', 'employee', 'motifRdv'])
-            ->whereIn('employee_id', $employeeIds);
+        $query = Appointment::with(['patient', 'employee', 'motifRdv']);
 
         if ($request->filled('employee_id')) {
             $query->where('employee_id', $request->input('employee_id'));
         }
 
-        $query->whereDate('appointment_date', $request->input('date', Carbon::today()->toDateString()));
+        $query->where('appointment_date', Carbon::parse($request->input('date', Carbon::today()->toDateString()))->toDateString());
 
-        // Réutilise les mêmes filtres recherche/statut que la vue médecin —
-        // 'date_filter' n'est simplement jamais renseigné ici (on filtre
-        // par 'date' exact plutôt que par plage nommée), donc cette partie
-        // d'applyFilters() ne s'active pas dans ce contexte.
         $this->applyFilters($query, $request);
 
         return $query->orderBy('appointment_time')
@@ -63,15 +50,17 @@ class AppointmentQueryService
 
     public function statsForReception(string $date): array
     {
-        $employeeIds = \App\Models\Employee::pluck('id');
-        $base = Appointment::whereIn('employee_id', $employeeIds)->whereDate('appointment_date', $date);
+        $parStatut = Appointment::where('appointment_date', Carbon::parse($date)->toDateString())
+            ->selectRaw('status, COUNT(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
 
         return [
-            'total' => (clone $base)->count(),
-            'pending' => (clone $base)->where('status', 'pending')->count(),
-            'confirmed' => (clone $base)->where('status', 'confirmed')->count(),
-            'completed' => (clone $base)->where('status', 'completed')->count(),
-            'cancelled' => (clone $base)->where('status', 'cancelled')->count(),
+            'total' => (int) $parStatut->sum(),
+            'pending' => (int) ($parStatut['pending'] ?? 0),
+            'confirmed' => (int) ($parStatut['confirmed'] ?? 0),
+            'completed' => (int) ($parStatut['completed'] ?? 0),
+            'cancelled' => (int) ($parStatut['cancelled'] ?? 0),
         ];
     }
 

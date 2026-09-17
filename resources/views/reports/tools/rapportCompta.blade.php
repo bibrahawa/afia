@@ -448,7 +448,7 @@
             <div class="brand-icon"><i class="fa fa-heartbeat"></i></div>
             <div>
                 <p class="brand-name">{{ $clinique }}</p>
-                <p class="brand-sub">Clinique Gynéco-Obstétricale &amp; Pédiatrique</p>
+                <p class="brand-sub">{{ \App\Support\Etablissement\IdentiteDocument::courante()->coordonnees() }}</p>
             </div>
         </div>
 

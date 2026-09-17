@@ -13,6 +13,7 @@ use App\Services\BillingItemBuilderService;
 use App\Services\InsuranceCalculationService;
 use App\Services\ConsultationService;
 use App\Services\PaymentService;
+use App\Support\Facturation\SoldeTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -105,8 +106,9 @@ class PaymentController extends Controller
             }
 
             $transaction = Transaction::with('patient', 'invoice')->findOrFail($request->transaction_id);
+            $payeAvant = SoldeTransaction::pour($transaction)->payePatient;
 
-            $this->paymentService->payPatientTransaction(
+            $transaction = $this->paymentService->payPatientTransaction(
                 transaction: $transaction,
                 amount: (float) $request->montant,
                 paymentMethod: $request->source,
@@ -115,7 +117,20 @@ class PaymentController extends Controller
 
             DB::commit();
 
-            return redirect()->back()->with('success', 'Paiement traité avec succès');
+            // La caisse doit savoir ce qui a VRAIMENT été encaissé : un montant
+            // supérieur au reste dû n'est pas encaissé au-delà (monnaie à rendre).
+            $solde = SoldeTransaction::pour($transaction);
+            $encaisse = round($solde->payePatient - $payeAvant, 2);
+            $message = 'Paiement enregistré : ' . number_format($encaisse, 0, ',', ' ') . ' GNF.';
+
+            if ((float) $request->montant - $encaisse >= 1) {
+                $message .= ' Montant saisi supérieur au reste dû : ' . number_format((float) $request->montant - $encaisse, 0, ',', ' ') . ' GNF à rendre au patient.';
+            }
+            if ($solde->resteDuPatient() > 0) {
+                $message .= ' Reste à payer : ' . number_format($solde->resteDuPatient(), 0, ',', ' ') . ' GNF.';
+            }
+
+            return redirect()->back()->with('success', $message);
         } catch (\Exception $e) {
             DB::rollBack();
             return redirect()->back()->with('error', 'Erreur lors du traitement: ' . $e->getMessage());
@@ -189,16 +204,14 @@ class PaymentController extends Controller
                         break;
                     }
 
-                    $invoice = $transaction->invoice;
-                    if (!$invoice || (float) $invoice->insurance_amount <= 0) {
+                    if (!$transaction->invoice) {
                         continue;
                     }
 
-                    $alreadyPaid = Paiement::where('transaction_id', $transaction->id)
-                        ->where('type', 'remboursement')
-                        ->sum('montant');
-
-                    $due = max(0, (float) $invoice->insurance_amount - $alreadyPaid);
+                    // CORRIGÉ lot 1 : `Paiement` n'était pas importé dans ce contrôleur
+                    // (erreur fatale au premier encaissement assurance) ; le reste dû
+                    // vient désormais de la règle commune.
+                    $due = SoldeTransaction::pour($transaction)->resteDuAssurance();
                     if ($due <= 0) {
                         continue;
                     }

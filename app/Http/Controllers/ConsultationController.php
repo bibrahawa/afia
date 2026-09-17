@@ -17,6 +17,7 @@ use App\Models\Service;
 use App\Models\Test;
 use App\Services\BillingService;
 use App\Services\ConsultationService;
+use App\Support\Etablissement\IdentiteDocument;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -47,42 +48,42 @@ class ConsultationController extends Controller
             'transaction.paiements',
         ]);
 
-        $hopital = auth()->user()->hospital ?? null;
+        $identite = IdentiteDocument::courante();
 
-        return view('consultations.show', compact('consultation', 'hopital'));
+        return view('consultations.show', compact('consultation', 'identite'));
         
     }
 
     public function ordonnanceA80(Consultation $consultation)
     {
         $consultation->load(['patient', 'medecin', 'department', 'medicaments']);
-        $hopital = auth()->user()->hospital ?? null;
+        $identite = IdentiteDocument::courante();
 
-        return view('consultations.rapport.ordonnance-a80', compact('consultation', 'hopital'));
+        return view('consultations.rapport.ordonnance-a80', compact('consultation', 'identite'));
     }
 
     public function ordonnanceA5(Consultation $consultation)
     {
         $consultation->load(['patient', 'medecin', 'department', 'medicaments']);
-        $hopital = auth()->user()->hospital ?? null;
+        $identite = IdentiteDocument::courante();
 
-        return view('consultations.rapport.ordonnance-a5', compact('consultation', 'hopital'));
+        return view('consultations.rapport.ordonnance-a5', compact('consultation', 'identite'));
     }
 
     public function examensA80(Consultation $consultation)
     {
         $consultation->load(['patient', 'medecin', 'department', 'tests']);
-        $hopital = auth()->user()->hospital ?? null;
+        $identite = IdentiteDocument::courante();
 
-        return view('consultations.rapport.examens-a80', compact('consultation', 'hopital'));
+        return view('consultations.rapport.examens-a80', compact('consultation', 'identite'));
     }
 
     public function examensA5(Consultation $consultation)
     {
         $consultation->load(['patient', 'medecin', 'department', 'tests']);
-        $hopital = auth()->user()->hospital ?? null;
+        $identite = IdentiteDocument::courante();
 
-        return view('consultations.rapport.examens-a5', compact('consultation', 'hopital'));
+        return view('consultations.rapport.examens-a5', compact('consultation', 'identite'));
     }
 
     public function facturePdfA5(Consultation $consultation)
@@ -94,14 +95,14 @@ class ConsultationController extends Controller
             'transaction.invoice.items'
         ]);
 
-        $hopital = auth()->user()->hospital ?? null;
+        $identite = IdentiteDocument::courante();
 
         $invoiceData = $this->prepareInvoiceData($consultation);
 
 
         $pdf = Pdf::loadView('consultations.rapport.facture-a5', [
             'consultation' => $consultation,
-            'hopital' => $hopital,
+            'identite' => $identite,
             'invoiceData' => $invoiceData
         ]);
 
@@ -118,7 +119,7 @@ class ConsultationController extends Controller
             'transaction.invoice.items'
         ]);
 
-        $hopital = auth()->user()->hospital ?? null;
+        $identite = IdentiteDocument::courante();
         $invoiceData = $this->prepareInvoiceData($consultation);
 
         $itemCount = optional($invoiceData['invoice'])->items->count() ?? 1;
@@ -127,7 +128,7 @@ class ConsultationController extends Controller
 
         $pdf = Pdf::loadView('consultations.rapport.facture-a80', compact(
             'consultation',
-            'hopital',
+            'identite',
             'invoiceData'
         ));
 
@@ -144,12 +145,12 @@ class ConsultationController extends Controller
             'transaction.paiements'
         ]);
 
-        $hopital = auth()->user()->hospital ?? null;
+        $identite = IdentiteDocument::courante();
 
         $invoiceData = $this->prepareInvoiceData($consultation);
 
         $pdf = Pdf::loadView('consultations.rapport.paiement-a80', compact(
-            'consultation','hopital','invoiceData'
+            'consultation','identite','invoiceData'
         ));
 
         return $pdf
@@ -165,12 +166,12 @@ class ConsultationController extends Controller
             'transaction.paiements'
         ]);
 
-        $hopital = auth()->user()->hospital ?? null;
+        $identite = IdentiteDocument::courante();
 
         $invoiceData = $this->prepareInvoiceData($consultation);
 
         $pdf = Pdf::loadView('consultations.rapport.paiement-a5', compact(
-            'consultation','hopital','invoiceData'
+            'consultation','identite','invoiceData'
         ));
 
         return $pdf
@@ -178,32 +179,31 @@ class ConsultationController extends Controller
             ->stream('recu-'.$consultation->id.'.pdf');
     }
 
+    /**
+     * CORRIGÉ lot 1 : « payé » et « reste à payer » concernent la PART PATIENT
+     * uniquement. Avant, montant_payer (patient + assurance) était soustrait
+     * de la part patient : dès que l'assureur réglait, le reçu du patient
+     * affichait un reste à payer faux.
+     */
     private function prepareInvoiceData($consultation)
     {
-        $invoice = optional($consultation->transaction)->invoice;
+        $transaction = $consultation->transaction;
+        $invoice = optional($transaction)->invoice;
 
         if (!$invoice) {
             return null;
         }
 
-        // 🧠 PART PATIENT = montant réel à payer
-        $patientAmount = $invoice->patient_amount ?? 0;
-
-        // 💰 MONTANT PAYÉ
-        $paidAmount = $consultation->transaction->montant_payer ?? 0;
-
-        // 📊 RESTE À PAYER (UNIQUEMENT PATIENT)
-        $remaining = max($patientAmount - $paidAmount, 0);
-
-        // ✅ STATUT
-        $status = $remaining <= 0 ? 'paid' : ($paidAmount > 0 ? 'partial' : 'unpaid');
+        $solde = \App\Support\Facturation\SoldeTransaction::pour($transaction);
 
         return [
             'invoice' => $invoice,
-            'patient_amount' => $patientAmount,
-            'paid_amount' => $paidAmount,
-            'remaining' => $remaining,
-            'status' => $status,
+            'patient_amount' => $solde->partPatient,
+            'paid_amount' => $solde->payePatient,
+            'remaining' => $solde->resteDuPatient(),
+            'status' => $solde->statutPatient(),
+            'insurance_amount' => $solde->partAssurance,
+            'insurance_paid' => $solde->regleAssurance,
         ];
     }
 
@@ -313,14 +313,19 @@ class ConsultationController extends Controller
                 );
             }
 
+            $avertissementRdv = null;
             if ($isMedecin && $request->filled('prochain_rdv')) {
-                $this->consultationService->createNextAppointment($consultation, $request->prochain_rdv);
+                // Ne lève plus d'exception : un conflit d'agenda ne doit pas
+                // annuler l'enregistrement de la consultation.
+                $avertissementRdv = $this->consultationService->createNextAppointment($consultation, $request->prochain_rdv);
             }
 
             DB::commit();
 
-            return redirect()->route('consultation.index')
+            $redirection = redirect()->route('consultation.index')
                 ->with('success', 'Consultation enregistrée.');
+
+            return $avertissementRdv ? $redirection->with('error', $avertissementRdv) : $redirection;
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -361,10 +366,17 @@ class ConsultationController extends Controller
             'observation' => 'nullable|string',
             'prochain_rdv' => 'nullable|date',
             'services' => 'nullable|array',
+            // CORRIGÉ 22/09/2026 : identifiants vérifiés dans l'établissement courant
+            // (on pouvait facturer l'acte d'une autre clinique).
+            'services.*' => 'nullable|exists_etablissement:services,id',
             'packages' => 'nullable|array',
+            'packages.*' => 'nullable|exists_etablissement:packages,id',
             'tests' => 'nullable|array',
+            'tests.*' => 'nullable|exists_etablissement:tests,id',
             'medicaments' => 'nullable|array',
+            'medicaments.*' => 'nullable|exists_etablissement:medicaments,id',
             'medicament_quantities' => 'nullable|array',
+            'medicament_quantities.*' => 'nullable|integer|min:1',
         ]);
 
         DB::beginTransaction();
@@ -373,7 +385,7 @@ class ConsultationController extends Controller
 
             $consultation = Consultation::with(['transaction', 'patient'])->findOrFail($id);
 
-            $this->consultationService->updateNextAppointment(
+            $avertissementRdv = $this->consultationService->updateNextAppointment(
                 $consultation,
                 $request->prochain_rdv
             );
@@ -425,8 +437,10 @@ class ConsultationController extends Controller
 
             DB::commit();
 
-            return redirect()->route('consultation.index')
+            $redirection = redirect()->route('consultation.index')
                 ->with('success', 'Consultation modifiée avec succès.');
+
+            return $avertissementRdv ? $redirection->with('error', $avertissementRdv) : $redirection;
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -458,10 +472,12 @@ class ConsultationController extends Controller
             if ($transaction) {
                 // CORRIGÉ : supprimer une pièce déjà encaissée effaçait la trace de l'argent reçu
                 // (paiements supprimés) et faussait le solde (on retirait le total, pas le reste dû).
-                if ($transaction->paiements()->exists()) {
+                // Paiements annulés compris : ils restent en base pour la traçabilité,
+                // la pièce ne peut donc plus être supprimée (contrainte RESTRICT).
+                if ($transaction->paiements()->avecAnnules()->exists()) {
                     DB::rollBack();
 
-                    return redirect()->back()->with('error', 'Des paiements ont déjà été enregistrés sur cette facture : suppression impossible. Remboursez ou annulez les paiements d\'abord.');
+                    return redirect()->back()->with('error', 'Cette facture a un historique de paiements (même annulés) : elle ne peut pas être supprimée, pour garder la trace des encaissements.');
                 }
 
                 app(\App\Services\PatientAccountService::class)->retirerTransaction($transaction);

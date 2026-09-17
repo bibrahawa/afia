@@ -891,15 +891,17 @@
 
                         feedback.textContent = "Patient reconnu.";
                         feedback.className = "rdv-feedback is-ok";
-                        etat.patient = data.patient;
+                        // Le serveur ne renvoie plus ni nom ni identifiant
+                        // (confidentialité) : on sait seulement qu'un dossier existe.
+                        etat.patient = { connu: true };
 
                         document.getElementById("nouveauPatient").hidden = true;
                         carte.hidden = false;
                         carte.innerHTML = `
                             <div class="rdv-patient-avatar">✓</div>
                             <div>
-                                Bonjour <strong>${escapeHtml(data.patient.name)}</strong><br>
-                                <span style="color:var(--text-soft);font-size:.76rem">Dossier patient retrouvé</span>
+                                <strong>Dossier patient retrouvé</strong><br>
+                                <span style="color:var(--text-soft);font-size:.76rem">Le rendez-vous sera enregistré au nom du titulaire de ce numéro.</span>
                             </div>
                         `;
 
@@ -1071,7 +1073,11 @@
 
         const employeeId = etat.medecin.id === "auto" ? etat.medecinRetenu.id : etat.medecin.id;
 
-        const envoyer = patientId => {
+        // Le patient est retrouvé côté serveur à partir du téléphone : on
+        // n'envoie jamais d'identifiant patient.
+        const telephone = telInput.value.replace(/\D/g, "");
+
+        const envoyer = () => {
 
             function tenterEnvoi() {
                 requeteJSON(`${BASE}/prendre`, {
@@ -1079,7 +1085,7 @@
                     headers: { "Content-Type": "application/json", "Accept": "application/json", "X-CSRF-TOKEN": csrf() },
                     body: JSON.stringify({
                         employee_id: employeeId,
-                        patient_id: patientId,
+                        telephone: telephone,
                         motif_rdv_id: etat.motif.id,
                         appointment_date: etat.date,
                         appointment_time: etat.heure
@@ -1125,7 +1131,7 @@
         };
 
         if (etat.patient) {
-            envoyer(etat.patient.id);
+            envoyer();
             return;
         }
 
@@ -1135,7 +1141,7 @@
                 headers: { "Content-Type": "application/json", "Accept": "application/json", "X-CSRF-TOKEN": csrf() },
                 body: JSON.stringify({ ...etat.nouveauPatient, site_web: document.getElementById("siteWeb").value })
             }, tenterCreerPatient).then(data => {
-                envoyer(data.patient_id);
+                envoyer();
             }).catch(err => {
                 setBoutonEnCours(false);
                 majBoutonSuivant();

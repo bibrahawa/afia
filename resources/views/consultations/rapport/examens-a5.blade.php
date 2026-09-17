@@ -134,13 +134,13 @@
         <div class="header">
             <div class="left">
                 <div class="logo">
-                    <img src="{{ asset($hopital->logo ?? 'assets/img/aprosafe.png') }}" alt="Logo">
+                    @if($identite->logoWeb())<img src="{{ $identite->logoWeb() }}" alt="Logo">@endif
                 </div>
 
-                <div class="clinic-name">{{ $hopital->name ?? "CLINIQUE APROSAFE" }}</div>
-                <div class="clinic-line">{{ $hopital->address ?? 'Kiroti, Conakry, Rep de Guinee' }}</div>
-                <div class="clinic-line">Tél : {{ $hopital->contact ?? "628 16 44 22 / 625 47 68 44" }}</div>
-                <div class="clinic-line">Email : {{ $hopital->email ?? 'boubacarbinta2015@gmail.com'    }}</div>
+                <div class="clinic-name">{{ $identite->nom }}</div>
+                <div class="clinic-line">{{ $identite->adresse }}</div>
+                <div class="clinic-line">Tél : {{ $identite->contact }}</div>
+                <div class="clinic-line">Email : {{ $identite->email }}</div>
             </div>
 
             <div class="right">

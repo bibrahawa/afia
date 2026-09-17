@@ -9,7 +9,9 @@ use App\Models\Package;
 use App\Models\Service;
 use App\Models\Chambre;
 use App\Models\Test;
+use App\Support\Facturation\TypesFacturables;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class InsuranceCoverageController extends Controller
 {
@@ -37,18 +39,7 @@ class InsuranceCoverageController extends Controller
         ]);
 
         $validated = $request->all();
-
-        if($validated['coverageable_type'] == 'Service'){
-            $validated['coverageable_type'] = Service::class;
-        }else if($validated['coverageable_type'] == 'Medicament'){
-            $validated['coverageable_type'] = Medicament::class;
-        }else if($validated['coverageable_type'] == 'Test'){
-            $validated['coverageable_type'] = Test::class;
-        }else if($validated['coverageable_type'] == 'Package'){
-            $validated['coverageable_type'] = Package::class;
-        }else if($validated['coverageable_type'] == 'Chambre'){
-            $validated['coverageable_type'] = Chambre::class;
-        }
+        $validated['coverageable_type'] = $this->typeActe($validated['coverageable_type']);
 
         InsuranceCoverage::create($validated);
 
@@ -70,13 +61,9 @@ class InsuranceCoverageController extends Controller
         $insuranceCoverage = InsuranceCoverage::find($request->id);
         
         $validated = $request->all();
-        if($validated['coverageable_type'] == 'Service'){
-            $validated['coverageable_type'] = Service::class;
-        }else if($validated['coverageable_type'] == 'Medicament'){
-            $validated['coverageable_type'] = Medicament::class;
-        }else if($validated['coverageable_type'] == 'Test'){
-            $validated['coverageable_type'] = Test::class;
-        }
+        // CORRIGÉ : Package et Chambre n'étaient pas reconnus à la modification
+        // (le libellé brut « Package » était enregistré tel quel).
+        $validated['coverageable_type'] = $this->typeActe($validated['coverageable_type']);
 
         $insuranceCoverage->update($validated);
 
@@ -88,5 +75,21 @@ class InsuranceCoverageController extends Controller
         $insuranceCoverage = InsuranceCoverage::find($request->id);
         $insuranceCoverage->delete();
         return back()->with('success', 'Couverture supprimée.');
+    }
+
+    /**
+     * Type d'acte venu du formulaire (« Service », « Médicament », alias ou
+     * ancien nom de classe) → alias stable. Tout autre valeur est refusée :
+     * avant, un libellé inconnu était enregistré tel quel.
+     */
+    private function typeActe(?string $saisie): string
+    {
+        $classe = TypesFacturables::depuisSaisie($saisie, TypesFacturables::ACTES_COUVRABLES);
+
+        if (! $classe) {
+            throw ValidationException::withMessages(['coverageable_type' => "Type d'acte non reconnu."]);
+        }
+
+        return TypesFacturables::alias($classe);
     }
 }

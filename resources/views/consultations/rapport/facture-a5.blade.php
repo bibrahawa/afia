@@ -76,11 +76,11 @@ th {
 <div class="header">
     <div>
         <div class="logo">
-            <img src="{{ public_path('assets/img/aprosafe.png') }}" alt="Logo">
+            @if($identite->logoPdf())<img src="{{ $identite->logoPdf() }}" alt="Logo">@endif
         </div>
-        <strong>{{ $hopital->name ?? "CLINIQUE APROSAFE" }}</strong><br>
-        {{ $hopital->address ?? 'Kiroti, Conakry, Rep de Guinee' }}<br>
-        {{ $hopital->contact ?? "628 16 44 22 / 625 47 68 44" }}
+        <strong>{{ $identite->nom }}</strong><br>
+        {{ $identite->adresse }}<br>
+        {{ $identite->contact }}
     </div>
 
     <div>

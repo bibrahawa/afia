@@ -557,6 +557,10 @@
     $transaction = $consultation->transaction;
     $invoice = optional($transaction)->invoice;
     $paiements = $transaction ? $transaction->paiements : collect();
+    // Paiements annulés : exclus des montants, affichés pour la traçabilité.
+    $paiementsAnnules = $transaction
+        ? \App\Models\Paiement::annules()->where('transaction_id', $transaction->id)->with('annulePar')->latest('annule_le')->get()
+        : collect();
     $dernierPaiement = $paiements && $paiements->count() > 0 ? $paiements->sortByDesc('created_at')->first() : null;
 
     $invoiceItems = $invoice && $invoice->items ? $invoice->items : collect();
@@ -1238,9 +1242,23 @@
                                                         <div>
                                                             <h6 class="mb-1">{{ number_format($paiement->montant, 0, ',', ' ') }} GNF</h6>
                                                             <p class="mb-1 text-muted">{{ $paiement->description }}</p>
-                                                            <small class="text-muted">{{ $paiement->created_at->format('d/m/Y à H:i') }}</small>
+                                                            <small class="text-muted">{{ $paiement->paiement_no }} · {{ $paiement->created_at->format('d/m/Y à H:i') }}</small>
                                                         </div>
-                                                        <span class="badge bg-secondary">{{ $paiement->source }}</span>
+                                                        <div class="text-end">
+                                                            <span class="badge bg-secondary">{{ $paiement->type === \App\Models\Paiement::TYPE_ASSURANCE ? 'Assurance' : ($paiement->source ?: 'Patient') }}</span>
+                                                            @can('payment.cancel')
+                                                                <details class="mt-2">
+                                                                    <summary class="small text-danger" style="cursor:pointer">Annuler ce paiement</summary>
+                                                                    <form method="POST" action="{{ route('paiement.annuler', $paiement) }}" class="mt-2"
+                                                                          onsubmit="return confirm('Annuler ce paiement ? Le montant redeviendra dû.');">
+                                                                        @csrf
+                                                                        <input type="text" name="motif" class="form-control form-control-sm mb-1" minlength="5" maxlength="255"
+                                                                               placeholder="Motif (ex. double saisie)" required>
+                                                                        <button type="submit" class="btn btn-sm btn-outline-danger">Confirmer l'annulation</button>
+                                                                    </form>
+                                                                </details>
+                                                            @endcan
+                                                        </div>
                                                     </div>
                                                 </div>
                                             @endforeach
@@ -1249,6 +1267,19 @@
                                         <div class="alert alert-warning mb-0">
                                             Aucun paiement enregistré pour cette consultation.
                                         </div>
+                                    @endif
+
+                                    @if($paiementsAnnules->count() > 0)
+                                        <h6 class="text-muted mt-4 mb-2"><i class="fas fa-ban me-2"></i>Paiements annulés</h6>
+                                        <ul class="list-unstyled small text-muted mb-0">
+                                            @foreach($paiementsAnnules as $annule)
+                                                <li class="mb-1">
+                                                    <del>{{ number_format($annule->montant, 0, ',', ' ') }} GNF</del>
+                                                    ({{ $annule->paiement_no }}) — annulé le {{ $annule->annule_le->format('d/m/Y à H:i') }}
+                                                    par {{ $annule->annulePar->name ?? '—' }} : {{ $annule->motif_annulation }}
+                                                </li>
+                                            @endforeach
+                                        </ul>
                                     @endif
                                 </div>
                             </div>

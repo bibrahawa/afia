@@ -132,7 +132,7 @@ class ReportController extends Controller
         $donnees = $rapports;
         $date_debut = $fromDate->format('d/m/Y');
         $date_fin = $toDate->format('d/m/Y');
-        $clinique_nom = config('app.name', 'Clinique Médicale'); // Nom depuis config
+        $clinique_nom = \App\Support\Etablissement\IdentiteDocument::courante()->nom; // établissement courant, plus le nom de l'application
 
         return view('reports.tools.rapport_actes', compact(
             'donnees',

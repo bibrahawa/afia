@@ -868,6 +868,11 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:payment.process')
         ->name('account.payer');
 
+    // Annulation d'un encaissement (trace conservée, motif obligatoire).
+    Route::post('/paiements/{paiement}/annuler', \App\Http\Controllers\Facturation\AnnulationPaiementController::class)
+        ->middleware('permission:payment.cancel')
+        ->name('paiement.annuler');
+
     Route::post('/insurance/calculate', [PaymentController::class, 'calculateCoverage'])
         ->middleware('permission:payment.calculate')
         ->name('insurance.calculate');

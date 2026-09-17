@@ -47,6 +47,14 @@ class InsuranceConsumptionService
     {
         $claims = InsuranceClaim::where('invoice_id', $invoice->id)->get();
 
+        // Défense en profondeur (voir Facturation\FigementFacture) : une réclamation
+        // déjà transmise à l'assureur n'est jamais supprimée silencieusement.
+        if ($claims->contains(fn (InsuranceClaim $c) => $c->status !== 'draft')) {
+            throw new \App\Exceptions\Facturation\OperationFacturationImpossible(
+                "La réclamation de cette facture a déjà été transmise à l'assureur : la prise en charge ne peut plus être recalculée."
+            );
+        }
+
         foreach ($claims as $claim) {
             if (!$claim->patient_insurance_id) {
                 continue;

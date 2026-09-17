@@ -17,7 +17,7 @@
             @foreach($invoice->items as $item)
             <tr>
                 <td>{{ $item->description }}</td>
-                <td><span class="badge badge-info">{{ ucfirst($item->coverage_type_type) }}</span></td>
+                <td><span class="badge badge-info">{{ \App\Support\Facturation\TypesFacturables::libelle($item->coverage_type_type) }}</span></td>
                 <td>{{ number_format($item->unit_price, 0, ',', ' ') }} GNF</td>
                 <td>{{ $item->quantity }}</td>
                 <td>{{ number_format($item->total_amount, 0, ',', ' ') }} GNF</td>

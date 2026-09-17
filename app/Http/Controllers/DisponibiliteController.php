@@ -6,6 +6,7 @@ use App\Models\Employee;
 use App\Models\Etablissement;
 use App\Models\MotifRdv;
 use App\Services\DisponibiliteService;
+use App\Support\CacheDisponibilite;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -36,19 +37,20 @@ class DisponibiliteController extends Controller
         $medecin = Employee::where('etablissement_id', $etablissement->id)->findOrFail($data['employee_id']);
         $motif = MotifRdv::where('etablissement_id', $etablissement->id)->findOrFail($data['motif_rdv_id']);
 
-        // Cache court (30s) : voir le raisonnement détaillé dans
-        // AppointmentController::getAvailableDates — la vérification qui
-        // fait réellement foi contre une double réservation reste celle,
-        // non cachée, d'AppointmentBookingService au moment de réserver.
-        $cle = "dispo:creneaux:{$medecin->id}:{$motif->id}:{$data['date']}";
-        $creneaux = Cache::remember($cle, 30, fn () => $this->disponibilite->creneauxDisponibles($medecin, Carbon::parse($data['date']), $motif));
+        // Cache court (30 s), clé versionnée par médecin : invalidée dès qu'un
+        // rdv, congé ou pause de ce médecin change. On met en cache le tableau
+        // déjà formaté (pas des objets Carbon). La vérification qui fait foi
+        // reste celle, non cachée, d'AppointmentBookingService.
+        $date = Carbon::parse($data['date'])->toDateString();
+        $cle = CacheDisponibilite::prefixe($medecin->id) . ":creneaux:{$motif->id}:{$date}";
 
-        return response()->json(
-            $creneaux->map(fn ($c) => [
-                'debut' => $c['debut']->format('H:i'),
-                'fin' => $c['fin']->format('H:i'),
-            ])
-        );
+        $creneaux = Cache::remember($cle, 30, fn () => $this->disponibilite
+            ->creneauxDisponibles($medecin, Carbon::parse($date), $motif)
+            ->map(fn ($c) => ['debut' => $c['debut']->format('H:i'), 'fin' => $c['fin']->format('H:i')])
+            ->values()
+            ->all());
+
+        return response()->json($creneaux);
     }
 
     /**
@@ -64,16 +66,22 @@ class DisponibiliteController extends Controller
         ]);
 
         $motif = MotifRdv::where('etablissement_id', $etablissement->id)->findOrFail($data['motif_rdv_id']);
-        $date = Carbon::parse($data['date']);
+        $date = Carbon::parse($data['date'])->startOfDay();
 
-        $cle = "dispo:creneaux-tous:{$motif->id}:{$data['date']}";
-        $resultats = Cache::remember($cle, 30, function () use ($motif, $etablissement, $date) {
-            return Employee::where('department_id', $motif->department_id)
-                ->where('etablissement_id', $etablissement->id)
-                ->where('type', 'Doctor')
-                ->where('is_active', true)
-                ->get()
-                ->filter(fn (Employee $m) => $m->peutPratiquerMotif($motif))
+        $medecins = Employee::where('department_id', $motif->department_id)
+            ->where('etablissement_id', $etablissement->id)
+            ->where('type', 'Doctor')
+            ->where('is_active', true)
+            ->get()
+            ->filter(fn (Employee $m) => $m->peutPratiquerMotif($motif));
+
+        // La clé combine les versions de cache de TOUS les médecins concernés :
+        // un changement chez l'un d'eux invalide la liste fusionnée.
+        $versions = $medecins->map(fn (Employee $m) => CacheDisponibilite::prefixe($m->id))->implode('|');
+        $cle = 'dispo:creneaux-tous:' . $motif->id . ':' . $date->toDateString() . ':' . md5($versions);
+
+        $resultats = Cache::remember($cle, 30, function () use ($motif, $medecins, $date) {
+            return $medecins
                 ->flatMap(function (Employee $medecin) use ($motif, $date) {
                     return $this->disponibilite->creneauxDisponibles($medecin, $date, $motif)
                         ->map(fn ($c) => [
@@ -84,7 +92,8 @@ class DisponibiliteController extends Controller
                         ]);
                 })
                 ->sortBy('debut')
-                ->values();
+                ->values()
+                ->all();
         });
 
         return response()->json($resultats);

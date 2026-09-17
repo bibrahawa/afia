@@ -151,7 +151,7 @@
                                                         class="btn btn-warning btn-round btn-sm edit-button"
                                                         data-bs-toggle="modal"
                                                         data-bs-target="#editRowModal"
-                                                        data-info="{{ $coverage->id }},{{ $coverage->insuranceCompany->id }},{{ $coverage->coverageable_type }},{{ $coverage->acte_price }},{{ $coverage->max_amount }},{{ $coverage->min_amount }},{{ $coverage->max_usage_count }},{{ $coverage->usage_period }},{{ $coverage->valid_from }},{{ $coverage->valid_to }},{{ $coverage->requires_preauthorization }},{{ $coverage->conditions }}, {{ $coverage->coverageable->id }}">
+                                                        data-info="{{ $coverage->id }},{{ $coverage->insuranceCompany->id }},{{ \App\Support\Facturation\TypesFacturables::libelle($coverage->coverageable_type) }},{{ $coverage->acte_price }},{{ $coverage->max_amount }},{{ $coverage->min_amount }},{{ $coverage->max_usage_count }},{{ $coverage->usage_period }},{{ $coverage->valid_from }},{{ $coverage->valid_to }},{{ $coverage->requires_preauthorization }},{{ $coverage->conditions }}, {{ $coverage->coverageable->id }}">
                                                     <i class="fa fa-edit"></i>
                                                 </button>
                                             @endcan

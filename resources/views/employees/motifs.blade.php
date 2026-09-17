@@ -17,22 +17,23 @@
             <div class="card-header"><h4 class="card-title">Motifs du département {{ $employee->department->name }}</h4></div>
             <div class="card-body">
                 <p class="small text-muted">
-                    Par défaut, un médecin peut recevoir tous les motifs de son département — ne
-                    coche/décoche que si tu veux explicitement restreindre ou personnaliser la durée
-                    pour {{ $employee->full_name }}. Si aucun médecin de ce département n'a
-                    d'association ici, cette liste n'a aucun effet restrictif.
+                    Par défaut, {{ $employee->full_name }} reçoit tous les motifs de son département.
+                    Décoche un motif pour qu'il ne soit plus proposé avec ce médecin (en ligne comme à
+                    l'accueil). La durée personnalisée est optionnelle et ne change rien d'autre.
                 </p>
                 <form action="{{ route('employees.motifs.sync', $employee) }}" method="POST">
                     @csrf
                     <table class="table">
-                        <thead><tr><th></th><th>Motif</th><th>Durée par défaut</th><th>Durée personnalisée</th></tr></thead>
+                        <thead><tr><th>Pratique</th><th>Motif</th><th>Durée par défaut</th><th>Durée personnalisée</th></tr></thead>
                         <tbody>
                         @foreach($motifs as $motif)
                             @php($association = $associations->get($motif->id))
-                            <tr>
+                            @php($pratique = ! $association || $association->pivot->actif)
+                            <tr class="{{ $pratique ? '' : 'text-muted' }}">
                                 <td>
-                                    <input type="checkbox" name="motifs[{{ $motif->id }}][actif]" value="1"
-                                        {{ $association?->pivot?->actif ? 'checked' : '' }}>
+                                    {{-- Champ caché : une case décochée n'est pas envoyée par le navigateur --}}
+                                    <input type="hidden" name="motifs[{{ $motif->id }}][pratique]" value="0">
+                                    <input type="checkbox" name="motifs[{{ $motif->id }}][pratique]" value="1" {{ $pratique ? 'checked' : '' }}>
                                 </td>
                                 <td>{{ $motif->nom }}</td>
                                 <td>{{ $motif->duree_minutes_defaut }} min</td>

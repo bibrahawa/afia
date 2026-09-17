@@ -105,7 +105,7 @@ class DoctorLeaveService
 
     protected function cancelAppointmentsForLeave(int $employeeId, Carbon $startDate, Carbon $endDate, string $reason): int
     {
-        return Appointment::where('employee_id', $employeeId)
+        $annules = Appointment::where('employee_id', $employeeId)
             ->whereIn('status', ['pending', 'confirmed'])
             ->whereBetween('appointment_datetime', [$startDate, $endDate])
             ->update([
@@ -113,6 +113,11 @@ class DoctorLeaveService
                 'cancelled_at' => now(),
                 'cancellation_reason' => "Indisponibilité du médecin : {$reason}",
             ]);
+
+        // Mise à jour de masse : aucun événement de modèle, donc invalidation explicite.
+        \App\Support\CacheDisponibilite::invalider($employeeId);
+
+        return $annules;
     }
 
     protected function restoreCancelledAppointmentsForLeavePeriod(int $employeeId, Carbon $startDate, Carbon $endDate, ?int $excludeLeaveId = null): int

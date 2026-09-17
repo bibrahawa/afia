@@ -16,7 +16,9 @@ class BillingService
         private PatientAccountService $patientAccountService,
         private TransactionStatusService $transactionStatusService,
         private InvoiceService $invoiceService,
-        private InsuranceConsumptionService $insuranceConsumptionService
+        private InsuranceConsumptionService $insuranceConsumptionService,
+        private \App\Services\Facturation\FigementFacture $figement,
+        private \App\Services\Facturation\RemiseService $remises,
     ) {
     }
 
@@ -106,20 +108,34 @@ class BillingService
         });
     }
 
+    /**
+     * Régénère la facture d'une pièce (actes modifiés, assurance changée,
+     * durée d'hospitalisation, examen de labo annulé…).
+     *
+     * RÉVISION lot 1 :
+     *  - verrou sur la transaction (pas de recalcul pendant un encaissement) ;
+     *  - refus si la réclamation est déjà transmise à l'assureur ou réglée par
+     *    bordereau, et refus si la facture passerait sous ce qui a déjà été
+     *    encaissé (FigementFacture) — tout est annulé dans ce cas ;
+     *  - les remises accordées sont conservées ; totaux et compte patient
+     *    suivent les lignes (InvoiceService::synchroniserTotaux).
+     */
     public function recalculate(Transaction $transaction): Transaction
     {
         return DB::transaction(function () use ($transaction) {
-
-            $transaction->loadMissing('patient', 'invoice', 'invoice.items');
+            $transaction = Transaction::whereKey($transaction->id)
+                ->lockForUpdate()
+                ->with(['patient', 'invoice.items'])
+                ->firstOrFail();
 
             if (!$transaction->invoice) {
                 throw new InvalidArgumentException('Transaction sans facture.');
             }
 
+            $this->figement->verifierRegenerable($transaction);
+
             // rollback ancienne consommation assurance
-            $this->insuranceConsumptionService->rollbackConsumption(
-                $transaction->invoice
-            );
+            $this->insuranceConsumptionService->rollbackConsumption($transaction->invoice);
 
             $payload = $this->itemBuilder->buildFromTransaction($transaction);
 
@@ -127,28 +143,6 @@ class BillingService
                 $transaction->patient_id,
                 $payload['items']
             );
-
-            $oldTotal = (float) $transaction->total;
-            $newTotal = (float) $calculation['total_amount'];
-
-            $diff = $newTotal - $oldTotal;
-
-            if ($diff > 0) {
-                $this->patientAccountService->credit(
-                    $transaction->patient,
-                    $diff
-                );
-            } elseif ($diff < 0) {
-                $this->patientAccountService->debit(
-                    $transaction->patient,
-                    abs($diff)
-                );
-            }
-
-            $transaction->update([
-                'sub_total' => $newTotal,
-                'total' => $newTotal,
-            ]);
 
             $invoice = $this->invoiceService->createOrUpdateInvoice(
                 $transaction,
@@ -163,85 +157,20 @@ class BillingService
                 $transaction->patient_id
             );
 
+            // Une facture ne descend jamais sous ce qui a déjà été encaissé.
+            $this->figement->verifierEncaissementsCouverts($transaction);
+
             $this->transactionStatusService->refresh($transaction);
 
             return $transaction->fresh(['invoice', 'paiements']);
-            
         });
     }
 
+    /**
+     * @deprecated Utiliser Facturation\RemiseService::appliquer() — conservé pour les appels existants.
+     */
     public function applyDiscounts(Transaction $transaction, array $discounts): Transaction
     {
-        return DB::transaction(function () use ($transaction, $discounts) {
-            $transaction->loadMissing('invoice.items', 'patient');
-
-            $invoice = $transaction->invoice;
-            if (!$invoice) {
-                throw new InvalidArgumentException('Aucune facture liée à cette transaction.');
-            }
-
-            $typeMap = [
-                'Service' => 'App\\Models\\Service',
-                'Test' => 'App\\Models\\Test',
-                'Medicament' => 'App\\Models\\Medicament',
-                'Package' => 'App\\Models\\Package',
-                'Hospitalisation' => 'App\\Models\\Hospitalisation',
-                'Chambre' => 'App\\Models\\Chambre',
-                // AJOUT MODULE LABORATOIRE : remises ligne par ligne sur les examens
-                'LaboExamen' => \App\Models\Labo\LaboExamen::class,
-            ];
-
-            $subTotal = 0;
-            $insuranceTotal = 0;
-            $patientTotal = 0;
-            $discountTotal = 0;
-
-            foreach ($discounts as $type => $items) {
-                $modelClass = $typeMap[$type] ?? null;
-                if (!$modelClass) {
-                    continue;
-                }
-
-                foreach ($items as $id => $discount) {
-                    $invoiceItem = $invoice->items
-                        ->where('coverage_type_type', $modelClass)
-                        ->where('coverage_type_id', (int) $id)
-                        ->first();
-
-                    if (!$invoiceItem) {
-                        continue;
-                    }
-
-                    $invoiceItem->discount = (float) $discount;
-                    $invoiceItem->save();
-                    $invoiceItem->reCalculerApresReduction();
-
-                    $discountTotal += (float) $invoiceItem->discount;
-                    $subTotal += (float) $invoiceItem->total_amount;
-                    $insuranceTotal += (float) $invoiceItem->insurance_covered_amount;
-                    $patientTotal += (float) $invoiceItem->patient_amount;
-                }
-            }
-
-            $invoice->update([
-                'insurance_amount' => $insuranceTotal,
-                'patient_amount' => $patientTotal,
-                'total_amount' => $subTotal,
-            ]);
-
-            $transaction->update([
-                'sub_total' => $subTotal + $discountTotal,
-                'discount' => $discountTotal,
-                'total' => $subTotal,
-            ]);
-
-            if ($discountTotal > 0) {
-                $this->patientAccountService->debit($transaction->patient, $discountTotal);
-            }
-
-            $this->transactionStatusService->refresh($transaction);
-
-            return $transaction->fresh(['invoice.items']);
-        });
+        return $this->remises->appliquer($transaction, $discounts);
     }
 }

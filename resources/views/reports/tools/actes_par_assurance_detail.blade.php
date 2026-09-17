@@ -97,7 +97,7 @@
             <div class="brand">
                 <div class="b-icon"><i class="fa fa-shield-alt"></i></div>
                 <div>
-                    <p class="b-name">{{ config('app.name', 'APROSAFE') }}</p>
+                    <p class="b-name">{{ \App\Support\Etablissement\IdentiteDocument::courante()->nom }}</p>
                     <p class="b-sub">Rapport assurance + acte</p>
                 </div>
             </div>
@@ -222,7 +222,7 @@
         </div>
 
         <div class="foot">
-            Généré le {{ now()->format('d/m/Y à H:i') }} — {{ config('app.name', 'APROSAFE') }}
+            Généré le {{ now()->format('d/m/Y à H:i') }} — {{ \App\Support\Etablissement\IdentiteDocument::courante()->nom }}
         </div>
     </div>
 </div>
@@ -233,7 +233,7 @@
 <script>
 function exportToExcel() {
     const rows = [
-        ['{{ config('app.name', 'APROSAFE') }} — Actes par assurance et par acte'],
+        ['{{ \App\Support\Etablissement\IdentiteDocument::courante()->nom }} — Actes par assurance et par acte'],
         ['Période : du {{ $dateDebut }} au {{ $dateFin }}'],
         [],
         ['#', 'Assurance', 'Acte', 'Nb actes', 'Factures', 'Patients', 'Montant assurance', 'Part patient', 'Total facturé'],

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\Facturation\TypesFacturables;
 use App\Models\InsuranceCompany;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
@@ -80,11 +81,10 @@ class InvoicesController extends Controller
             $invoice = Invoice::create($request->except('items'));
 
             foreach ($request->input('items') as $itemData) {
-                // Assurez-vous que les modèles polymorphes existent et sont valides
-                $modelClass = $itemData['coverage_type_type'];
-                if (!class_exists($modelClass) || !is_a($modelClass, \Illuminate\Database\Eloquent\Model::class, true)) {
-                    throw new \Exception("Invalid coverage_type_type: {$modelClass}");
-                }
+                // CORRIGÉ (sécurité) : n'importe quelle classe de modèle envoyée par
+                // le formulaire était acceptée (User, Etablissement…). Seuls les
+                // actes facturables connus sont désormais admis.
+                $modelClass = $this->classeActe($itemData['coverage_type_type']);
                 
                 // Vérifie si l'ID existe pour le type de modèle donné
                 $relatedModel = $modelClass::find($itemData['coverage_type_id']);
@@ -177,10 +177,7 @@ class InvoicesController extends Controller
             $itemsToKeep = [];
 
             foreach ($request->input('items') as $itemData) {
-                $modelClass = $itemData['coverage_type_type'];
-                if (!class_exists($modelClass) || !is_a($modelClass, \Illuminate\Database\Eloquent\Model::class, true)) {
-                    throw new \Exception("Invalid coverage_type_type: {$modelClass}");
-                }
+                $modelClass = $this->classeActe($itemData['coverage_type_type']);
                 $relatedModel = $modelClass::find($itemData['coverage_type_id']);
                 if (!$relatedModel) {
                     throw new \Exception("Related model with ID {$itemData['coverage_type_id']} not found for type {$modelClass}");
@@ -553,13 +550,21 @@ class InvoicesController extends Controller
      */
     private function getCoverageTypeModel($category)
     {
-        return match ($category) {
-            'services' => 'App\\Models\\Service',
-            'packages' => 'App\\Models\\Package',
-            'examens' => 'App\\Models\\Test',
-            'medicaments' => 'App\\Models\\Medicament',
-            default => null
-        };
+        $classe = TypesFacturables::depuisSaisie($category, TypesFacturables::ACTES_COUVRABLES);
+
+        return $classe ? TypesFacturables::alias($classe) : null;
     }
 
+
+    /** Classe d'un acte facturable envoyé par formulaire ; refuse tout autre type. */
+    private function classeActe(?string $saisie): string
+    {
+        $classe = TypesFacturables::depuisSaisie($saisie, TypesFacturables::ACTES_COUVRABLES);
+
+        if (! $classe) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['items' => "Type d'acte non reconnu."]);
+        }
+
+        return $classe;
+    }
 }
