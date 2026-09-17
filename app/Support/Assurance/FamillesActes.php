@@ -14,8 +14,9 @@ use App\Support\Facturation\TypesFacturables;
 /**
  * Famille d'actes d'une ligne facturable.
  *  - examens (tests, laboratoire) → laboratoire ; médicaments → pharmacie ;
- *    chambres → hospitalisation ; packages → soins ;
- *  - services : famille choisie dans le catalogue (consultation par défaut).
+ *    chambres → hospitalisation ;
+ *  - services et packages : famille choisie dans le catalogue (consultation /
+ *    soins par défaut — un forfait accouchement se classe en maternité).
  */
 class FamillesActes
 {
@@ -30,7 +31,8 @@ class FamillesActes
             Test::class, LaboExamen::class => FamilleActe::Laboratoire,
             Medicament::class => FamilleActe::Pharmacie,
             Chambre::class => FamilleActe::Hospitalisation,
-            Package::class => FamilleActe::Soins,
+            Package::class => FamilleActe::tryFrom((string) Package::withoutGlobalScope('etablissement')->whereKey($acteId)->value('famille_acte'))
+                ?? FamilleActe::Soins,
             Service::class => FamilleActe::tryFrom((string) Service::withoutGlobalScope('etablissement')->whereKey($acteId)->value('famille_acte'))
                 ?? FamilleActe::Consultation,
             default => FamilleActe::Autre,

@@ -747,6 +747,14 @@
                         </ul>
                     </div>
                     
+                    @if($invoice && $invoice->insuranceClaims()->exists())
+                        @can('assurance.referentiel.view')
+                            <a href="{{ route('assurance.feuilles-de-soins.show', $transaction->id) }}" target="_blank" class="btn btn-sm btn-outline-warning">
+                                <i class="fas fa-file-signature me-1"></i> Feuille de soins
+                            </a>
+                        @endcan
+                    @endif
+
                     @include('labo.partials.consultation-bouton', ['consultation' => $consultation])
                     
                     <a href="{{ route('consultation.index') }}" class="btn btn-sm btn-secondary">

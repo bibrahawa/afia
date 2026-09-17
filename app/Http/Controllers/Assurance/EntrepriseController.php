@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Assurance;
 use App\Http\Controllers\Controller;
 use App\Models\Assurance\Entreprise;
 use App\Models\Assurance\PatientEmploi;
-use App\Models\InsuranceCompany;
 use App\Models\Patient;
 use App\Services\Assurance\ReferentielAssuranceService;
 use Carbon\Carbon;
@@ -30,21 +29,18 @@ class EntrepriseController extends Controller
         return view('assurance.entreprises.index', [
             'entreprises' => $entreprises,
             'recherche' => $recherche,
-            'organismes' => $this->organismesDirects(),
         ]);
     }
 
     public function show(Entreprise $assuranceEntreprise)
     {
         $assuranceEntreprise->load([
-            'organismePayeur',
             'emplois' => fn ($q) => $q->with('patient')->orderByRaw('date_fin IS NOT NULL')->orderByDesc('date_debut'),
             'contrats.organismePayeur',
         ]);
 
         return view('assurance.entreprises.show', [
             'entreprise' => $assuranceEntreprise,
-            'organismes' => $this->organismesDirects(),
         ]);
     }
 
@@ -95,7 +91,6 @@ class EntrepriseController extends Controller
             'contact_nom' => ['nullable', 'string', 'max:255'],
             'telephone' => ['nullable', 'string', 'max:30'],
             'email' => ['nullable', 'email', 'max:255'],
-            'organisme_payeur_id' => ['nullable', 'exists_etablissement:insurance_companies,id'],
             'actif' => ['nullable', 'boolean'],
             'notes' => ['nullable', 'string'],
         ], ['nom.unique_etablissement' => 'Une entreprise porte déjà ce nom.']);
@@ -103,10 +98,5 @@ class EntrepriseController extends Controller
         $donnees['actif'] = $request->boolean('actif', true);
 
         return $donnees;
-    }
-
-    private function organismesDirects()
-    {
-        return InsuranceCompany::where('type', 'entreprise')->orderBy('name')->get();
     }
 }

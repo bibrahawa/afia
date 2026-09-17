@@ -2,7 +2,6 @@
 
 namespace App\Support\Facturation;
 
-use App\Models\InsuranceSettlementItem;
 use App\Models\Paiement;
 use App\Models\Transaction;
 
@@ -22,8 +21,7 @@ use App\Models\Transaction;
  *  - part assurance due   : invoices.insurance_amount ;
  *  - payé par le patient  : paiements non annulés de type « paiement » ;
  *  - réglé par l'assureur : paiements non annulés de type « remboursement »
- *                           + bordereaux de règlement (insurance_settlement_items,
- *                           qui ne créent pas de ligne de paiement).
+ *                           + écarts soldés lors des règlements (ReglementsSansPaiement).
  */
 final class SoldeTransaction
 {
@@ -48,12 +46,10 @@ final class SoldeTransaction
             ->groupBy('type')
             ->pluck('total', 'type');
 
-        $bordereaux = $invoice
-            ? (float) InsuranceSettlementItem::withoutGlobalScope('etablissement')
-                ->where('invoice_id', $invoice->id)
-                ->selectRaw('COALESCE(SUM(applied_paid_amount + applied_discount_amount), 0) as total')
-                ->value('total')
-            : 0.0;
+        // Règlements assurance soldés SANS ligne de paiement : écarts (refus, remise
+        // négociée) et parts payées des règlements antérieurs au lot 2c. Les parts
+        // payées depuis le lot 2c ont leur paiement « remboursement » (compté ci-dessus).
+        $bordereaux = $invoice ? ReglementsSansPaiement::pourFactures([$invoice->id]) : 0.0;
 
         return new self(
             partPatient: round($partPatient, 2),

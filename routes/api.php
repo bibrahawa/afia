@@ -6,7 +6,6 @@ use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\PaymentController;
-use App\Http\Controllers\InsuranceBalanceController;
 use App\Http\Controllers\Api\Api_PatientInsuranceController;
 use App\Http\Controllers\Api\Api_InsuranceCalculationController;
 use App\Http\Controllers\Api\Api_InsuranceCompanyController;
@@ -87,5 +86,5 @@ Route::get('balance/{insurance}', function ($insuranceId) {
     return response()->json($balance);
 })->name('balance');
 
-Route::get('insurance/pending-invoices/{insurance}', [InsuranceBalanceController::class, 'pendingInvoices'])
-    ->name('pending-invoices');
+// Lot 2c : route retirée — la méthode InsuranceBalanceController::pendingInvoices n'existait pas
+// (erreur 500 à chaque appel) et l'écran des soldes est remplacé par Assurance > Créances.

@@ -22,10 +22,11 @@
 </div>
 
 <h6 class="mt-3">Garanties par famille d'actes</h6>
-<p class="small text-muted mb-2">Laisser le taux vide = taux général de la formule. Accord préalable : sans bon de prise en charge valide, l'acte reste à la charge du patient.</p>
+<p class="small text-muted mb-2">Taux vide = taux général de la formule. Accord préalable : sans bon valide, l'acte reste à la charge du patient.
+    Carence : nombre de jours après le début de couverture avant prise en charge de la famille (maternité). Nb max / période : ex. 2 échographies par année de contrat.</p>
 <div class="table-responsive">
 <table class="table table-sm align-middle small">
-    <thead><tr><th>Famille</th><th style="width:120px">Taux (%)</th><th style="width:170px">Plafond par acte (GNF)</th><th class="text-center">Exclu</th><th class="text-center">Accord préalable</th></tr></thead>
+    <thead><tr><th>Famille</th><th style="width:100px">Taux (%)</th><th style="width:140px">Plafond / acte</th><th class="text-center">Exclu</th><th class="text-center">Accord préalable</th><th style="width:100px">Carence (j)</th><th style="width:90px">Nb max</th><th style="width:150px">Période</th></tr></thead>
     <tbody>
     @foreach(\App\Enums\Assurance\FamilleActe::cases() as $familleActe)
         @php $g = $formule?->garantiePour($familleActe); $cle = 'garanties[' . $familleActe->value . ']'; @endphp
@@ -35,6 +36,12 @@
             <td><input type="number" step="1" min="0" name="{{ $cle }}[plafond_par_acte]" class="form-control form-control-sm" value="{{ $g?->plafond_par_acte }}"></td>
             <td class="text-center"><input type="hidden" name="{{ $cle }}[exclu]" value="0"><input type="checkbox" name="{{ $cle }}[exclu]" value="1" class="form-check-input" @checked($g?->exclu)></td>
             <td class="text-center"><input type="hidden" name="{{ $cle }}[accord_prealable]" value="0"><input type="checkbox" name="{{ $cle }}[accord_prealable]" value="1" class="form-check-input" @checked($g?->accord_prealable)></td>
+            <td><input type="number" min="0" max="730" name="{{ $cle }}[delai_carence_jours]" class="form-control form-control-sm" value="{{ $g?->delai_carence_jours }}" placeholder="{{ $familleActe === \App\Enums\Assurance\FamilleActe::Maternite ? 'ex. 270' : '' }}"></td>
+            <td><input type="number" min="1" max="365" name="{{ $cle }}[nombre_max]" class="form-control form-control-sm" value="{{ $g?->nombre_max }}"></td>
+            <td><select name="{{ $cle }}[periode]" class="form-control form-control-sm">
+                <option value="">—</option>
+                @foreach(\App\Models\Assurance\FormuleGarantie::PERIODES as $valeur => $libellePeriode)<option value="{{ $valeur }}" @selected($g?->periode === $valeur)>{{ $libellePeriode }}</option>@endforeach
+            </select></td>
         </tr>
     @endforeach
     </tbody>

@@ -134,14 +134,20 @@ class PatientAccountService
     /** Solde qu'aurait le compte si toutes les écritures avaient été justes. */
     public function soldeAttendu(Account $account): float
     {
-        $transactions = Transaction::withoutGlobalScopes()->where('account_id', $account->id);
+        // Pièces annulées (ex. demande de laboratoire annulée) : plus rien n'est dû.
+        $transactions = Transaction::withoutGlobalScopes()->where('account_id', $account->id)->where('status', '!=', 'cancel');
 
         $total = (float) (clone $transactions)->sum('total');
         // withoutGlobalScope('etablissement') et NON withoutGlobalScopes() : le scope
         // « valides » doit rester actif, un paiement annulé ne réduit pas le solde.
         $paye = (float) Paiement::withoutGlobalScope('etablissement')->whereIn('transaction_id', (clone $transactions)->select('id'))->sum('montant');
 
-        return round($total - $paye, 2);
+        // Lot 2c : écarts assurance soldés et anciens règlements sans paiement.
+        $regleSansPaiement = \App\Support\Facturation\ReglementsSansPaiement::pourFactures(
+            \App\Models\Invoice::withoutGlobalScopes()->whereIn('transaction_id', (clone $transactions)->select('id'))->select('id')
+        );
+
+        return round($total - $paye - $regleSansPaiement, 2);
     }
 
     /** Remet le solde à sa valeur attendue ; renvoie l'écart corrigé. */

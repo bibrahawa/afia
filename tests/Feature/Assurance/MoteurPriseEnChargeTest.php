@@ -162,24 +162,6 @@ class MoteurPriseEnChargeTest extends TestCase
         $this->assertSame(2, $t->invoice->insuranceClaims()->count());
     }
 
-    public function test_le_complement_employeur_paie_le_ticket_moderateur(): void
-    {
-        $employeur = InsuranceCompany::create(['name' => 'Société Minière', 'code' => 'SMB', 'type' => 'entreprise']);
-        $this->conventionner($employeur);
-        $contratEmployeur = Contrat::create(['insurance_company_id' => $employeur->id, 'numero_police' => 'SMB-TM', 'date_debut' => '2025-01-01', 'statut' => StatutCouverture::Active]);
-        $ticket = Formule::create(['contrat_id' => $contratEmployeur->id, 'libelle' => 'Ticket modérateur', 'taux_prise_en_charge' => 100]);
-
-        $this->referentiel->creerAdhesion($ticket, $this->mamadou, ['date_debut' => '2025-01-01']); // plus ancien
-        $this->adherer($this->mamadou);
-
-        $t = $this->facturer($this->mamadou, [$this->consultation]);
-        $parts = $t->invoice->items->first()->repartition_assurance;
-
-        $this->assertSame('NSIA', $parts[0]['payeur']);
-        $this->assertSame('Société Minière', $parts[1]['payeur']);
-        $this->assertSame('0.00', (string) $t->invoice->getRawOriginal('patient_amount'));
-    }
-
     public function test_le_tarif_de_convention_est_fixe_une_fois_pour_toute_la_chaine(): void
     {
         $sanlam = InsuranceCompany::create(['name' => 'Sanlam', 'code' => 'SANLAM']);

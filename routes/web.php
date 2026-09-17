@@ -5,11 +5,9 @@ use App\Http\Controllers\{
     DashboardController, HospitalController, UserController,
     DepartmentController, ServiceController, EmployeeController,
     PatientController, AppointmentController, PackageController,
-    TestController, ReportController, AccountController, AuthController,
-    ProfileController, ConsultationController, MedicamentController,
-    HospitalisationController, ChambreController, InsuranceClaimController, InsuranceCompanyController,
-    InsuranceCoverageController, InvoiceItemController, InvoicesController, PatientInsuranceController,
-    PaymentController, InsuranceBalanceController, SmsController, SmsReportController, InsuranceSettlementController,
+    TestController, ReportController, AuthController, ConsultationController, MedicamentController,
+    HospitalisationController, ChambreController, InsuranceCompanyController, PatientInsuranceController,
+    PaymentController, SmsController, SmsReportController,
     AppointmentExportController, DoctorAppointmentController, DoctorAvailabilityController, DoctorLeaveController, DoctorBreakController,
     // Ajoutés par la refonte multi-tenant / rdv / consentement :
     ComptePatientController, ConsentementController, DisponibiliteController,
@@ -324,9 +322,8 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:users.change_password')
         ->name('change.password');
 
-    Route::post('/insurance/settlements', [InsuranceSettlementController::class, 'store'])
-        ->middleware('permission:insurance_balance.payment')
-        ->name('insurance.settlements.store');
+    // Lot 2c : l'ancien enregistrement de règlement (facture par facture) est remplacé par
+    // Assurance > Créances (règlement réclamation par réclamation, route assurance.reglements.store).
 
     // ============================================
     // HÔPITAL CONFIGURATION (Admin uniquement)
@@ -754,21 +751,10 @@ Route::middleware('auth')->group(function () {
 
         // COUVERTURES D'ASSURANCE
         Route::middleware('permission:insurance_coverage.view')->group(function () {
-            Route::get('insurance-coverages', [InsuranceCoverageController::class, 'index'])->name('insurance-coverages.index');
+            // Lot 2d : l'écran des couvertures ligne à ligne est remplacé par Assurance > Conventions.
+            Route::get('insurance-coverages', fn () => redirect()->route('assurance.conventions.index'))->name('insurance-coverages.index');
         });
-
-        Route::post('insurance-coverages', [InsuranceCoverageController::class, 'store'])
-            ->middleware('permission:insurance_coverage.create')
-            ->name('insurance-coverages.store');
-
-        Route::put('insurance-coverages/update', [InsuranceCoverageController::class, 'update'])
-            ->middleware('permission:insurance_coverage.edit')
-            ->name('insurance-coverages.update');
-
-        Route::delete('insurance-coverages/delete', [InsuranceCoverageController::class, 'destroy'])
-            ->middleware('permission:insurance_coverage.delete')
-            ->name('insurance-coverages.destroy');
-
+ 
         // ASSURANCE PATIENT
         Route::middleware('permission:patient_insurance.view')->group(function () {
             Route::get('insurance_patient', [PatientInsuranceController::class, 'index'])->name('insurance_patient.index');
@@ -786,42 +772,11 @@ Route::middleware('auth')->group(function () {
             ->middleware('permission:patient_insurance.delete')
             ->name('insurance_patient.destroy');
 
-        // FACTURES D'ASSURANCE
-        Route::get('/invoice', [InvoicesController::class, 'index'])
-            ->middleware('permission:invoice.view')
-            ->name('invoice.index');
-
-        Route::post('/invoice/add', [InvoicesController::class, 'store'])
-            ->middleware('permission:invoice.create')
-            ->name('invoice.add');
-
-        Route::post('/invoice/update', [InvoicesController::class, 'update'])
-            ->middleware('permission:invoice.edit')
-            ->name('invoice.update');
-
-        Route::delete('/invoice/delete/{id}', [InvoicesController::class, 'destroy'])
-            ->middleware('permission:invoice.delete')
-            ->name('invoice.delete');
-
-        Route::get('/invoice/{id}/items', [InvoicesController::class, 'getItems'])
-            ->middleware('permission:invoice.view');
-
-        // ÉLÉMENTS DE FACTURE
-        Route::get('/invoice/item', [InvoiceItemController::class, 'index'])
-            ->middleware('permission:invoice_item.view')
-            ->name('invoice.item.index');
-
-        Route::post('/invoice/item/add', [InvoiceItemController::class, 'store'])
-            ->middleware('permission:invoice_item.create')
-            ->name('invoice.item.add');
-
-        Route::post('/invoice/item/update', [InvoiceItemController::class, 'update'])
-            ->middleware('permission:invoice_item.edit')
-            ->name('invoice.item.update');
-
-        Route::delete('/invoice/item/delete/{id}', [InvoiceItemController::class, 'destroy'])
-            ->middleware('permission:invoice_item.delete')
-            ->name('invoice.item.delete');
+        // Lot 2c : écrans « Factures » / « Éléments de facture » retirés. Ils modifiaient
+        // factures et lignes en base sans passer par la facturation (totaux, assurance,
+        // encaissements, figement). Les factures se consultent depuis la consultation,
+        // l'hospitalisation ou la demande de labo ; les créances assurance depuis Assurance > Créances.
+        Route::get('/invoice', fn () => redirect()->route('account.facture'))->name('invoice.index');
 
 
     });
@@ -831,23 +786,12 @@ Route::middleware('auth')->group(function () {
     // été retiré — il dupliquait exactement les routes déclarées juste
     // au-dessus. Les routes de solde/paiement d'assurance qu'il contenait
     // aussi sont conservées ci-dessous, seule la partie dupliquée disparaît.
+    // Lot 2c : l'écran « Soldes » (calcul facture par facture) renvoie vers
+    // Assurance > Créances. Les noms de route sont conservés pour les liens existants.
     Route::prefix('insurance')->group(function () {
-
-        Route::get('/', [InsuranceBalanceController::class, 'index'])
-            ->middleware('permission:insurance_balance.view')
-            ->name('insurance.balances.index');
-
-        Route::post('/paiement', [InsuranceBalanceController::class, 'processPaiement'])
-            ->middleware('permission:insurance_balance.payment')
-            ->name('insurance.balances.payment');
-
-        Route::get('/export/csv', [InsuranceBalanceController::class, 'export'])
-            ->middleware('permission:insurance_balance.export')
-            ->name('insurance.balances.export');
-
-        Route::get('/{insurance}', [InsuranceBalanceController::class, 'show'])
-            ->middleware('permission:insurance_balance.show')
-            ->name('insurance.balances.show');
+        Route::get('/', fn () => redirect()->route('assurance.creances.index'))->name('insurance.balances.index');
+        Route::get('/{insurance}', fn ($insurance) => redirect()->route('assurance.creances.show', $insurance))
+            ->whereNumber('insurance')->name('insurance.balances.show');
     });
 
     // ============================================
@@ -881,8 +825,8 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:payment.hospitalisation')
         ->name('hospitalisation.paiement');
 
-    // RÉCLAMATIONS ASSURANCE
-    Route::resource('insurance-claims', InsuranceClaimController::class)
-        ->middleware('permission:payment.view');
+    // RÉCLAMATIONS ASSURANCE — lot 2c : les réclamations sont créées par la facturation
+    // (plus de saisie manuelle) et gérées dans Assurance > Créances.
+    Route::get('insurance-claims', fn () => redirect()->route('assurance.creances.index'))->name('insurance-claims.index');
 
 });

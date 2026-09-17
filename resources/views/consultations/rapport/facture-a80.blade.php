@@ -78,6 +78,9 @@ body {
 
 <div class="separator"></div>
 
+@foreach(($invoiceData['invoice']?->insuranceClaims()->with('insuranceCompany', 'patientInsurance')->get() ?? collect()) as $reclamation)
+<div>{{ $reclamation->insuranceCompany->name }} ({{ $reclamation->patientInsurance?->policy_number }}): {{ number_format($reclamation->claimed_amount) }}</div>
+@endforeach
 <div>Total Patient: {{ number_format($invoiceData['patient_amount']) }}</div>
 <div>Payé: {{ number_format($invoiceData['paid_amount']) }}</div>
 

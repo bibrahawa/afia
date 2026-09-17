@@ -60,6 +60,13 @@ class AnnulationPaiementService
                 $this->statuts->refresh($transaction);
             }
 
+            // Encaissement issu d'un règlement assurance : la réclamation redevient due.
+            \App\Models\InsuranceSettlementItem::withoutGlobalScope('etablissement')
+                ->where('paiement_id', $paiement->id)
+                ->with('reclamation')
+                ->get()
+                ->each(fn ($item) => $item->reclamation?->rafraichirStatut());
+
             ActivityLog::create([
                 'etablissement_id' => $paiement->etablissement_id,
                 'causer_type' => $auteur ? User::class : null,

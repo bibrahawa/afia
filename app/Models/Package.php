@@ -13,7 +13,7 @@ class Package extends Model
     /** Établissement repris du parent quand la ligne est créée hors session (job, callback). */
     protected static array $etablissementDepuis = ['department_id' => Department::class];
 
-	protected $fillable = ['name', 'description', 'department_id','price'];
+	protected $fillable = ['name', 'description', 'department_id','price', 'famille_acte'];
 
         /**
      * Relation avec Department

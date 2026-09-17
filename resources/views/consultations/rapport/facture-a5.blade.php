@@ -132,6 +132,12 @@ th {
 </table>
 
 <div class="total">
+    @foreach(($invoiceData['invoice']?->insuranceClaims()->with('insuranceCompany', 'patientInsurance')->get() ?? collect()) as $reclamation)
+        <div>
+            <span>Part {{ $reclamation->insuranceCompany->name }} (carte {{ $reclamation->patientInsurance?->policy_number }}) :</span>
+            <span>{{ number_format($reclamation->claimed_amount) }} GNF</span>
+        </div>
+    @endforeach
     <div>
         <span>Total Patient :</span>
         <span>{{ number_format($invoiceData['patient_amount']) }} GNF</span>

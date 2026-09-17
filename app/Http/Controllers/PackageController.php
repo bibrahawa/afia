@@ -33,6 +33,7 @@ class PackageController extends Controller
 		$package['name'] = $request->name;
 		$package['description'] = $request->description;
         $package['department_id'] = $request->department_id;
+        $package['famille_acte'] = \App\Enums\Assurance\FamilleActe::tryFrom((string) $request->famille_acte)?->value;
         $package['price'] = 0;
 
         if ($request->has('tests')) {
@@ -74,6 +75,7 @@ class PackageController extends Controller
 		$data['name'] = $request->name;
 		$data['description'] = $request->description;
 		$data['department_id'] = $request->department_id;
+		$data['famille_acte'] = \App\Enums\Assurance\FamilleActe::tryFrom((string) $request->famille_acte)?->value ?? $package->famille_acte;
 		$data['price'] = 0;
 
 

@@ -32,6 +32,7 @@ class InvoiceItem extends Model
         'invoice_id',
         'coverage_type_id', // Renommé pour la convention Laravel (polymorphisme)
         'coverage_type_type', // Renommé pour la convention Laravel (polymorphisme)
+        'famille_acte',
         'description',
         'unit_price',
         'quantity',

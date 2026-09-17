@@ -72,9 +72,12 @@ class BillingService
             $hospitalisation->loadMissing('patient', 'chambre');
 
             $payload = $this->itemBuilder->buildFromHospitalisation($hospitalisation);
+            // Droits évalués à l'ADMISSION : un bon ou un contrat valable à l'entrée
+            // couvre tout le séjour, même s'il expire avant la sortie.
             $calculation = $this->insuranceCalculationService->calculateInsuranceCoverage(
                 $hospitalisation->patient_id,
-                $payload['items']
+                $payload['items'],
+                $this->dateSoin($hospitalisation)
             );
 
             $account = $this->patientAccountService->credit(
@@ -139,11 +142,12 @@ class BillingService
 
             $payload = $this->itemBuilder->buildFromTransaction($transaction);
 
-            // Droits et plafonds évalués à la date de la pièce, pas au jour du recalcul.
+            // Droits et plafonds évalués à la date des soins (admission pour une
+            // hospitalisation, date de la pièce sinon), pas au jour du recalcul.
             $calculation = $this->insuranceCalculationService->calculateInsuranceCoverage(
                 $transaction->patient_id,
                 $payload['items'],
-                $transaction->created_at,
+                $this->dateSoin($transaction->transactionable) ?? $transaction->created_at,
                 $transaction->invoice->id
             );
 
@@ -175,5 +179,15 @@ class BillingService
     public function applyDiscounts(Transaction $transaction, array $discounts): Transaction
     {
         return $this->remises->appliquer($transaction, $discounts);
+    }
+
+    /** Date de référence des droits : admission pour une hospitalisation, date de création sinon. */
+    public function dateSoin($piece): ?\Carbon\Carbon
+    {
+        if ($piece instanceof Hospitalisation && $piece->date_entree) {
+            return \Carbon\Carbon::parse($piece->date_entree)->setTimeFrom(now());
+        }
+
+        return $piece?->created_at;
     }
 }

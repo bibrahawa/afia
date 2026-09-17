@@ -17,12 +17,12 @@ use Illuminate\Support\Collection;
  *  1. TARIF — prix de la convention du premier payeur de la chaîne qui a une
  *     convention pour l'acte, sinon prix du catalogue. Fixé UNE fois : l'ancien
  *     moteur pouvait changer le prix de l'acte en passant d'une assurance à l'autre.
- *  2. CHAÎNE DES PAYEURS — contrat propre du patient, puis contrat dont il est
- *     ayant droit, puis complément employeur ; chaque payeur applique son taux
- *     au RESTE (ticket modérateur).
- *  3. Pour chaque payeur : convention pour l'acte (sinon il ne couvre pas),
- *     exclusion de la famille d'actes, taux de la famille ou de la formule,
- *     accord préalable (bon valide requis), puis bornes :
+ *  2. CHAÎNE DES PAYEURS (double assurance) — contrat propre du patient, puis
+ *     contrat dont il est ayant droit ; chaque assureur applique son taux au
+ *     RESTE. Ce qui reste est payé par le patient (l'employeur ne paie jamais).
+ *  3. Pour chaque payeur : convention (ligne par acte, sinon règle de la
+ *     famille), exclusion, carence de la famille (maternité), taux, accord
+ *     préalable (bon valide requis), limites de fréquence, puis bornes :
  *       plafond par acte · plafond annuel du bénéficiaire · plafond annuel
  *       familial · reste du bon de prise en charge.
  *     Les plafonds sont décomptés AU FIL DE LA FACTURE : deux actes d'une même
@@ -96,17 +96,19 @@ class MoteurPriseEnCharge
         $quantite = max(1, (int) ($item['quantity'] ?? 1));
         $famille = $this->familles->pour($item['acte_type'] ?? null, isset($item['acte_id']) ? (int) $item['acte_id'] : null);
         $description = $item['description'] ?? '';
+        $acte = ! empty($item['acte_type']) && ! empty($item['acte_id']) ? [(string) $item['acte_type'], (int) $item['acte_id']] : null;
 
         // 1. Tarif fixé une fois pour toute la chaîne.
         $prixUnitaire = (float) ($item['unit_price'] ?? 0);
         $montant = (float) ($item['total'] ?? $prixUnitaire * $quantite);
-        $conventionTarif = null;
+        $tarifConvention = false;
 
         foreach ($chaine as $couverture) {
-            if ($convention = $etat->convention($couverture, $item)) {
-                $conventionTarif = $convention;
-                $prixUnitaire = (float) $convention->acte_price;
-                $montant = round($prixUnitaire * $quantite, 2);
+            [$convention] = $etat->convention($couverture, $item, $famille);
+            if ($convention) {
+                $tarifConvention = true;
+                $prixUnitaire = $convention->prixUnitaire;
+                $montant = round($prixUnitaire * $quantite);
                 break;
             }
         }
@@ -115,22 +117,29 @@ class MoteurPriseEnCharge
         $appliquees = [];
         $repartition = [];
 
-        // 2-3. Chaîne des payeurs.
+        // 2-3. Chaîne des assureurs (double assurance) ; le solde revient au patient.
         foreach ($chaine as $couverture) {
-            if ($reste < 0.01) {
+            if ($reste < 1) {
                 break;
             }
 
-            $convention = $etat->convention($couverture, $item);
+            [$convention, $motifSansConvention] = $etat->convention($couverture, $item, $famille);
             $base = ['payeur' => $couverture->libelle(), 'insurance_id' => $couverture->projection->id];
 
             if (! $convention) {
-                $repartition[] = $base + ['montant' => 0, 'motif' => 'acte hors convention'];
+                $repartition[] = $base + ['montant' => 0, 'motif' => $motifSansConvention];
                 continue;
             }
 
             if ($couverture->exclu($famille)) {
                 $repartition[] = $base + ['montant' => 0, 'motif' => 'famille d\'actes exclue du contrat'];
+                continue;
+            }
+
+            if (($finCarence = $couverture->finCarence($famille)) && $etat->date()->lt($finCarence)) {
+                $motif = 'délai de carence (' . mb_strtolower($famille->libelle()) . ') jusqu\'au ' . $finCarence->format('d/m/Y');
+                $etat->alerter("« {$description} » : {$motif} — {$couverture->organisme->name} ne prend pas en charge avant cette date.");
+                $repartition[] = $base + ['montant' => 0, 'motif' => $motif];
                 continue;
             }
 
@@ -140,7 +149,7 @@ class MoteurPriseEnCharge
             }
 
             $bon = null;
-            if ($couverture->accordPrealableRequis($famille) || $convention->requires_preauthorization) {
+            if ($couverture->accordPrealableRequis($famille) || $convention->accordPrealable) {
                 $bon = $etat->bonDisponible($couverture, $famille);
 
                 if (! $bon) {
@@ -150,14 +159,40 @@ class MoteurPriseEnCharge
                 }
             }
 
-            $souhaite = round($reste * $taux / 100, 2);
+            // Limites de fréquence : garantie (par famille) et convention (par acte).
+            $limites = [];
+            if ($limite = $couverture->limiteFrequence($famille)) {
+                $limites[] = [$limite[0], $limite[1], null];
+            }
+            if ($convention->nombreMax && $convention->periode && $acte) {
+                $limites[] = [$convention->nombreMax, $convention->periode, $acte];
+            }
+
+            $unites = $quantite;
+            foreach ($limites as [$max, $periode, $acteLimite]) {
+                $unites = min($unites, $etat->unitesDisponibles($couverture, $max, $periode, $famille, $acteLimite));
+            }
+
+            if ($unites < 1) {
+                [$max, $periode] = $limites[0];
+                $motif = "limite de {$max} acte(s) " . (\App\Models\Assurance\FormuleGarantie::PERIODES[$periode] ?? $periode) . ' atteinte';
+                $etat->alerter("« {$description} » : {$motif} ({$couverture->organisme->name}).");
+                $repartition[] = $base + ['montant' => 0, 'motif' => $motif];
+                continue;
+            }
+
+            $baseCouvrable = $unites < $quantite ? $reste * $unites / $quantite : $reste;
+            $souhaite = floor($baseCouvrable * $taux / 100);
             $bornes = [];
 
             if (($plafondActe = $couverture->plafondParActe($famille)) !== null) {
-                $bornes['plafond par acte'] = $plafondActe * $quantite;
+                $bornes['plafond par acte du contrat'] = $plafondActe * $unites;
             }
-            if ($convention->coverage_amount_limit !== null) {
-                $bornes['plafond de la convention'] = (float) $convention->coverage_amount_limit;
+            if ($convention->plafondParActe !== null) {
+                $bornes['plafond par acte de la convention'] = $convention->plafondParActe * $unites;
+            }
+            if ($convention->plafondLigne !== null) {
+                $bornes['plafond de la convention'] = $convention->plafondLigne;
             }
             if (($reliquat = $etat->resteBeneficiaire($couverture)) !== null) {
                 $bornes['plafond annuel du bénéficiaire'] = $reliquat;
@@ -169,8 +204,9 @@ class MoteurPriseEnCharge
                 $bornes['montant du bon ' . $bon->numero] = $reliquat;
             }
 
-            $accorde = max(0.0, round(min([$souhaite, ...array_values($bornes)]), 2));
-            $motif = null;
+            // Francs guinéens : l'assureur prend en charge un montant entier, le reste revient au patient.
+            $accorde = max(0.0, floor(min([$souhaite, ...array_values($bornes)])));
+            $motif = $unites < $quantite ? "{$unites} sur {$quantite} couvert(s) (limite de fréquence)" : null;
 
             if ($accorde < $souhaite) {
                 $motif = array_search(min($bornes), $bornes) . ' atteint';
@@ -184,6 +220,9 @@ class MoteurPriseEnCharge
             }
 
             $etat->consommer($couverture, $accorde, $bon);
+            foreach ($limites as [, $periode, $acteLimite]) {
+                $etat->compterActes($couverture, $periode, $famille, $acteLimite, $unites);
+            }
             $reste = round($reste - $accorde, 2);
 
             $appliquees[] = [
@@ -209,7 +248,7 @@ class MoteurPriseEnCharge
             'patient_amount' => round($reste, 2),
             'insurances_applied' => $appliquees,
             'repartition' => $repartition,
-            'tarif_convention' => $conventionTarif !== null,
+            'tarif_convention' => $tarifConvention,
         ];
     }
 }

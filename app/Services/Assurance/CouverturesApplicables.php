@@ -50,7 +50,29 @@ class CouverturesApplicables
             ->where('insurance_claims.status', '!=', 'rejected')
             ->whereBetween('invoices.created_at', [$exercice[0], $exercice[1]])
             ->when($exclureInvoiceId, fn ($q) => $q->where('invoices.id', '!=', $exclureInvoiceId))
-            ->sum('insurance_claims.claimed_amount');
+            // Après réponse de l'assureur, seul l'accepté consomme le plafond.
+            ->sum(DB::raw('COALESCE(insurance_claims.approved_amount, insurance_claims.claimed_amount)'));
+    }
+
+    /**
+     * Nombre d'actes déjà pris en charge sur la période pour cette ligne de
+     * couverture — pour une famille d'actes, ou pour un acte précis.
+     * Les lignes refusées par l'assureur (accepté = 0) ne comptent pas.
+     */
+    public function utilisations(int $projectionId, array $periode, ?string $famille, ?array $acte, ?int $exclureInvoiceId = null): int
+    {
+        return (int) DB::table('insurance_claim_lignes as l')
+            ->join('insurance_claims as c', 'c.id', '=', 'l.insurance_claim_id')
+            ->join('invoices as i', 'i.id', '=', 'c.invoice_id')
+            ->leftJoin('invoice_items as it', 'it.id', '=', 'l.invoice_item_id')
+            ->where('c.patient_insurance_id', $projectionId)
+            ->where('c.status', '!=', 'rejected')
+            ->where(fn ($q) => $q->whereNull('l.montant_accepte')->orWhere('l.montant_accepte', '>', 0))
+            ->whereBetween('i.created_at', [$periode[0], $periode[1]])
+            ->when($famille, fn ($q) => $q->where('it.famille_acte', $famille))
+            ->when($acte, fn ($q) => $q->whereIn('it.coverage_type_type', \App\Support\Facturation\TypesFacturables::variantes($acte[0]))->where('it.coverage_type_id', $acte[1]))
+            ->when($exclureInvoiceId, fn ($q) => $q->where('i.id', '!=', $exclureInvoiceId))
+            ->sum('l.quantite');
     }
 
     /** Lignes de couverture de toute la famille (adhérent + ayants droit) de cette couverture. */

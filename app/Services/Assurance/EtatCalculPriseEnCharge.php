@@ -3,24 +3,30 @@
 namespace App\Services\Assurance;
 
 use App\Enums\Assurance\FamilleActe;
+use App\Models\Assurance\ConventionFamille;
 use App\Models\Assurance\PriseEnCharge;
 use App\Models\InsuranceCoverage;
+use App\Support\Assurance\ConventionApplicable;
 use App\Support\Assurance\Couverture;
 use Carbon\Carbon;
 
 /**
- * État d'un calcul : caches (conventions, consommations) et montants déjà
- * accordés dans CETTE facture, pour décompter les plafonds au fil des lignes.
+ * État d'un calcul : caches (conventions, consommations, fréquences) et
+ * montants / actes déjà accordés dans CETTE facture, pour décompter plafonds et
+ * limites au fil des lignes.
  *
- * @internal
+ * @internal utilisé par MoteurPriseEnCharge
  */
 final class EtatCalculPriseEnCharge
 {
     private array $conventions = [];
+    private array $reglesFamille = [];
     private array $consommationDb = [];
+    private array $utilisationsDb = [];
     private array $accordeProjection = [];
     private array $accordeFamille = [];
     private array $accordeBon = [];
+    private array $actesAccordes = [];
     private array $alertes = [];
 
     public function __construct(
@@ -30,22 +36,88 @@ final class EtatCalculPriseEnCharge
     ) {
     }
 
-    public function convention(Couverture $couverture, array $item): ?InsuranceCoverage
+    public function date(): Carbon
     {
-        $cle = $couverture->organisme->id . '|' . ($item['acte_type'] ?? '') . '|' . ($item['acte_id'] ?? '');
+        return $this->date;
+    }
+
+    /**
+     * Convention applicable à l'acte chez l'organisme de cette couverture.
+     * Ordre : ligne par acte (active = prix négocié ; inactive = acte exclu),
+     * puis règle de la famille, sinon hors convention.
+     *
+     * @return array{0: ?ConventionApplicable, 1: ?string} [convention, motif si aucune]
+     */
+    public function convention(Couverture $couverture, array $item, FamilleActe $famille): array
+    {
+        $organismeId = $couverture->organisme->id;
+        $cle = $organismeId . '|' . ($item['acte_type'] ?? '') . '|' . ($item['acte_id'] ?? '');
 
         if (! array_key_exists($cle, $this->conventions)) {
             $this->conventions[$cle] = empty($item['acte_type']) || empty($item['acte_id'])
                 ? null
-                : InsuranceCoverage::where('insurance_company_id', $couverture->organisme->id)
+                : InsuranceCoverage::where('insurance_company_id', $organismeId)
                     ->pourActe((string) $item['acte_type'], (int) $item['acte_id'])
-                    ->where('status', 'active')
                     ->whereDate('valid_from', '<=', $this->date)
                     ->where(fn ($q) => $q->whereNull('valid_to')->orWhereDate('valid_to', '>=', $this->date))
+                    ->orderByRaw("status = 'active' DESC")
+                    ->latest('id')
                     ->first();
         }
 
-        return $this->conventions[$cle];
+        $ligne = $this->conventions[$cle];
+
+        if ($ligne) {
+            return $ligne->status === 'active'
+                ? [ConventionApplicable::depuisLigne($ligne), null]
+                : [null, 'acte exclu de la convention'];
+        }
+
+        $regle = $this->regleFamille($organismeId, $famille);
+
+        if ($regle) {
+            return [ConventionApplicable::depuisFamille($regle, (float) ($item['unit_price'] ?? 0)), null];
+        }
+
+        return [null, 'acte hors convention'];
+    }
+
+    private function regleFamille(int $organismeId, FamilleActe $famille): ?ConventionFamille
+    {
+        $cle = $organismeId . '|' . $famille->value;
+
+        if (! array_key_exists($cle, $this->reglesFamille)) {
+            $regle = ConventionFamille::where('insurance_company_id', $organismeId)->where('famille_acte', $famille->value)->first();
+            $this->reglesFamille[$cle] = $regle && $regle->enVigueurLe($this->date) ? $regle : null;
+        }
+
+        return $this->reglesFamille[$cle];
+    }
+
+    /**
+     * Nombre d'unités encore couvrables par rapport à une limite de fréquence.
+     * $acte = [type, id] pour une limite par acte, null pour une limite par famille.
+     */
+    public function unitesDisponibles(Couverture $couverture, int $max, string $periode, FamilleActe $famille, ?array $acte): int
+    {
+        $bornes = $couverture->bornesPeriode($periode, $this->date);
+        $cle = $couverture->projection->id . '|' . $periode . '|' . ($acte ? implode('#', $acte) : 'f:' . $famille->value);
+
+        $deja = $this->utilisationsDb[$cle] ??= $this->couvertures->utilisations(
+            $couverture->projection->id,
+            $bornes,
+            $acte ? null : $famille->value,
+            $acte,
+            $this->exclureInvoiceId
+        );
+
+        return max(0, $max - $deja - ($this->actesAccordes[$cle] ?? 0));
+    }
+
+    public function compterActes(Couverture $couverture, string $periode, FamilleActe $famille, ?array $acte, int $unites): void
+    {
+        $cle = $couverture->projection->id . '|' . $periode . '|' . ($acte ? implode('#', $acte) : 'f:' . $famille->value);
+        $this->actesAccordes[$cle] = ($this->actesAccordes[$cle] ?? 0) + $unites;
     }
 
     public function resteBeneficiaire(Couverture $couverture): ?float

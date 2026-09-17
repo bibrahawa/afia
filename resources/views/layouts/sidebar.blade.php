@@ -207,10 +207,10 @@
                 @endcan
 
                 @can('insurance_coverage.view')
-                    <li class="nav-item {{ request()->routeIs('insurance-coverages.*') ? 'active' : '' }}">
-                        <a href="{{ route('insurance-coverages.index') }}">
+                    <li class="nav-item {{ request()->routeIs('insurance-coverages.*', 'assurance.conventions.*') ? 'active' : '' }}">
+                        <a href="{{ route('assurance.conventions.index') }}">
                             <i class="fas fa-shield-alt"></i>
-                            <p>Couvertures</p>
+                            <p>Conventions</p>
                         </a>
                     </li>
                 @endcan
@@ -224,11 +224,11 @@
                     </li>
                 {{-- @endcan --}}
 
-                @can('insurance_balance.view')
-                    <li class="nav-item {{ request()->routeIs('insurance.balances*') ? 'active' : '' }}">
-                        <a href="{{ route('insurance.balances.index') }}">
+                @can('assurance.creances.view')
+                    <li class="nav-item {{ request()->routeIs('assurance.creances.*', 'assurance.bordereaux.*', 'assurance.reclamations.*', 'assurance.reglements.*') ? 'active' : '' }}">
+                        <a href="{{ route('assurance.creances.index') }}">
                             <i class="fas fa-balance-scale"></i>
-                            <p>Soldes</p>
+                            <p>Créances et règlements</p>
                         </a>
                     </li>
                 @endcan
@@ -242,12 +242,6 @@
                     <h4 class="text-section">Facturation</h4>
                 </li>
 
-                <li class="nav-item {{ request()->routeIs('invoice.*') ? 'active' : '' }}">
-                    <a href="{{ route('invoice.index') }}">
-                        <i class="fas fa-file-invoice-dollar"></i>
-                        <p>Factures</p>
-                    </a>
-                </li>
                 @endcan
 
                 @can('account.facture')

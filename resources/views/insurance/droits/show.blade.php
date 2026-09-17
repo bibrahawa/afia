@@ -21,7 +21,6 @@
             <div class="card-header d-flex flex-wrap align-items-center gap-2">
                 <span class="badge badge-primary">{{ $ligne['rang'] }}</span>
                 <h4 class="card-title mb-0">{{ $c->organisme->name }}</h4>
-                @if($c->estComplementEmployeur())<span class="badge badge-info">complément employeur</span>@endif
                 <span class="small text-muted ms-auto">
                     @if($c->contrat)
                         {{ $c->contrat->libelle ?: 'Police ' . $c->contrat->numero_police }} — {{ $c->formule->libelle }}
@@ -79,13 +78,17 @@
                             <td>{{ $g['famille']->libelle() }}</td>
                             <td>{{ $g['exclu'] ? 'Exclu' : $pct($g['taux']) }}</td>
                             <td>{{ $g['plafond_par_acte'] !== null ? $gnf($g['plafond_par_acte']) : '—' }}</td>
-                            <td>@if($g['accord_prealable'])<span class="badge badge-warning">Accord préalable</span>@endif</td>
+                            <td>
+                                @if($g['accord_prealable'])<span class="badge badge-warning">Accord préalable</span>@endif
+                                @if($g['fin_carence'])<span class="badge badge-danger">Carence jusqu'au {{ $g['fin_carence']->format('d/m/Y') }}</span>@endif
+                                @if($g['limite'])<span class="badge badge-light">{{ $g['limite'][0] }} {{ \App\Models\Assurance\FormuleGarantie::PERIODES[$g['limite'][1]] ?? '' }}</span>@endif
+                            </td>
                         </tr>
                     @endforeach
                     </tbody>
                 </table>
                 </div>
-                <p class="small text-muted mt-2 mb-0">Un acte n'est pris en charge que s'il figure dans la convention tarifaire de {{ $c->organisme->name }}.</p>
+                <p class="small text-muted mt-2 mb-0">Un acte n'est pris en charge que s'il est couvert par la convention de {{ $c->organisme->name }} (règle de sa famille ou ligne par acte).</p>
 
                 @can('assurance.referentiel.manage')
                     @if($c->beneficiaire)

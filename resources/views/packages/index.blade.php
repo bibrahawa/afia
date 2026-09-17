@@ -138,6 +138,18 @@
 
                                         <div class="col-sm-12">
                                             <div class="form-group">
+                                                <label>Famille d'actes (garanties des assurances)</label>
+                                                <select name="famille_acte" class="form-control">
+                                                    @foreach(\App\Enums\Assurance\FamilleActe::cases() as $familleActe)
+                                                        <option value="{{ $familleActe->value }}" @selected('soins' === $familleActe->value)>{{ $familleActe->libelle() }}</option>
+                                                    @endforeach
+                                                </select>
+                                                <small class="form-text text-muted">Un forfait accouchement se classe en « Maternité ».</small>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-sm-12">
+                                            <div class="form-group">
                                                 <label>Ajouter des services:</label>
                                                 <select name="services[]" id="add_services" class="form-control selectpicker" data-live-search="true" title="Sélectionnez les services" multiple></select>
                                             </div>

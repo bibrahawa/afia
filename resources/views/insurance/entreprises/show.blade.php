@@ -18,9 +18,7 @@
                     <p class="mb-1"><strong>NIF :</strong> {{ $entreprise->nif ?: '—' }}</p>
                     <p class="mb-1"><strong>Secteur :</strong> {{ $entreprise->secteur ?: '—' }}</p>
                     <p class="mb-1"><strong>Adresse :</strong> {{ $entreprise->adresse ?: '—' }}</p>
-                    <p class="mb-1"><strong>Contact :</strong> {{ $entreprise->contact_nom ?: '—' }} {{ $entreprise->telephone }} {{ $entreprise->email }}</p>
-                    <p class="mb-0"><strong>Paiement des soins :</strong>
-                        {{ $entreprise->organismePayeur ? 'convention directe (' . $entreprise->organismePayeur->name . ')' : 'via contrat d\'assurance' }}</p>
+                    <p class="mb-0"><strong>Contact :</strong> {{ $entreprise->contact_nom ?: '—' }} {{ $entreprise->telephone }} {{ $entreprise->email }}</p>
                     @if($entreprise->notes)<p class="mt-2 text-muted">{{ $entreprise->notes }}</p>@endif
                 </div>
             </div>

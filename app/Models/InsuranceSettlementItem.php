@@ -19,6 +19,8 @@ class InsuranceSettlementItem extends Model
     protected $fillable = [
         'insurance_settlement_id',
         'invoice_id',
+        'insurance_claim_id',
+        'paiement_id',
         'invoice_amount',
         'already_settled_amount',
         'remaining_before',
@@ -41,6 +43,16 @@ class InsuranceSettlementItem extends Model
     public function settlement()
     {
         return $this->belongsTo(InsuranceSettlement::class, 'insurance_settlement_id');
+    }
+
+    public function reclamation()
+    {
+        return $this->belongsTo(InsuranceClaim::class, 'insurance_claim_id');
+    }
+
+    public function paiement()
+    {
+        return $this->belongsTo(Paiement::class)->withoutGlobalScope('valides');
     }
 
     public function invoice()

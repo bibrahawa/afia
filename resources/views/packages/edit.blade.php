@@ -61,6 +61,18 @@
                             </div>
                         </div>
 
+                                        <div class="col-sm-12">
+                                            <div class="form-group">
+                                                <label>Famille d'actes (garanties des assurances)</label>
+                                                <select name="famille_acte" class="form-control">
+                                                    @foreach(\App\Enums\Assurance\FamilleActe::cases() as $familleActe)
+                                                        <option value="{{ $familleActe->value }}" @selected(($package->famille_acte ?? 'soins') === $familleActe->value)>{{ $familleActe->libelle() }}</option>
+                                                    @endforeach
+                                                </select>
+                                                <small class="form-text text-muted">Un forfait accouchement se classe en « Maternité ».</small>
+                                            </div>
+                                        </div>
+
 
                         <div class="col-sm-12">
                             <div class="form-group">

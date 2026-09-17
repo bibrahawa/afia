@@ -40,7 +40,7 @@ class ContratController extends Controller
 
     public function show(Contrat $assuranceContrat)
     {
-        $assuranceContrat->load(['organismePayeur', 'entreprise', 'formules']);
+        $assuranceContrat->load(['organismePayeur', 'entreprise', 'formules.garanties']);
 
         $adhesions = \App\Models\Assurance\Adhesion::query()
             ->whereIn('formule_id', $assuranceContrat->formules->pluck('id'))
@@ -80,16 +80,59 @@ class ContratController extends Controller
 
     public function storeFormule(Request $request, Contrat $assuranceContrat)
     {
-        $assuranceContrat->formules()->create($this->validerFormule($request, $assuranceContrat));
+        \Illuminate\Support\Facades\DB::transaction(function () use ($request, $assuranceContrat) {
+            $formule = $assuranceContrat->formules()->create($this->validerFormule($request, $assuranceContrat));
+            $this->enregistrerGaranties($request, $formule);
+        });
 
         return back()->with('success', 'Formule ajoutée.');
     }
 
     public function updateFormule(Request $request, Formule $assuranceFormule)
     {
-        $assuranceFormule->update($this->validerFormule($request, $assuranceFormule->contrat, $assuranceFormule));
+        \Illuminate\Support\Facades\DB::transaction(function () use ($request, $assuranceFormule) {
+            $assuranceFormule->update($this->validerFormule($request, $assuranceFormule->contrat, $assuranceFormule));
+            $this->enregistrerGaranties($request, $assuranceFormule);
+        });
 
         return back()->with('success', 'Formule mise à jour. Les couvertures des bénéficiaires ont été recalculées.');
+    }
+
+    /** Une ligne par famille seulement si elle s'écarte des règles générales de la formule. */
+    private function enregistrerGaranties(Request $request, Formule $formule): void
+    {
+        $garanties = $request->validate([
+            'garanties' => ['nullable', 'array'],
+            'garanties.*.taux' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'garanties.*.plafond_par_acte' => ['nullable', 'numeric', 'min:0'],
+            'garanties.*.exclu' => ['nullable', 'boolean'],
+            'garanties.*.accord_prealable' => ['nullable', 'boolean'],
+            'garanties.*.delai_carence_jours' => ['nullable', 'integer', 'min:0', 'max:730'],
+            'garanties.*.nombre_max' => ['nullable', 'integer', 'min:1', 'max:365'],
+            'garanties.*.periode' => ['nullable', Rule::in(array_keys(\App\Models\Assurance\FormuleGarantie::PERIODES))],
+        ])['garanties'] ?? [];
+
+        foreach (\App\Enums\Assurance\FamilleActe::cases() as $famille) {
+            $valeurs = $garanties[$famille->value] ?? [];
+            $ligne = [
+                'taux' => ($valeurs['taux'] ?? '') !== '' ? $valeurs['taux'] : null,
+                'plafond_par_acte' => ($valeurs['plafond_par_acte'] ?? '') !== '' ? $valeurs['plafond_par_acte'] : null,
+                'exclu' => (bool) ($valeurs['exclu'] ?? false),
+                'accord_prealable' => (bool) ($valeurs['accord_prealable'] ?? false),
+                'delai_carence_jours' => ($valeurs['delai_carence_jours'] ?? '') !== '' ? (int) $valeurs['delai_carence_jours'] : null,
+                'nombre_max' => ($valeurs['nombre_max'] ?? '') !== '' && ($valeurs['periode'] ?? '') !== '' ? (int) $valeurs['nombre_max'] : null,
+                'periode' => ($valeurs['nombre_max'] ?? '') !== '' && ($valeurs['periode'] ?? '') !== '' ? $valeurs['periode'] : null,
+            ];
+
+            $utile = $ligne['taux'] !== null || $ligne['plafond_par_acte'] !== null || $ligne['exclu'] || $ligne['accord_prealable']
+                || $ligne['delai_carence_jours'] || $ligne['nombre_max'];
+
+            if ($utile) {
+                $formule->garanties()->updateOrCreate(['famille_acte' => $famille->value], $ligne);
+            } else {
+                $formule->garanties()->where('famille_acte', $famille->value)->delete();
+            }
+        }
     }
 
     private function validerContrat(Request $request, ?Contrat $contrat = null): array

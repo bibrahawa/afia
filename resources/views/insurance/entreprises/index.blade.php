@@ -16,7 +16,7 @@
         </div>
         <div class="card-body table-responsive">
             <table class="table table-sm table-hover align-middle">
-                <thead><tr><th>Entreprise</th><th>Secteur</th><th>Contact</th><th class="text-center">Employés rattachés</th><th class="text-center">Contrats</th><th>Paiement direct</th><th></th></tr></thead>
+                <thead><tr><th>Entreprise</th><th>Secteur</th><th>Contact</th><th class="text-center">Employés rattachés</th><th class="text-center">Contrats</th><th></th></tr></thead>
                 <tbody>
                 @forelse($entreprises as $e)
                     <tr class="{{ $e->actif ? '' : 'text-muted' }}">
@@ -25,11 +25,10 @@
                         <td class="small">{{ $e->contact_nom }}@if($e->telephone)<br>{{ $e->telephone }}@endif</td>
                         <td class="text-center">{{ $e->employes_count }}</td>
                         <td class="text-center">{{ $e->contrats_count }}</td>
-                        <td>@if($e->organisme_payeur_id)<span class="badge badge-info">Convention directe</span>@else — @endif</td>
                         <td class="text-end"><a href="{{ route('assurance.entreprises.show', $e) }}" class="btn btn-sm btn-outline-primary"><i class="fa fa-eye"></i></a></td>
                     </tr>
                 @empty
-                    <tr><td colspan="7" class="text-muted text-center py-4">Aucune entreprise. Enregistrez les employeurs de vos patients assurés pour les rattacher à leurs contrats.</td></tr>
+                    <tr><td colspan="6" class="text-muted text-center py-4">Aucune entreprise. Enregistrez les employeurs de vos patients assurés pour les rattacher à leurs contrats.</td></tr>
                 @endforelse
                 </tbody>
             </table>

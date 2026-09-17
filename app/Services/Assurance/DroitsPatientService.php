@@ -48,6 +48,8 @@ class DroitsPatientService
                     'exclu' => $c->exclu($f),
                     'accord_prealable' => $c->accordPrealableRequis($f),
                     'plafond_par_acte' => $c->plafondParActe($f),
+                    'fin_carence' => ($fin = $c->finCarence($f)) && $fin->gt($date) ? $fin : null,
+                    'limite' => $c->limiteFrequence($f),
                 ])->all(),
                 'bons' => $c->beneficiaire
                     ? PriseEnCharge::where('beneficiaire_id', $c->beneficiaire->id)->validesLe($date)->orderBy('date_fin')->get()

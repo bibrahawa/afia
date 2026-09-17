@@ -156,6 +156,18 @@ class DemandeService
             ]);
 
             if ($demande->transaction) {
+                // CORRIGÉ lot 2d : les réclamations restaient actives (plafond consommé,
+                // demande annulée envoyée à l'assureur) et le compte patient restait débiteur.
+                $invoice = $demande->transaction->invoice()->first();
+                if ($invoice) {
+                    try {
+                        app(\App\Services\InsuranceConsumptionService::class)->rollbackConsumption($invoice);
+                    } catch (\App\Exceptions\Facturation\OperationFacturationImpossible) {
+                        throw new OperationLaboImpossible('La réclamation de cette demande a déjà été transmise à l\'assureur : l\'annulation doit d\'abord être traitée avec lui.');
+                    }
+                }
+
+                app(\App\Services\PatientAccountService::class)->retirerTransaction($demande->transaction);
                 $demande->transaction->update(['status' => 'cancel']);
             }
 

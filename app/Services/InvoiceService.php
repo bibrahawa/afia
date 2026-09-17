@@ -65,6 +65,7 @@ class InvoiceService
                 'invoice_id' => $invoice->id,
                 'coverage_type_type' => $source['acte_type'] ?? null,
                 'coverage_type_id' => $source['acte_id'] ?? null,
+                'famille_acte' => $source['famille_acte'] ?? null,
                 'description' => $source['item_description'] ?? $source['description'] ?? '',
                 'unit_price' => (float) ($source['unit_price'] ?? 0),
                 'quantity' => (int) ($source['quantity'] ?? 1),

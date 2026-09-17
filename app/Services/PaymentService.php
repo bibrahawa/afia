@@ -56,6 +56,11 @@ class PaymentService
         });
     }
 
+    /**
+     * Part assurance d'une pièce encaissée à la caisse.
+     * Lot 2c : passe par le chemin unique de règlement (réclamation par
+     * réclamation, trace de règlement, statuts des réclamations).
+     */
     public function payInsuranceTransaction(
         Transaction $transaction,
         float $amount,
@@ -63,7 +68,20 @@ class PaymentService
     ): Transaction {
         $this->verifierMontant($amount);
 
-        return DB::transaction(function () use ($transaction, $amount, $description) {
+        app(\App\Services\Assurance\ReglementAssuranceService::class)->reglerTransaction($transaction, $amount, null, $description);
+
+        return $transaction->fresh(['invoice', 'paiements']);
+    }
+
+    /**
+     * Encaissement élémentaire de la part assurance, appelé UNIQUEMENT par
+     * Assurance\ReglementAssuranceService (qui en garde la trace de règlement).
+     */
+    public function encaisserPartAssurance(Transaction $transaction, float $montant, ?string $source, ?string $description): Paiement
+    {
+        $this->verifierMontant($montant);
+
+        return DB::transaction(function () use ($transaction, $montant, $source, $description) {
             $transaction = $this->verrouiller($transaction);
 
             if (! $transaction->invoice) {
@@ -72,13 +90,11 @@ class PaymentService
 
             $resteDu = SoldeTransaction::pour($transaction)->resteDuAssurance();
 
-            if ($resteDu <= 0) {
-                throw new InvalidArgumentException('La part assurance est déjà réglée.');
+            if ($montant - $resteDu >= 0.01) {
+                throw new InvalidArgumentException('Le montant dépasse la part assurance restant due sur cette facture.');
             }
 
-            $this->encaisser($transaction, Paiement::TYPE_ASSURANCE, min($amount, $resteDu), null, $description ?? 'Paiement assurance');
-
-            return $transaction->fresh(['invoice', 'paiements']);
+            return $this->encaisser($transaction, Paiement::TYPE_ASSURANCE, $montant, $source ? strtoupper($source) : null, $description ?? 'Paiement assurance');
         });
     }
 
@@ -127,6 +143,7 @@ class PaymentService
         });
     }
 
+    /** Lot 2c : délègue au chemin unique de règlement (imputation automatique). */
     public function payInsuranceForCompany(
         InsuranceCompany $company,
         float $amount,
@@ -134,45 +151,15 @@ class PaymentService
     ): array {
         $this->verifierMontant($amount);
 
-        return DB::transaction(function () use ($company, $amount, $description) {
-            $remaining = $amount;
-            $updatedTransactions = [];
+        $reglement = app(\App\Services\Assurance\ReglementAssuranceService::class)
+            ->regler($company, $amount, [], ['notes' => $description]);
 
-            $ids = Transaction::query()
-                ->whereHas('invoice', function ($q) use ($company) {
-                    $q->where('insurance_company_id', $company->id)
-                        ->whereIn('insurance_status', ['pending', 'submitted', 'approved', 'partial'])
-                        ->where('patient_amount_status', 'paid');
-                })
-                ->orderBy('created_at')
-                ->orderBy('id')
-                ->pluck('id');
-
-            foreach ($ids as $id) {
-                if ($remaining < 0.01) {
-                    break;
-                }
-
-                $transaction = $this->verrouiller($id);
-                $resteDu = SoldeTransaction::pour($transaction)->resteDuAssurance();
-
-                if ($resteDu <= 0) {
-                    continue;
-                }
-
-                $applique = min($remaining, $resteDu);
-                $this->encaisser($transaction, Paiement::TYPE_ASSURANCE, $applique, null, $description ?? 'Paiement assurance');
-
-                $updatedTransactions[] = $transaction->fresh(['invoice', 'paiements']);
-                $remaining = round($remaining - $applique, 2);
-            }
-
-            return [
-                'paid_amount' => round($amount - $remaining, 2),
-                'remaining_amount' => $remaining,
-                'transactions' => $updatedTransactions,
-            ];
-        });
+        return [
+            'paid_amount' => (float) $reglement->paid_amount,
+            'remaining_amount' => 0.0,
+            'transactions' => $reglement->items->map(fn ($item) => $item->invoice?->transaction?->fresh(['invoice', 'paiements']))->filter()->values()->all(),
+            'settlement' => $reglement,
+        ];
     }
 
     /**

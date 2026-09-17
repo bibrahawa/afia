@@ -58,6 +58,45 @@ final class Couverture
         return (bool) $this->garantie($famille)?->accord_prealable;
     }
 
+    /**
+     * Fin du délai de carence propre à une famille (ex. maternité), comptée à
+     * partir du début de couverture du bénéficiaire ; null s'il n'y en a pas.
+     */
+    public function finCarence(FamilleActe $famille): ?Carbon
+    {
+        $jours = $this->garantie($famille)?->delai_carence_jours;
+
+        if (! $jours) {
+            return null;
+        }
+
+        $debut = collect([
+            $this->beneficiaire?->adhesion?->date_debut,
+            $this->beneficiaire?->date_debut,
+            $this->beneficiaire ? null : $this->projection->start_date,
+        ])->filter()->max();
+
+        return $debut?->copy()->addDays($jours);
+    }
+
+    /** Limite de fréquence de la garantie : [nombre, période] ou null. */
+    public function limiteFrequence(FamilleActe $famille): ?array
+    {
+        $garantie = $this->garantie($famille);
+
+        return $garantie?->nombre_max && $garantie->periode ? [(int) $garantie->nombre_max, $garantie->periode] : null;
+    }
+
+    /** Bornes d'une période de limite : mois ou trimestre civil, année = exercice du contrat. */
+    public function bornesPeriode(string $periode, Carbon $date): array
+    {
+        return match ($periode) {
+            'mois' => [$date->copy()->startOfMonth(), $date->copy()->endOfMonth()],
+            'trimestre' => [$date->copy()->startOfQuarter(), $date->copy()->endOfQuarter()],
+            default => $this->exercice($date),
+        };
+    }
+
     /** Plafond de prise en charge pour UNE unité de l'acte (null = aucun). */
     public function plafondParActe(FamilleActe $famille): ?float
     {
@@ -108,20 +147,14 @@ final class Couverture
         return $this->beneficiaire !== null && $this->beneficiaire->lien !== LienBeneficiaire::Adherent;
     }
 
-    public function estComplementEmployeur(): bool
-    {
-        return $this->organisme->type === 'entreprise';
-    }
-
     /**
-     * Ordre d'application : contrat propre du patient → contrat où il est
-     * ayant droit → complément employeur (ticket modérateur) ; puis par
-     * ancienneté.
+     * Ordre d'application en cas de double assurance : contrat propre du
+     * patient d'abord, puis contrat dont il est ayant droit ; à égalité, le
+     * plus ancien.
      */
     public function rang(): array
     {
         return [
-            $this->estComplementEmployeur() ? 1 : 0,
             $this->estAyantDroit() ? 1 : 0,
             optional($this->beneficiaire?->adhesion?->date_debut ?? $this->projection->start_date)->timestamp ?? 0,
             $this->projection->id,

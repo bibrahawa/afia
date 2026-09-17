@@ -50,6 +50,8 @@
                                     {{ $g->exclu ? 'exclu' : ($g->taux !== null ? rtrim(rtrim(number_format((float) $g->taux, 2, ',', ' '), '0'), ',') . ' %' : 'taux général') }}
                                     @if($g->plafond_par_acte !== null) · max {{ number_format((float) $g->plafond_par_acte, 0, ',', ' ') }} GNF/acte @endif
                                     @if($g->accord_prealable) · accord préalable @endif
+                                    @if($g->delai_carence_jours) · carence {{ $g->delai_carence_jours }} j @endif
+                                    @if($g->nombre_max) · {{ $g->nombre_max }} {{ \App\Models\Assurance\FormuleGarantie::PERIODES[$g->periode] ?? '' }} @endif
                                 </div>
                             @endforeach
                         </li>

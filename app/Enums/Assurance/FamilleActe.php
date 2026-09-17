@@ -13,6 +13,7 @@ enum FamilleActe: string
     case Imagerie = 'imagerie';
     case Laboratoire = 'laboratoire';
     case Pharmacie = 'pharmacie';
+    case Maternite = 'maternite';
     case Soins = 'soins';
     case Hospitalisation = 'hospitalisation';
     case Autre = 'autre';
@@ -24,7 +25,8 @@ enum FamilleActe: string
             self::Imagerie => 'Imagerie (échographie, radio…)',
             self::Laboratoire => 'Analyses de laboratoire',
             self::Pharmacie => 'Pharmacie / médicaments',
-            self::Soins => 'Soins et actes (chirurgie, accouchement…)',
+            self::Maternite => 'Maternité (CPN, échographies obstétricales, accouchement)',
+            self::Soins => 'Soins et actes (chirurgie, petits actes…)',
             self::Hospitalisation => 'Hospitalisation',
             self::Autre => 'Autres actes',
         };

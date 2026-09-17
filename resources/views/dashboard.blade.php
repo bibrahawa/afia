@@ -327,7 +327,7 @@
                                     <div class="username">Réclamations assurance</div>
                                     <div class="status">{{ $reclamations_en_attente ?? 0 }} en attente</div>
                                 </div>
-                                <a href="{{ route('insurance-claims.index') }}" class="btn btn-icon btn-link op-8 me-1">
+                                <a href="{{ route('assurance.creances.index') }}" class="btn btn-icon btn-link op-8 me-1">
                                     <i class="fas fa-arrow-right"></i>
                                 </a>
                             </div>
@@ -345,11 +345,11 @@
                         <div class="card-head-row card-tools-still-right">
                             <div class="card-title">Historique des Transactions</div>
                             <div class="card-tools">
-                                <a href="{{ route('invoice.index') }}" class="btn btn-label-primary btn-round btn-sm">
+                                <a href="{{ route('account.facture') }}" class="btn btn-label-primary btn-round btn-sm">
                                     <span class="btn-label">
                                         <i class="fa fa-file-invoice"></i>
                                     </span>
-                                    Toutes les Factures
+                                    Factures en attente
                                 </a>
                             </div>
                         </div>

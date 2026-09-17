@@ -42,7 +42,7 @@ class InsuranceConsumptionService
     public function createInsuranceClaims(Invoice $invoice, array $insurancesUsed, int $patientId): void
     {
         foreach ($insurancesUsed as $insuranceData) {
-            InsuranceClaim::create([
+            $reclamation = InsuranceClaim::create([
                 'claim_number' => $this->generateClaimNumber($invoice->etablissement_id),
                 'invoice_id' => $invoice->id,
                 'insurance_company_id' => $insuranceData['insurance_company_id'] ?? null,
@@ -51,6 +51,9 @@ class InsuranceConsumptionService
                 'claimed_amount' => (float) $insuranceData['total_covered'],
                 'status' => 'draft',
             ]);
+
+            // Lot 2c : détail par acte, pour le bordereau et la réponse de l'assureur.
+            app(\App\Services\Assurance\ReclamationService::class)->creerLignes($reclamation);
         }
     }
 

@@ -14,6 +14,10 @@ class AssurancePermissionsSeeder extends Seeder
     public const PERMISSIONS = [
         'assurance.referentiel.view' => 'Consulter entreprises, contrats et couvertures des patients',
         'assurance.referentiel.manage' => 'Gérer entreprises, contrats, formules, adhésions et ayants droit',
+        'assurance.creances.view' => 'Consulter les créances assurance, réclamations, bordereaux et règlements',
+        'assurance.reclamation.gerer' => 'Préparer et envoyer les bordereaux, saisir les réponses des assureurs',
+        'assurance.reglement.enregistrer' => 'Enregistrer les règlements reçus des organismes payeurs',
+        'assurance.convention.gerer' => 'Gérer les conventions tarifaires (règles par famille, lignes par acte, copie)',
     ];
 
     public const ROLES_ADMINISTRATION = ['admin', 'super-admin'];
