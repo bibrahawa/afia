@@ -38,6 +38,15 @@
                                 @foreach(\App\Models\Parcours\Grossesse::ISSUES as $valeur => $libelle)<option value="{{ $valeur }}">{{ $libelle }}</option>@endforeach
                             </select></div>
                             <div class="col-6"><input type="date" name="date_issue" class="form-control form-control-sm" value="{{ today()->toDateString() }}" max="{{ today()->toDateString() }}" required></div>
+                            <div class="col-12"><details>
+                                <summary class="small text-primary" style="cursor:pointer">Enregistrer le nouveau-né (accouchement)</summary>
+                                <div class="row g-1 mt-1">
+                                    <div class="col-7"><input name="nouveau_ne[prenom]" class="form-control form-control-sm" maxlength="50" placeholder="Prénom du bébé"></div>
+                                    <div class="col-5"><select name="nouveau_ne[sexe]" class="form-control form-control-sm"><option value="Homme">Garçon</option><option value="Femme">Fille</option></select></div>
+                                    <div class="col-6"><input type="number" step="0.01" min="0.3" max="8" name="nouveau_ne[poids_kg]" class="form-control form-control-sm" placeholder="Poids (kg)"></div>
+                                    <div class="col-6"><input type="number" step="0.1" min="20" max="70" name="nouveau_ne[taille_cm]" class="form-control form-control-sm" placeholder="Taille (cm)"></div>
+                                </div>
+                            </details></div>
                             <div class="col-12"><button class="btn btn-sm btn-outline-danger w-100">Clôturer le suivi</button></div>
                         </form>
                     </div>

@@ -55,6 +55,8 @@ class StatistiquesParcoursService
             'motifs' => $visites->groupBy('motif')->map->count()->sortDesc()->take(8),
             'diagnostics' => $this->diagnostics($debut, $fin, $medecinId),
             'recette_actes' => $this->recette($debut, $fin, $medecinId),
+            // Détail utile à la direction : qui doit payer quoi sur ces actes.
+            'recette_parts' => $this->parts($debut, $fin, $medecinId),
         ];
     }
 
@@ -88,7 +90,26 @@ class StatistiquesParcoursService
             ->pluck('total', 'diagnostic');
     }
 
-    /** Montant facturé pour les consultations de la période (hors hospitalisation et labo). */
+    /** Part patient et part assurance des mêmes factures de consultation. */
+    private function parts(Carbon $debut, Carbon $fin, ?int $medecinId): array
+    {
+        $ligne = DB::table('invoices as i')
+            ->join('transactions as t', 't.id', '=', 'i.transaction_id')
+            ->join('consultations as c', function ($jointure) {
+                $jointure->on('c.id', '=', 't.transactionable_id')
+                    ->whereIn('t.transactionable_type', \App\Support\Facturation\TypesFacturables::variantes(Consultation::class));
+            })
+            ->whereBetween('c.created_at', [$debut, $fin])
+            ->when($medecinId, fn ($q) => $q->where('c.medecin_id', $medecinId))
+            ->where('t.status', '!=', 'cancel')
+            ->when(\App\Support\EtablissementContext::id(), fn ($q, $etablissementId) => $q->where('t.etablissement_id', $etablissementId))
+            ->selectRaw('COALESCE(SUM(i.patient_amount), 0) as patient, COALESCE(SUM(i.insurance_amount), 0) as assurance')
+            ->first();
+
+        return ['patient' => (float) ($ligne->patient ?? 0), 'assurance' => (float) ($ligne->assurance ?? 0)];
+    }
+
+    /** Montant facturé pour les consultations de la période (hors hospitalisation et laboratoire). */
     private function recette(Carbon $debut, Carbon $fin, ?int $medecinId): float
     {
         return (float) DB::table('transactions as t')

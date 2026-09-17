@@ -10,7 +10,13 @@
     <div class="page-header d-flex flex-wrap align-items-center gap-2">
         <h3 class="fw-bold mb-0">Dossier de {{ $patient->full_name }}</h3>
         <span class="text-muted">{{ $patient->gender }}{{ $patient->age !== null ? ', ' . $patient->age . ' ans' : '' }}</span>
-        <a href="{{ route('patient.show', $patient->id) }}" class="btn btn-sm btn-outline-secondary ms-auto">Fiche patient</a>
+        <span class="ms-auto d-flex gap-2">
+            <a href="{{ route('parcours.documents.index', $patient->id) }}" class="btn btn-sm btn-outline-secondary">Documents</a>
+            @if($patient->dateNaissance() && $patient->dateNaissance()->diffInMonths(today()) <= \App\Services\Parcours\CroissanceService::AGE_MAX_MOIS)
+                <a href="{{ route('parcours.croissance.show', $patient->id) }}" class="btn btn-sm btn-outline-info">Croissance</a>
+            @endif
+            <a href="{{ route('patient.show', $patient->id) }}" class="btn btn-sm btn-outline-secondary">Fiche patient</a>
+        </span>
     </div>
 
     @if($patient->antecedant?->allergies)
@@ -64,7 +70,7 @@
 
         <div class="col-lg-8">
             <div class="card">
-                <div class="card-header"><h4 class="card-title">Historique ({{ $evenements->count() }})</h4></div>
+                <div class="card-header"><h4 class="card-title">Historique ({{ $evenements->count() }} sur {{ $total }})</h4></div>
                 <ul class="list-group list-group-flush">
                     @forelse($evenements as $e)
                         <li class="list-group-item">
@@ -86,6 +92,11 @@
                         <li class="list-group-item text-muted text-center py-4">Aucun événement sur cette période.</li>
                     @endforelse
                 </ul>
+                @if($total > $evenements->count())
+                    <div class="card-footer text-center">
+                        <a href="{{ request()->fullUrlWithQuery(['limite' => $limite + 50]) }}" class="btn btn-sm btn-outline-primary">Voir 50 de plus</a>
+                    </div>
+                @endif
             </div>
         </div>
     </div>

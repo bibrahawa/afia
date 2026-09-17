@@ -20,11 +20,15 @@ class SuggestionsConsultationService
 {
     public const LIMITE = 8;
 
+    /** Les habitudes récentes seulement : plus pertinent, et la requête reste rapide. */
+    public const MOIS_HISTORIQUE = 12;
+
     /** Diagnostics les plus posés par ce médecin, en priorité pour ce motif. */
     public function diagnostics(Employee $medecin, ?int $motifRdvId = null, int $limite = self::LIMITE): Collection
     {
         $requete = fn (?int $motif) => Consultation::query()
             ->where('medecin_id', $medecin->id)
+            ->where('created_at', '>=', now()->subMonths(self::MOIS_HISTORIQUE))
             ->whereNotNull('diagnostic')
             ->where('diagnostic', '!=', '')
             ->where('diagnostic', '!=', 'N/A')
@@ -46,6 +50,7 @@ class SuggestionsConsultationService
         $lignes = DB::table('consultation_medicament as cm')
             ->join('consultations as c', 'c.id', '=', 'cm.consultation_id')
             ->where('c.medecin_id', $medecin->id)
+            ->where('c.created_at', '>=', now()->subMonths(self::MOIS_HISTORIQUE))
             ->select('cm.medicament_id', DB::raw('COUNT(*) as total'), DB::raw('MAX(cm.id) as derniere'))
             ->groupBy('cm.medicament_id')
             ->orderByDesc('total')
@@ -82,6 +87,7 @@ class SuggestionsConsultationService
         $ids = DB::table('consultation_test as ct')
             ->join('consultations as c', 'c.id', '=', 'ct.consultation_id')
             ->where('c.medecin_id', $medecin->id)
+            ->where('c.created_at', '>=', now()->subMonths(self::MOIS_HISTORIQUE))
             ->select('ct.test_id', DB::raw('COUNT(*) as total'))
             ->groupBy('ct.test_id')
             ->orderByDesc('total')

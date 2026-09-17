@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use Database\Seeders\Parcours\ParcoursPermissionsSeeder;
 use Illuminate\Database\Seeder;
 
 /**
@@ -48,6 +49,10 @@ class DatabaseSeeder extends Seeder
 
         if (class_exists(Assurance\AssurancePermissionsSeeder::class)) {
             $this->call(Assurance\AssurancePermissionsSeeder::class);
+        }
+
+        if (class_exists(ParcoursPermissionsSeeder::class)) {
+            $this->call(ParcoursPermissionsSeeder::class);
         }
 
         app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();

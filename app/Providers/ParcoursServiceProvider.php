@@ -23,6 +23,13 @@ class ParcoursServiceProvider extends ServiceProvider
     {
         $this->loadMigrationsFrom(database_path('migrations/parcours'));
 
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                \App\Console\Commands\Parcours\ImporterNormesOms::class,
+                \App\Console\Commands\Parcours\EnvoyerRappelsCpn::class,
+            ]);
+        }
+
         if (! $this->app->routesAreCached()) {
             Route::middleware(['web', 'auth', EnsureModuleActive::class . ':consultation'])
                 ->prefix('parcours')

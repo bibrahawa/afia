@@ -69,10 +69,24 @@ class GrossesseController extends Controller
             'issue' => ['required', Rule::in(array_keys(Grossesse::ISSUES))],
             'date_issue' => ['required', 'date', 'before_or_equal:today'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            'nouveau_ne' => ['nullable', 'array'],
+            'nouveau_ne.prenom' => ['nullable', 'string', 'max:50'],
+            'nouveau_ne.sexe' => ['nullable', 'in:Homme,Femme'],
+            'nouveau_ne.poids_kg' => ['nullable', 'numeric', 'min:0.3', 'max:8'],
+            'nouveau_ne.taille_cm' => ['nullable', 'numeric', 'min:20', 'max:70'],
         ]);
 
-        $this->grossesses->cloturer($grossesse, $donnees['issue'], Carbon::parse($donnees['date_issue']), $donnees['notes'] ?? null);
+        $this->grossesses->cloturer(
+            $grossesse,
+            $donnees['issue'],
+            Carbon::parse($donnees['date_issue']),
+            $donnees['notes'] ?? null,
+            $donnees['nouveau_ne'] ?? [],
+            $request->user()
+        );
 
-        return back()->with('success', 'Suivi clôturé.');
+        return back()->with('success', empty($donnees['nouveau_ne']['prenom'])
+            ? 'Suivi clôturé.'
+            : 'Suivi clôturé et dossier du nouveau-né créé, rattaché à sa mère.');
     }
 }

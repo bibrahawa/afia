@@ -22,7 +22,11 @@
     @endif
 
     <div class="card">
-        <div class="card-header"><h4 class="card-title">En attente <span class="badge badge-warning">{{ $enAttente->count() }}</span></h4></div>
+        <div class="card-header">
+            <h4 class="card-title">En attente <span class="badge badge-warning">{{ $enAttente->count() }}</span></h4>
+            <p class="small text-muted mb-0">Ordre fixé par l'accueil : urgences, puis
+                {{ (\App\Support\EtablissementContext::current()?->ordre_file ?? 'arrivee') === 'rendez_vous' ? 'rendez-vous puis arrivées' : 'ordre d\'arrivée' }}.</p>
+        </div>
         <ul class="list-group list-group-flush">
             @forelse($enAttente as $index => $v)
                 @php $transaction = $v->consultation?->transaction; @endphp

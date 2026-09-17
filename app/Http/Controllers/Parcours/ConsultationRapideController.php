@@ -85,6 +85,10 @@ class ConsultationRapideController extends Controller
             'actes.*.*.frequence' => ['nullable', 'string', 'max:60'],
             'actes.*.*.duree' => ['nullable', 'string', 'max:60'],
             'actes.*.*.instructions' => ['nullable', 'string', 'max:255'],
+            'antecedents' => ['nullable', 'array'],
+            'antecedents.allergies' => ['nullable', 'string', 'max:2000'],
+            'antecedents.antecedents_medicaux' => ['nullable', 'string', 'max:2000'],
+            'antecedents.traitements_cours' => ['nullable', 'string', 'max:2000'],
             'prochain_rdv_jours' => ['nullable', 'integer', 'min:0', 'max:365'],
             'prochain_rdv_motif_id' => ['nullable', 'exists_etablissement:motifs_rdv,id'],
         ]);
@@ -97,6 +101,56 @@ class ConsultationRapideController extends Controller
             : back()->with('success', 'Brouillon enregistré.');
 
         return $resultat['avertissements'] ? $redirection->with('error', implode(' ', $resultat['avertissements'])) : $redirection;
+    }
+
+    /** Recherche d'actes côté serveur : les gros catalogues ne sont plus envoyés en entier. */
+    public function actes(Request $request, Consultation $consultation)
+    {
+        $this->medecinAutorise($consultation);
+
+        $donnees = $request->validate([
+            'categorie' => ['required', 'in:services,packages,examens,medicaments'],
+            'q' => ['required', 'string', 'min:2', 'max:60'],
+        ]);
+
+        $terme = '%' . $donnees['q'] . '%';
+
+        $resultats = match ($donnees['categorie']) {
+            'services' => Service::where('name', 'like', $terme)->orderBy('name')->limit(15)->get()
+                ->map(fn ($a) => ['id' => $a->id, 'nom' => $a->name, 'prix' => (float) $a->amount]),
+            'packages' => Package::where('name', 'like', $terme)->orderBy('name')->limit(15)->get()
+                ->map(fn ($a) => ['id' => $a->id, 'nom' => $a->name, 'prix' => (float) $a->price]),
+            'examens' => Test::where('name', 'like', $terme)->orderBy('name')->limit(15)->get()
+                ->map(fn ($a) => ['id' => $a->id, 'nom' => $a->name, 'prix' => (float) $a->amount]),
+            'medicaments' => Medicament::where('nom', 'like', $terme)->orderBy('nom')->limit(15)->get()
+                ->map(fn ($a) => ['id' => $a->id, 'nom' => $a->nom, 'prix' => (float) $a->amount,
+                    'dose' => $a->dosage, 'frequence' => $a->frequence, 'duree' => $a->duree, 'instructions' => $a->instructions]),
+        };
+
+        return response()->json($resultats->values());
+    }
+
+    /** Constantes prises pendant la consultation (le médecin n'a plus à appeler l'accueil). */
+    public function constantes(Request $request, Consultation $consultation, \App\Services\Parcours\AccueilService $accueil)
+    {
+        $this->medecinAutorise($consultation);
+        abort_unless($consultation->visite, 404, 'Cette consultation n\'est pas rattachée à une visite.');
+
+        $donnees = $request->validate([
+            'poids_kg' => ['nullable', 'numeric', 'min:0.3', 'max:350'],
+            'taille_cm' => ['nullable', 'numeric', 'min:20', 'max:250'],
+            'temperature' => ['nullable', 'numeric', 'min:30', 'max:45'],
+            'tension_systolique' => ['nullable', 'integer', 'min:40', 'max:300'],
+            'tension_diastolique' => ['nullable', 'integer', 'min:20', 'max:200'],
+            'pouls' => ['nullable', 'integer', 'min:20', 'max:250'],
+            'saturation_o2' => ['nullable', 'integer', 'min:50', 'max:100'],
+            'glycemie' => ['nullable', 'numeric', 'min:0.1', 'max:9.99'],
+            'notes' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $accueil->enregistrerConstantes($consultation->visite, $donnees, $request->user());
+
+        return back()->with('success', 'Constantes enregistrées.');
     }
 
     /** Contenu d'un modèle, chargé sans quitter l'écran. */
@@ -143,10 +197,18 @@ class ConsultationRapideController extends Controller
         return $medecin;
     }
 
-    /** Catalogue complet envoyé une fois à l'écran : la recherche se fait sans aller-retour. */
+    public const CATALOGUE_EMBARQUE_MAX = 300;
+
+    /**
+     * Catalogue embarqué dans la page tant qu'il reste petit (recherche instantanée) ;
+     * au-delà, l'écran interroge le serveur — une clinique avec 800 médicaments ne
+     * téléchargeait plus rien d'utile sur une connexion lente.
+     */
     private function catalogue(): array
     {
-        return [
+        $limiter = fn ($collection) => $collection->count() > self::CATALOGUE_EMBARQUE_MAX ? collect() : $collection;
+
+        return array_map($limiter, [
             'services' => Service::orderBy('name')->get()->map(fn ($a) => ['id' => $a->id, 'nom' => $a->name, 'prix' => (float) $a->amount])->values(),
             'packages' => Package::orderBy('name')->get()->map(fn ($a) => ['id' => $a->id, 'nom' => $a->name, 'prix' => (float) $a->price])->values(),
             'examens' => Test::orderBy('name')->get()->map(fn ($a) => ['id' => $a->id, 'nom' => $a->name, 'prix' => (float) $a->amount])->values(),
@@ -154,6 +216,6 @@ class ConsultationRapideController extends Controller
                 'id' => $a->id, 'nom' => $a->nom, 'prix' => (float) $a->amount,
                 'dose' => $a->dosage, 'frequence' => $a->frequence, 'duree' => $a->duree, 'instructions' => $a->instructions,
             ])->values(),
-        ];
+        ]);
     }
 }

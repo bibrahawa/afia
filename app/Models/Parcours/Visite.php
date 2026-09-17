@@ -20,13 +20,16 @@ class Visite extends Model
 {
     use HeriteEtablissement, BelongsToEtablissement;
 
+    public const ORDRE_ARRIVEE = 'arrivee';
+    public const ORDRE_RENDEZ_VOUS = 'rendez_vous';
+
     protected static array $etablissementDepuis = ['department_id' => Department::class];
 
     protected $table = 'visites';
 
     protected $fillable = [
         'etablissement_id', 'patient_id', 'appointment_id', 'medecin_id', 'department_id', 'motif_rdv_id',
-        'motif', 'statut', 'urgence', 'arrivee_le', 'appele_le', 'terminee_le', 'notes_accueil', 'cree_par',
+        'motif', 'statut', 'urgence', 'rang', 'arrivee_le', 'appele_le', 'terminee_le', 'notes_accueil', 'cree_par',
     ];
 
     protected $casts = [
@@ -65,10 +68,26 @@ class Visite extends Model
         return $query->whereIn('statut', [StatutVisite::EnAttente->value, StatutVisite::EnConsultation->value]);
     }
 
-    /** Ordre de la file : urgences d'abord, puis ordre d'arrivée. */
-    public function scopeOrdreFile(Builder $query): Builder
+    /**
+     * Ordre de la file :
+     *  1. urgences ;
+     *  2. ordre imposé par l'accueil (« faire passer maintenant », monter, descendre) ;
+     *  3. règle par défaut de la clinique : ordre d'arrivée, ou heure de rendez-vous d'abord ;
+     *  4. à défaut, ordre d'arrivée.
+     */
+    public function scopeOrdreFile(Builder $query, ?string $mode = null): Builder
     {
-        return $query->orderByDesc('urgence')->orderBy('arrivee_le');
+        $mode ??= \App\Support\EtablissementContext::current()?->ordre_file ?? self::ORDRE_ARRIVEE;
+
+        $query->orderByDesc('urgence')->orderByRaw('rang IS NULL')->orderBy('rang');
+
+        if ($mode === self::ORDRE_RENDEZ_VOUS) {
+            // Les patients attendus à une heure précise passent avant les venues spontanées.
+            $query->orderByRaw('appointment_id IS NULL')
+                ->orderByRaw('(SELECT appointment_time FROM appointments WHERE appointments.id = visites.appointment_id)');
+        }
+
+        return $query->orderBy('arrivee_le');
     }
 
     public function minutesAttente(): int

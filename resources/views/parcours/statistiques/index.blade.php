@@ -24,7 +24,7 @@
             ['Patients reçus', $stats['visites'], $stats['terminees'] . ' consultation(s) terminée(s)'],
             ['Attente moyenne', $stats['attente_moyenne'] !== null ? $stats['attente_moyenne'] . ' min' : '—', 'médiane ' . ($stats['attente_mediane'] !== null ? $stats['attente_mediane'] . ' min' : '—') . ', max ' . ($stats['attente_max'] !== null ? $stats['attente_max'] . ' min' : '—')],
             ['Rendez-vous non honorés', $stats['rdv_absents'], $stats['taux_absence'] !== null ? $stats['taux_absence'] . ' % des rendez-vous passés' : 'aucun rendez-vous passé'],
-            ['Actes facturés', $nb($stats['recette_actes']) . ' GNF', $stats['sans_rendez_vous'] . ' venue(s) sans rendez-vous, ' . $stats['urgences'] . ' urgence(s)'],
+            ['Actes de consultation facturés', $nb($stats['recette_actes']) . ' GNF', 'patient ' . $nb($stats['recette_parts']['patient']) . ' · assurance ' . $nb($stats['recette_parts']['assurance']) . ' GNF'],
         ] as [$titre, $valeur, $detail])
             <div class="col-md-3"><div class="card card-stats card-round"><div class="card-body">
                 <p class="card-category mb-1">{{ $titre }}</p>
@@ -72,7 +72,9 @@
         </div></div>
     </div>
 
-    <p class="small text-muted">Période du {{ $stats['periode']['debut']->format('d/m/Y') }} au {{ $stats['periode']['fin']->format('d/m/Y') }} ·
+    <p class="small text-muted">Hors laboratoire et hospitalisation, qui ont leurs propres écrans.<br>
+        Période du {{ $stats['periode']['debut']->format('d/m/Y') }} au {{ $stats['periode']['fin']->format('d/m/Y') }} ·
+        {{ $stats['sans_rendez_vous'] }} venue(s) sans rendez-vous, {{ $stats['urgences'] }} urgence(s) ·
         {{ $stats['parties'] }} patient(s) reparti(s) sans consulter · {{ $stats['en_cours'] }} encore en cours.</p>
 </div></div>
 @endsection

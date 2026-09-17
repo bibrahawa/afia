@@ -4,10 +4,16 @@ namespace App\Services\Parcours;
 
 use App\Exceptions\Parcours\OperationParcoursImpossible;
 use App\Models\Consultation;
+use App\Enums\TypeRelationFamiliale;
+use App\Models\Parcours\Constante;
 use App\Models\Parcours\Grossesse;
+use App\Models\RelationFamiliale;
+use App\Support\EtablissementContext;
 use App\Models\Patient;
 use App\Models\User;
 use Carbon\Carbon;
+use App\Enums\Assurance\FamilleActe;
+use App\Support\Assurance\FamillesActes;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -60,7 +66,14 @@ class GrossesseService
         return $grossesse->fresh();
     }
 
-    public function cloturer(Grossesse $grossesse, string $issue, Carbon $date, ?string $notes = null): Grossesse
+    /**
+     * Clôture du suivi. En cas d'accouchement, le dossier du nouveau-né peut être
+     * créé dans la foulée : il est rattaché à sa mère et son poids de naissance
+     * enregistré, sans ressaisie au guichet.
+     *
+     * @param array $nouveauNe prenom, sexe, poids_kg, taille_cm
+     */
+    public function cloturer(Grossesse $grossesse, string $issue, Carbon $date, ?string $notes = null, array $nouveauNe = [], ?User $auteur = null): Grossesse
     {
         if (! isset(Grossesse::ISSUES[$issue])) {
             throw new OperationParcoursImpossible('Issue de grossesse inconnue.');
@@ -70,17 +83,69 @@ class GrossesseService
             throw new OperationParcoursImpossible('La date de l\'issue est antérieure aux dernières règles.');
         }
 
-        $grossesse->update([
-            'statut' => $issue === 'accouchement' ? Grossesse::TERMINEE : Grossesse::INTERROMPUE,
-            'issue' => $issue,
-            'date_issue' => $date->toDateString(),
-            'notes' => trim(($grossesse->notes ? $grossesse->notes . "\n" : '') . (string) $notes) ?: null,
-        ]);
+        return DB::transaction(function () use ($grossesse, $issue, $date, $notes, $nouveauNe, $auteur) {
+            $grossesse->update([
+                'statut' => $issue === 'accouchement' ? Grossesse::TERMINEE : Grossesse::INTERROMPUE,
+                'issue' => $issue,
+                'date_issue' => $date->toDateString(),
+                'notes' => trim(($grossesse->notes ? $grossesse->notes . "\n" : '') . (string) $notes) ?: null,
+            ]);
 
-        return $grossesse->fresh();
+            if ($issue === 'accouchement' && ! empty($nouveauNe['prenom'])) {
+                $this->enregistrerNouveauNe($grossesse, $date, $nouveauNe, $auteur);
+            }
+
+            return $grossesse->fresh();
+        });
     }
 
-    /** Rattache la consultation au suivi en cours (appelé à l'ouverture d'une consultation). */
+    /** Dossier du nouveau-né : patient créé, lien avec la mère, poids de naissance. */
+    public function enregistrerNouveauNe(Grossesse $grossesse, Carbon $naissance, array $donnees, ?User $auteur = null): Patient
+    {
+        $grossesse->loadMissing('patient');
+        $mere = $grossesse->patient;
+
+        $bebe = Patient::create([
+            'first_name' => mb_substr(trim($donnees['prenom']), 0, 50),
+            'last_name' => $mere->last_name,
+            'gender' => in_array($donnees['sexe'] ?? null, ['Homme', 'Femme'], true) ? $donnees['sexe'] : 'Homme',
+            'birth_date' => $naissance->toDateString(),
+            'relative_name' => $mere->full_name,
+            'description' => 'Né(e) à la clinique — suivi de grossesse n° ' . $grossesse->id,
+        ]);
+
+        if ($etablissement = EtablissementContext::current()) {
+            $etablissement->patients()->syncWithoutDetaching([$bebe->id]);
+        }
+
+        // « La mère est la mere de ce patient » : même sémantique que l'écran des liens familiaux.
+        RelationFamiliale::firstOrCreate([
+            'patient_id' => $bebe->id,
+            'personne_liee_id' => $mere->id,
+            'type_relation' => TypeRelationFamiliale::Mere->value,
+        ]);
+
+        $mesures = array_filter([
+            'poids_kg' => $donnees['poids_kg'] ?? null,
+            'taille_cm' => $donnees['taille_cm'] ?? null,
+        ], fn ($v) => $v !== null && $v !== '');
+
+        if ($mesures) {
+            Constante::create($mesures + [
+                'patient_id' => $bebe->id,
+                'mesure_par' => $auteur?->id,
+                'mesure_le' => $naissance->copy()->setTimeFrom(now()),
+            ]);
+        }
+
+        return $bebe;
+    }
+
+    /**
+     * Rattache la consultation au suivi en cours, UNIQUEMENT s'il s'agit d'un
+     * acte de maternité : une consultation pour paludisme ne doit pas valider
+     * une CPN au calendrier.
+     */
     public function rattacher(Consultation $consultation): ?Grossesse
     {
         if ($consultation->grossesse_id) {
@@ -89,11 +154,40 @@ class GrossesseService
 
         $grossesse = $consultation->patient ? $this->enCours($consultation->patient) : null;
 
-        if ($grossesse) {
+        if ($grossesse && $this->estActeDeMaternite($consultation)) {
             $consultation->update(['grossesse_id' => $grossesse->id]);
         }
 
         return $grossesse;
+    }
+
+    /** Motif de rendez-vous ou acte facturé classé « maternité » au catalogue. */
+    public function estActeDeMaternite(Consultation $consultation): bool
+    {
+        $familles = app(FamillesActes::class);
+        $maternite = FamilleActe::Maternite;
+
+        $consultation->loadMissing('visite.motifRdv', 'services', 'packages');
+
+        $serviceMotif = $consultation->visite?->motifRdv?->service_id;
+
+        if ($serviceMotif && $familles->pour('service', (int) $serviceMotif) === $maternite) {
+            return true;
+        }
+
+        foreach ($consultation->services as $service) {
+            if ($familles->pour('service', $service->id) === $maternite) {
+                return true;
+            }
+        }
+
+        foreach ($consultation->packages as $package) {
+            if ($familles->pour('package', $package->id) === $maternite) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** Poids et tension relevés à chaque visite, pour la courbe de suivi. */

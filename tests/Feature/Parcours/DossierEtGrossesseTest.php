@@ -116,11 +116,12 @@ class DossierEtGrossesseTest extends TestCase
 
         $frise = app(DossierPatientService::class)->frise($this->patiente);
 
-        $this->assertSame(['consultation', 'grossesse'], $frise->pluck('type')->unique()->sort()->values()->all());
-        $this->assertSame('Grossesse évolutive', $frise->firstWhere('type', 'consultation')['titre']);
+        $this->assertSame(2, $frise['total']);
+        $this->assertSame(['consultation', 'grossesse'], $frise['evenements']->pluck('type')->unique()->sort()->values()->all());
+        $this->assertSame('Grossesse évolutive', $frise['evenements']->firstWhere('type', 'consultation')['titre']);
 
         $filtree = app(DossierPatientService::class)->frise($this->patiente, ['types' => ['grossesse']]);
-        $this->assertCount(1, $filtree);
+        $this->assertSame(1, $filtree['total']);
     }
 
     public function test_statistiques_de_la_periode(): void
@@ -144,6 +145,7 @@ class DossierEtGrossesseTest extends TestCase
         $this->assertSame(20, $stats['attente_moyenne']);
         $this->assertSame(2, $stats['sans_rendez_vous']);
         $this->assertSame(80000.0, $stats['recette_actes']);
+        $this->assertSame(80000.0, $stats['recette_parts']['patient']);
         $this->assertSame(1, $stats['diagnostics']['Grossesse évolutive']);
     }
 

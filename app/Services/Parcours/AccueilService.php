@@ -161,11 +161,19 @@ class AccueilService
         });
     }
 
-    /** Le patient est reparti sans être vu. La consultation vide est conservée si elle a été facturée. */
-    public function marquerPartie(Visite $visite, ?string $motif = null): Visite
+    /**
+     * Le patient est reparti sans être vu. Si rien n'a été encaissé, la facture
+     * de l'acte d'accueil peut être annulée dans la foulée — sinon elle resterait
+     * due sur le compte du patient.
+     */
+    public function marquerPartie(Visite $visite, ?string $motif = null, bool $annulerFacture = true): Visite
     {
         if ($visite->statut !== StatutVisite::EnAttente) {
             throw new OperationParcoursImpossible('Seul un patient encore en attente peut être marqué comme reparti.');
+        }
+
+        if ($annulerFacture) {
+            $this->annulerFactureAccueil($visite);
         }
 
         $visite->update([
@@ -189,6 +197,79 @@ class AccueilService
         return $rdv;
     }
 
+    /**
+     * « Faire passer maintenant » : la visite prend la tête de la file du médecin.
+     * Toute la file est renumérotée (1, 2, 3…) — la colonne `rang` est un entier
+     * non signé, un rang négatif serait refusé par la base.
+     */
+    public function placerEnTete(Visite $visite): Visite
+    {
+        return DB::transaction(function () use ($visite) {
+            $file = Visite::where('medecin_id', $visite->medecin_id)->duJour()->actives()->ordreFile()->get()
+                ->reject(fn (Visite $v) => $v->id === $visite->id)
+                ->values()
+                ->prepend($visite);
+
+            foreach ($file as $position => $ligne) {
+                $ligne->update(['rang' => $position + 1]);
+            }
+
+            return $visite->fresh();
+        });
+    }
+
+    /** Monter (-1) ou descendre (+1) d'une place dans la file du médecin. */
+    public function deplacer(Visite $visite, int $direction): Visite
+    {
+        $file = Visite::where('medecin_id', $visite->medecin_id)->duJour()->actives()->ordreFile()->get();
+        $position = $file->search(fn (Visite $v) => $v->id === $visite->id);
+        $cible = $position + ($direction < 0 ? -1 : 1);
+
+        if ($position === false || $cible < 0 || $cible >= $file->count()) {
+            return $visite;
+        }
+
+        $ordonnee = $file->values()->all();
+        [$ordonnee[$position], $ordonnee[$cible]] = [$ordonnee[$cible], $ordonnee[$position]];
+
+        // L'ordre imposé remplace la règle par défaut pour toute la file du jour.
+        foreach ($ordonnee as $rang => $ligne) {
+            $ligne->update(['rang' => $rang + 1]);
+        }
+
+        return $visite->fresh();
+    }
+
+    /** Retour à la règle par défaut de la clinique pour la file de ce médecin. */
+    public function reinitialiserOrdre(Visite $visite): void
+    {
+        Visite::where('medecin_id', $visite->medecin_id)->duJour()->actives()->update(['rang' => null]);
+    }
+
+    /** Facture de l'acte d'accueil, si elle n'a reçu aucun encaissement. */
+    private function annulerFactureAccueil(Visite $visite): void
+    {
+        $transaction = $visite->consultation?->transaction()->first();
+
+        if (! $transaction) {
+            return;
+        }
+
+        if ($transaction->paiements()->exists()) {
+            throw new OperationParcoursImpossible('Un encaissement existe déjà sur cette visite : remboursez-le avant de la clôturer.');
+        }
+
+        DB::transaction(function () use ($transaction, $visite) {
+            if ($invoice = $transaction->invoice()->first()) {
+                app(\App\Services\InsuranceConsumptionService::class)->rollbackConsumption($invoice);
+            }
+
+            app(\App\Services\PatientAccountService::class)->retirerTransaction($transaction);
+            $transaction->update(['status' => 'cancel']);
+            $visite->consultation?->update(['statut' => \App\Models\Consultation::TERMINEE]);
+        });
+    }
+
     private function ouvrir(Patient $patient, Employee $medecin, array $donnees, ?User $auteur): Visite
     {
         // Relu en base : un modèle fraîchement créé n'a pas les valeurs par défaut
@@ -199,14 +280,16 @@ class AccueilService
             throw new OperationParcoursImpossible('Choisissez un médecin actif.');
         }
 
-        $dejaPresent = Visite::where('patient_id', $patient->id)->duJour()->actives()->exists();
-        if ($dejaPresent) {
-            throw new OperationParcoursImpossible("{$patient->full_name} est déjà dans une file d'attente aujourd'hui.");
-        }
-
         $service = ! empty($donnees['service_id']) ? Service::findOrFail($donnees['service_id']) : null;
 
         return DB::transaction(function () use ($patient, $medecin, $donnees, $auteur, $service) {
+            // Verrou : deux clics rapides créaient deux visites, donc deux consultations et deux factures.
+            $dejaPresent = Visite::where('patient_id', $patient->id)->duJour()->actives()->lockForUpdate()->exists();
+
+            if ($dejaPresent) {
+                throw new OperationParcoursImpossible("{$patient->full_name} est déjà dans une file d'attente aujourd'hui.");
+            }
+
             $visite = Visite::create([
                 'patient_id' => $patient->id,
                 'appointment_id' => $donnees['appointment_id'] ?? null,

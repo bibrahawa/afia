@@ -15,6 +15,7 @@ class Etablissement extends Model
         'prefixe_facture', 'prefixe_patient', 'type_taxe', 'taux_taxe', 'message_facture',
         'numero_pan', 'numero_enregistrement',
         'date_debut_contrat', 'date_fin_contrat',
+        'ordre_file',
     ];
 
     protected $casts = [

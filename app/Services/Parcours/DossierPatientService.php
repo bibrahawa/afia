@@ -30,8 +30,11 @@ class DossierPatientService
      * @param array $filtres types[], depuis, jusqu_a
      * @return Collection<int, array{date: Carbon, type: string, titre: string, details: array, lien: ?string}>
      */
+    public const PAR_PAGE = 50;
+
     public function frise(Patient $patient, array $filtres = []): Collection
     {
+        $limite = max(10, (int) ($filtres['limite'] ?? self::PAR_PAGE));
         $types = array_filter((array) ($filtres['types'] ?? array_keys(self::TYPES)), fn ($t) => isset(self::TYPES[$t]));
         $depuis = ! empty($filtres['depuis']) ? Carbon::parse($filtres['depuis'])->startOfDay() : null;
         $jusqua = ! empty($filtres['jusqu_a']) ? Carbon::parse($filtres['jusqu_a'])->endOfDay() : null;
@@ -54,10 +57,14 @@ class DossierPatientService
             $evenements = $evenements->merge($this->grossesses($patient));
         }
 
-        return $evenements
+        $filtres = $evenements
             ->filter(fn ($e) => (! $depuis || $e['date']->gte($depuis)) && (! $jusqua || $e['date']->lte($jusqua)))
             ->sortByDesc(fn ($e) => $e['date']->timestamp)
             ->values();
+
+        // Un patient suivi depuis des années peut avoir des centaines d'événements :
+        // on renvoie une page, avec le total pour proposer « voir plus ».
+        return collect(['total' => $filtres->count(), 'evenements' => $filtres->take($limite)]);
     }
 
     private function consultations(Patient $patient): Collection

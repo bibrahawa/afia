@@ -109,9 +109,46 @@ class AccueilController extends Controller
 
     public function partie(Request $request, Visite $visite)
     {
-        $this->accueil->marquerPartie($visite, $request->input('motif'));
+        $this->accueil->marquerPartie($visite, $request->input('motif'), $request->boolean('annuler_facture', true));
 
         return back()->with('success', 'Visite clôturée : patient reparti sans consulter.');
+    }
+
+    /** L'accueil décide qui passe : priorité immédiate, ou déplacement d'une place. */
+    public function prioriser(Visite $visite)
+    {
+        $this->accueil->placerEnTete($visite);
+
+        return back()->with('success', "{$visite->patient->full_name} passe en tête de la file.");
+    }
+
+    public function deplacer(Request $request, Visite $visite)
+    {
+        $donnees = $request->validate(['direction' => ['required', 'in:haut,bas']]);
+        $this->accueil->deplacer($visite, $donnees['direction'] === 'haut' ? -1 : 1);
+
+        return back();
+    }
+
+    public function reinitialiserOrdre(Visite $visite)
+    {
+        $this->accueil->reinitialiserOrdre($visite);
+
+        return back()->with('success', 'Ordre remis à la règle de la clinique.');
+    }
+
+    /** Règle par défaut de la clinique : ordre d'arrivée, ou rendez-vous d'abord. */
+    public function reglageOrdre(Request $request)
+    {
+        $donnees = $request->validate(['ordre_file' => ['required', 'in:arrivee,rendez_vous']]);
+
+        $etablissement = \App\Support\EtablissementContext::current();
+        abort_unless($etablissement, 403);
+        $etablissement->update(['ordre_file' => $donnees['ordre_file']]);
+
+        return back()->with('success', $donnees['ordre_file'] === 'arrivee'
+            ? 'Les patients passent désormais dans leur ordre d\'arrivée.'
+            : 'Les patients ayant un rendez-vous passent désormais avant les venues spontanées.');
     }
 
     public function absent(Appointment $appointment)

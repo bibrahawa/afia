@@ -4,6 +4,7 @@ namespace App\Services\Parcours;
 
 use App\Exceptions\Parcours\OperationParcoursImpossible;
 use App\Models\Consultation;
+use App\Models\Employee;
 use App\Models\Medicament;
 use App\Models\MotifRdv;
 use App\Models\Package;
@@ -46,6 +47,9 @@ class ConsultationRapideService
             throw new OperationParcoursImpossible('Indiquez au moins le diagnostic avant de terminer la consultation.');
         }
 
+        // Contrôlé AVANT la transaction : le médecin garde sa saisie si c'est refusé.
+        $this->verifierRetraits($consultation, (array) ($donnees['actes'] ?? []));
+
         $avertissements = [];
 
         DB::transaction(function () use ($consultation, $donnees, $diagnostic, $terminer, &$avertissements) {
@@ -57,6 +61,7 @@ class ConsultationRapideService
             ]);
 
             $this->rattacherActes($consultation, (array) ($donnees['actes'] ?? []));
+            $this->enregistrerAntecedents($consultation, (array) ($donnees['antecedents'] ?? []));
             $this->facturer($consultation);
 
             if ($message = $this->planifierProchainRdv($consultation, $donnees)) {
@@ -69,6 +74,61 @@ class ConsultationRapideService
         });
 
         return ['consultation' => $consultation->fresh(['services', 'packages', 'tests', 'medicaments', 'transaction']), 'avertissements' => $avertissements];
+    }
+
+    /**
+     * Un acte déjà encaissé ou déjà réclamé à l'assureur ne peut plus disparaître
+     * de la facture : on le dit clairement, plutôt que de laisser la facturation
+     * refuser le recalcul une fois la consultation à moitié enregistrée.
+     */
+    private function verifierRetraits(Consultation $consultation, array $actes): void
+    {
+        $transaction = $consultation->transaction()->first();
+
+        if (! $transaction || ! $transaction->invoice) {
+            return;
+        }
+
+        $verrouillee = $transaction->paiements()->exists()
+            || \App\Models\InsuranceClaim::where('invoice_id', $transaction->invoice->id)->where('status', '!=', 'draft')->exists();
+
+        if (! $verrouillee) {
+            return;
+        }
+
+        $consultation->loadMissing('services', 'packages', 'tests', 'medicaments');
+        $conserves = collect($actes)->map(fn ($lignes) => collect($lignes)->pluck('id')->map(fn ($id) => (int) $id)->all());
+
+        $retires = collect([
+            'services' => $consultation->services->map(fn ($a) => [$a->id, $a->name]),
+            'packages' => $consultation->packages->map(fn ($a) => [$a->id, $a->name]),
+            'examens' => $consultation->tests->map(fn ($a) => [$a->id, $a->name]),
+            'medicaments' => $consultation->medicaments->map(fn ($a) => [$a->id, $a->nom]),
+        ])->flatMap(fn ($existants, $categorie) => $existants
+            ->reject(fn ($acte) => in_array($acte[0], $conserves[$categorie] ?? [], true))
+            ->pluck(1));
+
+        if ($retires->isNotEmpty()) {
+            throw new OperationParcoursImpossible(
+                'Cette facture est déjà encaissée ou transmise à l\'assureur : « ' . $retires->join(' », « ')
+                . ' » ne peut plus en être retiré. Laissez l\'acte et ajoutez ce qui manque.'
+            );
+        }
+    }
+
+    /** Allergies et antécédents mis à jour depuis l'écran du médecin, sans écraser ce qui n'est pas saisi. */
+    private function enregistrerAntecedents(Consultation $consultation, array $antecedents): void
+    {
+        $valeurs = array_filter(
+            array_intersect_key($antecedents, array_flip(['allergies', 'antecedents_medicaux', 'traitements_cours'])),
+            fn ($v) => $v !== null
+        );
+
+        if (! $valeurs) {
+            return;
+        }
+
+        \App\Models\Antecedent::updateOrCreate(['patient_id' => $consultation->patient_id], $valeurs);
     }
 
     /** Actes cochés à l'écran, avec la posologie prescrite pour chaque médicament. */
@@ -134,8 +194,9 @@ class ConsultationRapideService
 
         $motif = ! empty($donnees['prochain_rdv_motif_id']) ? MotifRdv::find($donnees['prochain_rdv_motif_id']) : null;
         $medecin = $consultation->medecin;
-        $debut = now()->addDays($jours)->setTime(9, 0);
         $duree = $motif && $medecin ? $motif->dureePour($medecin) : DisponibiliteService::DUREE_PAR_DEFAUT;
+        // Premier créneau réellement libre à partir du jour visé, au lieu d'un 9h00 souvent déjà pris.
+        $debut = $this->premierCreneauLibre($medecin, $motif, now()->addDays($jours)) ?? now()->addDays($jours)->setTime(9, 0);
 
         try {
             $rdv = $this->rendezVous->planifierParMedecin(
@@ -153,6 +214,26 @@ class ConsultationRapideService
         } catch (DomainException $e) {
             return 'Prochain rendez-vous NON créé : ' . $e->getMessage();
         }
+    }
+
+    /** Premier créneau réellement libre du médecin à partir du jour visé (14 jours explorés). */
+    private function premierCreneauLibre(?Employee $medecin, ?MotifRdv $motif, Carbon $aPartirDe): ?Carbon
+    {
+        if (! $medecin || ! $motif) {
+            return null;
+        }
+
+        $disponibilites = app(DisponibiliteService::class);
+
+        foreach ($disponibilites->joursDisponibles($medecin, $aPartirDe->copy()->startOfDay(), 14, $motif) as $jour) {
+            $creneau = $disponibilites->creneauxDisponibles($medecin, Carbon::parse($jour), $motif)->first();
+
+            if ($creneau) {
+                return $creneau['debut']->copy();
+            }
+        }
+
+        return null;
     }
 
     private function texte(?string $valeur, int $longueur): ?string

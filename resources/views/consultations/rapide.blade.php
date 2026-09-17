@@ -94,6 +94,18 @@
                         <label class="form-label">Observation</label>
                         <textarea name="observation" class="form-control" rows="2" placeholder="Facultatif">{{ old('observation', $consultation->observation) }}</textarea>
 
+                        <details class="mt-3">
+                            <summary class="text-primary" style="cursor:pointer">Allergies, antécédents et traitement en cours</summary>
+                            <div class="row g-2 mt-1">
+                                <div class="col-md-4"><label class="form-label small text-danger">Allergies</label>
+                                    <textarea name="antecedents[allergies]" class="form-control form-control-sm" rows="2">{{ $consultation->patient?->antecedant?->allergies }}</textarea></div>
+                                <div class="col-md-4"><label class="form-label small">Antécédents médicaux</label>
+                                    <textarea name="antecedents[antecedents_medicaux]" class="form-control form-control-sm" rows="2">{{ $consultation->patient?->antecedant?->antecedents_medicaux }}</textarea></div>
+                                <div class="col-md-4"><label class="form-label small">Traitement en cours</label>
+                                    <textarea name="antecedents[traitements_cours]" class="form-control form-control-sm" rows="2">{{ $consultation->patient?->antecedant?->traitements_cours }}</textarea></div>
+                            </div>
+                        </details>
+
                         @if($precedente)
                             <div class="small text-muted mt-2">
                                 Dernière consultation ({{ $precedente->created_at->format('d/m/Y') }}) : {{ \Illuminate\Support\Str::limit($precedente->diagnostic, 120) }}
@@ -185,6 +197,27 @@
                         <button type="button" class="btn btn-outline-primary w-100" data-bs-toggle="modal" data-bs-target="#modalModele">Enregistrer comme modèle</button>
 
                         <hr>
+                        <div class="d-grid gap-1 mb-2">
+                            @can('parcours.constantes')
+                                @if($consultation->visite)
+                                    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalConstantes">Prendre les constantes</button>
+                                @endif
+                            @endcan
+                            @can('hospitalisation.create')
+                                <a href="{{ route('hospitalisations.create', ['patient' => $consultation->patient_id]) }}" class="btn btn-sm btn-outline-danger">Hospitaliser</a>
+                            @endcan
+                            @if(\Illuminate\Support\Facades\Route::has('labo.demandes.create'))
+                                @can('labo.demande.create')
+                                    <a href="{{ route('labo.demandes.create', ['consultation' => $consultation->id]) }}" class="btn btn-sm btn-outline-info">Demande d'analyses</a>
+                                @endcan
+                            @endif
+                            @can('parcours.document')
+                                <button type="button" class="btn btn-sm btn-outline-warning" data-bs-toggle="modal" data-bs-target="#modalDocument">Certificat / arrêt de travail</button>
+                            @endcan
+                            @can('parcours.dossier')
+                                <a href="{{ route('parcours.dossier.show', $consultation->patient_id) }}" target="_blank" class="btn btn-sm btn-outline-secondary">Dossier du patient</a>
+                            @endcan
+                        </div>
                         <div class="d-grid gap-1">
                             <a href="{{ route('consultation.rapport.ordonnance.a5', $consultation) }}" target="_blank" class="btn btn-sm btn-outline-warning">Imprimer l'ordonnance</a>
                             <a href="{{ route('consultation.rapport.examens.a5', $consultation) }}" target="_blank" class="btn btn-sm btn-outline-info">Imprimer les examens</a>
@@ -196,6 +229,52 @@
         </div>
     </form>
 </div></div>
+
+@can('parcours.document')
+<div class="modal fade" id="modalDocument" tabindex="-1"><div class="modal-dialog modal-lg">
+    <form method="POST" action="{{ route('parcours.documents.store', $consultation) }}" class="modal-content">@csrf
+        <div class="modal-header"><h5 class="modal-title">Certificat ou arrêt de travail</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+            <div class="row g-2 mb-2">
+                <div class="col-md-4"><label class="form-label small">Type *</label>
+                    <select name="type" id="documentType" class="form-control form-control-sm">
+                        @foreach(\App\Enums\Parcours\TypeDocumentMedical::cases() as $typeDocument)
+                            <option value="{{ $typeDocument->value }}">{{ $typeDocument->libelle() }}</option>
+                        @endforeach
+                    </select></div>
+                <div class="col-md-3"><label class="form-label small">Début</label><input type="date" name="date_debut" id="documentDebut" class="form-control form-control-sm" value="{{ today()->toDateString() }}"></div>
+                <div class="col-md-2"><label class="form-label small">Jours</label><input type="number" min="1" max="365" name="jours" id="documentJours" class="form-control form-control-sm" value="3"></div>
+                <div class="col-md-3"><label class="form-label small">Motif</label><input id="documentMotif" class="form-control form-control-sm" maxlength="255" placeholder="Ex. paludisme simple"></div>
+            </div>
+            <label class="form-label small">Texte du document (modifiable)</label>
+            <textarea name="contenu" id="documentContenu" class="form-control" rows="9" required></textarea>
+            <p class="small text-muted mb-0 mt-1">Le document est numéroté, conservé au dossier du patient, et s'ouvre en impression après enregistrement.</p>
+        </div>
+        <div class="modal-footer"><button class="btn btn-primary">Enregistrer et imprimer</button></div>
+    </form>
+</div></div>
+@endcan
+
+@can('parcours.constantes')
+    @if($consultation->visite)
+        <div class="modal fade" id="modalConstantes" tabindex="-1"><div class="modal-dialog">
+            <form method="POST" action="{{ route('parcours.consultation.constantes', $consultation) }}" class="modal-content">@csrf
+                <div class="modal-header"><h5 class="modal-title">Constantes</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body row g-2">
+                    <div class="col-4"><label class="form-label small">Température (°C)</label><input type="number" step="0.1" name="temperature" class="form-control"></div>
+                    <div class="col-4"><label class="form-label small">TA systolique</label><input type="number" name="tension_systolique" class="form-control"></div>
+                    <div class="col-4"><label class="form-label small">TA diastolique</label><input type="number" name="tension_diastolique" class="form-control"></div>
+                    <div class="col-4"><label class="form-label small">Pouls</label><input type="number" name="pouls" class="form-control"></div>
+                    <div class="col-4"><label class="form-label small">SpO₂ (%)</label><input type="number" name="saturation_o2" class="form-control"></div>
+                    <div class="col-4"><label class="form-label small">Poids (kg)</label><input type="number" step="0.01" name="poids_kg" class="form-control"></div>
+                    <div class="col-12"><input name="notes" class="form-control form-control-sm" maxlength="255" placeholder="Remarque (facultatif)"></div>
+                    <div class="col-12 small text-muted">Enregistrer les constantes sauvegarde d'abord la page : pensez à cliquer « Enregistrer sans terminer » avant, si vous avez déjà saisi l'ordonnance.</div>
+                </div>
+                <div class="modal-footer"><button class="btn btn-primary">Enregistrer les constantes</button></div>
+            </form>
+        </div></div>
+    @endif
+@endcan
 
 <div class="modal fade" id="modalModele" tabindex="-1"><div class="modal-dialog">
     <form method="POST" action="{{ route('parcours.consultation.modeles.store', $consultation) }}" class="modal-content">@csrf
@@ -259,17 +338,66 @@
         document.getElementById('totalActes').textContent = gnf(total);
     }
 
-    // Recherche dans le catalogue, sans aller-retour serveur.
+    // Recherche dans le catalogue embarqué ; si le catalogue est trop gros pour être
+    // envoyé à la page (connexion lente), on interroge le serveur.
+    const urlActes = @json(route('parcours.consultation.actes', $consultation));
+
+    function afficherResultats(cat, liste) {
+        const zone = document.querySelector('.js-resultats[data-cat="' + cat + '"]');
+        zone.innerHTML = liste.slice(0, 12).map(a =>
+            '<button type="button" class="chip js-ajout" data-cat="' + cat + '" data-ligne=\'' + JSON.stringify(a).replace(/'/g, '&#39;') + '\'>+ ' + a.nom + ' — ' + gnf(a.prix) + ' GNF</button>'
+        ).join('') || '<span class="small text-muted">Aucun résultat.</span>';
+    }
+
     document.querySelectorAll('.js-recherche').forEach(function (input) {
+        let minuterie = null;
         input.addEventListener('input', function () {
-            const cat = input.dataset.cat, terme = input.value.trim().toLowerCase();
+            const cat = input.dataset.cat, terme = input.value.trim();
             const zone = document.querySelector('.js-resultats[data-cat="' + cat + '"]');
+            clearTimeout(minuterie);
             if (terme.length < 2) { zone.innerHTML = ''; return; }
-            zone.innerHTML = catalogue[cat].filter(a => a.nom.toLowerCase().includes(terme)).slice(0, 12).map(a =>
-                '<button type="button" class="chip js-ajout" data-cat="' + cat + '" data-ligne=\'' + JSON.stringify(a).replace(/'/g, '&#39;') + '\'>+ ' + a.nom + ' — ' + gnf(a.prix) + ' GNF</button>'
-            ).join('') || '<span class="small text-muted">Aucun résultat.</span>';
+
+            if ((catalogue[cat] || []).length) {
+                afficherResultats(cat, catalogue[cat].filter(a => a.nom.toLowerCase().includes(terme.toLowerCase())));
+                return;
+            }
+
+            minuterie = setTimeout(function () {
+                fetch(urlActes + '?categorie=' + cat + '&q=' + encodeURIComponent(terme), { headers: { 'Accept': 'application/json' } })
+                    .then(r => r.ok ? r.json() : [])
+                    .then(liste => afficherResultats(cat, liste));
+            }, 300);
         });
     });
+
+    // Brouillon local : une coupure réseau ou un refus d'enregistrement ne doit pas
+    // effacer ce que le médecin vient de saisir.
+    const cleBrouillon = 'consultation-{{ $consultation->id }}';
+
+    function sauverBrouillon() {
+        try {
+            localStorage.setItem(cleBrouillon, JSON.stringify({
+                actes: etat.actes, signes: etat.signes,
+                diagnostic: document.getElementById('champDiagnostic').value,
+                observation: document.querySelector('textarea[name="observation"]').value,
+                le: Date.now(),
+            }));
+        } catch (e) { /* stockage indisponible : on continue sans brouillon */ }
+    }
+
+    function restaurerBrouillon() {
+        try {
+            const brut = localStorage.getItem(cleBrouillon);
+            if (!brut) return;
+            const b = JSON.parse(brut);
+            if (Date.now() - (b.le || 0) > 12 * 3600 * 1000) { localStorage.removeItem(cleBrouillon); return; }
+            if (b.diagnostic && !document.getElementById('champDiagnostic').value) document.getElementById('champDiagnostic').value = b.diagnostic;
+            const observation = document.querySelector('textarea[name="observation"]');
+            if (b.observation && !observation.value) observation.value = b.observation;
+            (b.signes || []).forEach(s => { if (!etat.signes.includes(s)) etat.signes.push(s); });
+            Object.keys(b.actes || {}).forEach(cat => (b.actes[cat] || []).forEach(l => ajouter(cat, l)));
+        } catch (e) { /* brouillon illisible : on l'ignore */ }
+    }
 
     document.addEventListener('click', function (e) {
         const ajout = e.target.closest('.js-ajout');
@@ -334,6 +462,35 @@
     document.getElementById('boutonTerminer').addEventListener('click', function () { document.getElementById('champAction').value = 'terminer'; });
 
     // Les lignes et les signes deviennent des champs cachés au moment de l'envoi.
+    // Document médical : le texte type se recharge à chaque changement de type ou de durée.
+    const urlModele = @json(route('parcours.documents.modele', $consultation));
+    const champsDocument = ['documentType', 'documentDebut', 'documentJours', 'documentMotif'].map(id => document.getElementById(id)).filter(Boolean);
+
+    function chargerModeleDocument() {
+        const contenu = document.getElementById('documentContenu');
+        if (!contenu) return;
+        const parametres = new URLSearchParams({
+            type: document.getElementById('documentType').value,
+            date_debut: document.getElementById('documentDebut').value || '',
+            jours: document.getElementById('documentJours').value || '',
+            motif: document.getElementById('documentMotif').value || '',
+        });
+        fetch(urlModele + '?' + parametres.toString(), { headers: { 'Accept': 'application/json' } })
+            .then(r => r.ok ? r.json() : null)
+            .then(d => { if (d && d.contenu) contenu.value = d.contenu; });
+    }
+
+    champsDocument.forEach(champ => champ.addEventListener('change', chargerModeleDocument));
+    const modalDocument = document.getElementById('modalDocument');
+    if (modalDocument) modalDocument.addEventListener('shown.bs.modal', chargerModeleDocument);
+
+    setInterval(sauverBrouillon, 15000);
+    document.addEventListener('input', sauverBrouillon);
+    @if(! session('error'))
+        try { localStorage.removeItem(cleBrouillon); } catch (e) {}
+    @endif
+    restaurerBrouillon();
+
     document.getElementById('formConsultation').addEventListener('submit', function () {
         const zone = document.getElementById('zoneActes');
         zone.innerHTML = '';

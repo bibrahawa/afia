@@ -2,7 +2,10 @@
 
 use App\Http\Controllers\Parcours\AccueilController;
 use App\Http\Controllers\Parcours\ConsultationRapideController;
+use App\Http\Controllers\Parcours\CroissanceController;
+use App\Http\Controllers\Parcours\DocumentMedicalController;
 use App\Http\Controllers\Parcours\DossierController;
+use App\Http\Controllers\Parcours\SalleAttenteController;
 use App\Http\Controllers\Parcours\GrossesseController;
 use App\Http\Controllers\Parcours\StatistiqueController;
 use App\Http\Controllers\Parcours\FileAttenteController;
@@ -22,6 +25,12 @@ Route::middleware('can:parcours.accueil')->group(function () {
     Route::post('accueil/rendez-vous/{appointment}/absent', [AccueilController::class, 'absent'])->name('accueil.absent');
     Route::post('accueil/visites/{visite}/transferer', [AccueilController::class, 'transferer'])->name('accueil.transferer');
     Route::post('accueil/visites/{visite}/partie', [AccueilController::class, 'partie'])->name('accueil.partie');
+
+    // L'accueil décide qui passe (lot 3d)
+    Route::post('accueil/visites/{visite}/prioriser', [AccueilController::class, 'prioriser'])->name('accueil.prioriser');
+    Route::post('accueil/visites/{visite}/deplacer', [AccueilController::class, 'deplacer'])->name('accueil.deplacer');
+    Route::post('accueil/visites/{visite}/ordre-par-defaut', [AccueilController::class, 'reinitialiserOrdre'])->name('accueil.ordre-defaut');
+    Route::post('accueil/ordre-file', [AccueilController::class, 'reglageOrdre'])->name('accueil.reglage-ordre');
 });
 
 Route::middleware('can:parcours.constantes')->group(function () {
@@ -36,6 +45,8 @@ Route::middleware('can:parcours.file')->group(function () {
     // Écran de consultation rapide (lot 3b)
     Route::get('consultations/{consultation}', [ConsultationRapideController::class, 'show'])->name('consultation.show');
     Route::post('consultations/{consultation}/enregistrer', [ConsultationRapideController::class, 'enregistrer'])->name('consultation.enregistrer');
+    Route::get('consultations/{consultation}/actes', [ConsultationRapideController::class, 'actes'])->name('consultation.actes');
+    Route::post('consultations/{consultation}/constantes', [ConsultationRapideController::class, 'constantes'])->name('consultation.constantes');
     Route::get('consultations/{consultation}/modeles/{modele}', [ConsultationRapideController::class, 'modele'])->name('consultation.modele');
     Route::post('consultations/{consultation}/modeles', [ConsultationRapideController::class, 'enregistrerModele'])->name('consultation.modeles.store');
     Route::delete('modeles/{modele}', [ConsultationRapideController::class, 'supprimerModele'])->name('modeles.destroy');
@@ -56,4 +67,21 @@ Route::middleware('can:parcours.grossesse')->group(function () {
 
 Route::middleware('can:parcours.statistiques')->group(function () {
     Route::get('statistiques', [StatistiqueController::class, 'index'])->name('statistiques.index');
+});
+
+// ---------------------------------------------------------------- Documents, croissance, salle d'attente (lot 3e)
+Route::middleware('can:parcours.dossier')->group(function () {
+    Route::get('patients/{patientId}/croissance', [CroissanceController::class, 'show'])->whereNumber('patientId')->name('croissance.show');
+    Route::get('patients/{patientId}/documents', [DocumentMedicalController::class, 'index'])->whereNumber('patientId')->name('documents.index');
+    Route::get('documents/{document}/imprimer', [DocumentMedicalController::class, 'imprimer'])->name('documents.imprimer');
+});
+
+Route::middleware('can:parcours.document')->group(function () {
+    Route::get('consultations/{consultation}/documents/modele', [DocumentMedicalController::class, 'modele'])->name('documents.modele');
+    Route::post('consultations/{consultation}/documents', [DocumentMedicalController::class, 'store'])->name('documents.store');
+    Route::post('documents/{document}/annuler', [DocumentMedicalController::class, 'annuler'])->name('documents.annuler');
+});
+
+Route::middleware('can:parcours.accueil')->group(function () {
+    Route::get('salle-attente', [SalleAttenteController::class, 'index'])->name('salle-attente.index');
 });

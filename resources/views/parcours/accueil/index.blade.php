@@ -69,7 +69,18 @@
         {{-- ------------------------------------------------ File du jour --}}
         <div class="col-lg-7">
             <div class="card">
-                <div class="card-header"><h4 class="card-title">File d'attente du jour</h4></div>
+                <div class="card-header d-flex flex-wrap align-items-center gap-2">
+                    <h4 class="card-title mb-0">File d'attente du jour</h4>
+                    @php $ordreActuel = \App\Support\EtablissementContext::current()?->ordre_file ?? 'arrivee'; @endphp
+                    <form method="POST" action="{{ route('parcours.accueil.reglage-ordre') }}" class="ms-auto d-flex gap-1 align-items-center">@csrf
+                        <span class="small text-muted">Les patients passent :</span>
+                        <select name="ordre_file" class="form-control form-control-sm" style="width:auto">
+                            <option value="arrivee" @selected($ordreActuel === 'arrivee')>dans l'ordre d'arrivée</option>
+                            <option value="rendez_vous" @selected($ordreActuel === 'rendez_vous')>rendez-vous d'abord</option>
+                        </select>
+                        <button class="btn btn-sm btn-outline-primary">Appliquer</button>
+                    </form>
+                </div>
                 <div class="card-body table-responsive">
                     <table class="table table-sm align-middle">
                         <thead><tr><th>Arrivée</th><th>Patient</th><th>Médecin</th><th>Constantes</th><th>Caisse</th><th>Statut</th><th></th></tr></thead>
@@ -77,7 +88,9 @@
                         @forelse($visites as $v)
                             @php $transaction = $v->consultation?->transaction; @endphp
                             <tr class="{{ $v->urgence && $v->statut->estActive() ? 'table-danger' : '' }}">
-                                <td class="small">{{ $v->arrivee_le->format('H:i') }}@if($v->statut === \App\Enums\Parcours\StatutVisite::EnAttente)<div class="text-muted">{{ $v->minutesAttente() }} min</div>@endif</td>
+                                <td class="small">{{ $v->arrivee_le->format('H:i') }}
+                                    @if($v->statut === \App\Enums\Parcours\StatutVisite::EnAttente)<div class="text-muted">{{ $v->minutesAttente() }} min</div>@endif
+                                    @if($v->rang !== null)<span class="badge badge-light" title="Ordre imposé par l'accueil">ordre manuel</span>@endif</td>
                                 <td>{{ $v->patient->full_name }}<div class="small text-muted">{{ $v->motif }}</div></td>
                                 <td class="small">Dr {{ $v->medecin->full_name }}</td>
                                 <td>
@@ -97,16 +110,28 @@
                                 <td><span class="badge badge-{{ $v->statut->badge() }}">{{ $v->statut->libelle() }}</span></td>
                                 <td class="text-end text-nowrap">
                                     @if($v->statut === \App\Enums\Parcours\StatutVisite::EnAttente)
+                                        <form method="POST" action="{{ route('parcours.accueil.prioriser', $v) }}" class="d-inline">@csrf
+                                            <button class="btn btn-sm btn-outline-success" title="Faire passer maintenant"><i class="fa fa-angle-double-up"></i></button></form>
+                                        <form method="POST" action="{{ route('parcours.accueil.deplacer', $v) }}" class="d-inline">@csrf
+                                            <input type="hidden" name="direction" value="haut">
+                                            <button class="btn btn-sm btn-outline-secondary" title="Monter d'une place"><i class="fa fa-arrow-up"></i></button></form>
+                                        <form method="POST" action="{{ route('parcours.accueil.deplacer', $v) }}" class="d-inline">@csrf
+                                            <input type="hidden" name="direction" value="bas">
+                                            <button class="btn btn-sm btn-outline-secondary" title="Descendre d'une place"><i class="fa fa-arrow-down"></i></button></form>
                                         <details class="d-inline-block">
                                             <summary class="btn btn-sm btn-outline-secondary"><i class="fa fa-ellipsis-h"></i></summary>
-                                            <div class="position-absolute bg-white border shadow p-2" style="z-index:10; right:1rem; width:260px">
+                                            <div class="position-absolute bg-white border shadow p-2" style="z-index:10; right:1rem; width:280px">
                                                 <form method="POST" action="{{ route('parcours.accueil.transferer', $v) }}" class="d-flex gap-1 mb-2">@csrf
                                                     <select name="medecin_id" class="form-control form-control-sm">
                                                         @foreach($medecins as $m)<option value="{{ $m->id }}" @selected($m->id === $v->medecin_id)>Dr {{ $m->full_name }}</option>@endforeach
                                                     </select>
                                                     <button class="btn btn-sm btn-primary">Transférer</button>
                                                 </form>
+                                                <form method="POST" action="{{ route('parcours.accueil.ordre-defaut', $v) }}" class="mb-2">@csrf
+                                                    <button class="btn btn-sm btn-outline-secondary w-100">Revenir à l'ordre de la clinique</button></form>
                                                 <form method="POST" action="{{ route('parcours.accueil.partie', $v) }}" onsubmit="return confirm('Le patient est reparti sans consulter ?');">@csrf
+                                                    <input name="motif" class="form-control form-control-sm mb-1" maxlength="255" placeholder="Motif (facultatif)">
+                                                    <label class="small d-block mb-1"><input type="hidden" name="annuler_facture" value="0"><input type="checkbox" name="annuler_facture" value="1" checked> Annuler la facture de l'acte (si rien n'est encaissé)</label>
                                                     <button class="btn btn-sm btn-outline-danger w-100">Reparti sans consulter</button></form>
                                             </div>
                                         </details>

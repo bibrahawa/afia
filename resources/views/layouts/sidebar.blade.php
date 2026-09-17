@@ -66,6 +66,15 @@
                     </li>
                 @endcan
 
+                @can('parcours.accueil')
+                    <li class="nav-item {{ request()->routeIs('parcours.salle-attente.*') ? 'active' : '' }}">
+                        <a href="{{ route('parcours.salle-attente.index') }}" target="_blank">
+                            <i class="fas fa-tv"></i>
+                            <p>Écran salle d'attente</p>
+                        </a>
+                    </li>
+                @endcan
+
                 @can('parcours.file')
                     <li class="nav-item {{ request()->routeIs('parcours.file.*') ? 'active' : '' }}">
                         <a href="{{ route('parcours.file.index') }}">

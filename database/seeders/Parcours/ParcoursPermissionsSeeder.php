@@ -21,13 +21,14 @@ class ParcoursPermissionsSeeder extends Seeder
         'parcours.dossier' => 'Consulter le dossier du patient en frise et les suivis de grossesse',
         'parcours.grossesse' => 'Ouvrir, corriger et clôturer un suivi de grossesse',
         'parcours.statistiques' => 'Consulter les statistiques de consultation',
+        'parcours.document' => 'Établir un certificat médical ou un arrêt de travail',
     ];
 
     public const ROLES = [
-        'secretaire' => ['parcours.accueil', 'parcours.constantes', 'parcours.dossier', 'parcours.grossesse'],
-        'medecin' => ['parcours.file', 'parcours.constantes', 'parcours.dossier', 'parcours.grossesse', 'parcours.statistiques'],
-        'admin' => ['parcours.accueil', 'parcours.constantes', 'parcours.file', 'parcours.dossier', 'parcours.grossesse', 'parcours.statistiques'],
-        'super-admin' => ['parcours.accueil', 'parcours.constantes', 'parcours.file', 'parcours.dossier', 'parcours.grossesse', 'parcours.statistiques'],
+        'secretaire' => ['parcours.accueil', 'parcours.constantes', 'parcours.dossier'],
+        'medecin' => ['parcours.file', 'parcours.constantes', 'parcours.dossier', 'parcours.grossesse', 'parcours.statistiques', 'parcours.document'],
+        'admin' => ['parcours.accueil', 'parcours.constantes', 'parcours.file', 'parcours.dossier', 'parcours.grossesse', 'parcours.statistiques', 'parcours.document'],
+        'super-admin' => ['parcours.accueil', 'parcours.constantes', 'parcours.file', 'parcours.dossier', 'parcours.grossesse', 'parcours.statistiques', 'parcours.document'],
     ];
 
     public function run(): void

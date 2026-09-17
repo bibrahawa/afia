@@ -342,6 +342,11 @@ class ConsultationController extends Controller
 
         $this->autoriserEditionClinique($consultation);
 
+        // Lot 3d : un seul chemin d'édition pour les consultations issues de la file d'attente.
+        if ($consultation->visite_id && \Illuminate\Support\Facades\Route::has('parcours.consultation.show')) {
+            return redirect()->route('parcours.consultation.show', $consultation);
+        }
+
         $patients = Patient::suivisParEtablissement()->orderBy('last_name')->get();
         $services = Service::all();
         $tests = Test::all();
