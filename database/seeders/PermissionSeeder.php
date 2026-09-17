@@ -6,24 +6,38 @@ use App\Models\Permission;
 use App\Models\Role;
 use Illuminate\Database\Seeder;
 
+/**
+ * SOURCE DE VÉRITÉ UNIQUE des permissions par rôle.
+ *
+ * syncPermissions() : chaque rôle reçoit exactement la liste ci-dessous.
+ * Toute permission ajoutée à la main dans l'interface et absente d'ici
+ * disparaît au prochain lancement — ajoutez-la ici.
+ *
+ * CORRECTIONS
+ * - Les permissions labo sont intégrées : relancer ce seeder ne les retire
+ *   plus au rôle admin.
+ * - Les permissions PLATEFORME (etablissement.*, module.*) sont réservées au
+ *   rôle super-admin. Un admin de clinique qui les avait pouvait gérer tous
+ *   les établissements de la plateforme.
+ * - Rôles créés s'ils manquent : le seeder peut tourner seul sans planter
+ *   sur un rôle null.
+ */
 class PermissionSeeder extends Seeder
 {
-    public function run()
+    public function run(): void
     {
-        $adminRole = Role::where('name', 'admin')->first();
-        $medecinRole = Role::where('name', 'medecin')->first();
-        $comptableRole = Role::where('name', 'comptable')->first();
-        $secretaireRole = Role::where('name', 'secretaire')->first();
-
-        // NOUVEAU — manquait entièrement : sans ces permissions, même
-        // l'admin n'avait accès à aucune des pages construites pendant la
-        // refonte (établissements, modules, motifs de rdv, consentement).
-        $nouvellesPermissions = [
+        $plateforme = [
             'etablissement.view', 'etablissement.create', 'etablissement.edit',
             'etablissement.delete', 'etablissement.licence',
             'module.view', 'module.create', 'module.edit', 'module.delete',
-            'motif_rdv.view', 'motif_rdv.create', 'motif_rdv.edit', 'motif_rdv.delete',
-            'consentement.demander', 'consentement.revoquer',
+        ];
+
+        $labo = [
+            'labo.tableau_bord', 'labo.catalogue.view', 'labo.catalogue.manage',
+            'labo.demande.view', 'labo.demande.create', 'labo.demande.cancel',
+            'labo.prelevement', 'labo.reception', 'labo.resultat.saisir',
+            'labo.validation.technique', 'labo.validation.biologique',
+            'labo.compte_rendu.publier', 'labo.compte_rendu.view', 'labo.facturation',
         ];
 
         $adminPermissions = array_merge([
@@ -52,7 +66,9 @@ class PermissionSeeder extends Seeder
             'invoice_item.view', 'invoice_item.create', 'invoice_item.edit', 'invoice_item.delete',
             'payment.view', 'payment.process', 'payment.calculate', 'payment.hospitalisation',
             'insurance_balance.view', 'insurance_balance.show', 'insurance_balance.payment', 'insurance_balance.export',
-        ], $nouvellesPermissions);
+            'motif_rdv.view', 'motif_rdv.create', 'motif_rdv.edit', 'motif_rdv.delete',
+            'consentement.demander', 'consentement.revoquer',
+        ], $labo);
 
         $medecinPermissions = [
             'dashboard.view', 'dashboard.medecin',
@@ -68,6 +84,9 @@ class PermissionSeeder extends Seeder
             'department.view', 'service.view',
             'chambre.view',
             'patient_insurance.view',
+            'consentement.demander',
+            // Le médecin prescrit des analyses et lit les résultats de ses patients.
+            'labo.demande.view', 'labo.demande.create', 'labo.compte_rendu.view', 'labo.catalogue.view',
         ];
 
         $comptablePermissions = [
@@ -85,12 +104,11 @@ class PermissionSeeder extends Seeder
             'invoice_item.view', 'invoice_item.create', 'invoice_item.edit', 'invoice_item.delete',
             'payment.view', 'payment.process', 'payment.calculate', 'payment.hospitalisation',
             'insurance_balance.view', 'insurance_balance.show', 'insurance_balance.payment', 'insurance_balance.export',
+            // Encaissement des analyses et remise des résultats réglés.
+            'labo.demande.view', 'labo.facturation', 'labo.catalogue.view',
         ];
 
-        // NOUVEAU : la secrétaire est celle qui prend les rdv pour les
-        // patients au téléphone (storeParStaff) — sans motif_rdv.view et
-        // employee.edit, le formulaire "Nouveau rendez-vous" resterait
-        // inutilisable pour elle (motifs jamais chargés).
+        // La secrétaire prend les rdv au téléphone et enregistre les demandes d'analyses au guichet.
         $secretairePermissions = [
             'dashboard.view',
             'patient.view', 'patient.create', 'patient.edit', 'patient.add_file',
@@ -106,25 +124,32 @@ class PermissionSeeder extends Seeder
             'insurance_company.view', 'insurance_coverage.view', 'patient_insurance.view',
             'payment.view', 'payment.calculate',
             'motif_rdv.view',
+            'labo.demande.view', 'labo.demande.create', 'labo.compte_rendu.view', 'labo.catalogue.view',
         ];
 
-        // Union de toutes les listes : garantit qu'aucune permission
-        // utilisée par syncPermissions() plus bas ne manque à l'appel (ce
-        // qui ferait échouer syncPermissions avec une exception
-        // PermissionDoesNotExist côté Spatie). firstOrCreate plutôt que
-        // create : rejouer ce seeder ne doit jamais planter sur une
-        // contrainte d'unicité si les permissions existent déjà.
-        $toutesLesPermissions = array_unique(array_merge(
-            $adminPermissions, $medecinPermissions, $comptablePermissions, $secretairePermissions
-        ));
+        // Administrateur PLATEFORME (équipe Aprosafe, compte sans établissement) : tout.
+        $superAdminPermissions = array_merge($adminPermissions, $plateforme);
 
-        foreach ($toutesLesPermissions as $permission) {
+        $toutes = array_unique(array_merge($superAdminPermissions, $medecinPermissions, $comptablePermissions, $secretairePermissions));
+
+        foreach ($toutes as $permission) {
             Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
         }
 
-        $adminRole->syncPermissions($adminPermissions);
-        $medecinRole->syncPermissions($medecinPermissions);
-        $comptableRole->syncPermissions($comptablePermissions);
-        $secretaireRole->syncPermissions($secretairePermissions);
+        $roles = [
+            'super-admin' => $superAdminPermissions,
+            'admin' => $adminPermissions,
+            'medecin' => $medecinPermissions,
+            'comptable' => $comptablePermissions,
+            'secretaire' => $secretairePermissions,
+        ];
+
+        foreach ($roles as $nom => $permissions) {
+            Role::firstOrCreate(['name' => $nom, 'guard_name' => 'web'])->syncPermissions($permissions);
+        }
+
+        app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
+
+        $this->command?->info('Permissions synchronisées : ' . implode(', ', array_keys($roles)));
     }
 }

@@ -2,167 +2,119 @@
 
 namespace Database\Seeders;
 
+use App\Models\Department;
+use App\Models\Employee;
+use App\Models\Etablissement;
 use App\Models\Role;
 use App\Models\User;
-use App\Models\Employee;
-use App\Models\Department;
-use App\Models\Etablissement;
-use App\Models\Permission;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 
+/**
+ * Rôles + comptes de référence.
+ *
+ * CORRECTIONS
+ * - Ne vide PLUS les tables de rôles et permissions. Avant, un simple
+ *   `php artisan db:seed` retirait les rôles de TOUS les utilisateurs réels.
+ * - Chaque compte du personnel est rattaché à l'établissement
+ *   (users.etablissement_id). Avant, seul l'employé l'était : compte admin
+ *   sans établissement → menu labo invisible, écrans vides après la
+ *   Priorité 1.
+ * - Ajout des comptes manquants : administrateur plateforme et les 4 rôles
+ *   du laboratoire.
+ * - Rôles tous créés ici, avant assignRole (les rôles labo n'existaient
+ *   qu'après LaboPermissionsSeeder → erreur RoleDoesNotExist).
+ *
+ * Comptes EXISTANTS : rôle, établissement et employé remis en état ; le mot
+ * de passe n'est jamais écrasé. Pour le changer :
+ *   php artisan aprosafe:compte <téléphone> --mot-de-passe="..."
+ *
+ * ATTENTION : syncRoles() — un compte de référence qui avait reçu un rôle
+ * supplémentaire à la main le perd (ex. admin + Biologiste → admin, qui a
+ * de toute façon toutes les permissions labo).
+ *
+ * ⚠️ Mots de passe de référence : à changer dès la première connexion en production.
+ */
 class UsersSeeder extends Seeder
 {
-    /**
-     * PRÉREQUIS : EtablissementFoundationSeeder doit avoir tourné avant
-     * celui-ci — on a besoin d'un Etablissement existant pour rattacher
-     * explicitement département et employés. Un seeder tourne en console,
-     * sans requête HTTP : EtablissementContext (qui remplit
-     * etablissement_id automatiquement ailleurs dans l'app) n'a aucun
-     * contexte à résoudre ici, il faut donc le faire à la main.
-     */
-    public function run()
+    public const ROLES = [
+        'super-admin', 'admin', 'medecin', 'comptable', 'secretaire', 'patient',
+        'Accueil laboratoire', 'Préleveur', 'Technicien de laboratoire', 'Biologiste',
+    ];
+
+    public function run(): void
     {
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
 
-        echo "🧹 Nettoyage des données existantes...\n";
-
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-        DB::table('model_has_permissions')->truncate();
-        DB::table('model_has_roles')->truncate();
-        DB::table('role_has_permissions')->truncate();
-        DB::table('permissions')->truncate();
-        DB::table('roles')->truncate();
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
-
-        echo "✅ Tables nettoyées\n\n";
+        foreach (self::ROLES as $role) {
+            Role::firstOrCreate(['name' => $role, 'guard_name' => 'web']);
+        }
+        $this->command?->info('Rôles présents : ' . implode(', ', self::ROLES));
 
         $etablissement = Etablissement::where('slug', 'aprosafe')->first();
-
         if (! $etablissement) {
-            echo "⚠️  Aucun établissement 'aprosafe' trouvé — lance d'abord EtablissementFoundationSeeder.\n";
-            echo "    Les employés créés ici resteraient sans etablissement_id (invisibles partout).\n";
+            $this->command?->error("Établissement « aprosafe » absent : lancez EtablissementFoundationSeeder d'abord.");
+
+            return;
         }
 
-        // ==========================================
-        // RÔLES
-        // ==========================================
-        echo "📋 Création des rôles...\n";
-
-        Role::create(['name' => 'patient', 'guard_name' => 'web']);
-        $adminRole = Role::create(['name' => 'admin', 'guard_name' => 'web']);
-        $medecinRole = Role::create(['name' => 'medecin', 'guard_name' => 'web']);
-        $comptableRole = Role::create(['name' => 'comptable', 'guard_name' => 'web']);
-        $secretaireRole = Role::create(['name' => 'secretaire', 'guard_name' => 'web']);
-
-        echo "  ✓ Admin\n  ✓ Médecin\n  ✓ Comptable\n  ✓ Secrétaire\n\n";
-
-        // ==========================================
-        // PERMISSIONS
-        // ==========================================
-        // Liste déplacée et complétée dans PermissionSeeder — inclut
-        // désormais etablissement.*, module.*, motif_rdv.*, consentement.*
-        // qui manquaient totalement ici. On ne la duplique plus dans ce
-        // fichier pour éviter les deux sources de vérité qui divergent.
-        echo "🔑 Les permissions sont créées par PermissionSeeder — lance-le juste après celui-ci.\n\n";
-
-        // ==========================================
-        // UTILISATEURS DE TEST
-        // ==========================================
-        echo "👥 Création des utilisateurs de test...\n";
-
-        $admin = User::firstOrCreate(
-            ['email' => 'admin@aprosafe.com'],
-            ['name' => 'Admin', 'phone' => '622099672', 'password' => 'Admin@01']
+        $gyneco = Department::withoutGlobalScopes()->updateOrCreate(
+            ['name' => 'GYNECOLOGIE', 'etablissement_id' => $etablissement->id], []
         );
-        DB::table('model_has_roles')->where('model_id', $admin->id)->delete();
-        $admin->assignRole('admin');
-        echo "  ✓ admin\n";
-
-        $medecin = User::firstOrCreate(
-            ['email' => 'binta@aprosafe.com'],
-            ['name' => 'Medecin', 'phone' => '625476844', 'password' => 'binta@01']
-        );
-        DB::table('model_has_roles')->where('model_id', $medecin->id)->delete();
-        $medecin->assignRole('medecin');
-        echo "  ✓ medecin\n";
-
-        $comptable = User::firstOrCreate(
-            ['email' => 'comptable@aprosafe.com'],
-            ['name' => 'comptable', 'phone' => '625000000', 'password' => 'comptable@01']
-        );
-        DB::table('model_has_roles')->where('model_id', $comptable->id)->delete();
-        $comptable->assignRole('comptable');
-        echo "  ✓ comptable\n";
-
-        $secretaire = User::firstOrCreate(
-            ['email' => 'secretaire@aprosafe.com'],
-            ['name' => 'secretaire', 'phone' => '626000000', 'password' => 'secretaire@01']
-        );
-        DB::table('model_has_roles')->where('model_id', $secretaire->id)->delete();
-        $secretaire->assignRole('secretaire');
-        echo "  ✓ secretaire\n\n";
-
-        // ==========================================
-        // DÉPARTEMENT ET EMPLOYÉS — etablissement_id EXPLICITE
-        // ==========================================
-        $department = Department::updateOrCreate(
-            ['name' => 'GYNECOLOGIE', 'etablissement_id' => $etablissement?->id],
-            []
+        $labo = Department::withoutGlobalScopes()->updateOrCreate(
+            ['name' => 'LABORATOIRE', 'etablissement_id' => $etablissement->id], []
         );
 
-        // 'type' aligné sur l'énumération réelle d'employees.type — voir
-        // la migration qui l'élargit (Admin, Secretary ajoutés).
-        Employee::updateOrCreate(
-            ['user_id' => $admin->id],
-            [
-                'etablissement_id' => $etablissement?->id,
-                'first_name' => 'Admin', 'last_name' => 'Admin',
-                'address' => 'Conakry, Guinea', 'education' => 'MBA',
-                'description' => 'Administrateur du système',
-                'certificate' => 'Admin Certificate', 'speciality' => 'Administration',
-                'type' => 'Admin',
-                'department_id' => $department->id,
-            ]
-        );
+        // [email, nom, téléphone, mot de passe, rôle, type employé, prénom, nom employé, spécialité, département, rattaché ?]
+        $comptes = [
+            // Administrateur PLATEFORME : volontairement SANS établissement (voit toutes les cliniques).
+            ['superadmin@aprosafe.com', 'Super Admin', '620000000', 'SuperAdmin@01', 'super-admin', 'Admin', 'Super', 'Admin', 'Plateforme', $gyneco, false],
 
-        Employee::updateOrCreate(
-            ['user_id' => $medecin->id],
-            [
-                'etablissement_id' => $etablissement?->id,
-                'first_name' => 'Fatoumata Binta', 'last_name' => 'Diallo',
-                'address' => 'Conakry, Guinea', 'education' => 'MBA',
-                'description' => 'Médecin gynécologue',
-                'certificate' => 'Certificat médical', 'speciality' => 'GYNECOLOGIE',
-                'type' => 'Doctor',
-                'department_id' => $department->id,
-            ]
-        );
+            ['admin@aprosafe.com', 'Admin', '622099672', 'Admin@01', 'admin', 'Admin', 'Admin', 'Admin', 'Administration', $gyneco, true],
+            ['binta@aprosafe.com', 'Medecin', '625476844', 'binta@01', 'medecin', 'Doctor', 'Fatoumata Binta', 'Diallo', 'GYNECOLOGIE', $gyneco, true],
+            ['comptable@aprosafe.com', 'comptable', '625000000', 'comptable@01', 'comptable', 'Accountant', 'Comptable', 'Aprosafe', 'Comptabilité', $gyneco, true],
+            ['secretaire@aprosafe.com', 'secretaire', '626000000', 'secretaire@01', 'secretaire', 'Secretary', 'Secrétaire', 'Aprosafe', 'Accueil', $gyneco, true],
 
-        Employee::updateOrCreate(
-            ['user_id' => $comptable->id],
-            [
-                'etablissement_id' => $etablissement?->id,
-                'first_name' => 'Comptable', 'last_name' => 'Aprosafe',
-                'address' => 'Conakry, Guinea', 'education' => 'MBA',
-                'description' => 'Comptable', 'certificate' => 'Certificat', 'speciality' => 'Comptabilité',
-                'type' => 'Accountant',
-                'department_id' => $department->id,
-            ]
-        );
+            // Laboratoire
+            ['accueil.labo@aprosafe.com', 'Accueil Labo', '627000001', 'AccueilLabo@01', 'Accueil laboratoire', 'Reception', 'Accueil', 'Laboratoire', 'Accueil laboratoire', $labo, true],
+            ['preleveur@aprosafe.com', 'Préleveur', '627000002', 'Preleveur@01', 'Préleveur', 'Nurse', 'Préleveur', 'Aprosafe', 'Prélèvements', $labo, true],
+            ['technicien@aprosafe.com', 'Technicien Labo', '627000003', 'Technicien@01', 'Technicien de laboratoire', 'Laboratory', 'Technicien', 'Laboratoire', 'Analyses', $labo, true],
+            ['biologiste@aprosafe.com', 'Biologiste', '627000004', 'Biologiste@01', 'Biologiste', 'Laboratory', 'Biologiste', 'Aprosafe', 'Biologie médicale', $labo, true],
+        ];
 
-        Employee::updateOrCreate(
-            ['user_id' => $secretaire->id],
-            [
-                'etablissement_id' => $etablissement?->id,
-                'first_name' => 'Secrétaire', 'last_name' => 'Aprosafe',
-                'address' => 'Conakry, Guinea', 'education' => 'MBA',
-                'description' => 'Secrétaire d\'accueil', 'certificate' => 'Certificat', 'speciality' => 'Accueil',
-                'type' => 'Secretary',
-                'department_id' => $department->id,
-            ]
-        );
+        $lignes = [];
 
-        echo "✅ Département et employés créés" . ($etablissement ? " pour {$etablissement->nom}\n" : ", SANS établissement (à corriger)\n");
+        foreach ($comptes as [$email, $nom, $telephone, $motDePasse, $role, $type, $prenomEmp, $nomEmp, $specialite, $departement, $rattache]) {
+            $user = User::where('email', $email)->orWhere('phone', $telephone)->first();
+            $cree = ! $user;
+
+            // Le cast « hashed » du modèle User chiffre le mot de passe.
+            $user ??= User::create(['email' => $email, 'name' => $nom, 'phone' => $telephone, 'password' => $motDePasse]);
+
+            $user->forceFill([
+                'etablissement_id' => $rattache ? $etablissement->id : null,
+                'login_attempts' => 0,
+                'locked_until' => null,
+            ])->save();
+
+            $user->syncRoles([$role]);
+
+            // Pas de fiche employé pour l'administrateur plateforme : il n'appartient à aucune clinique.
+            if ($rattache) Employee::withoutGlobalScopes()->updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'etablissement_id' => $etablissement->id,
+                    'first_name' => $prenomEmp, 'last_name' => $nomEmp,
+                    'address' => 'Conakry, Guinée', 'description' => $specialite,
+                    'speciality' => $specialite, 'type' => $type,
+                    'department_id' => $departement->id, 'is_active' => true,
+                ]
+            );
+
+            $lignes[] = [$role, $user->phone, $user->email, $cree ? $motDePasse : '(inchangé)', $rattache ? $etablissement->slug : 'AUCUN (plateforme)'];
+        }
+
+        app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
+
+        $this->command?->table(['Rôle', 'Téléphone (connexion)', 'E-mail', 'Mot de passe', 'Établissement'], $lignes);
     }
 }

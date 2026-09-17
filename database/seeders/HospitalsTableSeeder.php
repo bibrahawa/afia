@@ -2,36 +2,50 @@
 
 namespace Database\Seeders;
 
+use App\Models\Etablissement;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 
-
+/**
+ * CORRIGÉ — la table `hospitals` n'existe plus : ses informations ont été
+ * reprises dans `etablissements`. Ce seeder remplit désormais la fiche de
+ * l'établissement Aprosafe (en-têtes de factures, comptes rendus labo…).
+ * Nom de classe conservé pour ne casser aucun appel existant.
+ *
+ * Ne remplace que les champs vides : une fiche modifiée depuis l'interface
+ * n'est jamais écrasée.
+ */
 class HospitalsTableSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     *
-     * @return void
-     */
-    public function run()
+    public function run(): void
     {
-    	 DB::table('hospitals')->insert([
-            'name' => 'Clinique Aprosafe',
-            'slogan' => 'Excelling Incase...',
+        $aprosafe = Etablissement::where('slug', 'aprosafe')->first();
+
+        if (! $aprosafe) {
+            $this->command?->warn('Établissement « aprosafe » absent : lancez EtablissementFoundationSeeder d\'abord.');
+
+            return;
+        }
+
+        $infos = [
             'logo' => 'assets/logo/logo.png',
-            'address' => 'Kiroti, Conakry, Republique de Guinée',
+            'adresse' => 'Kiroti, Conakry, République de Guinée',
             'contact' => '+224 628 16 44 22',
             'email' => 'infos@cliniqueaprosafe.com',
-            'pan_no' => '123',
-            'registration_no' => '12345',
-            'website' => 'cliniqueaprosafe.com',
-            'description' => "La Clinique Aprosafe est un établissement médical dédié à prendre soin de votre santé, en mettant l'accent sur la gynécologie, la santé maternelle et la planification familiale. Notre équipe de professionnels de la santé qualifiés et bienveillants est là pour vous accompagner à chaque étape de votre parcours de santé. À la Clinique Aprosafe, notre engagement envers votre bien-être va au-delà du traitement médical. Nous nous efforçons de créer un environnement accueillant et confortable où vous pouvez vous sentir en confiance pour partager vos préoccupations de santé",
-            'tax_type' => 'Health Tax',
-            'tax_percent' => 0,
-            'invoice_prefix'=>'AP-',
-            'patient_prefix' => 'PA-',
-            'invoice_message'=> 'Invoice',
-        ]);
+            'site_web' => 'cliniqueaprosafe.com',
+            'numero_pan' => '123',
+            'numero_enregistrement' => '12345',
+            'description' => "La Clinique Aprosafe est un établissement médical dédié à prendre soin de votre santé, en mettant l'accent sur la gynécologie, la santé maternelle et la planification familiale.",
+            'type_taxe' => 'Health Tax',
+            'taux_taxe' => 0,
+            'prefixe_facture' => 'AP-',
+            'prefixe_patient' => 'PA-',
+            'message_facture' => 'Merci de votre confiance',
+        ];
 
+        $aRemplir = collect($infos)->filter(fn ($valeur, $champ) => blank($aprosafe->{$champ}) || in_array($aprosafe->{$champ}, ['FAC-', 'PAT-'], true)); // FAC-/PAT- = valeurs par défaut de la migration
+
+        $aprosafe->forceFill($aRemplir->all())->save();
+
+        $this->command?->info('Fiche Aprosafe complétée : ' . ($aRemplir->keys()->implode(', ') ?: 'rien à compléter'));
     }
 }

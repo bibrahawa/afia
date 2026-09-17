@@ -9,9 +9,8 @@ use Illuminate\Database\Seeder;
 class EtablissementFoundationSeeder extends Seeder
 {
     /**
-     * Catalogue de modules — à compléter au fil des phases (laboratoire en
-     * Phase 5, pharmacie plus tard...). Les codes ne doivent jamais changer
-     * une fois utilisés dans le middleware/les vues.
+     * Catalogue de modules. Les codes ne doivent jamais changer une fois
+     * utilisés dans le middleware « module:xxx » et les vues.
      */
     protected array $modules = [
         ['code' => 'rdv', 'nom' => 'Rendez-vous'],
@@ -23,29 +22,26 @@ class EtablissementFoundationSeeder extends Seeder
         ['code' => 'pharmacie', 'nom' => 'Pharmacie'],
     ];
 
+    /** Modules actifs pour Aprosafe. CORRIGÉ : « laboratoire » manquait (menu labo invisible). */
+    protected array $modulesAprosafe = ['rdv', 'consultation', 'hospitalisation', 'assurance', 'facturation_avancee', 'laboratoire'];
+
     public function run(): void
     {
-        $modules = collect($this->modules)->mapWithKeys(function ($m) {
-            return [$m['code'] => Module::firstOrCreate(['code' => $m['code']], $m)];
-        });
+        $modules = collect($this->modules)->mapWithKeys(fn ($m) => [
+            $m['code'] => Module::firstOrCreate(['code' => $m['code']], $m),
+        ]);
 
-        // Aprosafe = premier établissement, en phase d'essai (comme
-        // convenu : on garde ses patients, le reste est réinitialisé).
         $aprosafe = Etablissement::firstOrCreate(
             ['slug' => 'aprosafe'],
-            [
-                'nom' => 'Clinique Médico-Chirurgicale Aprosafe',
-                'type' => 'clinique',
-                'statut' => 'essai',
-            ]
+            ['nom' => 'Clinique Médico-Chirurgicale Aprosafe', 'type' => 'clinique', 'statut' => 'essai']
         );
 
         $aprosafe->modules()->syncWithoutDetaching(
-            collect(['rdv', 'consultation', 'hospitalisation', 'assurance', 'facturation_avancee'])
-                ->mapWithKeys(fn ($code) => [
-                    $modules[$code]->id => ['est_actif' => true, 'active_depuis' => now()],
-                ])
+            collect($this->modulesAprosafe)
+                ->mapWithKeys(fn ($code) => [$modules[$code]->id => ['est_actif' => true, 'active_depuis' => now(), 'desactive_le' => null]])
                 ->toArray()
         );
+
+        $this->command?->info("Établissement Aprosafe #{$aprosafe->id} : " . implode(', ', $this->modulesAprosafe));
     }
 }
