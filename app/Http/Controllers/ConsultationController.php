@@ -456,11 +456,15 @@ class ConsultationController extends Controller
             $transaction = $consultation->transaction;
 
             if ($transaction) {
-                $account = $transaction->account;
-                if ($account) {
-                    $account->balance -= (float) $transaction->sub_total;
-                    $account->save();
+                // CORRIGÉ : supprimer une pièce déjà encaissée effaçait la trace de l'argent reçu
+                // (paiements supprimés) et faussait le solde (on retirait le total, pas le reste dû).
+                if ($transaction->paiements()->exists()) {
+                    DB::rollBack();
+
+                    return redirect()->back()->with('error', 'Des paiements ont déjà été enregistrés sur cette facture : suppression impossible. Remboursez ou annulez les paiements d\'abord.');
                 }
+
+                app(\App\Services\PatientAccountService::class)->retirerTransaction($transaction);
 
                 if ($transaction->invoice) {
                     $transaction->invoice->items()->delete();

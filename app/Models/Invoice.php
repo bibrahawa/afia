@@ -79,8 +79,10 @@ class Invoice extends Model
         ]);
 
         // Mettre à jour le statut de la transaction si nécessaire
-        if ($this->patient_amount_status === 'paid') {
-            $this->transaction->update(['status' => 'completed']);
+        // CORRIGÉ : posait « completed », valeur absente de l'énumération transactions.status
+        // (erreur SQL en mode strict, statut vide sinon). Le statut est recalculé par la règle commune.
+        if ($this->transaction) {
+            app(\App\Services\TransactionStatusService::class)->refresh($this->transaction);
         }
 
     }

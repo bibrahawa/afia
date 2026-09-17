@@ -599,14 +599,6 @@ Route::middleware('auth')->group(function () {
         Route::post('test/delete', [PackageController::class, 'packageTestDelete'])
             ->middleware('permission:package.edit')
             ->name('test.delete');
-
-        Route::post('sale', [PackageController::class, 'packageSale'])
-            ->middleware('permission:package.sale')
-            ->name('sale');
-
-        Route::get('sale/{id}', [PackageController::class, 'packageSales'])
-            ->middleware('permission:package.sale')
-            ->name('sales');
     });
 
     // ============================================

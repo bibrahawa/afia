@@ -3,16 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\ServiceSale;
-use App\Models\Service;
-use App\Models\OpdSales;
-use App\Models\Doctor;
-use App\Models\PackageSale;
-use App\Models\Package;
 use App\Models\Patient;
 use App\Models\Transaction;
-use App\Models\Paiement;
-use App\Models\Consultation;
 
 class AccountController extends Controller
 {
@@ -28,82 +20,46 @@ class AccountController extends Controller
         return view('invoices.unpaid', compact('transactionsDu'));
     }
 
-   public function payer(Request $request)
-   {
+    /**
+     * Encaissement global d'un patient (écran « factures impayées »).
+     *
+     * CORRIGÉ — dupliquait la logique de PaymentService avec ses propres
+     * règles : statut « paid » dès que montant_payer atteignait le total
+     * (part assurance ignorée), solde modifié en lecture-écriture non
+     * atomique, plantage si le patient n'avait pas de compte, aucune
+     * transaction SQL. Tout passe désormais par PaymentService.
+     */
+    public function payer(Request $request, \App\Services\PaymentService $paiements)
+    {
+        $donnees = $request->validate([
+            'patient_id' => 'required|exists:patients,id',
+            'montant' => 'required|numeric|min:1',
+            'source' => 'required|string|max:50',
+            'description' => 'nullable|string|max:255',
+        ]);
 
-       $request->validate([
-           'montant' => 'required|numeric|min:1',
-           'source' => 'required|string'
-       ]);
+        $patient = Patient::findOrFail($donnees['patient_id']);
 
-       $montant = $request->montant;
+        try {
+            $resultat = $paiements->payPatientForPatient(
+                patient: $patient,
+                amount: (float) $donnees['montant'],
+                paymentMethod: $donnees['source'],
+                description: $donnees['description'] ?? null,
+            );
+        } catch (\InvalidArgumentException $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
 
-       if ($montant == 0 || $montant == null || $montant < 0) {
-           return redirect()->back()->with('error', 'Please enter a valid amount.');
-       }
+        if ($resultat['paid_amount'] <= 0) {
+            return redirect()->back()->with('error', 'Aucune somme due pour ce patient dans cet établissement.');
+        }
 
-       $patient = Patient::find($request->patient_id);
-       $transactions = $patient->getPendingAndPartialTransaction();
+        $message = 'Paiement enregistré : ' . number_format($resultat['paid_amount'], 0, ',', ' ') . ' GNF.';
+        if ($resultat['remaining_amount'] > 0) {
+            $message .= ' Trop-perçu non affecté : ' . number_format($resultat['remaining_amount'], 0, ',', ' ') . ' GNF (à rendre au patient).';
+        }
 
-       foreach ($transactions as $transaction) {
-           if ($montant > 0) {
-               $payer = $transaction->montant_payer;
-               $total = $transaction->total;
-
-               if ($payer < $total) {
-                   $montantRestant = $total - $payer;
-                   if ($montant >= $montantRestant) {
-                       $transaction->montant_payer += $montantRestant;
-                       $payer = $montantRestant;
-                       $montant -= $montantRestant;
-                   } else {
-                       $transaction->montant_payer += $montant;
-                       $payer = $montant;
-                       $montant = 0;
-                    }
-
-                   // Calculer le montant réellement payé pour cette transaction
-                   $montantPayePourCetteTransaction = ($montant >= $montantRestant) ? $montantRestant : $payer;
-
-                    // dd($montantPayePourCetteTransaction, $montantRestant, $montant, $payer);
-
-                   if ($transaction->save()) {
-                       $paiement = new Paiement();
-                       $paiement->user_id = auth()->user()->id;
-                       $paiement->patient_id = $patient->id;
-                       $paiement->transaction_id = $transaction->id;
-                       $paiement->source = $request->source;
-                       $paiement->description = $request->description;
-                       $paiement->montant = $montantPayePourCetteTransaction; // Montant réel pour cette transaction
-
-                       if ($paiement->save()) {
-                           // Mettre à jour le statut de la transaction
-                           if ($transaction->montant_payer >= $transaction->total) {
-                               $transaction->status = 'paid';
-                           } else {
-                               $transaction->status = 'partial';
-                           }
-                           $transaction->save();
-
-                       } else {
-                           return redirect()->back()->with('error', 'Error saving payment.');
-                       }
-                   } else {
-                       return redirect()->back()->with('error', 'Error saving transaction.');
-                   }
-               }
-           }
-       }
-
-       // Déduire le montant total payé du solde du compte (une seule fois à la fin)
-       $montantTotalPaye = $request->montant - $montant; // Ce qui reste dans $montant n'a pas été utilisé
-       if ($montantTotalPaye > 0) {
-           $account = $patient->account;
-           $account->balance -= $montantTotalPaye;
-           $account->save();
-       }
-
-       return redirect()->back()->with('success', 'Payment successful.');
-   }
-
+        return redirect()->back()->with('success', $message);
+    }
 }

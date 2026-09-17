@@ -33,18 +33,11 @@ class PaymentService
             $transaction->loadMissing('patient.account', 'invoice');
 
             $invoice = $transaction->invoice;
-            if (!$invoice) {
-                throw new InvalidArgumentException('Aucune facture liée à cette transaction.');
-            }
-
-            $alreadyPaid = $this->getPaidAmountForTransaction($transaction, 'PATIENT');
-            $patientDue = max(0, (float) $invoice->patient_amount - $alreadyPaid);
+            $patientDue = $this->resteDuPatient($transaction);
 
             if ($patientDue <= 0) {
-                $transaction->update(['status' => 'paid']);
-                $invoice->update(['patient_amount_status' => 'paid']);
-
-                // throw new InvalidArgumentException('La part patient est déjà réglée.');
+                // CORRIGÉ : continuait et créait un paiement de 0 GNF.
+                throw new InvalidArgumentException('La part patient est déjà réglée.');
             }
 
             $amountToApply = min($amount, $patientDue);
@@ -61,10 +54,8 @@ class PaymentService
             $transaction->montant_payer += $amountToApply;
             $transaction->save();
 
-            if ($transaction->patient && $transaction->patient->account) {
-                $transaction->patient->account->balance -= $amountToApply;
-                $transaction->patient->account->save();
-            }
+            // Débite le compte de CETTE transaction, de façon atomique.
+            $this->patientAccountService->debiterPourTransaction($transaction, $amountToApply);
 
             $this->refreshStatuses($transaction);
 
@@ -110,10 +101,8 @@ class PaymentService
             $transaction->montant_payer += $amountToApply;
             $transaction->save();
 
-            if ($transaction->patient && $transaction->patient->account) {
-                $transaction->patient->account->balance -= $amountToApply;
-                $transaction->patient->account->save();
-            }
+            // Débite le compte de CETTE transaction, de façon atomique.
+            $this->patientAccountService->debiterPourTransaction($transaction, $amountToApply);
 
             $this->refreshStatuses($transaction);
 
@@ -147,13 +136,8 @@ class PaymentService
                     break;
                 }
 
-                $invoice = $transaction->invoice;
-                if (!$invoice) {
-                    continue;
-                }
-
-                $alreadyPaid = $this->getPaidAmountForTransaction($transaction, 'PATIENT');
-                $patientDue = max(0, (float) $invoice->patient_amount - $alreadyPaid);
+                // CORRIGÉ : les pièces anciennes sans facture étaient ignorées (paiement non appliqué).
+                $patientDue = $this->resteDuPatient($transaction);
 
                 if ($patientDue <= 0) {
                     continue;
@@ -173,10 +157,8 @@ class PaymentService
                 $transaction->montant_payer += $amountToApply;
                 $transaction->save();
 
-                if ($patient->account) {
-                    $patient->account->balance -= $amountToApply;
-                    $patient->account->save();
-                }
+                // Débite le compte de CETTE transaction, de façon atomique.
+                $this->patientAccountService->debiterPourTransaction($transaction, $amountToApply);
 
                 $this->refreshStatuses($transaction);
 
@@ -247,10 +229,8 @@ class PaymentService
                 $transaction->montant_payer += $amountToApply;
                 $transaction->save();
 
-                if ($transaction->patient && $transaction->patient->account) {
-                    $transaction->patient->account->balance -= $amountToApply;
-                    $transaction->patient->account->save();
-                }
+                // Débite le compte de CETTE transaction, de façon atomique.
+                $this->patientAccountService->debiterPourTransaction($transaction, $amountToApply);
 
                 $this->refreshStatuses($transaction);
 
@@ -296,6 +276,17 @@ class PaymentService
         return (float) Paiement::where('transaction_id', $transaction->id)
             ->where('type', 'remboursement')
             ->sum('montant');
+    }
+
+    /**
+     * Part patient restant due. Pièce sans facture (anciennes consultations) :
+     * pas de part assurance connue, tout le total est à la charge du patient.
+     */
+    private function resteDuPatient(Transaction $transaction): float
+    {
+        $partPatient = $transaction->invoice ? (float) $transaction->invoice->patient_amount : (float) $transaction->total;
+
+        return max(0, round($partPatient - $this->getPaidAmountForTransaction($transaction, 'PATIENT'), 2));
     }
 
     private function refreshStatuses(Transaction $transaction): void

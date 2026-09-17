@@ -14,7 +14,13 @@ class TransactionStatusService
         $invoice = $transaction->invoice;
 
         if (!$invoice) {
-            $transaction->status = 'pending';
+            // CORRIGÉ : une pièce sans facture restait « pending » même intégralement payée.
+            $paye = (float) Paiement::where('transaction_id', $transaction->id)->sum('montant');
+            $transaction->status = match (true) {
+                $paye >= (float) $transaction->total - 0.01 => 'paid',
+                $paye > 0 => 'partial',
+                default => 'pending',
+            };
             $transaction->save();
 
             return $transaction->fresh(['invoice']);

@@ -427,7 +427,9 @@ class InvoicesController extends Controller
         $patient = Patient::with('activeInsurance')->find($request->patient_id);
         $patientAmount = $this->calculatePatientAmount($patient, $consultationAmount);
         
-        $accountID = TransactionService::mettreAJourCompte($request->patient_id, Patient::class, $patientAmount, 'credit');
+        // CORRIGÉ : créditait la seule part patient alors que les encaissements (patient ET assurance)
+        // débitent le compte : le solde des patients assurés devenait négatif. Convention unique : le total.
+        $accountID = app(\App\Services\PatientAccountService::class)->credit($patient, $consultationAmount)->id;
 
         return $consultation->transaction()->create([
             'user_id'         => auth()->id(),
