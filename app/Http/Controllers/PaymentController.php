@@ -55,9 +55,12 @@ class PaymentController extends Controller
 
         $payload = $this->itemBuilder->buildFromTransaction($transaction);
 
+        // Aperçu : la consommation déjà enregistrée par CETTE facture est exclue.
         $calculation = $this->insuranceService->calculateInsuranceCoverage(
-            $request->patient_id,
-            $payload['items']
+            $transaction->patient_id,
+            $payload['items'],
+            $transaction->created_at,
+            $transaction->invoice?->id
         );
 
         return response()->json([

@@ -15,7 +15,7 @@ class Service extends Model
 
     
     
-	protected $fillable = ['name', 'amount', 'department_id'];
+	protected $fillable = ['name', 'amount', 'department_id', 'famille_acte'];
 
     public function department()
     {

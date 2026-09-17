@@ -8,8 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Garanties d'une catégorie de personnel au sein d'un contrat (ex. « Cadres »,
- * « Agents »). Le détail par famille d'actes (taux et plafonds par acte,
- * exclusions, accord préalable) arrive avec le nouveau moteur de calcul.
+ * « Agents »). Écarts par famille d'actes : FormuleGarantie.
  */
 class Formule extends Model
 {
@@ -43,6 +42,17 @@ class Formule extends Model
     public function contrat()
     {
         return $this->belongsTo(Contrat::class);
+    }
+
+    public function garanties()
+    {
+        return $this->hasMany(FormuleGarantie::class);
+    }
+
+    /** Règles propres à une famille d'actes, ou null (règles générales de la formule). */
+    public function garantiePour(\App\Enums\Assurance\FamilleActe $famille): ?FormuleGarantie
+    {
+        return $this->garanties->first(fn (FormuleGarantie $g) => $g->famille_acte === $famille);
     }
 
     public function adhesions()

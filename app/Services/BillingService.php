@@ -139,9 +139,12 @@ class BillingService
 
             $payload = $this->itemBuilder->buildFromTransaction($transaction);
 
+            // Droits et plafonds évalués à la date de la pièce, pas au jour du recalcul.
             $calculation = $this->insuranceCalculationService->calculateInsuranceCoverage(
                 $transaction->patient_id,
-                $payload['items']
+                $payload['items'],
+                $transaction->created_at,
+                $transaction->invoice->id
             );
 
             $invoice = $this->invoiceService->createOrUpdateInvoice(

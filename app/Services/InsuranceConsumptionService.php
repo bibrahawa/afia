@@ -26,6 +26,17 @@ class InsuranceConsumptionService
         }
 
         $this->createInsuranceClaims($invoice, $insurancesUsed, $patientId);
+
+        // Bons de prise en charge consommés par cette facture (lot 2b).
+        foreach ($insurancesUsed as $insuranceData) {
+            foreach ($insuranceData['prises_en_charge'] ?? [] as $priseEnChargeId => $montant) {
+                \App\Models\Assurance\PecUtilisation::create([
+                    'prise_en_charge_id' => $priseEnChargeId,
+                    'invoice_id' => $invoice->id,
+                    'montant' => $montant,
+                ]);
+            }
+        }
     }
 
     public function createInsuranceClaims(Invoice $invoice, array $insurancesUsed, int $patientId): void
@@ -74,6 +85,7 @@ class InsuranceConsumptionService
         }
 
         InsuranceClaim::where('invoice_id', $invoice->id)->delete();
+        \App\Models\Assurance\PecUtilisation::where('invoice_id', $invoice->id)->delete();
     }
 
     /** CLM-2026000123 — numérotation atomique propre à l'établissement (fini le count()+1 à doublons). */

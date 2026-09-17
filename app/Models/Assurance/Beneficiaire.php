@@ -51,6 +51,11 @@ class Beneficiaire extends Model
         return $this->belongsTo(Patient::class);
     }
 
+    public function prisesEnCharge()
+    {
+        return $this->hasMany(PriseEnCharge::class);
+    }
+
     /** Ligne lue par le moteur de calcul actuel (pont jusqu'à l'étape 2b). */
     public function projection()
     {

@@ -81,6 +81,7 @@
                                                     data-bs-toggle="modal"
                                                     data-bs-target="#editRowModal"
                                                     data-info="{{$service->id}},{{$service->name}},{{$service->department_id}},{{$service->amount}}"
+                                                    data-famille="{{ $service->famille_acte ?? 'consultation' }}"
                                                 >
                                                     <i class="fa fa-edit"></i>
                                                 </button>
@@ -153,6 +154,17 @@
                                             </div>
                                         </div>
 
+                                        <div class="col-sm-12">
+                                            <div class="form-group">
+                                                <label>Famille d'actes (garanties des assurances)</label>
+                                                <select class="form-control" name="famille_acte" >
+                                                    @foreach(\App\Enums\Assurance\FamilleActe::cases() as $familleActe)
+                                                        <option value="{{ $familleActe->value }}" @selected($familleActe === \App\Enums\Assurance\FamilleActe::Consultation)>{{ $familleActe->libelle() }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                        </div>
+
                                     </div>
                                 </form>
                             </div>
@@ -216,6 +228,17 @@
                                                     <input type="text" id="edit_amount" name="amount" class="form-control" aria-label="Amount (to the nearest dollar)">
                                                     <span class="input-group-text">GNF</span>
                                                 </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-sm-12">
+                                            <div class="form-group">
+                                                <label>Famille d'actes (garanties des assurances)</label>
+                                                <select class="form-control" name="famille_acte" id="edit_famille_acte">
+                                                    @foreach(\App\Enums\Assurance\FamilleActe::cases() as $familleActe)
+                                                        <option value="{{ $familleActe->value }}" @selected($familleActe === \App\Enums\Assurance\FamilleActe::Consultation)>{{ $familleActe->libelle() }}</option>
+                                                    @endforeach
+                                                </select>
                                             </div>
                                         </div>
                                     </div>
@@ -291,6 +314,7 @@
             $('#edit_name').val(serviceName);
             $('#edit_department_id').val(serviceDepartmentId);
             $('#edit_amount').val(serviceAmount);
+            $('#edit_famille_acte').val($(this).data('famille') || 'consultation');
 
             // Afficher le modal
             $('#editRowModal').modal('show');

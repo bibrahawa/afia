@@ -12,7 +12,7 @@
         <div class="card-header d-flex align-items-center">
             <h4 class="card-title">Assurance et employeur</h4>
             @can('assurance.referentiel.view')
-                <a href="{{ route('assurance.contrats.index') }}" class="btn btn-sm btn-outline-primary ms-auto">Contrats</a>
+                <a href="{{ route('assurance.droits.show', $patient->id) }}" class="btn btn-sm btn-primary ms-auto"><i class="fa fa-check-circle"></i> Vérifier les droits</a>
             @endcan
         </div>
         <div class="card-body">

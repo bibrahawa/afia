@@ -22,6 +22,7 @@ class Invoice extends Model
         'total_amount',
         'patient_amount',
         'insurance_amount',
+        'alertes_assurance',
         'insurance_status',
         'patient_amount_status',
         'insurance_submission_date',
@@ -31,6 +32,7 @@ class Invoice extends Model
     ];
 
     protected $casts = [
+        'alertes_assurance' => 'array',
         'total_amount' => 'decimal:2',
         'patient_amount' => 'decimal:2',
         'insurance_amount' => 'decimal:2',
@@ -107,6 +109,12 @@ class Invoice extends Model
         return $this->belongsTo(PatientInsurance::class);
     }
     
+    /** Une réclamation par payeur ayant pris en charge une part de la facture. */
+    public function insuranceClaims(): HasMany
+    {
+        return $this->hasMany(InsuranceClaim::class);
+    }
+
     public function items(): HasMany
     {
         return $this->hasMany(InvoiceItem::class);

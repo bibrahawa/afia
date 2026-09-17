@@ -56,52 +56,18 @@ class Api_PatientInsuranceController extends Controller
     }
 
     /**
-     * Créer une nouvelle assurance patient
+     * DÉSACTIVÉ (lot 2b) — ces méthodes n'étaient reliées à aucune route et
+     * écrivaient directement dans patient_insurances, sans passer par le
+     * référentiel assurance (contrat, formule, adhésion, bénéficiaire).
+     * Toute création ou modification passe par Assurance\ReferentielAssuranceService.
      */
     public function store(Request $request)
     {
-        $request->validate([
-            'patient_id' => 'required|exists:patients,id',
-            'insurance_company_id' => 'required|exists_etablissement:insurance_companies,id',
-            'policy_number' => 'required|string|max:255',
-            'start_date' => 'required|date',
-            'end_date' => 'nullable|date|after:start_date',
-            'annual_limit' => 'nullable|numeric|min:0',
-            'notes' => 'nullable|string'
-        ]);
-
-        // Vérifier que la police n'existe pas déjà pour ce patient et cette compagnie
-        $existingPolicy = PatientInsurance::where('patient_id', $request->patient_id)
-            ->where('insurance_company_id', $request->insurance_company_id)
-            ->where('policy_number', $request->policy_number)
-            ->where('status', 'active')
-            ->first();
-
-        if ($existingPolicy) {
-            return redirect()->back()->with('error', 'Cette police d\'assurance existe déjà pour ce patient.');
-        }
-
-        PatientInsurance::create($request->all());
-
-        return redirect()->back()->with('success', 'Assurance patient créée avec succès.');
+        abort(410, 'Utilisez le module Assurance (contrats et adhésions).');
     }
 
-    /**
-     * Mettre à jour une assurance patient
-     */
     public function update(Request $request, PatientInsurance $patientInsurance)
     {
-        $request->validate([
-            'policy_number' => 'required|string|max:255',
-            'start_date' => 'required|date',
-            'end_date' => 'nullable|date|after:start_date',
-            'status' => 'required|in:active,suspended,expired',
-            'annual_limit' => 'nullable|numeric|min:0',
-            'notes' => 'nullable|string'
-        ]);
-
-        $patientInsurance->update($request->all());
-
-        return redirect()->back()->with('success', 'Assurance patient mise à jour avec succès.');
+        abort(410, 'Utilisez le module Assurance (contrats et adhésions).');
     }
 }

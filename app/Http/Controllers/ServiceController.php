@@ -34,7 +34,8 @@ class ServiceController extends Controller
         $request->validate([
             'name'=>'required',
             'amount'=>'required|numeric',
-            'department_id' => 'required'
+            'department_id' => 'required',
+            'famille_acte' => ['nullable', \Illuminate\Validation\Rule::enum(\App\Enums\Assurance\FamilleActe::class)],
         ]);
 
         $tax = Hospital::first()->tax_percent;
@@ -59,7 +60,8 @@ class ServiceController extends Controller
     public function update(Request $request)
     {
          $tax = Hospital::first()->tax_percent;
-        $request->validate( ['name'=>'required','amount'=>'required|numeric' , 'department_id' => 'required|numeric']);
+        $request->validate(['name' => 'required', 'amount' => 'required|numeric', 'department_id' => 'required|numeric',
+            'famille_acte' => ['nullable', \Illuminate\Validation\Rule::enum(\App\Enums\Assurance\FamilleActe::class)]]);
         $data = Service::find ( $request->id );
         $data->name = ($request->name);
 
@@ -71,6 +73,7 @@ class ServiceController extends Controller
 
         $data->amount = ($request->amount);
         $data->department_id = ($request->department_id);
+        $data->famille_acte = $request->input('famille_acte', $data->famille_acte);
         $data->save ();
         return back()->with('success', 'Service Updated successfully');
         //

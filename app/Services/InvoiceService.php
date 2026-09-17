@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
-use App\Models\PatientInsurance;
 use App\Models\Transaction;
 use App\Support\Facturation\TypesFacturables;
 
@@ -37,14 +36,15 @@ class InvoiceService
 
         $remisesExistantes = $invoice->exists ? $this->remisesParLigne($invoice) : [];
 
-        $firstInsurance = PatientInsurance::where('patient_id', $transaction->patient_id)
-            ->where('status', 'active')
-            ->with('insuranceCompany')
-            ->first();
+        // Payeur principal : le premier de la chaîne qui a réellement pris en charge
+        // (les autres payeurs ont chacun leur réclamation). Avant : « la première
+        // assurance active » du patient, même si elle ne couvrait rien.
+        $principal = $calculation['insurances_used'][0] ?? null;
 
         $invoice->fill([
-            'insurance_company_id' => $firstInsurance?->insurance_company_id,
-            'patient_insurance_id' => $firstInsurance?->id,
+            'insurance_company_id' => $principal['insurance_company_id'] ?? null,
+            'patient_insurance_id' => $principal['insurance_id'] ?? null,
+            'alertes_assurance' => ! empty($calculation['alertes']) ? array_values($calculation['alertes']) : null,
             'total_amount' => $calculation['total_amount'],
             'patient_amount' => $calculation['patient_amount'],
             'insurance_amount' => $calculation['insurance_coverage'],
@@ -77,6 +77,8 @@ class InvoiceService
                 'coverage_percentage_applied' => !empty($source['insurances_applied'])
                     ? $this->insuranceCalculationService->getAverageCoveragePercentage($source['insurances_applied'])
                     : 0,
+                // Qui paie quoi sur cette ligne, et pourquoi un payeur ne couvre pas.
+                'repartition_assurance' => !empty($source['repartition']) ? $source['repartition'] : null,
             ]);
 
             $cle = $this->cleLigne($ligne->coverage_type_type, $ligne->coverage_type_id);

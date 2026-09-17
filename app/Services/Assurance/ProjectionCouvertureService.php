@@ -11,20 +11,16 @@ use App\Models\PatientInsurance;
 use Carbon\Carbon;
 
 /**
- * PONT TEMPORAIRE entre le nouveau référentiel et le moteur de calcul actuel.
+ * Traduit chaque bénéficiaire du référentiel en une LIGNE DE COUVERTURE
+ * (`patient_insurances`) : dates effectives (carence, âge limite, fins de
+ * contrat/adhésion), statut, taux et plafond de base. C'est la ligne que
+ * référencent les réclamations et les factures ; le moteur de prise en charge
+ * (MoteurPriseEnCharge) la complète avec les règles de la formule (garanties
+ * par famille, plafond familial, bons).
  *
- * Le moteur (InsuranceCalculationService) lit `patient_insurances` : taux,
- * plafond, dates, statut, par patient. Chaque bénéficiaire du référentiel y
- * est projeté en UNE ligne, recalculée à chaque modification du contrat, de
- * la formule, de l'adhésion ou du bénéficiaire. Résultat : dès cette étape,
- * le conjoint et les enfants d'un adhérent sont réellement pris en charge à
- * la facturation.
- *
- * Ce que la projection ne sait pas exprimer (et que traitera le nouveau
- * moteur, étape 2b) : plafond FAMILIAL partagé, ordre de priorité entre deux
- * couvertures d'un même patient, garanties par famille d'actes.
- *
- * `used_amount` (consommation du plafond) n'est jamais écrasé.
+ * Recalculée à chaque modification du contrat, de la formule, de l'adhésion
+ * ou du bénéficiaire. `used_amount` n'est jamais écrasé (indicatif : les
+ * plafonds sont calculés à partir des réclamations de l'exercice).
  */
 class ProjectionCouvertureService
 {

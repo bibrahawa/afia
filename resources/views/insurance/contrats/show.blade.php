@@ -45,6 +45,13 @@
                             @if($f->plafond_annuel_famille) · famille {{ number_format((float) $f->plafond_annuel_famille, 0, ',', ' ') }} GNF @endif
                             @if($f->delai_carence_jours) · carence {{ $f->delai_carence_jours }} j @endif
                             · enfants ≤ {{ $f->age_max_enfant }} ans ({{ $f->age_max_enfant_etudiant }} étudiants)
+                            @foreach($f->garanties as $g)
+                                <div class="text-muted">{{ $g->famille_acte->libelle() }} :
+                                    {{ $g->exclu ? 'exclu' : ($g->taux !== null ? rtrim(rtrim(number_format((float) $g->taux, 2, ',', ' '), '0'), ',') . ' %' : 'taux général') }}
+                                    @if($g->plafond_par_acte !== null) · max {{ number_format((float) $g->plafond_par_acte, 0, ',', ' ') }} GNF/acte @endif
+                                    @if($g->accord_prealable) · accord préalable @endif
+                                </div>
+                            @endforeach
                         </li>
                     @empty
                         <li class="list-group-item small text-warning">Aucune formule : ajoutez-en une avant d'inscrire des adhérents.</li>

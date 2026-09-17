@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Assurance\AdhesionController;
 use App\Http\Controllers\Assurance\ContratController;
+use App\Http\Controllers\Assurance\DroitsController;
 use App\Http\Controllers\Assurance\EntrepriseController;
 use Illuminate\Support\Facades\Route;
 
@@ -20,6 +21,8 @@ Route::middleware('can:assurance.referentiel.view')->group(function () {
     Route::get('contrats', [ContratController::class, 'index'])->name('contrats.index');
     Route::get('contrats/{assuranceContrat}', [ContratController::class, 'show'])->name('contrats.show');
     Route::get('adhesions/{assuranceAdhesion}', [AdhesionController::class, 'show'])->name('adhesions.show');
+    // Vérification des droits à l'accueil
+    Route::get('patients/{patientId}/droits', [DroitsController::class, 'show'])->whereNumber('patientId')->name('droits.show');
 });
 
 Route::middleware('can:assurance.referentiel.manage')->group(function () {
@@ -40,4 +43,8 @@ Route::middleware('can:assurance.referentiel.manage')->group(function () {
     Route::post('adhesions/{assuranceAdhesion}/cloturer', [AdhesionController::class, 'cloturer'])->name('adhesions.cloturer');
     Route::post('adhesions/{assuranceAdhesion}/beneficiaires', [AdhesionController::class, 'ajouterBeneficiaire'])->name('beneficiaires.store');
     Route::post('beneficiaires/{assuranceBeneficiaire}/cloturer', [AdhesionController::class, 'cloturerBeneficiaire'])->name('beneficiaires.cloturer');
+
+    // Bons de prise en charge / accords préalables
+    Route::post('beneficiaires/{assuranceBeneficiaire}/bons', [DroitsController::class, 'enregistrerBon'])->name('bons.store');
+    Route::post('bons/{assurancePriseEnCharge}/annuler', [DroitsController::class, 'annulerBon'])->name('bons.annuler');
 });

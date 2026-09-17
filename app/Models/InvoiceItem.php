@@ -40,6 +40,7 @@ class InvoiceItem extends Model
         'insurance_covered_amount',
         'patient_amount',
         'coverage_percentage_applied',
+        'repartition_assurance',
     ];
 
     protected $casts = [
@@ -49,6 +50,7 @@ class InvoiceItem extends Model
         'patient_amount' => 'decimal:2',
         'coverage_percentage_applied' => 'decimal:2',
         'discount' => 'decimal:2',
+        'repartition_assurance' => 'array',
     ];
 
     public function invoice(): BelongsTo

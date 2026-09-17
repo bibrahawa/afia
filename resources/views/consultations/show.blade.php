@@ -987,6 +987,13 @@
                     </div>
 
                     <div class="card-body">
+                        @if(! empty($invoice?->alertes_assurance))
+                            <div class="alert alert-warning small">
+                                <strong><i class="fas fa-shield-alt me-1"></i>Prise en charge assurance :</strong>
+                                <ul class="mb-0">@foreach($invoice->alertes_assurance as $alerte)<li>{{ $alerte }}</li>@endforeach</ul>
+                            </div>
+                        @endif
+
                         @if($displayItems->count() > 0)
                             <div class="table-responsive">
                                 <table class="table table-hover align-middle">
@@ -1003,7 +1010,17 @@
                                         @foreach($displayItems as $index => $item)
                                             <tr>
                                                 <td>{{ $index + 1 }}</td>
-                                                <td><strong>{{ $item->description }}</strong></td>
+                                                <td><strong>{{ $item->description }}</strong>
+                                                    @if(! empty($item->repartition_assurance))
+                                                        <div class="small text-muted">
+                                                            @foreach($item->repartition_assurance as $part)
+                                                                {{ $part['payeur'] ?? '' }} :
+                                                                {{ ($part['montant'] ?? 0) > 0 ? number_format($part['montant'], 0, ',', ' ') . ' GNF' . (isset($part['taux']) ? ' (' . rtrim(rtrim(number_format($part['taux'], 2, ',', ''), '0'), ',') . ' %)' : '') : 'non pris en charge' }}@if(! empty($part['motif'])) — {{ $part['motif'] }}@endif@if(! $loop->last) · @endif
+                                                            @endforeach
+                                                            · patient : {{ number_format((float) ($item->patient_amount ?? 0), 0, ',', ' ') }} GNF
+                                                        </div>
+                                                    @endif
+                                                </td>
                                                 <td class="text-center">{{ $item->quantity }}</td>
                                                 <td class="text-end">{{ number_format($item->unit_price, 0, ',', ' ') }} GNF</td>
                                                 <td class="text-end"><strong>{{ number_format($item->total_amount, 0, ',', ' ') }} GNF</strong></td>

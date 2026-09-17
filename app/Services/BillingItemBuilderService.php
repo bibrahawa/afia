@@ -129,8 +129,8 @@ class BillingItemBuilderService
                 continue;
             }
 
-            $coverage = $this->findCoverage(LaboExamen::class, $ligne->examen_id, $insuranceId);
-            $amount = $coverage ? (float) $coverage->acte_price : (float) $ligne->prix_applique;
+            // Prix figé sur la ligne de demande ; la convention est appliquée par le moteur.
+            $amount = (float) $ligne->prix_applique;
 
             $items[] = [
                 'acte_type' => TypesFacturables::alias(LaboExamen::class),
@@ -185,25 +185,18 @@ class BillingItemBuilderService
         ];
     }
 
+    /**
+     * Prix du CATALOGUE. Depuis le lot 2b, le prix de convention est appliqué
+     * par le moteur de prise en charge (une seule fois, pour toute la chaîne
+     * des payeurs) : les paramètres assurance sont conservés pour compatibilité.
+     */
     private function resolveAmount(string $type, int $id, ?int $insuranceId, $acte): float
     {
-        $coverage = $this->findCoverage($type, $id, $insuranceId);
-
-        if ($coverage) {
-            return (float) $coverage->acte_price;
-        }
-
         return (float) ($acte->amount ?? $acte->price ?? $acte->chambre->prix_par_jour ?? 0);
     }
 
     private function resolveHospitalisationTotal(string $type, int $id, ?int $insuranceId, Hospitalisation $hospitalisation): float
     {
-        $coverage = $this->findCoverage($type, $id, $insuranceId);
-
-        if ($coverage) {
-            return (float) $coverage->acte_price * (int) $hospitalisation->nombre_jours;
-        }
-
         return (float) $hospitalisation->chambre->prix_par_jour * (int) $hospitalisation->nombre_jours;
     }
 
