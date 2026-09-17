@@ -164,10 +164,10 @@
                 <div class="item">
                     <div class="item-index">{{ $index + 1 }}.</div>
                     <div class="item-body">
-                        <div class="item-name">{{ $med->nom }}</div>
-                        <div>{{ $med->frequence }} - {{ $med->duree }}</div>
-                        @if($med->instructions)
-                            <div><em>{{ $med->instructions }}</em></div>
+                        <div class="item-name">{{ $med->nom }}@if($med->pivot->dose ?: $med->dosage) {{ $med->pivot->dose ?: $med->dosage }}@endif@if(($med->pivot->quantity ?? 1) > 1) — {{ $med->pivot->quantity }} boîte(s)@endif</div>
+                        <div>{{ $med->pivot->frequence ?: $med->frequence }} @if($med->pivot->duree ?: $med->duree)- {{ $med->pivot->duree ?: $med->duree }}@endif</div>
+                        @if($med->pivot->instructions ?: $med->instructions)
+                            <div><em>{{ $med->pivot->instructions ?: $med->instructions }}</em></div>
                         @endif
                     </div>
                 </div>

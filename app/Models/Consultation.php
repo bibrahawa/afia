@@ -15,12 +15,33 @@ class Consultation extends Model
     protected static array $etablissementDepuis = ['department_id' => Department::class];
 
     protected $fillable = [
+        'visite_id', 'appointment_id', 'grossesse_id', 'statut',
         'patient_id', 'department_id',
         'motif', 'signes_cliniques', 'diagnostic', 'medecin_id',
         'observation', 'prochain_rdv', 'prochain_medecin', 'est_facturee'
     ];
 
     protected $casts = ['signes_cliniques' => 'array'];
+
+    public const EN_COURS = 'en_cours';
+    public const TERMINEE = 'terminee';
+
+    /** Passage du patient (lot 3a) : arrivée, file d'attente, constantes. */
+    public function visite()
+    {
+        return $this->belongsTo(\App\Models\Parcours\Visite::class);
+    }
+
+    public function appointment()
+    {
+        return $this->belongsTo(Appointment::class);
+    }
+
+    /** Suivi de grossesse auquel cette consultation prénatale est rattachée (lot 3c). */
+    public function grossesse()
+    {
+        return $this->belongsTo(\App\Models\Parcours\Grossesse::class);
+    }
 
     public function patient()
     {
@@ -39,7 +60,7 @@ class Consultation extends Model
 
     public function medicaments()
     {
-        return $this->belongsToMany(Medicament::class, 'consultation_medicament')->withPivot('quantity');
+        return $this->belongsToMany(Medicament::class, 'consultation_medicament')->withPivot('quantity', 'dose', 'frequence', 'duree', 'instructions');
     }
 
     public function services()

@@ -484,6 +484,8 @@
                 </div>
 
                 <div class="card-body">
+                    @include('parcours.partials.resume-visite', ['consultation' => $consultation])
+
                     <form id="updateConsultationForm" action="{{ route('consultation.update', $consultation) }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         @method('PUT')

@@ -8,7 +8,7 @@
     non suivi a bien été trouvé par son numéro ou son identifiant exact.
 --}}
 @php $id = $id ?? 'patient'; @endphp
-<div class="assurance-choix-patient mb-2 position-relative" data-url="{{ route('assurance.patients.recherche') }}">
+<div class="assurance-choix-patient mb-2 position-relative" data-url="{{ $url ?? route('assurance.patients.recherche') }}">
     <label class="form-label">{{ $libelle ?? 'Patient' }} <span class="text-danger">*</span></label>
     <input type="hidden" name="patient_id" class="js-patient-id" required>
     <input type="hidden" name="preuve_identite" class="js-preuve">

@@ -1,0 +1,364 @@
+@extends('layouts.backend')
+
+@php
+    $gnf = fn ($m) => number_format((float) $m, 0, ',', ' ');
+    $patient = $consultation->patient;
+    $visite = $consultation->visite;
+    $initial = [
+        'services' => $consultation->services->map(fn ($a) => ['id' => $a->id, 'nom' => $a->name, 'prix' => (float) $a->amount, 'quantite' => 1])->values(),
+        'packages' => $consultation->packages->map(fn ($a) => ['id' => $a->id, 'nom' => $a->name, 'prix' => (float) $a->price, 'quantite' => 1])->values(),
+        'examens' => $consultation->tests->map(fn ($a) => ['id' => $a->id, 'nom' => $a->name, 'prix' => (float) $a->amount, 'quantite' => 1])->values(),
+        'medicaments' => $consultation->medicaments->map(fn ($a) => [
+            'id' => $a->id, 'nom' => $a->nom, 'prix' => (float) $a->amount,
+            'quantite' => (int) ($a->pivot->quantity ?: 1),
+            'dose' => $a->pivot->dose ?: $a->dosage, 'frequence' => $a->pivot->frequence ?: $a->frequence,
+            'duree' => $a->pivot->duree ?: $a->duree, 'instructions' => $a->pivot->instructions ?: $a->instructions,
+        ])->values(),
+    ];
+@endphp
+
+@section('style')
+<style>
+    .chip { border: 1px solid #ccc; border-radius: 999px; padding: 2px 12px; margin: 0 6px 6px 0; background: #fff; font-size: .8rem; cursor: pointer; }
+    .chip:hover { background: #e6f4f1; border-color: #087f6b; }
+    .panneau-actes { max-height: 230px; overflow-y: auto; }
+    .recap { position: sticky; top: 80px; }
+</style>
+@endsection
+
+@section('content')
+<div class="container-fluid"><div class="page-inner">
+    <div class="page-header d-flex align-items-center">
+        <h3 class="fw-bold mb-0">Consultation — {{ $patient->full_name }}</h3>
+        <a href="{{ route('parcours.file.index') }}" class="btn btn-sm btn-secondary ms-auto">Retour à la file</a>
+    </div>
+
+    @include('parcours.partials.resume-visite', ['consultation' => $consultation])
+
+    <form method="POST" action="{{ route('parcours.consultation.enregistrer', $consultation) }}" id="formConsultation">@csrf
+        <input type="hidden" name="action" id="champAction" value="terminer">
+        <input type="hidden" name="prochain_rdv_jours" id="champJours" value="0">
+        <div id="zoneActes"></div>
+
+        <div class="row">
+            <div class="col-lg-8">
+                {{-- ----------------------------------------- Modèles --}}
+                <div class="card">
+                    <div class="card-header"><h4 class="card-title">Modèles</h4></div>
+                    <div class="card-body">
+                        @forelse($modeles as $m)
+                            <button type="button" class="chip js-modele" data-url="{{ route('parcours.consultation.modele', [$consultation, $m]) }}">
+                                <i class="fa fa-bolt text-warning"></i> {{ $m->libelle }}
+                                <span class="text-muted">({{ $m->lignes_count }} acte(s){{ $m->estPartage() ? ', partagé' : '' }})</span>
+                            </button>
+                        @empty
+                            <span class="small text-muted">Aucun modèle. Terminez une consultation puis cliquez « Enregistrer comme modèle » : elle sera réutilisable en un clic.</span>
+                        @endforelse
+                    </div>
+                </div>
+
+                @if($grossesse && $grossesse->estEnCours())
+                    @php $prochainContact = $grossesse->prochainContact(); @endphp
+                    <div class="card border-success">
+                        <div class="card-body small d-flex flex-wrap gap-3 align-items-center">
+                            <strong><i class="fas fa-baby text-success"></i> Grossesse</strong>
+                            <span>{{ $grossesse->termeLisible() }}</span>
+                            <span>DPA {{ $grossesse->dpa->format('d/m/Y') }}</span>
+                            @if($prochainContact)<span>Prochaine CPN : {{ $prochainContact['semaines'] }} SA ({{ $prochainContact['date_cible']->format('d/m/Y') }})</span>@endif
+                            <a href="{{ route('parcours.grossesses.show', $grossesse) }}" target="_blank" class="ms-auto">Ouvrir le suivi</a>
+                        </div>
+                    </div>
+                @endif
+
+                {{-- ----------------------------------------- Clinique --}}
+                <div class="card">
+                    <div class="card-header"><h4 class="card-title">Examen et diagnostic</h4></div>
+                    <div class="card-body">
+                        <label class="form-label">Signes cliniques</label>
+                        <div class="input-group input-group-sm mb-2">
+                            <input type="text" class="form-control" id="saisieSigne" placeholder="Fièvre, céphalées… (Entrée pour ajouter)">
+                            <button type="button" class="btn btn-outline-secondary" id="ajouterSigne">Ajouter</button>
+                        </div>
+                        <div id="listeSignes" class="mb-3"></div>
+
+                        <label class="form-label">Diagnostic <span class="text-danger">*</span></label>
+                        <textarea name="diagnostic" id="champDiagnostic" class="form-control mb-2" rows="2" placeholder="Diagnostic principal">{{ old('diagnostic', $consultation->diagnostic) }}</textarea>
+                        <div class="mb-3">
+                            @forelse($diagnosticsFrequents as $d)
+                                <button type="button" class="chip js-diagnostic" data-valeur="{{ $d }}">{{ $d }}</button>
+                            @empty
+                                <span class="small text-muted">Vos diagnostics les plus fréquents s'afficheront ici au fil des consultations.</span>
+                            @endforelse
+                        </div>
+
+                        <label class="form-label">Observation</label>
+                        <textarea name="observation" class="form-control" rows="2" placeholder="Facultatif">{{ old('observation', $consultation->observation) }}</textarea>
+
+                        @if($precedente)
+                            <div class="small text-muted mt-2">
+                                Dernière consultation ({{ $precedente->created_at->format('d/m/Y') }}) : {{ \Illuminate\Support\Str::limit($precedente->diagnostic, 120) }}
+                                <button type="button" class="chip js-diagnostic" data-valeur="{{ $precedente->diagnostic }}">Reprendre</button>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
+                {{-- ----------------------------------------- Ordonnance --}}
+                <div class="card">
+                    <div class="card-header d-flex align-items-center">
+                        <h4 class="card-title">Ordonnance</h4>
+                        @if($derniereOrdonnance['lignes'])
+                            <button type="button" class="btn btn-sm btn-outline-primary ms-auto" id="renouveler">
+                                Renouveler celle du {{ $derniereOrdonnance['date'] }}
+                            </button>
+                        @endif
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-2">
+                            @foreach($medicamentsFrequents as $m)
+                                <button type="button" class="chip js-ajout" data-cat="medicaments" data-ligne='@json($m)'>+ {{ $m['nom'] }}</button>
+                            @endforeach
+                        </div>
+                        <input type="text" class="form-control form-control-sm mb-2 js-recherche" data-cat="medicaments" placeholder="Chercher un médicament…">
+                        <div class="panneau-actes mb-2 js-resultats" data-cat="medicaments"></div>
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle">
+                                <thead><tr><th>Médicament</th><th style="width:80px">Qté</th><th>Dose</th><th>Fréquence</th><th>Durée</th><th>Instructions</th><th></th></tr></thead>
+                                <tbody id="listeMedicaments"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- ----------------------------------------- Examens et actes --}}
+                <div class="row">
+                    <div class="col-md-6"><div class="card">
+                        <div class="card-header"><h4 class="card-title">Examens</h4></div>
+                        <div class="card-body">
+                            <div class="mb-2">
+                                @foreach($examensFrequents as $e)
+                                    <button type="button" class="chip js-ajout" data-cat="examens" data-ligne='@json($e)'>+ {{ $e['nom'] }}</button>
+                                @endforeach
+                            </div>
+                            <input type="text" class="form-control form-control-sm mb-2 js-recherche" data-cat="examens" placeholder="Chercher un examen…">
+                            <div class="panneau-actes mb-2 js-resultats" data-cat="examens"></div>
+                            <ul class="list-group list-group-flush small" id="listeExamens"></ul>
+                        </div>
+                    </div></div>
+                    <div class="col-md-6"><div class="card">
+                        <div class="card-header"><h4 class="card-title">Actes et forfaits</h4></div>
+                        <div class="card-body">
+                            <input type="text" class="form-control form-control-sm mb-2 js-recherche" data-cat="services" placeholder="Chercher un acte…">
+                            <div class="panneau-actes mb-2 js-resultats" data-cat="services"></div>
+                            <input type="text" class="form-control form-control-sm mb-2 js-recherche" data-cat="packages" placeholder="Chercher un forfait…">
+                            <div class="panneau-actes mb-2 js-resultats" data-cat="packages"></div>
+                            <ul class="list-group list-group-flush small" id="listeServices"></ul>
+                            <ul class="list-group list-group-flush small" id="listePackages"></ul>
+                        </div>
+                    </div></div>
+                </div>
+            </div>
+
+            {{-- ----------------------------------------- Récapitulatif --}}
+            <div class="col-lg-4">
+                <div class="card recap">
+                    <div class="card-header"><h4 class="card-title">Récapitulatif</h4></div>
+                    <div class="card-body">
+                        <p class="mb-1">Actes de la consultation : <strong id="totalActes">0</strong> GNF</p>
+                        <p class="small text-muted">La part assurance et la part patient sont calculées à l'enregistrement.</p>
+
+                        <label class="form-label mt-2">Prochain rendez-vous</label>
+                        <div class="mb-2">
+                            @foreach([0 => 'Aucun', 7 => '1 semaine', 14 => '2 semaines', 30 => '1 mois', 90 => '3 mois'] as $jours => $libelle)
+                                <button type="button" class="chip js-delai {{ $jours === 0 ? 'bg-light' : '' }}" data-jours="{{ $jours }}">{{ $libelle }}</button>
+                            @endforeach
+                        </div>
+                        <select name="prochain_rdv_motif_id" class="form-control form-control-sm mb-3">
+                            <option value="">Motif : contrôle</option>
+                            @foreach($motifs as $motif)<option value="{{ $motif->id }}">{{ $motif->nom }}</option>@endforeach
+                        </select>
+
+                        <button type="submit" class="btn btn-success w-100 mb-2" id="boutonTerminer">
+                            <i class="fa fa-check"></i> Terminer la consultation
+                        </button>
+                        <button type="submit" class="btn btn-outline-secondary w-100 mb-2" id="boutonBrouillon">Enregistrer sans terminer</button>
+                        <button type="button" class="btn btn-outline-primary w-100" data-bs-toggle="modal" data-bs-target="#modalModele">Enregistrer comme modèle</button>
+
+                        <hr>
+                        <div class="d-grid gap-1">
+                            <a href="{{ route('consultation.rapport.ordonnance.a5', $consultation) }}" target="_blank" class="btn btn-sm btn-outline-warning">Imprimer l'ordonnance</a>
+                            <a href="{{ route('consultation.rapport.examens.a5', $consultation) }}" target="_blank" class="btn btn-sm btn-outline-info">Imprimer les examens</a>
+                            <a href="{{ route('consultation.show', $consultation) }}" class="btn btn-sm btn-outline-secondary">Fiche complète</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div></div>
+
+<div class="modal fade" id="modalModele" tabindex="-1"><div class="modal-dialog">
+    <form method="POST" action="{{ route('parcours.consultation.modeles.store', $consultation) }}" class="modal-content">@csrf
+        <div class="modal-header"><h5 class="modal-title">Enregistrer comme modèle</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+            <p class="small text-muted">Le modèle reprend le diagnostic, les signes, l'ordonnance et les examens <strong>déjà enregistrés</strong> sur cette consultation. Enregistrez-la d'abord si vous venez de la modifier.</p>
+            <input name="libelle" class="form-control mb-2" maxlength="255" placeholder="Ex. Paludisme simple adulte" required>
+            <label class="small d-block"><input type="hidden" name="partager" value="0"><input type="checkbox" name="partager" value="1"> Partager avec les médecins du département</label>
+            <label class="small d-block"><input type="hidden" name="avec_observation" value="0"><input type="checkbox" name="avec_observation" value="1"> Inclure l'observation</label>
+        </div>
+        <div class="modal-footer"><button class="btn btn-primary">Enregistrer</button></div>
+    </form>
+</div></div>
+@endsection
+
+@section('script')
+<script>
+(function () {
+    const catalogue = @json($catalogue);
+    const derniere = @json($derniereOrdonnance['lignes']);
+    const etat = { actes: @json($initial), signes: @json($consultation->signes_cliniques ?? []) };
+    const gnf = n => new Intl.NumberFormat('fr-FR').format(Math.round(n || 0));
+    const listes = { medicaments: 'listeMedicaments', examens: 'listeExamens', services: 'listeServices', packages: 'listePackages' };
+
+    function ajouter(cat, ligne) {
+        if (etat.actes[cat].some(l => Number(l.id) === Number(ligne.id))) return;
+        etat.actes[cat].push(Object.assign({ quantite: 1 }, ligne));
+        rendre();
+    }
+    function retirer(cat, id) { etat.actes[cat] = etat.actes[cat].filter(l => Number(l.id) !== Number(id)); rendre(); }
+
+    function champ(cat, index, cle, valeur, taille) {
+        return '<input class="form-control form-control-sm js-champ" data-cat="' + cat + '" data-index="' + index + '" data-cle="' + cle +
+            '" value="' + (valeur ? String(valeur).replace(/"/g, '&quot;') : '') + '"' + (taille ? ' style="width:' + taille + '"' : '') + '>';
+    }
+
+    function rendre() {
+        const corps = document.getElementById('listeMedicaments');
+        corps.innerHTML = etat.actes.medicaments.map((l, i) =>
+            '<tr><td>' + l.nom + '<div class="text-muted small">' + gnf(l.prix) + ' GNF</div></td>' +
+            '<td>' + champ('medicaments', i, 'quantite', l.quantite, '70px') + '</td>' +
+            '<td>' + champ('medicaments', i, 'dose', l.dose) + '</td>' +
+            '<td>' + champ('medicaments', i, 'frequence', l.frequence) + '</td>' +
+            '<td>' + champ('medicaments', i, 'duree', l.duree) + '</td>' +
+            '<td>' + champ('medicaments', i, 'instructions', l.instructions) + '</td>' +
+            '<td class="text-end"><button type="button" class="btn btn-sm btn-link text-danger js-retirer" data-cat="medicaments" data-id="' + l.id + '">&times;</button></td></tr>'
+        ).join('') || '<tr><td colspan="7" class="text-muted">Aucun médicament.</td></tr>';
+
+        ['examens', 'services', 'packages'].forEach(function (cat) {
+            document.getElementById(listes[cat]).innerHTML = etat.actes[cat].map(l =>
+                '<li class="list-group-item d-flex justify-content-between align-items-center">' + l.nom +
+                '<span>' + gnf(l.prix) + ' GNF <button type="button" class="btn btn-sm btn-link text-danger js-retirer" data-cat="' + cat + '" data-id="' + l.id + '">&times;</button></span></li>'
+            ).join('');
+        });
+
+        document.getElementById('listeSignes').innerHTML = etat.signes.map((s, i) =>
+            '<button type="button" class="chip js-retirer-signe" data-index="' + i + '">' + s + ' &times;</button>').join('');
+
+        let total = 0;
+        Object.keys(etat.actes).forEach(cat => etat.actes[cat].forEach(l => { total += (l.prix || 0) * (cat === 'medicaments' ? (Number(l.quantite) || 1) : 1); }));
+        document.getElementById('totalActes').textContent = gnf(total);
+    }
+
+    // Recherche dans le catalogue, sans aller-retour serveur.
+    document.querySelectorAll('.js-recherche').forEach(function (input) {
+        input.addEventListener('input', function () {
+            const cat = input.dataset.cat, terme = input.value.trim().toLowerCase();
+            const zone = document.querySelector('.js-resultats[data-cat="' + cat + '"]');
+            if (terme.length < 2) { zone.innerHTML = ''; return; }
+            zone.innerHTML = catalogue[cat].filter(a => a.nom.toLowerCase().includes(terme)).slice(0, 12).map(a =>
+                '<button type="button" class="chip js-ajout" data-cat="' + cat + '" data-ligne=\'' + JSON.stringify(a).replace(/'/g, '&#39;') + '\'>+ ' + a.nom + ' — ' + gnf(a.prix) + ' GNF</button>'
+            ).join('') || '<span class="small text-muted">Aucun résultat.</span>';
+        });
+    });
+
+    document.addEventListener('click', function (e) {
+        const ajout = e.target.closest('.js-ajout');
+        if (ajout) { ajouter(ajout.dataset.cat, JSON.parse(ajout.dataset.ligne)); return; }
+
+        const retrait = e.target.closest('.js-retirer');
+        if (retrait) { retirer(retrait.dataset.cat, retrait.dataset.id); return; }
+
+        const signe = e.target.closest('.js-retirer-signe');
+        if (signe) { etat.signes.splice(Number(signe.dataset.index), 1); rendre(); return; }
+
+        const diag = e.target.closest('.js-diagnostic');
+        if (diag) { document.getElementById('champDiagnostic').value = diag.dataset.valeur; return; }
+
+        const delai = e.target.closest('.js-delai');
+        if (delai) {
+            document.getElementById('champJours').value = delai.dataset.jours;
+            document.querySelectorAll('.js-delai').forEach(b => b.classList.remove('bg-light'));
+            delai.classList.add('bg-light');
+            return;
+        }
+
+        const modele = e.target.closest('.js-modele');
+        if (modele) {
+            fetch(modele.dataset.url, { headers: { 'Accept': 'application/json' } })
+                .then(r => r.json())
+                .then(function (d) {
+                    if (d.diagnostic) document.getElementById('champDiagnostic').value = d.diagnostic;
+                    (d.signes_cliniques || []).forEach(s => { if (!etat.signes.includes(s)) etat.signes.push(s); });
+                    (d.lignes || []).forEach(function (l) {
+                        const cat = { service: 'services', package: 'packages', test: 'examens', medicament: 'medicaments' }[l.type];
+                        if (cat) ajouter(cat, l);
+                    });
+                    rendre();
+                });
+        }
+    });
+
+    document.addEventListener('input', function (e) {
+        const champModifie = e.target.closest('.js-champ');
+        if (!champModifie) return;
+        const l = etat.actes[champModifie.dataset.cat][Number(champModifie.dataset.index)];
+        l[champModifie.dataset.cle] = champModifie.value;
+        if (champModifie.dataset.cle === 'quantite') rendre();
+    });
+
+    function ajouterSigne() {
+        const saisie = document.getElementById('saisieSigne');
+        const valeur = saisie.value.trim();
+        if (valeur && !etat.signes.includes(valeur)) { etat.signes.push(valeur); rendre(); }
+        saisie.value = '';
+    }
+    document.getElementById('ajouterSigne').addEventListener('click', ajouterSigne);
+    document.getElementById('saisieSigne').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); ajouterSigne(); }
+    });
+
+    const renouvelerBouton = document.getElementById('renouveler');
+    if (renouvelerBouton) renouvelerBouton.addEventListener('click', function () { derniere.forEach(l => ajouter('medicaments', l)); });
+
+    document.getElementById('boutonBrouillon').addEventListener('click', function () { document.getElementById('champAction').value = 'brouillon'; });
+    document.getElementById('boutonTerminer').addEventListener('click', function () { document.getElementById('champAction').value = 'terminer'; });
+
+    // Les lignes et les signes deviennent des champs cachés au moment de l'envoi.
+    document.getElementById('formConsultation').addEventListener('submit', function () {
+        const zone = document.getElementById('zoneActes');
+        zone.innerHTML = '';
+        Object.keys(etat.actes).forEach(function (cat) {
+            etat.actes[cat].forEach(function (l, i) {
+                ['id', 'quantite', 'dose', 'frequence', 'duree', 'instructions'].forEach(function (cle) {
+                    if (l[cle] === undefined || l[cle] === null || l[cle] === '') return;
+                    const champCache = document.createElement('input');
+                    champCache.type = 'hidden';
+                    champCache.name = 'actes[' + cat + '][' + i + '][' + cle + ']';
+                    champCache.value = l[cle];
+                    zone.appendChild(champCache);
+                });
+            });
+        });
+        etat.signes.forEach(function (s, i) {
+            const champCache = document.createElement('input');
+            champCache.type = 'hidden';
+            champCache.name = 'signes[' + i + ']';
+            champCache.value = s;
+            zone.appendChild(champCache);
+        });
+    });
+
+    rendre();
+})();
+</script>
+@endsection

@@ -11,9 +11,14 @@
     <div class="card">
         <div class="card-header d-flex align-items-center">
             <h4 class="card-title">Assurance et employeur</h4>
-            @can('assurance.referentiel.view')
-                <a href="{{ route('assurance.droits.show', $patient->id) }}" class="btn btn-sm btn-primary ms-auto"><i class="fa fa-check-circle"></i> Vérifier les droits</a>
-            @endcan
+            <span class="ms-auto d-flex gap-2">
+                @can('parcours.dossier')
+                    <a href="{{ route('parcours.dossier.show', $patient->id) }}" class="btn btn-sm btn-outline-primary"><i class="fa fa-stream"></i> Dossier</a>
+                @endcan
+                @can('assurance.referentiel.view')
+                    <a href="{{ route('assurance.droits.show', $patient->id) }}" class="btn btn-sm btn-primary"><i class="fa fa-check-circle"></i> Vérifier les droits</a>
+                @endcan
+            </span>
         </div>
         <div class="card-body">
             <h6 class="text-muted">Couvertures</h6>

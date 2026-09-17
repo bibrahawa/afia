@@ -136,13 +136,13 @@ class AppointmentBookingService
      * vérifiait rien (double réservation possible), n'avait ni motif ni
      * durée et n'envoyait aucun SMS.
      */
-    public function planifierParMedecin(int $employeeId, int $patientId, Carbon $debut, int $dureeMinutes = DisponibiliteService::DUREE_PAR_DEFAUT, ?string $description = null): Appointment
+    public function planifierParMedecin(int $employeeId, int $patientId, Carbon $debut, int $dureeMinutes = DisponibiliteService::DUREE_PAR_DEFAUT, ?string $description = null, ?int $motifRdvId = null): Appointment
     {
         if ($debut->lt(now())) {
             throw new DomainException('La date du prochain rendez-vous est déjà passée.');
         }
 
-        $appointment = DB::transaction(function () use ($employeeId, $patientId, $debut, $dureeMinutes, $description) {
+        $appointment = DB::transaction(function () use ($employeeId, $patientId, $debut, $dureeMinutes, $description, $motifRdvId) {
             $medecin = $this->verrouillerMedecin($employeeId);
 
             $this->refuserChevauchement($medecin, $debut, $dureeMinutes);
@@ -150,6 +150,7 @@ class AppointmentBookingService
             return Appointment::create([
                 'employee_id' => $medecin->id,
                 'patient_id' => $patientId,
+                'motif_rdv_id' => $motifRdvId,
                 'duree_minutes' => $dureeMinutes,
                 'appointment_date' => $debut->toDateString(),
                 'appointment_time' => $debut->format('H:i:s'),

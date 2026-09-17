@@ -66,6 +66,12 @@ class Appointment extends Model
         return $this->belongsTo(MotifRdv::class);
     }
 
+    /** Passage du patient enregistré à l'accueil pour ce rendez-vous (lot 3a). */
+    public function visite()
+    {
+        return $this->hasOne(\App\Models\Parcours\Visite::class);
+    }
+
     public function smsLogs()
     {
         return $this->hasMany(AppointmentSmsLog::class);

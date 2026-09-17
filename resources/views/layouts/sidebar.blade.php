@@ -39,6 +39,42 @@
                     </span>
                     <h4 class="text-section">Patients</h4>
                 </li>
+                @can('parcours.accueil')
+                    <li class="nav-item {{ request()->routeIs('parcours.accueil.*') ? 'active' : '' }}">
+                        <a href="{{ route('parcours.accueil.index') }}">
+                            <i class="fas fa-door-open"></i>
+                            <p>Accueil du jour</p>
+                        </a>
+                    </li>
+                @endcan
+
+                @can('parcours.dossier')
+                    <li class="nav-item {{ request()->routeIs('parcours.grossesses.*') ? 'active' : '' }}">
+                        <a href="{{ route('parcours.grossesses.index') }}">
+                            <i class="fas fa-baby"></i>
+                            <p>Grossesses suivies</p>
+                        </a>
+                    </li>
+                @endcan
+
+                @can('parcours.statistiques')
+                    <li class="nav-item {{ request()->routeIs('parcours.statistiques.*') ? 'active' : '' }}">
+                        <a href="{{ route('parcours.statistiques.index') }}">
+                            <i class="fas fa-chart-line"></i>
+                            <p>Statistiques</p>
+                        </a>
+                    </li>
+                @endcan
+
+                @can('parcours.file')
+                    <li class="nav-item {{ request()->routeIs('parcours.file.*') ? 'active' : '' }}">
+                        <a href="{{ route('parcours.file.index') }}">
+                            <i class="fas fa-users"></i>
+                            <p>Ma file d'attente</p>
+                        </a>
+                    </li>
+                @endcan
+
                 @can('patient.view')
                     <li class="nav-item {{ request()->routeIs('patient.*') ? 'active' : '' }}">
                         <a href="{{ route('patient.index') }}">
