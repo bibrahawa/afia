@@ -14,9 +14,9 @@ class StoreAppointmentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'employee_id' => ['required', 'exists:employees,id'],
+            'employee_id' => ['required', 'exists_etablissement:employees,id'],
             'patient_id' => ['required', 'exists:patients,id'],
-            'motif_rdv_id' => ['required', 'exists:motifs_rdv,id'],
+            'motif_rdv_id' => ['required', 'exists_etablissement:motifs_rdv,id'],
             'appointment_date' => ['required', 'date', 'after_or_equal:today'],
             'appointment_time' => ['required', 'date_format:H:i'],
             'description' => ['nullable', 'string', 'max:1000'],
