@@ -452,6 +452,12 @@ class AuthController extends Controller
                 'user_agent' => $request->userAgent(),
             ]);
 
+            // Rôles sans tableau de bord général (laboratoire) : page adaptée
+            // au lieu d'un 403 juste après la connexion.
+            if (\App\Support\PageAccueil::aUneAutrePage($user)) {
+                return redirect()->to(\App\Support\PageAccueil::url($user));
+            }
+
             return redirect()->intended('home');
         }
 

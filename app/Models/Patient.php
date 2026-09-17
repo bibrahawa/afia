@@ -17,6 +17,32 @@ class Patient extends Model
     ];
 
 
+    /**
+     * Le patient est GLOBAL à la plateforme : il n'a pas de global scope.
+     * Toute LISTE de patients côté établissement doit donc passer par ce
+     * scope, sinon une clinique verrait les patients de toutes les autres.
+     *
+     *   Patient::suivisParEtablissement()->orderBy('last_name')->get();
+     */
+    public function scopeSuivisParEtablissement($query, ?int $etablissementId = null)
+    {
+        $etablissementId ??= \App\Support\EtablissementContext::id();
+
+        if (! $etablissementId) {
+            return \App\Support\EtablissementContext::estAdministrateurPlateforme() ? $query : $query->whereRaw('1 = 0');
+        }
+
+        return $query->whereExists(fn ($q) => $q->selectRaw('1')->from('etablissement_patient as ep')
+            ->whereColumn('ep.patient_id', 'patients.id')
+            ->where('ep.etablissement_id', $etablissementId));
+    }
+
+    public function etablissements()
+    {
+        return $this->belongsToMany(Etablissement::class, 'etablissement_patient')
+            ->withPivot(['premiere_visite_le', 'derniere_visite_le'])->withTimestamps();
+    }
+
     public function reports()
     {
         return $this->hasMany('App\Models\Report');

@@ -27,7 +27,7 @@ class Api_InsuranceCalculationController extends Controller
             'patient_id' => 'required|exists:patients,id',
             'montant_original' => 'required|numeric|min:0',
             'insurance_ids' => 'array',
-            'insurance_ids.*' => 'exists:patient_insurances,id',
+            'insurance_ids.*' => 'exists_etablissement:patient_insurances,id',
             'service_type' => 'string|nullable',
             'service_id' => 'numeric|nullable'
         ]);

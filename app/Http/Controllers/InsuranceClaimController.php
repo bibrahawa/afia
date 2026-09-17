@@ -29,7 +29,7 @@ class InsuranceClaimController extends Controller
         // Passe les données nécessaires pour les listes déroulantes
         $invoices = Invoice::all();
         $insuranceCompanies = InsuranceCompany::all();
-        $patients = Patient::all(); // Assure-toi d'avoir ce modèle et des données
+        $patients = Patient::suivisParEtablissement()->orderBy('last_name')->get(); // Assure-toi d'avoir ce modèle et des données
 
         return view('insurance_claims.create', compact('invoices', 'insuranceCompanies', 'patients'));
     }
@@ -40,9 +40,9 @@ class InsuranceClaimController extends Controller
     public function store(Request $request)
     {
         $validatedData = $request->validate([
-            'claim_number' => 'required|string|max:255|unique:insurance_claims,claim_number',
-            'invoice_id' => 'required|exists:invoices,id',
-            'insurance_company_id' => 'required|exists:insurance_companies,id',
+            'claim_number' => 'required|string|max:255|unique_etablissement:insurance_claims,claim_number',
+            'invoice_id' => 'required|exists_etablissement:invoices,id',
+            'insurance_company_id' => 'required|exists_etablissement:insurance_companies,id',
             'patient_id' => 'required|exists:patients,id',
             'claimed_amount' => 'required|numeric|min:0',
             'approved_amount' => 'nullable|numeric|min:0',
@@ -78,7 +78,7 @@ class InsuranceClaimController extends Controller
         // Passe les données nécessaires pour les listes déroulantes
         $invoices = Invoice::all();
         $insuranceCompanies = InsuranceCompany::all();
-        $patients = Patient::all();
+        $patients = Patient::suivisParEtablissement()->orderBy('last_name')->get();
 
         return view('insurance_claims.edit', compact('insuranceClaim', 'invoices', 'insuranceCompanies', 'patients'));
     }
@@ -93,10 +93,10 @@ class InsuranceClaimController extends Controller
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('insurance_claims')->ignore($insuranceClaim->id), // Ignore l'ID actuel lors de la vérification d'unicité
+                'unique_etablissement:insurance_claims,claim_number,' . $insuranceClaim->id, // Ignore l'ID actuel lors de la vérification d'unicité
             ],
-            'invoice_id' => 'required|exists:invoices,id',
-            'insurance_company_id' => 'required|exists:insurance_companies,id',
+            'invoice_id' => 'required|exists_etablissement:invoices,id',
+            'insurance_company_id' => 'required|exists_etablissement:insurance_companies,id',
             'patient_id' => 'required|exists:patients,id',
             'claimed_amount' => 'required|numeric|min:0',
             'approved_amount' => 'nullable|numeric|min:0',

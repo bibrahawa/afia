@@ -138,8 +138,8 @@ class AppointmentController extends Controller
     public function staffDatesDisponibles(Request $request, \App\Services\DisponibiliteService $disponibilite)
     {
         $data = $request->validate([
-            'employee_id' => ['required', 'exists:employees,id'],
-            'motif_rdv_id' => ['required', 'exists:motifs_rdv,id'],
+            'employee_id' => ['required', 'exists_etablissement:employees,id'],
+            'motif_rdv_id' => ['required', 'exists_etablissement:motifs_rdv,id'],
         ]);
 
         $medecin = Employee::findOrFail($data['employee_id']);
@@ -157,8 +157,8 @@ class AppointmentController extends Controller
     public function staffCreneaux(Request $request, \App\Services\DisponibiliteService $disponibilite)
     {
         $data = $request->validate([
-            'employee_id' => ['required', 'exists:employees,id'],
-            'motif_rdv_id' => ['required', 'exists:motifs_rdv,id'],
+            'employee_id' => ['required', 'exists_etablissement:employees,id'],
+            'motif_rdv_id' => ['required', 'exists_etablissement:motifs_rdv,id'],
             'date' => ['required', 'date', 'after_or_equal:today'],
         ]);
 
@@ -364,8 +364,8 @@ class AppointmentController extends Controller
     public function getAvailableDates(\App\Models\Etablissement $etablissement, Request $request, DisponibiliteService $disponibilite)
     {
         $data = $request->validate([
-            'employee_id' => ['required', 'exists:employees,id'],
-            'motif_rdv_id' => ['required', 'exists:motifs_rdv,id'],
+            'employee_id' => ['required', 'exists_etablissement:employees,id'],
+            'motif_rdv_id' => ['required', 'exists_etablissement:motifs_rdv,id'],
             'jours' => ['nullable', 'integer', 'min:1', 'max:60'],
         ]);
 

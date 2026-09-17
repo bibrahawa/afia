@@ -32,7 +32,7 @@ class InsuranceConsumptionService
     {
         foreach ($insurancesUsed as $insuranceData) {
             InsuranceClaim::create([
-                'claim_number' => $this->generateClaimNumber(),
+                'claim_number' => $this->generateClaimNumber($invoice->etablissement_id),
                 'invoice_id' => $invoice->id,
                 'insurance_company_id' => $insuranceData['insurance_company_id'] ?? null,
                 'patient_insurance_id' => $insuranceData['insurance_id'] ?? null,
@@ -68,18 +68,15 @@ class InsuranceConsumptionService
         InsuranceClaim::where('invoice_id', $invoice->id)->delete();
     }
 
-   private function generateClaimNumber(): string
+    /** CLM-2026000123 — numérotation atomique propre à l'établissement (fini le count()+1 à doublons). */
+    private function generateClaimNumber(?int $etablissementId): string
     {
-        $today = now()->format('Ymd');
+        $etablissementId ??= \App\Support\EtablissementContext::id();
 
-        $last = InsuranceClaim::whereDate('created_at', now())
-            ->orderByDesc('id')
-            ->first();
+        if (! $etablissementId) {
+            throw new \LogicException('Réclamation d\'assurance sans établissement : impossible de la numéroter.');
+        }
 
-        $number = $last 
-            ? intval(substr($last->claim_number, -6)) + 1 
-            : 1;
-
-        return 'CLM-' . $today . '-' . str_pad($number, 6, '0', STR_PAD_LEFT);
+        return app(\App\Services\NumerotationDocumentService::class)->numero($etablissementId, 'CLM', 'reclamation-assurance');
     }
 }

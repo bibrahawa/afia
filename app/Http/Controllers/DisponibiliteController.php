@@ -28,8 +28,8 @@ class DisponibiliteController extends Controller
     public function creneaux(Etablissement $etablissement, Request $request)
     {
         $data = $request->validate([
-            'employee_id' => ['required', 'exists:employees,id'],
-            'motif_rdv_id' => ['required', 'exists:motifs_rdv,id'],
+            'employee_id' => ['required', 'exists_etablissement:employees,id'],
+            'motif_rdv_id' => ['required', 'exists_etablissement:motifs_rdv,id'],
             'date' => ['required', 'date', 'after_or_equal:today'],
         ]);
 
@@ -59,7 +59,7 @@ class DisponibiliteController extends Controller
     public function creneauxTousMedecins(Etablissement $etablissement, Request $request)
     {
         $data = $request->validate([
-            'motif_rdv_id' => ['required', 'exists:motifs_rdv,id'],
+            'motif_rdv_id' => ['required', 'exists_etablissement:motifs_rdv,id'],
             'date' => ['required', 'date', 'after_or_equal:today'],
         ]);
 

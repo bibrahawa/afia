@@ -22,7 +22,7 @@ class ChambreController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'numero' => 'required|unique:chambres',
+            'numero' => 'required|unique_etablissement:chambres,numero',
             'type' => 'required|string',
             'prix_par_jour' => 'required|numeric|min:0',
             'statut' => 'required|in:Libre,Occupée,En maintenance',
@@ -42,7 +42,7 @@ class ChambreController extends Controller
     {
         $chambre = Chambre::find($request->id);
         $request->validate([
-            'numero' => 'required|unique:chambres,numero,' . $chambre->id,
+            'numero' => 'required|unique_etablissement:chambres,numero,' . $chambre->id,
             'type' => 'required|string',
             'prix_par_jour' => 'required|numeric|min:0',
             'statut' => 'required|in:Libre,Occupée,En maintenance',

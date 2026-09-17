@@ -12,7 +12,7 @@ class PatientInsuranceController extends Controller
     public function index()
     {
         $patientInsurances = PatientInsurance::with('patient', 'insuranceCompany')->latest()->get();
-        $patients = Patient::all();
+        $patients = Patient::suivisParEtablissement()->orderBy('last_name')->get();
         $insuranceCompanies = InsuranceCompany::all();
 
         return view('patient_insurance.index', compact('patientInsurances', 'patients', 'insuranceCompanies'));
@@ -22,7 +22,7 @@ class PatientInsuranceController extends Controller
     {
         $request->validate([
             'patient_id' => 'required|exists:patients,id',
-            'insurance_company_id' => 'required|exists:insurance_companies,id',
+            'insurance_company_id' => 'required|exists_etablissement:insurance_companies,id',
             'policy_number' => 'required|string|max:100',
             'coverage_percentage' => 'required|numeric|min:0|max:100',
             'start_date' => 'required|date',
@@ -43,7 +43,7 @@ class PatientInsuranceController extends Controller
     {
         $request->validate([
             'patient_id' => 'required|exists:patients,id',
-            'insurance_company_id' => 'required|exists:insurance_companies,id',
+            'insurance_company_id' => 'required|exists_etablissement:insurance_companies,id',
             'policy_number' => 'required|string|max:100',
             'coverage_percentage' => 'required|numeric|min:0|max:100',
             'start_date' => 'required|date',

@@ -75,6 +75,8 @@
                     </li>
                 @endcan
 
+                @include('labo.partials.sidebar')
+
                 @can('employee.view')
                 <!-- PERSONNEL MÉDICAL -->
                 <li class="nav-section">

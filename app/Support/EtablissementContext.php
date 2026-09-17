@@ -41,4 +41,50 @@ class EtablissementContext
 
         return $id ? \App\Models\Etablissement::find($id) : null;
     }
+
+    /** Rôle Spatie des administrateurs de la plateforme (équipe Aprosafe), seuls autorisés à voir tous les établissements. */
+    public const ROLE_PLATEFORME = 'super-admin';
+
+    /**
+     * Cloisonnement « fermé par défaut » : un membre du personnel connecté
+     * SANS établissement (compte mal configuré, établissement supprimé…)
+     * ne doit voir AUCUNE donnée, et non celles de toutes les cliniques.
+     *
+     * Restent non filtrés : la console et les jobs (pas d'utilisateur), et
+     * l'administrateur plateforme hors impersonation.
+     */
+    public static function doitBloquer(): bool
+    {
+        if (static::id() !== null) {
+            return false;
+        }
+
+        if (app()->runningInConsole() && ! app()->runningUnitTests()) {
+            return false;
+        }
+
+        $utilisateur = Auth::guard('web')->user();
+        if (! $utilisateur) {
+            return false;
+        }
+
+        // Mémorisé pour la requête : le filtre est évalué à chaque requête SQL.
+        $cache = request()->attributes;
+        $cle = 'etablissement.bloquer.' . $utilisateur->getKey();
+        if (! $cache->has($cle)) {
+            $cache->set($cle, ! static::estAdministrateurPlateforme($utilisateur));
+        }
+
+        return $cache->get($cle);
+    }
+
+    public static function estAdministrateurPlateforme($utilisateur = null): bool
+    {
+        $utilisateur ??= Auth::guard('web')->user();
+
+        return $utilisateur
+            && empty($utilisateur->etablissement_id)
+            && method_exists($utilisateur, 'hasRole')
+            && $utilisateur->hasRole(static::ROLE_PLATEFORME);
+    }
 }

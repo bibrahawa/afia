@@ -52,9 +52,9 @@ class InvoicesController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'transaction_id' => 'required|exists:transactions,id',
-            'insurance_company_id' => 'nullable|exists:insurance_companies,id',
-            'patient_insurance_id' => 'nullable|exists:patient_insurances,id',
+            'transaction_id' => 'required|exists_etablissement:transactions,id',
+            'insurance_company_id' => 'nullable|exists_etablissement:insurance_companies,id',
+            'patient_insurance_id' => 'nullable|exists_etablissement:patient_insurances,id',
             'total_amount' => 'required|numeric|min:0',
             'patient_amount' => 'required|numeric|min:0',
             'insurance_amount' => 'required|numeric|min:0',
@@ -145,9 +145,9 @@ class InvoicesController extends Controller
     public function update(Request $request, Invoices $invoice)
     {
         $request->validate([
-            'transaction_id' => 'required|exists:transactions,id',
-            'insurance_company_id' => 'nullable|exists:insurance_companies,id',
-            'patient_insurance_id' => 'nullable|exists:patient_insurances,id',
+            'transaction_id' => 'required|exists_etablissement:transactions,id',
+            'insurance_company_id' => 'nullable|exists_etablissement:insurance_companies,id',
+            'patient_insurance_id' => 'nullable|exists_etablissement:patient_insurances,id',
             'total_amount' => 'required|numeric|min:0',
             'patient_amount' => 'required|numeric|min:0',
             'insurance_amount' => 'required|numeric|min:0',
@@ -158,7 +158,7 @@ class InvoicesController extends Controller
             'insurance_claim_number' => 'nullable|string|max:255',
             'insurance_notes' => 'nullable|string',
             'items' => 'required|array',
-            'items.*.id' => 'nullable|exists:invoice_items,id', // Pour les items existants à mettre à jour
+            'items.*.id' => 'nullable|exists_etablissement:invoice_items,id', // Pour les items existants à mettre à jour
             'items.*.description' => 'required|string|max:255',
             'items.*.unit_price' => 'required|numeric|min:0',
             'items.*.quantity' => 'required|integer|min:1',

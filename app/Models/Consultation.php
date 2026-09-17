@@ -2,10 +2,18 @@
 
 namespace App\Models;
 
+use App\Traits\HeriteEtablissement;
+use App\Traits\BelongsToEtablissement;
+use App\Traits\RattachePatientEtablissement;
 use Illuminate\Database\Eloquent\Model;
 
 class Consultation extends Model
 {
+    use HeriteEtablissement, BelongsToEtablissement, RattachePatientEtablissement;
+
+    /** Établissement repris du parent quand la ligne est créée hors session (job, callback). */
+    protected static array $etablissementDepuis = ['department_id' => Department::class];
+
     protected $fillable = [
         'patient_id', 'department_id',
         'motif', 'signes_cliniques', 'diagnostic', 'medecin_id',

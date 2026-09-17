@@ -2,11 +2,18 @@
 
 namespace App\Models;
 
+use App\Traits\HeriteEtablissement;
+use App\Traits\BelongsToEtablissement;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class InsuranceSettlement extends Model
 {
+    use HeriteEtablissement, BelongsToEtablissement;
+
+    /** Établissement repris du parent quand la ligne est créée hors session (job, callback). */
+    protected static array $etablissementDepuis = ['insurance_company_id' => InsuranceCompany::class];
+
     use HasFactory;
 
     protected $fillable = [
@@ -40,12 +47,9 @@ class InsuranceSettlement extends Model
     protected static function booted(): void
     {
         static::creating(function ($settlement) {
-            if (!$settlement->settlement_no) {
-                $year = now()->year;
-                $last = self::whereYear('created_at', $year)->latest('id')->first();
-                $next = $last ? ((int) substr($last->settlement_no, -5)) + 1 : 1;
-
-                $settlement->settlement_no = 'SET-' . $year . str_pad($next, 5, '0', STR_PAD_LEFT);
+            if (! $settlement->settlement_no && $settlement->etablissement_id) {
+                $settlement->settlement_no = app(\App\Services\NumerotationDocumentService::class)
+                    ->numero($settlement->etablissement_id, 'SET', 'reglement-assurance');
             }
         });
     }

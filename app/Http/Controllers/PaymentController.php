@@ -43,7 +43,7 @@ class PaymentController extends Controller
     public function calculateCoverage(Request $request)
     {
         $request->validate([
-            'transaction_id' => 'required|exists:transactions,id',
+            'transaction_id' => 'required|exists_etablissement:transactions,id',
             'patient_id' => 'required|exists:patients,id',
         ]);
 
@@ -70,7 +70,7 @@ class PaymentController extends Controller
     {
         $request->validate([
             'patient_id' => 'required|exists:patients,id',
-            'transaction_id' => 'required|exists:transactions,id',
+            'transaction_id' => 'required|exists_etablissement:transactions,id',
             'montant' => 'required|numeric|min:0.01',
             'source' => 'required|string',
             'description' => 'nullable|string',

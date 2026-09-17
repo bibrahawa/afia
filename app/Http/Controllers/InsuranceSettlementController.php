@@ -16,7 +16,7 @@ class InsuranceSettlementController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'insurance_company_id' => 'required|exists:insurance_companies,id',
+            'insurance_company_id' => 'required|exists_etablissement:insurance_companies,id',
             'paid_amount' => 'required|numeric|min:0',
             'discount_amount' => 'nullable|numeric|min:0',
             'payment_method' => 'nullable|string',

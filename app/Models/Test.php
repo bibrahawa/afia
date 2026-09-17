@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\BelongsToEtablissement;
 use Illuminate\Database\Eloquent\Model;
 
 class Test extends Model
 {
+    use BelongsToEtablissement;
+
 	protected $fillable = ['name', 'report_type', 'description', 'amount'];
 
 

@@ -29,7 +29,7 @@ class PatientController extends Controller
     {
         $search = $request->get('search');
 
-        $patients = Patient::when($search, function ($query, $search) {
+        $patients = Patient::suivisParEtablissement()->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('first_name', 'like', "%{$search}%")
                     ->orWhere('last_name', 'like', "%{$search}%")
@@ -100,7 +100,12 @@ class PatientController extends Controller
 
             if ($patientExistant) {
                 // Un dossier existe déjà pour ce numéro — on ne duplique
-                // jamais un patient sur la base du seul téléphone.
+                // jamais un patient sur la base du seul téléphone. Le patient
+                // se présente dans cet établissement : il devient « suivi » ici.
+                \App\Support\EtablissementContext::current()?->patients()->syncWithoutDetaching([
+                    $patientExistant->id => ['derniere_visite_le' => now()],
+                ]);
+
                 return $patientExistant;
             }
 
@@ -205,10 +210,25 @@ class PatientController extends Controller
     {
         $terme = $request->validate(['q' => ['required', 'string', 'min:2']])['q'];
 
-        $patients = Patient::where('first_name', 'LIKE', "%{$terme}%")
-            ->orWhere('last_name', 'LIKE', "%{$terme}%")
-            ->orWhere('identifiant_national_sante', 'LIKE', "%{$terme}%")
-            ->orWhereHas('comptesPatients', fn ($q) => $q->where('telephone', 'LIKE', "%{$terme}%"))
+        // Confidentialité : la recherche partielle (nom, début de numéro) ne
+        // porte QUE sur les patients déjà suivis par l'établissement. Un
+        // patient d'une autre clinique n'est retrouvé que si l'on connaît son
+        // numéro complet (9 chiffres) ou son identifiant national de santé exact
+        // — informations que le patient présent au guichet donne lui-même.
+        $terme = trim($terme);
+        $telephoneExact = preg_match('/^\d{9}$/', $terme) === 1;
+
+        $patients = Patient::query()
+            ->where(function ($q) use ($terme, $telephoneExact) {
+                $q->where(fn ($suivis) => $suivis->suivisParEtablissement()->where(fn ($w) => $w
+                        ->where('first_name', 'LIKE', "%{$terme}%")
+                        ->orWhere('last_name', 'LIKE', "%{$terme}%")
+                        ->orWhere('identifiant_national_sante', 'LIKE', "%{$terme}%")
+                        ->orWhereHas('comptesPatients', fn ($c) => $c->where('telephone', 'LIKE', "%{$terme}%"))))
+                  ->orWhere('identifiant_national_sante', $terme)
+                  ->when($telephoneExact, fn ($w) => $w->orWhereHas('comptesPatients', fn ($c) => $c->where('telephone', $terme)));
+            })
+            ->with('comptesPatients')
             ->limit(10)
             ->get()
             ->map(fn (Patient $p) => [
@@ -263,7 +283,7 @@ class PatientController extends Controller
 
     public function show($id)
     {
-        $patient = Patient::with(['comptesPatients', 'antecedant'])->findOrFail($id);
+        $patient = Patient::suivisParEtablissement()->with(['comptesPatients', 'antecedant'])->findOrFail($id);
 
         return view('patients.show', compact('patient'));
     }
@@ -274,7 +294,7 @@ class PatientController extends Controller
             return back()->with('error', 'No file selected for upload');
         }
 
-        $patient = Patient::findOrFail($id);
+        $patient = Patient::suivisParEtablissement()->findOrFail($id);
 
         try {
             $file = $request->file('file');
@@ -299,7 +319,7 @@ class PatientController extends Controller
      */
     public function edit($id)
     {
-        $patient = Patient::findOrFail($id);
+        $patient = Patient::suivisParEtablissement()->findOrFail($id);
         $patient->status = $patient->status ? 0 : 1;
         $patient->save();
 
@@ -314,7 +334,7 @@ class PatientController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $patient = Patient::findOrFail($id);
+        $patient = Patient::suivisParEtablissement()->findOrFail($id);
 
         $data = $request->only([
             'first_name', 'middle_name', 'last_name', 'age', 'gender', 'birth_date',
@@ -329,7 +349,7 @@ class PatientController extends Controller
 
     public function destroy($id)
     {
-        $patient = Patient::findOrFail($id);
+        $patient = Patient::suivisParEtablissement()->findOrFail($id);
 
         if (count($patient->consultations)) {
             return back()->with('error', 'Le patient ne peut pas être supprimé...');

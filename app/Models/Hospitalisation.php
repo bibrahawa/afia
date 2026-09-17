@@ -3,12 +3,20 @@
 // app/Models/Hospitalisation.php
 namespace App\Models;
 
+use App\Traits\HeriteEtablissement;
+use App\Traits\BelongsToEtablissement;
+use App\Traits\RattachePatientEtablissement;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Carbon\Carbon;
 
 class Hospitalisation extends Model
 {
+    use HeriteEtablissement, BelongsToEtablissement, RattachePatientEtablissement;
+
+    /** Établissement repris du parent quand la ligne est créée hors session (job, callback). */
+    protected static array $etablissementDepuis = ['chambre_id' => Chambre::class];
+
     protected $fillable = [
         'patient_id',
         'chambre_id',

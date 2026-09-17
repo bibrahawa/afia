@@ -22,7 +22,7 @@ class HospitalisationController extends Controller
     {
         $hospitalisations = Hospitalisation::with('patient', 'chambre')->latest()->get();
 
-        $patients = Patient::all();
+        $patients = Patient::suivisParEtablissement()->orderBy('last_name')->get();
 
         $chambres = Chambre::where('statut', 'Libre')
             ->orWhereIn('id', function ($query) {
@@ -37,7 +37,7 @@ class HospitalisationController extends Controller
 
     public function create()
     {
-        $patients = Patient::all();
+        $patients = Patient::suivisParEtablissement()->orderBy('last_name')->get();
         $chambres = Chambre::where('statut', 'Libre')->get();
 
         return view('hospitalisations.create', compact('patients', 'chambres'));
@@ -47,7 +47,7 @@ class HospitalisationController extends Controller
     {
         $request->validate([
             'patient_id' => 'required|exists:patients,id',
-            'chambre_id' => 'required|exists:chambres,id',
+            'chambre_id' => 'required|exists_etablissement:chambres,id',
             'date_entree' => 'required|date',
             'nombre_jours' => 'required|integer|min:1',
             'observation' => 'nullable|string',
@@ -96,7 +96,7 @@ class HospitalisationController extends Controller
 
     public function edit(Hospitalisation $hospitalisation)
     {
-        $patients = Patient::all();
+        $patients = Patient::suivisParEtablissement()->orderBy('last_name')->get();
 
         $chambres = Chambre::where('statut', 'Libre')
             ->orWhere('id', $hospitalisation->chambre_id)
@@ -108,9 +108,9 @@ class HospitalisationController extends Controller
     public function update(Request $request)
     {
         $request->validate([
-            'id' => 'required|exists:hospitalisations,id',
+            'id' => 'required|exists_etablissement:hospitalisations,id',
             'patient_id' => 'required|exists:patients,id',
-            'chambre_id' => 'required|exists:chambres,id',
+            'chambre_id' => 'required|exists_etablissement:chambres,id',
             'date_entree' => 'required|date',
             'nombre_jours' => 'required|integer|min:1',
             'observation' => 'nullable|string',

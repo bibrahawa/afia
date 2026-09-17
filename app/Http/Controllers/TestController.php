@@ -19,7 +19,7 @@ class TestController extends Controller
 
 	public function store(Request $request)
     {
-        $request->validate( ['name' => 'required|unique:tests']);
+        $request->validate( ['name' => 'required|unique_etablissement:tests,name']);
         $test = Test::create($request->all());
         return back()->with('success', 'Examen saved Successfully.');
     }

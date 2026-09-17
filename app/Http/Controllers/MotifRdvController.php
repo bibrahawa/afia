@@ -19,7 +19,7 @@ class MotifRdvController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'department_id' => ['required', 'exists:departments,id'],
+            'department_id' => ['required', 'exists_etablissement:departments,id'],
             'nom' => ['required', 'string', 'max:255'],
             'duree_minutes_defaut' => ['required', 'integer', 'min:1', 'max:240'],
             'marge_tampon_minutes' => ['required', 'integer', 'min:0', 'max:60'],

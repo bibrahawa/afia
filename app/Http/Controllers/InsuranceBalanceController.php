@@ -130,7 +130,7 @@ class InsuranceBalanceController extends Controller
     {
 
         $request->validate([
-            'insurance_companies_id' => 'required|exists:insurance_companies,id',
+            'insurance_companies_id' => 'required|exists_etablissement:insurance_companies,id',
             'montant' => 'required|numeric|min:0',
             'discount_amount' => 'nullable|numeric|min:0',
             'payment_method' => 'nullable|string|in:CASH,CARD,MOBILE',

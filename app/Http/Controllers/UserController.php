@@ -30,8 +30,8 @@ class UserController extends Controller
             'last_name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'phone' => 'required|string|min:8|max:15|unique:users,phone',
-            'department_id' => 'nullable|exists:departments,id',
-            'role_id' => 'required|string|exists:roles,name',
+            'department_id' => 'nullable|exists_etablissement:departments,id',
+            'role_id' => ['required', 'string', 'exists:roles,name', \Illuminate\Validation\Rule::notIn([\App\Support\EtablissementContext::ROLE_PLATEFORME])],
             'address' => 'nullable|string|max:500',
             'password' => ['required', 'confirmed', Password::min(8)
                 ->mixedCase()
@@ -82,6 +82,10 @@ class UserController extends Controller
                 'phone' => $validated['phone'],
                 'password' => Hash::make($validated['password']),
             ]);
+            // Hors $fillable volontairement : l'établissement n'est jamais choisi par le formulaire.
+            $user->forceFill(['etablissement_id' => \App\Support\EtablissementContext::id()])->save();
+
+            $departementId = $validated['department_id'] ?? Department::orderBy('id')->value('id');
 
             // ============================================
             // CRÉATION DE L'EMPLOYÉ
@@ -92,10 +96,10 @@ class UserController extends Controller
                 'last_name' => $validated['last_name'],
                 'email' => $validated['email'],
                 'phone' => $validated['phone'],
-                'department_id' => $validated['department_id'] ?? 1,
+                'department_id' => $departementId,
                 'address' => $validated['address'] ?? null,
                 'working_day' => $workingDays,
-                'speciality' => Department::find($validated['department_id'])->name,
+                'speciality' => Department::find($departementId)?->name,
                 'type' => $validated['role_id'],
             ]);
 
@@ -141,7 +145,7 @@ class UserController extends Controller
      */
     public function index()
     {
-        $users = User::with(['employee.department', 'roles'])
+        $users = User::deMonEtablissement()->with(['employee.department', 'roles'])
             ->latest()
             ->get();
 
@@ -164,15 +168,15 @@ class UserController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $user = User::findOrFail($id);
+        $user = User::deMonEtablissement()->findOrFail($id);
 
         $validated = $request->validate([
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $id,
             'phone' => 'required|string|min:8|max:15|unique:users,phone,' . $id,
-            'department_id' => 'nullable|exists:departments,id',
-            'role_id' => 'required|string|exists:roles,name',
+            'department_id' => 'nullable|exists_etablissement:departments,id',
+            'role_id' => ['required', 'string', 'exists:roles,name', \Illuminate\Validation\Rule::notIn([\App\Support\EtablissementContext::ROLE_PLATEFORME])],
             'address' => 'nullable|string|max:500',
             'password' => ['nullable', 'confirmed', Password::min(8)
                 ->mixedCase()
@@ -242,7 +246,7 @@ class UserController extends Controller
     public function destroy($id)
     {
         try {
-            $user = User::findOrFail($id);
+            $user = User::deMonEtablissement()->findOrFail($id);
 
             // Empêcher la suppression de son propre compte
             if ($user->id === auth()->id()) {
@@ -286,7 +290,7 @@ class UserController extends Controller
 
     public function disableUser($id)
     {
-       $user = User::findOrFail($id);
+       $user = User::deMonEtablissement()->findOrFail($id);
 
        if(is_null($user)){
           return back();
@@ -304,7 +308,7 @@ class UserController extends Controller
     public function assignPermissions(Request $request, $id)
     {
         try {
-            $user = User::findOrFail($id);
+            $user = User::deMonEtablissement()->findOrFail($id);
             
             // Permissions
             $permissions = $request->input('permissions', []);
@@ -333,7 +337,7 @@ class UserController extends Controller
 
     public function listePermissions($id) 
     {
-        $user = User::findOrFail($id);
+        $user = User::deMonEtablissement()->findOrFail($id);
         
         // Configuration des modules et leurs préfixes
         $modulesConfig = [

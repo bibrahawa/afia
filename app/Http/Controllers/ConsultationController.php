@@ -220,7 +220,7 @@ class ConsultationController extends Controller
         // $employeeDepartmentId = auth()->user()->employee->department_id;
 
         return view('consultations.new', [
-            'patients' => Patient::orderBy('first_name')->get(),
+            'patients' => Patient::suivisParEtablissement()->orderBy('first_name')->get(),
 
             'services' => Service::select('id', 'name', 'amount')
                 // ->where('department_id', $employeeDepartmentId)
@@ -335,7 +335,7 @@ class ConsultationController extends Controller
         $consultation = Consultation::with(['patient', 'services', 'tests', 'packages', 'medicaments'])
             ->findOrFail($id);
 
-        $patients = Patient::all();
+        $patients = Patient::suivisParEtablissement()->orderBy('last_name')->get();
         $services = Service::all();
         $tests = Test::all();
         $packages = Package::all();

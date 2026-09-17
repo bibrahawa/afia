@@ -2,10 +2,17 @@
 
 namespace App\Models;
 
+use App\Traits\HeriteEtablissement;
+use App\Traits\BelongsToEtablissement;
 use Illuminate\Database\Eloquent\Model;
 
 class Service extends Model
 {
+    use HeriteEtablissement, BelongsToEtablissement;
+
+    /** Établissement repris du parent quand la ligne est créée hors session (job, callback). */
+    protected static array $etablissementDepuis = ['department_id' => Department::class];
+
     
     
 	protected $fillable = ['name', 'amount', 'department_id'];

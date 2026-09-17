@@ -62,7 +62,7 @@ class Api_PatientInsuranceController extends Controller
     {
         $request->validate([
             'patient_id' => 'required|exists:patients,id',
-            'insurance_company_id' => 'required|exists:insurance_companies,id',
+            'insurance_company_id' => 'required|exists_etablissement:insurance_companies,id',
             'policy_number' => 'required|string|max:255',
             'start_date' => 'required|date',
             'end_date' => 'nullable|date|after:start_date',

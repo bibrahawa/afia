@@ -19,7 +19,7 @@ class DashboardController extends Controller
         $rdv_today = Appointment::whereDate('appointment_date', today())->count();
         $hospitalisations_active = Hospitalisation::where('statut', 'active')->count();
         $chambres_libres = Chambre::where('statut', 'libre')->count();
-        $patients_assures = Patient::count();
+        $patients_assures = Patient::suivisParEtablissement()->count();
         $factures_impayees = Invoice::whereIn('insurance_status', ['pending', 'approved'])->count();
         $montant_impaye = Invoice::whereIn('insurance_status', ['pending', 'approved'])->sum('insurance_amount');
         $medicaments_stock_faible = Medicament::count();
@@ -30,8 +30,8 @@ class DashboardController extends Controller
             ->orderBy('appointment_time')
             ->get();
 
-        $total_patient = Patient::count();
-        $patientes = Patient::latest()->limit(5)->get();
+        $total_patient = Patient::suivisParEtablissement()->count();
+        $patientes = Patient::suivisParEtablissement()->latest()->limit(5)->get();
         $consultations = Consultation::latest()->limit(10)->get();
         $transactions = Transaction::latest()->limit(10)->get();
 

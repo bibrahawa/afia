@@ -47,7 +47,7 @@ class Api_InsuranceCompanyController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'code' => 'required|string|max:10|unique:insurance_companies,code',
+            'code' => 'required|string|max:10|unique_etablissement:insurance_companies,code',
             'contact_person' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:255',
@@ -71,7 +71,7 @@ class Api_InsuranceCompanyController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'code' => 'required|string|max:10|unique:insurance_companies,code,' . $insuranceCompany->id,
+            'code' => 'required|string|max:10|unique_etablissement:insurance_companies,code,' . $insuranceCompany->id,
             'contact_person' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:255',

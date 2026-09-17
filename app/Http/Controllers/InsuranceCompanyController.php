@@ -17,7 +17,7 @@ class InsuranceCompanyController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'code' => 'required|unique:insurance_companies',
+            'code' => 'required|unique_etablissement:insurance_companies,code',
             'email' => 'nullable|email',
             'default_coverage_percentage' => 'nullable|numeric|min:0|max:100',
         ]);
@@ -38,7 +38,7 @@ class InsuranceCompanyController extends Controller
         
         $request->validate([
             'name' => 'required|string|max:255',
-            'code' => 'required|unique:insurance_companies,code,' . $insuranceCompany->id,
+            'code' => 'required|unique_etablissement:insurance_companies,code,' . $insuranceCompany->id,
             'email' => 'nullable|email',
             'default_coverage_percentage' => 'nullable|numeric|min:0|max:100',
         ]);

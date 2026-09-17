@@ -3,12 +3,19 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Traits\HeriteEtablissement;
+use App\Traits\BelongsToEtablissement;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 
 class InsuranceClaim extends Model
 {
+    use HeriteEtablissement, BelongsToEtablissement;
+
+    /** Établissement repris du parent quand la ligne est créée hors session (job, callback). */
+    protected static array $etablissementDepuis = ['invoice_id' => Invoice::class, 'insurance_company_id' => InsuranceCompany::class];
+
     use HasFactory;
 
     protected $fillable = [

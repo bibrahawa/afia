@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\BelongsToEtablissement;
 use Illuminate\Database\Eloquent\Model;
 
 class FichierPatient extends Model
 {
+    use BelongsToEtablissement;
+
     protected $fillable = ['patient_id', 'nom_fichier', 'chemin_fichier', 'used_by', 'statut_fichier'];
 
     public function patient() {

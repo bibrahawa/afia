@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\BelongsToEtablissement;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Chambre extends Model
 {
+    use BelongsToEtablissement;
+
     protected $fillable = [
         'numero',
         'type',

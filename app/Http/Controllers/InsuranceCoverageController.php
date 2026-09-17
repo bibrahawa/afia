@@ -29,7 +29,7 @@ class InsuranceCoverageController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'insurance_company_id' => 'required|exists:insurance_companies,id',
+            'insurance_company_id' => 'required|exists_etablissement:insurance_companies,id',
             'coverageable_type' => 'required|string',
             'coverageable_id' => 'required|integer',
             'valid_from' => 'required|date',
@@ -59,7 +59,7 @@ class InsuranceCoverageController extends Controller
     {
 
         $validated = $request->validate( [
-            'insurance_company_id' => 'required|exists:insurance_companies,id',
+            'insurance_company_id' => 'required|exists_etablissement:insurance_companies,id',
             'coverageable_type' => 'required|string',
             'coverageable_id' => 'required|integer',
             'valid_from' => 'required|date',

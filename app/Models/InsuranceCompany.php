@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\BelongsToEtablissement;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class InsuranceCompany extends Model
 {
+    use BelongsToEtablissement;
+
     protected $fillable = [
         'name', 'code', 'contact_person', 'phone', 'email', 'address',
         'contract_start_date', 'contract_end_date', 'status',

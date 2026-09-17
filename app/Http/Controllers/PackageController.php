@@ -160,7 +160,7 @@ class PackageController extends Controller
 	 {
 
 	 	$packages = Package::all();
-	 	$patients = Patient::all();
+	 	$patients = Patient::suivisParEtablissement()->orderBy('last_name')->get();
 	 	$invoice_no = [];
 		$invoice = Invoice::orderBy('id', 'desc')->first();
         if($invoice == null)

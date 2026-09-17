@@ -28,7 +28,7 @@ class DepartmentController extends Controller
     public function store(Request $request)
     {
         $data = $request->all();
-        $request->validate( ['name'=>'required|unique:departments']);
+        $request->validate( ['name'=>'required|unique_etablissement:departments,name']);
         Department::create($data);
         return back()->with('success', 'Department saved successfully.');
         //
