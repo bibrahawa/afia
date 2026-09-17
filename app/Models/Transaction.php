@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\BelongsToEtablissement;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
@@ -9,7 +10,10 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class Transaction extends Model
 {
+    use BelongsToEtablissement;
+
     protected $fillable = [
+        'etablissement_id',
         'invoice_no',
         'transactionable_id',
         'transactionable_type',
@@ -66,10 +70,23 @@ class Transaction extends Model
     protected static function booted()
     {
         static::creating(function ($transaction) {
-            $annee = now()->year;
-            $last = self::whereYear('created_at', $annee)->latest('id')->first();
-            $number = $last ? (int)substr($last->invoice_no, -5) + 1 : 1;
-            $transaction->invoice_no = 'T-' . $annee . str_pad($number, 5, '0', STR_PAD_LEFT);
+            // Contexte sans utilisateur (job, callback de paiement) : on hérite
+            // de l'établissement de l'acte facturé.
+            if (empty($transaction->etablissement_id) && $transaction->transactionable_id
+                && $transaction->transactionable_type
+                && method_exists($transaction->transactionable_type, 'bootBelongsToEtablissement')) {
+                $transaction->etablissement_id = $transaction->transactionable_type::withoutGlobalScopes()
+                    ->whereKey($transaction->transactionable_id)->value('etablissement_id');
+            }
+
+            if (empty($transaction->etablissement_id)) {
+                throw new \LogicException('Transaction sans établissement : impossible de la numéroter.');
+            }
+
+            if (empty($transaction->invoice_no)) {
+                $transaction->invoice_no = app(\App\Services\NumerotationDocumentService::class)
+                    ->numero($transaction->etablissement_id, 'T', 'transaction');
+            }
 
             // Total auto si non défini
             $transaction->total = $transaction->sub_total + $transaction->tax_amount - $transaction->discount;

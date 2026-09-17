@@ -3,15 +3,28 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Traits\BelongsToEtablissement;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class InvoiceItem extends Model
 {
+    use BelongsToEtablissement;
+
     use HasFactory;
 
+    protected static function booted(): void
+    {
+        static::creating(function (InvoiceItem $item) {
+            if (empty($item->etablissement_id) && $item->invoice_id) {
+                $item->etablissement_id = Invoice::withoutGlobalScopes()->whereKey($item->invoice_id)->value('etablissement_id');
+            }
+        });
+    }
+
     protected $fillable = [
+        'etablissement_id',
         'invoice_id',
         'coverage_type_id', // Renommé pour la convention Laravel (polymorphisme)
         'coverage_type_type', // Renommé pour la convention Laravel (polymorphisme)

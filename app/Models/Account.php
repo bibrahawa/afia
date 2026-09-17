@@ -2,11 +2,17 @@
 
 namespace App\Models;
 
+use App\Traits\BelongsToEtablissement;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class Account extends Model
 {
+    use BelongsToEtablissement;
+
     protected $fillable = [
+        'etablissement_id',
         'owner_id',
         'owner_type',
         'balance',
