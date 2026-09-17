@@ -6,6 +6,9 @@ use App\Models\Consultation;
 use App\Models\Hospitalisation;
 use App\Models\Transaction;
 use App\Models\InsuranceCoverage;
+use App\Enums\Labo\StatutExamen;
+use App\Models\Labo\LaboDemande;
+use App\Models\Labo\LaboExamen;
 use InvalidArgumentException;
 
 class BillingItemBuilderService
@@ -15,6 +18,7 @@ class BillingItemBuilderService
         return match ($transaction->transactionable_type) {
             Consultation::class => $this->buildFromConsultation($transaction->transactionable),
             Hospitalisation::class => $this->buildFromHospitalisation($transaction->transactionable),
+            LaboDemande::class => $this->buildFromLaboDemande($transaction->transactionable),
             default => throw new InvalidArgumentException('Type de transaction non supporté.'),
         };
     }
@@ -90,6 +94,46 @@ class BillingItemBuilderService
             ];
 
             $totalAmount += $amount * $quantity;
+        }
+
+        return [
+            'items' => $items,
+            'total_amount' => $totalAmount,
+        ];
+    }
+
+    /**
+     * AJOUT MODULE LABORATOIRE — mêmes conventions que buildFromConsultation :
+     * prix de la convention assurance s'il existe (InsuranceCoverage sur
+     * LaboExamen), sinon prix figé sur la ligne de demande au moment de
+     * l'enregistrement (pas le prix actuel du catalogue).
+     */
+    public function buildFromLaboDemande(LaboDemande $demande): array
+    {
+        $demande->loadMissing(['patient.activeInsurances', 'examens']);
+
+        $insuranceId = optional($demande->patient->activeInsurances()->first())->insurance_company_id;
+
+        $items = [];
+        $totalAmount = 0;
+
+        foreach ($demande->examens as $ligne) {
+            if ($ligne->statut === StatutExamen::ANNULE) {
+                continue;
+            }
+
+            $coverage = $this->findCoverage(LaboExamen::class, $ligne->examen_id, $insuranceId);
+            $amount = $coverage ? (float) $coverage->acte_price : (float) $ligne->prix_applique;
+
+            $items[] = [
+                'acte_type' => LaboExamen::class,
+                'acte_id' => $ligne->examen_id,
+                'description' => $ligne->examen_nom,
+                'unit_price' => $amount,
+                'quantity' => 1,
+                'total' => $amount,
+            ];
+            $totalAmount += $amount;
         }
 
         return [

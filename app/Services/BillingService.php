@@ -187,6 +187,8 @@ class BillingService
                 'Package' => 'App\\Models\\Package',
                 'Hospitalisation' => 'App\\Models\\Hospitalisation',
                 'Chambre' => 'App\\Models\\Chambre',
+                // AJOUT MODULE LABORATOIRE : remises ligne par ligne sur les examens
+                'LaboExamen' => \App\Models\Labo\LaboExamen::class,
             ];
 
             $subTotal = 0;
