@@ -12,16 +12,22 @@ use Illuminate\Console\Command;
  * « expanded tables », format texte séparé par des tabulations) : une table par
  * indicateur et par sexe, avec les colonnes Month, L, M, S.
  *
- *   php artisan aprosafe:importer-normes-oms wfa-boys.txt poids_age Homme
- *   php artisan aprosafe:importer-normes-oms lhfa-girls.txt taille_age Femme
- *   php artisan aprosafe:importer-normes-oms bfa-boys.txt imc_age Homme
+ *   php artisan hali:importer-normes-oms wfa-boys.txt poids_age Homme
+ *   php artisan hali:importer-normes-oms lhfa-girls.txt taille_age Femme
+ *   php artisan hali:importer-normes-oms bfa-boys.txt imc_age Homme
  *
  * Rien n'est inventé ici : sans import, l'application affiche les mesures de
  * l'enfant sans z-score.
  */
 class ImporterNormesOms extends Command
 {
-    protected $signature = 'aprosafe:importer-normes-oms {fichier} {indicateur : poids_age|taille_age|imc_age} {sexe : Homme|Femme} {--separateur=auto}';
+    protected $signature = 'hali:importer-normes-oms {fichier} {indicateur : poids_age|taille_age|imc_age} {sexe : Homme|Femme} {--separateur=auto}';
+
+    /**
+     * Ancien nom, conservé : il figure dans les tâches cron déjà installées
+     * chez les clients. À retirer quand tous les serveurs seront à jour.
+     */
+    protected $aliases = ['aprosafe:importer-normes-oms'];
 
     protected $description = 'Importe une table de croissance OMS (colonnes Month, L, M, S)';
 

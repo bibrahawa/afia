@@ -12,17 +12,23 @@ use Illuminate\Console\Command;
 /**
  * Contrôle des soldes patients : solde enregistré vs Σ factures − Σ paiements.
  *
- *   php artisan aprosafe:comptes                          # rapport, ne modifie rien
- *   php artisan aprosafe:comptes --etablissement=aprosafe
- *   php artisan aprosafe:comptes --corriger               # aligne les soldes, journalisé
- *   php artisan aprosafe:comptes --seuil=500              # n'afficher que les écarts ≥ 500 GNF
+ *   php artisan hali:comptes                          # rapport, ne modifie rien
+ *   php artisan hali:comptes --etablissement=aprosafe
+ *   php artisan hali:comptes --corriger               # aligne les soldes, journalisé
+ *   php artisan hali:comptes --seuil=500              # n'afficher que les écarts ≥ 500 GNF
  */
 class VerifierComptesPatients extends Command
 {
-    protected $signature = 'aprosafe:comptes
+    protected $signature = 'hali:comptes
         {--etablissement= : slug d\'un seul établissement}
         {--corriger : remettre chaque solde à sa valeur attendue}
         {--seuil=1 : écart minimal affiché, en GNF}';
+
+    /**
+     * Ancien nom, conservé : il figure dans les tâches cron déjà installées
+     * chez les clients. À retirer quand tous les serveurs seront à jour.
+     */
+    protected $aliases = ['aprosafe:comptes'];
 
     protected $description = 'Vérifie (et corrige) les soldes des comptes patients';
 
@@ -68,7 +74,7 @@ class VerifierComptesPatients extends Command
                         'etablissement_id' => $compte->etablissement_id,
                         'subject_type' => Account::class, 'subject_id' => $compte->id,
                         'action' => 'comptes.solde_recalcule',
-                        'description' => 'Solde recalculé par aprosafe:comptes',
+                        'description' => 'Solde recalculé par hali:comptes',
                         'proprietes' => ['ancien' => (float) $compte->balance, 'nouveau' => $attendu, 'ecart' => $corrige],
                     ]);
                 }
@@ -89,7 +95,7 @@ class VerifierComptesPatients extends Command
         if ($this->option('corriger')) {
             $this->info('✔ Soldes corrigés et journalisés (activity_logs : comptes.solde_recalcule).');
         } else {
-            $this->line('Rien n\'a été modifié. Après vérification : php artisan aprosafe:comptes --corriger');
+            $this->line('Rien n\'a été modifié. Après vérification : php artisan hali:comptes --corriger');
         }
 
         return self::SUCCESS;

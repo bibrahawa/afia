@@ -7,7 +7,7 @@
 
     @if($catalogueVide)
         <div class="alert alert-warning d-flex align-items-center">
-            <div>Le catalogue d'examens est vide. Importez le catalogue modèle Aprosafe pour démarrer, puis ajustez prix et normes.</div>
+            <div>Le catalogue d'examens est vide. Importez le catalogue modèle fourni pour démarrer, puis ajustez prix et normes.</div>
             @can('labo.catalogue.manage')
                 <form method="POST" action="{{ route('labo.catalogue.importer') }}" class="ms-auto">@csrf
                     <button class="btn btn-primary btn-sm">Importer le catalogue modèle</button>

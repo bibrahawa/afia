@@ -45,7 +45,6 @@ class SmsController
         $status_line = $http_response_header[0] ?? '';
         preg_match('/HTTP\/\S*\s(\d{3})/', $status_line, $match);
         $status_code = $match[1] ?? 0;
-        dd($status_code);
 
         if ($status_code != 201) {
             return "Erreur (HTTP $status_code) : " . $response;

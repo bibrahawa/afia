@@ -202,7 +202,9 @@ class Patient extends Model
     // Accesseurs
     public function getFullNameAttribute()
     {
-        return trim($this->first_name . ' ' . $this->middle_name . ' ' . $this->last_name);
+        // preg_replace : sans deuxième prénom, la concaténation laissait un
+        // double espace, visible partout — écrans, ordonnances, SMS.
+        return preg_replace('/\s+/u', ' ', trim($this->first_name . ' ' . $this->middle_name . ' ' . $this->last_name));
     }
 
     public function getFullAddressAttribute()

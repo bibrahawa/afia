@@ -11,13 +11,19 @@ use Illuminate\Console\Command;
  * Rappel SMS des consultations prénatales à programmer.
  *
  * À planifier une fois par jour (scheduler) :
- *   php artisan aprosafe:rappels-cpn --jours=3
+ *   php artisan hali:rappels-cpn --jours=3
  *
  * Un contact du calendrier n'est rappelé qu'une seule fois (table grossesse_rappels).
  */
 class EnvoyerRappelsCpn extends Command
 {
-    protected $signature = 'aprosafe:rappels-cpn {--jours=3 : nombre de jours avant la date cible} {--test : n\'envoie rien, affiche seulement}';
+    protected $signature = 'hali:rappels-cpn {--jours=3 : nombre de jours avant la date cible} {--test : n\'envoie rien, affiche seulement}';
+
+    /**
+     * Ancien nom, conservé : il figure dans les tâches cron déjà installées
+     * chez les clients. À retirer quand tous les serveurs seront à jour.
+     */
+    protected $aliases = ['aprosafe:rappels-cpn'];
 
     protected $description = 'Envoie un SMS aux patientes dont la prochaine consultation prénatale approche';
 

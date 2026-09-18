@@ -22,7 +22,6 @@ class Api_InsuranceCalculationController extends Controller
      */
     public function calculateCoverage(Request $request)
     {
-        dd($request->all());
         $request->validate([
             'patient_id' => 'required|exists:patients,id',
             'montant_original' => 'required|numeric|min:0',

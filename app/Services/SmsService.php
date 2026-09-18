@@ -14,7 +14,7 @@ class SmsService
     {
         $this->apiKey = config('services.nimba_sms.api_key');
         $this->apiUrl = config('services.nimba_sms.api_url');
-        $this->defaultSender = config('services.nimba_sms.default_sender', 'APROSAFE');
+        $this->defaultSender = config('services.nimba_sms.default_sender', \App\Support\Marque::expediteurSms());
     }
 
     public function sendSms(string $phoneNumber, string $message): array

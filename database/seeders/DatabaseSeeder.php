@@ -51,8 +51,12 @@ class DatabaseSeeder extends Seeder
             $this->call(Assurance\AssurancePermissionsSeeder::class);
         }
 
-        if (class_exists(ParcoursPermissionsSeeder::class)) {
-            $this->call(ParcoursPermissionsSeeder::class);
+        if (class_exists(Parcours\ParcoursPermissionsSeeder::class)) {
+            $this->call(Parcours\ParcoursPermissionsSeeder::class);
+        }
+
+        if (class_exists(Rapports\RapportsPermissionsSeeder::class)) {
+            $this->call(Rapports\RapportsPermissionsSeeder::class);
         }
 
         app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();

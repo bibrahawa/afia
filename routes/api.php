@@ -16,23 +16,25 @@ use App\Http\Controllers\Api\Api_InsuranceCompanyController;
 |--------------------------------------------------------------------------
 */
 
+/*
+| RETIRÉ le 2026-10-10 : ces routes pointaient vers des méthodes absentes du
+| contrôleur (erreur 500 à l'appel). La prise de rendez-vous publique passe
+| désormais par les routes nommées de routes/web.php, qui portent le contexte
+| de l'établissement (/{etablissement}/rendez-vous/...).
+|
+|   appointments/slots, /slots/{id}, /slots/{id}/{date}, /slots/{id}/{date}/{time},
+|   /slots/{id}/{date}/{time}/{duration}, {appointment}/confirm, /cancel, /reschedule,
+|   departments, professionals/{id}
+|
+| Conservées ci-dessous : celles dont la méthode existe réellement.
+*/
+
 Route::prefix('appointments')->group(function () {
     Route::post('/', [AppointmentController::class, 'store']);
     Route::get('/available-dates', [AppointmentController::class, 'getAvailableDates']);
-    Route::get('/slots', [AppointmentController::class, 'getAvailableSlots']);
-    Route::get('/slots/{id}', [AppointmentController::class, 'getAvailableSlotsByProfessional']);
-    Route::get('/slots/{id}/{date}', [AppointmentController::class, 'getAvailableSlotsByProfessionalAndDate']);
-    Route::get('/slots/{id}/{date}/{time}', [AppointmentController::class, 'getAvailableSlotsByProfessionalDateAndTime']);
-    Route::get('/slots/{id}/{date}/{time}/{duration}', [AppointmentController::class, 'getAvailableSlotsByProfessionalDateTimeAndDuration']);
-
-    Route::post('/{appointment}/confirm', [AppointmentController::class, 'confirmAppointment']);
-    Route::post('/{appointment}/cancel', [AppointmentController::class, 'cancelAppointment']);
-    Route::post('/{appointment}/reschedule', [AppointmentController::class, 'rescheduleAppointment']);
 });
 
 Route::post('check-patient', [AppointmentController::class, 'checkPatient']);
-Route::get('departments', [AppointmentController::class, 'getDepartments']);
-Route::get('professionals/{id}', [AppointmentController::class, 'getProfessionals']);
 
 /*
 |--------------------------------------------------------------------------
@@ -52,8 +54,11 @@ Route::post('check-account', [AuthController::class, 'checkAccountStatus']);
 |--------------------------------------------------------------------------
 */
 
-Route::post('doctors/set-unavailability', [AppointmentController::class, 'setDoctorUnavailability'])
-    ->middleware('role:admin,medecin');
+/*
+| RETIRÉ le 2026-10-10 : AppointmentController::setDoctorUnavailability n'existe
+| plus. L'indisponibilité d'un médecin se gère par les congés et absences du
+| back-office, qui déclenchent ProcessDoctorUnavailabilityJob.
+*/
 
 /*
 |--------------------------------------------------------------------------

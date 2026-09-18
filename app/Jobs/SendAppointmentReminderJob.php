@@ -131,7 +131,7 @@ class SendAppointmentReminderJob implements ShouldQueue
         $appointmentTime = $appointment->getFormattedTimeAttribute();
 
         // Nom et téléphone de la clinique DU RENDEZ-VOUS (et non plus
-        // « Clinique Aprosafe / 628 16 44 22 » pour toutes les cliniques).
+        // « Clinique X / 628 16 44 22 » pour toutes les cliniques).
         $identite = \App\Support\Etablissement\IdentiteDocument::pour($appointment->etablissement);
         $clinicName = $identite->nom;
         $clinicPhone = $identite->contact ?: config('clinic.phone', '');

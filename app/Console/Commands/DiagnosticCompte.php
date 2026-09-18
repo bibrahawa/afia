@@ -11,21 +11,27 @@ use Illuminate\Support\Facades\RateLimiter;
 /**
  * Diagnostic et réparation d'un compte qui n'arrive plus à se connecter.
  *
- *   php artisan aprosafe:compte 622099672
- *   php artisan aprosafe:compte 622099672 --debloquer
- *   php artisan aprosafe:compte 622099672 --mot-de-passe="Nouveau@2026"
- *   php artisan aprosafe:compte 622099672 --etablissement=aprosafe
- *   php artisan aprosafe:compte 622099672 --role=admin --role=Biologiste
+ *   php artisan hali:compte 622099672
+ *   php artisan hali:compte 622099672 --debloquer
+ *   php artisan hali:compte 622099672 --mot-de-passe="Nouveau@2026"
+ *   php artisan hali:compte 622099672 --etablissement=aprosafe
+ *   php artisan hali:compte 622099672 --role=admin --role=Biologiste
  */
 class DiagnosticCompte extends Command
 {
-    protected $signature = 'aprosafe:compte
+    protected $signature = 'hali:compte
         {telephone : numéro de connexion (9 chiffres)}
         {--debloquer : remet à zéro tentatives, verrouillage et limitation de débit}
         {--mot-de-passe= : définit un nouveau mot de passe}
         {--etablissement= : rattache le compte à l\'établissement (slug)}
         {--role=* : ajoute un ou plusieurs rôles}
         {--ip= : IP bloquée par la limitation (sinon utilisez cache:clear)}';
+
+    /**
+     * Ancien nom, conservé : il figure dans les tâches cron déjà installées
+     * chez les clients. À retirer quand tous les serveurs seront à jour.
+     */
+    protected $aliases = ['aprosafe:compte'];
 
     protected $description = 'Diagnostique et répare un compte utilisateur (connexion impossible)';
 

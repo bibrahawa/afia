@@ -1023,7 +1023,9 @@
                                                         <div class="small text-muted">
                                                             @foreach($item->repartition_assurance as $part)
                                                                 {{ $part['payeur'] ?? '' }} :
-                                                                {{ ($part['montant'] ?? 0) > 0 ? number_format($part['montant'], 0, ',', ' ') . ' GNF' . (isset($part['taux']) ? ' (' . rtrim(rtrim(number_format($part['taux'], 2, ',', ''), '0'), ',') . ' %)' : '') : 'non pris en charge' }}@if(! empty($part['motif'])) — {{ $part['motif'] }}@endif@if(! $loop->last) · @endif
+                                                                {{ ($part['montant'] ?? 0) > 0 ? number_format($part['montant'], 0, ',', ' ') . ' GNF' . (isset($part['taux']) ? ' (' . rtrim(rtrim(number_format($part['taux'], 2, ',', ''), '0'), ',') . ' %)' : '') : 'non pris en charge' }}
+                                                                @if(! empty($part['motif'])) — {{ $part['motif'] }} @endif
+                                                                @if(! $loop->last) · @endif
                                                             @endforeach
                                                             · patient : {{ number_format((float) ($item->patient_amount ?? 0), 0, ',', ' ') }} GNF
                                                         </div>

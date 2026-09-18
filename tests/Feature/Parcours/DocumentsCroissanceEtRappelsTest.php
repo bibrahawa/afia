@@ -165,8 +165,8 @@ class DocumentsCroissanceEtRappelsTest extends TestCase
         $sms->shouldReceive('sendSms')->once()->andReturn(['success' => true]);
         $this->app->instance(SmsService::class, $sms);
 
-        $this->artisan('aprosafe:rappels-cpn', ['--jours' => 3])->assertSuccessful();
-        $this->artisan('aprosafe:rappels-cpn', ['--jours' => 3])->assertSuccessful();
+        $this->artisan('hali:rappels-cpn', ['--jours' => 3])->assertSuccessful();
+        $this->artisan('hali:rappels-cpn', ['--jours' => 3])->assertSuccessful();
 
         $this->assertSame(1, GrossesseRappel::withoutGlobalScopes()->where('grossesse_id', $grossesse->id)->count());
     }

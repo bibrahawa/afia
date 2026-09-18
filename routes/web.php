@@ -1,12 +1,25 @@
 <?php
 
+/*
+| ROUTES RETIRÉES le 2026-10-10 : elles pointaient vers des méthodes qui
+| n'existent plus (erreur 500 à l'appel). Contrôle : scripts/inventaire-code-inutilise.sh
+|
+|   sms/send-bulk, users/{user}/show, index-permissions, users/{user}/edit,
+|   user/edit, user/delete, change/password, patient/create,
+|   medicaments/{medicament} (show), service/report, chambres/{chambre} (show)
+|
+| À réintroduire seulement avec la méthode correspondante dans le contrôleur.
+*/
+
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\{
     DashboardController, HospitalController, UserController,
     DepartmentController, ServiceController, EmployeeController,
     PatientController, AppointmentController, PackageController,
-    TestController, ReportController, AuthController, ConsultationController, MedicamentController,
-    HospitalisationController, ChambreController, InsuranceCompanyController, PatientInsuranceController,
+    TestController, ReportController, AccountController, AuthController,
+    ProfileController, ConsultationController, MedicamentController,
+    HospitalisationController, ChambreController, InsuranceCompanyController,
+    InsuranceCoverageController, PatientInsuranceController,
     PaymentController, SmsController, SmsReportController,
     AppointmentExportController, DoctorAppointmentController, DoctorAvailabilityController, DoctorLeaveController, DoctorBreakController,
     // Ajoutés par la refonte multi-tenant / rdv / consentement :
@@ -80,7 +93,6 @@ Route::middleware('auth')->group(function () {
         Route::get('/sms/lists', [SmsController::class, 'smsLists'])->name('sms.lists');
         Route::get('/sms/send', [SmsController::class, 'newSms'])->name('sms.new');
         Route::post('/sms/send', [SmsController::class, 'send'])->name('sms.send');
-        Route::post('/sms/send-bulk', [SmsController::class, 'sendBulk'])->name('sms.send-bulk');
         Route::get('/sms-report', [SmsReportController::class, 'index'])->name('admin.sms-report');
         Route::post('/sms-report/resend-failed', [SmsReportController::class, 'resendFailed']);
     });
@@ -267,16 +279,12 @@ Route::middleware('auth')->group(function () {
     // ============================================
     Route::middleware('permission:users.view')->group(function () {
         Route::get('users', [UserController::class, 'index'])->name('users.index');
-        Route::get('users/{user}/show', [UserController::class, 'show'])->name('users.show');
 
         Route::prefix('user')->name('user.')->group(function () {
             Route::get('/', [UserController::class, 'index'])->name('index');
         });
     });
 
-    Route::get('index-permissions', [UserController::class, 'indexPermissions'])
-            ->middleware('permission:users.permissions')
-            ->name('users.index_permissions');
 
     Route::get('liste-permissions/{id}', [UserController::class, 'listePermissions'])
             ->middleware('permission:users.permissions')
@@ -290,9 +298,6 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:users.create')
         ->name('users.store');
 
-    Route::get('users/{user}/edit', [UserController::class, 'edit'])
-        ->middleware('permission:users.edit')
-        ->name('users.edit');
 
     Route::put('users/{user}/update', [UserController::class, 'update'])
         ->middleware('permission:users.edit')
@@ -302,13 +307,7 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:users.delete')
         ->name('users.destroy');
 
-    Route::post('user/edit', [UserController::class, 'edit'])
-        ->middleware('permission:users.edit')
-        ->name('user.edit');
 
-    Route::post('user/delete', [UserController::class, 'delete'])
-        ->middleware('permission:users.delete')
-        ->name('user.delete');
 
     Route::get('disable-user/{id}', [UserController::class, 'disableUser'])
         ->middleware('permission:users.disable')
@@ -318,9 +317,6 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:users.permissions')
         ->name('users.store_permissions');
 
-    Route::post('change/password', [UserController::class, 'changePassword'])
-        ->middleware('permission:users.change_password')
-        ->name('change.password');
 
     // Lot 2c : l'ancien enregistrement de règlement (facture par facture) est remplacé par
     // Assurance > Créances (règlement réclamation par réclamation, route assurance.reglements.store).
@@ -437,9 +433,6 @@ Route::middleware('auth')->group(function () {
         Route::get('patient/{patient}', [PatientController::class, 'show'])->name('patient.show');
     });
 
-    Route::get('patient/create', [PatientController::class, 'create'])
-        ->middleware('permission:patient.create')
-        ->name('patient.create');
 
     Route::post('patient', [PatientController::class, 'store'])
         ->middleware('permission:patient.create')
@@ -546,7 +539,6 @@ Route::middleware('auth')->group(function () {
     // ============================================
     Route::middleware('permission:medicament.view')->group(function () {
         Route::get('medicaments', [MedicamentController::class, 'index'])->name('medicaments.index');
-        Route::get('medicaments/{medicament}', [MedicamentController::class, 'show'])->name('medicaments.show');
     });
 
     Route::get('medicaments/create', [MedicamentController::class, 'create'])
@@ -658,9 +650,6 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:report.view')
         ->name('rapports.bordereau.assurance');
 
-    Route::post('service/report', [ReportController::class, 'service'])
-        ->middleware('permission:report.service')
-        ->name('service.report');
 
     // ============================================
     // HOSPITALISATIONS
@@ -704,7 +693,6 @@ Route::middleware('auth')->group(function () {
     // ============================================
     Route::middleware('permission:chambre.view')->group(function () {
         Route::get('chambres', [ChambreController::class, 'index'])->name('chambres.index');
-        Route::get('chambres/{chambre}', [ChambreController::class, 'show'])->name('chambres.show');
     });
 
     Route::get('chambres/create', [ChambreController::class, 'create'])
@@ -754,7 +742,19 @@ Route::middleware('auth')->group(function () {
             // Lot 2d : l'écran des couvertures ligne à ligne est remplacé par Assurance > Conventions.
             Route::get('insurance-coverages', fn () => redirect()->route('assurance.conventions.index'))->name('insurance-coverages.index');
         });
- 
+
+        Route::post('insurance-coverages', [InsuranceCoverageController::class, 'store'])
+            ->middleware('permission:insurance_coverage.create')
+            ->name('insurance-coverages.store');
+
+        Route::put('insurance-coverages/update', [InsuranceCoverageController::class, 'update'])
+            ->middleware('permission:insurance_coverage.edit')
+            ->name('insurance-coverages.update');
+
+        Route::delete('insurance-coverages/delete', [InsuranceCoverageController::class, 'destroy'])
+            ->middleware('permission:insurance_coverage.delete')
+            ->name('insurance-coverages.destroy');
+
         // ASSURANCE PATIENT
         Route::middleware('permission:patient_insurance.view')->group(function () {
             Route::get('insurance_patient', [PatientInsuranceController::class, 'index'])->name('insurance_patient.index');

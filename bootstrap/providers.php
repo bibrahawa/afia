@@ -7,4 +7,5 @@ return [
     App\Providers\FacturationServiceProvider::class,
     App\Providers\AssuranceServiceProvider::class,
     App\Providers\ParcoursServiceProvider::class,
+    App\Providers\RapportsServiceProvider::class,
 ];

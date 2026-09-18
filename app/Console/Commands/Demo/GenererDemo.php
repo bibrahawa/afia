@@ -36,8 +36,8 @@ use Illuminate\Support\Str;
 /**
  * Établissement de démonstration complet, pour la recette.
  *
- *   php artisan aprosafe:demo clinique-demo-a --nom="Clinique Démo Kaloum"
- *   php artisan aprosafe:demo clinique-demo-b --nom="Clinique Démo Ratoma"
+ *   php artisan hali:demo clinique-demo-a --nom="Clinique Démo Kaloum"
+ *   php artisan hali:demo clinique-demo-b --nom="Clinique Démo Ratoma"
  *
  * Deux établissements = de quoi tester le cloisonnement (Priorité 1).
  * Relançable : les éléments existants sont réutilisés, les demandes labo
@@ -47,19 +47,29 @@ use Illuminate\Support\Str;
  */
 class GenererDemo extends Command
 {
-    protected $signature = 'aprosafe:demo
+    protected $signature = 'hali:demo
         {slug=clinique-demo : identifiant de l\'établissement de démo}
         {--nom= : nom affiché}
         {--sans-labo : ne pas créer de demandes d\'analyses}
         {--force : autoriser en production}';
 
-    protected $description = 'Crée un établissement de démonstration (comptes par rôle, patients, circuit labo complet)';
+    /**
+     * Ancien nom, conservé : il figure dans les tâches cron déjà installées
+     * chez les clients. À retirer quand tous les serveurs seront à jour.
+     */
+    protected $aliases = ['aprosafe:demo'];
+
+    protected $description = 'Crée un établissement de démonstration complet : comptes, patients, parcours, caisse, assurance, laboratoire et réseau';
 
     public const MOT_DE_PASSE = 'Demo@2026';
 
     private Etablissement $etab;
     private array $comptes = [];
     private array $patients = [];
+    private Service $acteConsultation;
+    private Service $acteMaternite;
+    private \App\Models\Medicament $medicament;
+    private \App\Models\MotifRdv $motif;
 
     public function handle(): int
     {
@@ -88,8 +98,13 @@ class GenererDemo extends Command
         $this->creerReferentiels();
         $this->creerPatients();
 
+        $this->circuitParcours();
+        $this->circuitAssurance();
+        $this->circuitCaisse();
+
         if (! $this->option('sans-labo') && class_exists(LaboDemande::class)) {
             $this->circuitLabo();
+            $this->circuitReseau();
         }
 
         $this->afficherComptes();
@@ -104,6 +119,19 @@ class GenererDemo extends Command
         foreach (['rdv', 'consultation', 'hospitalisation', 'assurance', 'laboratoire'] as $code) {
             if ($module = Module::where('code', $code)->first()) {
                 $this->etab->modules()->syncWithoutDetaching([$module->id => ['est_actif' => true, 'active_depuis' => now()]]);
+            }
+        }
+
+        // Permissions des modules livrés après le laboratoire : sans elles, les
+        // comptes de démonstration voient des menus vides.
+        foreach ([
+            \Database\Seeders\Assurance\AssurancePermissionsSeeder::class,
+            \Database\Seeders\Parcours\ParcoursPermissionsSeeder::class,
+            \Database\Seeders\Labo\LaboReseauPermissionsSeeder::class,
+            \Database\Seeders\Rapports\RapportsPermissionsSeeder::class,
+        ] as $seeder) {
+            if (class_exists($seeder)) {
+                $this->callSilent('db:seed', ['--class' => $seeder, '--force' => true]);
             }
         }
 
@@ -180,16 +208,51 @@ class GenererDemo extends Command
         Test::firstOrCreate(['name' => 'Glycémie capillaire'], ['report_type' => 'numerique', 'amount' => 15000]);
         InsuranceCompany::firstOrCreate(['code' => 'NSIA'], ['name' => 'NSIA Assurances', 'default_coverage_percentage' => 80]);
 
-        $this->line('  ✔ Chambres 101/102/201, service, test, assurance NSIA (mêmes codes dans chaque clinique de démo)');
+        // Actes classés par famille : c'est la famille qui décide de la prise
+        // en charge par l'assurance.
+        $this->acteConsultation = Service::firstOrCreate(
+            ['name' => 'Consultation générale'],
+            ['amount' => 100000, 'department_id' => $departement?->id]
+        );
+        $this->acteConsultation->forceFill(['famille_acte' => 'consultation'])->saveQuietly();
+
+        $this->acteMaternite = Service::firstOrCreate(
+            ['name' => 'Consultation prénatale'],
+            ['amount' => 80000, 'department_id' => $departement?->id]
+        );
+        $this->acteMaternite->forceFill(['famille_acte' => 'maternite'])->saveQuietly();
+
+        $this->medicament = \App\Models\Medicament::firstOrCreate(
+            ['nom' => 'Artéméther-luméfantrine'],
+            ['forme' => 'comprimé', 'dosage' => '20/120 mg', 'frequence' => '2 fois par jour', 'duree' => '3 jours', 'amount' => 25000]
+        );
+
+        $this->motif = \App\Models\MotifRdv::firstOrCreate(
+            ['code' => 'consultation'],
+            ['department_id' => $departement?->id, 'nom' => 'Consultation', 'duree_minutes_defaut' => 20,
+             'service_id' => $this->acteConsultation->id, 'actif' => true, 'ordre_affichage' => 1]
+        );
+
+        \App\Models\MotifRdv::firstOrCreate(
+            ['code' => 'cpn'],
+            ['department_id' => $departement?->id, 'nom' => 'Consultation prénatale', 'duree_minutes_defaut' => 25,
+             'service_id' => $this->acteMaternite->id, 'actif' => true, 'ordre_affichage' => 2]
+        );
+
+        $this->line('  ✔ Chambres, actes (consultation, CPN), médicament, motifs de rendez-vous, assurance NSIA');
     }
 
     private function creerPatients(): void
     {
+        // Une patiente par circuit : un patient déjà dans la file du jour ne
+        // peut pas y être remis (verrou anti-double arrivée).
         $fiches = [
             'femme' => ['Aminata', 'Touré', 'Femme', now()->subYears(32)->format('Y-m-d')],
             'homme' => ['Mamadou', 'Sow', 'Homme', now()->subYears(58)->format('Y-m-d')],
             'enfant' => ['Ibrahima', 'Bangoura', 'Homme', now()->subYears(3)->format('Y-m-d')],
             'sans_age' => ['Sékou', 'Kourouma', 'Homme', null],
+            'enceinte' => ['Kadiatou', 'Diallo', 'Femme', now()->subYears(27)->format('Y-m-d')],
+            'assuree' => ['Fatoumata', 'Baldé', 'Femme', now()->subYears(41)->format('Y-m-d')],
         ];
 
         $base = sprintf('66%05d', crc32($this->etab->slug) % 100000);
@@ -218,7 +281,334 @@ class GenererDemo extends Command
             $this->patients[$cle] = $patient;
         }
 
-        $this->line('  ✔ 4 patients : femme 32 ans, homme 58 ans, enfant 3 ans, homme sans âge');
+        $this->line('  ✔ 6 patients : femme 32 ans, homme 58 ans, enfant 3 ans, homme sans âge, femme enceinte 27 ans, femme assurée 41 ans');
+    }
+
+    // ------------------------------------------------------------------ Parcours
+
+    /** File d'attente du jour, consultations, grossesse et documents. */
+    private function circuitParcours(): void
+    {
+        $medecinUser = $this->comptes['medecin']['user'] ?? Auth::user();
+        $medecin = Employee::where('user_id', $medecinUser->id)->first();
+
+        if (! $medecin) {
+            $this->warn('  ⚠ Pas de médecin : circuit parcours ignoré.');
+
+            return;
+        }
+
+        $this->newLine();
+        $this->info('🚶 Parcours patient');
+
+        $accueil = app(\App\Services\Parcours\AccueilService::class);
+
+        $this->etape('1. En attente, constantes prises', function () use ($accueil, $medecin) {
+            $visite = $accueil->arriveeSansRendezVous($this->patients['femme'], $medecin,
+                ['service_id' => $this->acteConsultation->id, 'motif' => 'Fièvre depuis 3 jours'], Auth::user());
+
+            $accueil->enregistrerConstantes($visite, [
+                'temperature' => 38.7, 'tension_systolique' => 120, 'tension_diastolique' => 80,
+                'pouls' => 92, 'poids_kg' => 62,
+            ], Auth::user());
+
+            return $visite;
+        });
+
+        $this->etape('2. URGENCE en tête de file', fn () => $accueil->arriveeSansRendezVous(
+            $this->patients['homme'], $medecin,
+            ['service_id' => $this->acteConsultation->id, 'motif' => 'Douleur thoracique', 'urgence' => true],
+            Auth::user()
+        ));
+
+        $this->etape('3. Consultation terminée avec ordonnance et prochain rendez-vous', function () use ($accueil, $medecin) {
+            $visite = $accueil->arriveeSansRendezVous($this->patients['enfant'], $medecin,
+                ['service_id' => $this->acteConsultation->id, 'motif' => 'Toux'], Auth::user());
+
+            $accueil->appeler($visite->fresh(), $medecin);
+
+            app(\App\Services\Parcours\ConsultationRapideService::class)->enregistrer($visite->consultation->fresh(), [
+                'action' => 'terminer',
+                'diagnostic' => 'Infection respiratoire haute',
+                'signes' => ['Toux', 'Fièvre'],
+                'actes' => [
+                    'services' => [['id' => $this->acteConsultation->id]],
+                    'medicaments' => [[
+                        'id' => $this->medicament->id, 'quantite' => 1,
+                        'dose' => '1 cuillère', 'frequence' => '2 fois par jour', 'duree' => '5 jours',
+                    ]],
+                ],
+                'prochain_rdv_jours' => 7,
+                'prochain_rdv_motif_id' => $this->motif->id,
+            ], Auth::user());
+
+            return $visite->fresh();
+        });
+
+        $this->etape('4. Reparti sans consulter (facture annulée)', function () use ($accueil, $medecin) {
+            $visite = $accueil->arriveeSansRendezVous($this->patients['sans_age'], $medecin,
+                ['service_id' => $this->acteConsultation->id, 'motif' => 'Contrôle'], Auth::user());
+
+            $accueil->marquerPartie($visite->fresh(), 'Attente trop longue');
+
+            return $visite->fresh();
+        });
+
+        $this->etape('5. Grossesse suivie, CPN rattachée', function () use ($accueil, $medecin) {
+            $grossesse = app(\App\Services\Parcours\GrossesseService::class)->ouvrir(
+                $this->patients['enceinte'], now()->subWeeks(28), ['medecin_id' => $medecin->id, 'gestite' => 2, 'parite' => 1], Auth::user()
+            );
+
+            $cpn = $accueil->arriveeSansRendezVous($this->patients['enceinte'], $medecin,
+                ['service_id' => $this->acteMaternite->id, 'motif' => 'CPN'], Auth::user());
+
+            app(\App\Services\Parcours\GrossesseService::class)->rattacher($cpn->consultation);
+            $accueil->appeler($cpn->fresh(), $medecin);
+            $cpn->consultation->update(['diagnostic' => 'Grossesse évolutive, RAS']);
+            $accueil->terminer($cpn->fresh());
+
+            return $grossesse;
+        });
+
+        $this->etape('6. Certificat médical et arrêt de travail', function () {
+            $consultation = \App\Models\Consultation::whereNotNull('diagnostic')->latest('id')->first();
+            $documents = app(\App\Services\Parcours\DocumentMedicalService::class);
+
+            $documents->creer($this->patients['homme'], \App\Enums\Parcours\TypeDocumentMedical::CertificatMedical, [
+                'contenu' => $documents->proposerTexte(\App\Enums\Parcours\TypeDocumentMedical::CertificatMedical,
+                    $this->patients['homme'], ['motif' => 'un état de santé compatible avec la reprise du travail']),
+            ], $consultation, Auth::user());
+
+            return $documents->creer($this->patients['homme'], \App\Enums\Parcours\TypeDocumentMedical::ArretTravail, [
+                'contenu' => $documents->proposerTexte(\App\Enums\Parcours\TypeDocumentMedical::ArretTravail,
+                    $this->patients['homme'], ['jours' => 3, 'date_debut' => today()->toDateString(), 'motif' => 'paludisme simple']),
+                'date_debut' => today()->toDateString(),
+                'jours' => 3,
+            ], $consultation, Auth::user());
+        });
+    }
+
+    // ------------------------------------------------------------------ Assurance
+
+    /** Patiente assurée, facture partagée, bordereau envoyé et règlement reçu. */
+    private function circuitAssurance(): void
+    {
+        $this->newLine();
+        $this->info('🛡  Assurance');
+
+        $organisme = InsuranceCompany::firstOrCreate(['code' => 'NSIA'], ['name' => 'NSIA Assurances', 'type' => 'assureur']);
+
+        $this->etape('1. Convention : consultations et maternité couvertes', function () use ($organisme) {
+            foreach (['consultation' => 0, 'maternite' => 5, 'laboratoire' => 10] as $famille => $remise) {
+                \App\Models\Assurance\ConventionFamille::updateOrCreate(
+                    ['insurance_company_id' => $organisme->id, 'famille_acte' => $famille],
+                    ['remise_pourcentage' => $remise, 'valid_from' => now()->subYear()->toDateString(), 'actif' => true]
+                );
+            }
+
+            return $organisme;
+        });
+
+        $this->etape('2. Patiente couverte à 80 %', fn () => \App\Models\PatientInsurance::firstOrCreate(
+            ['patient_id' => $this->patients['assuree']->id, 'insurance_company_id' => $organisme->id],
+            [
+                'policy_number' => 'NSIA-DEMO-001', 'coverage_percentage' => 80,
+                'annual_limit' => 5000000, 'start_date' => now()->subMonths(6), 'end_date' => now()->addMonths(6),
+                'status' => 'active',
+            ]
+        ));
+
+        $reclamation = null;
+
+        $this->etape('3. Consultation facturée : part assureur et part patiente', function () use (&$reclamation) {
+            $medecinUser = $this->comptes['medecin']['user'] ?? Auth::user();
+            $medecin = Employee::where('user_id', $medecinUser->id)->first();
+
+            $visite = app(\App\Services\Parcours\AccueilService::class)->arriveeSansRendezVous(
+                $this->patients['assuree'], $medecin,
+                ['service_id' => $this->acteConsultation->id, 'motif' => 'Suivi (assurée)'], Auth::user()
+            );
+
+            $facture = $visite->consultation->transaction()->first()?->invoice()->first();
+            $reclamation = \App\Models\InsuranceClaim::where('invoice_id', $facture?->id)->first();
+
+            return $facture;
+        });
+
+        if (! $reclamation) {
+            $this->line('  <fg=yellow>Pas de réclamation générée : bordereau et règlement ignorés.</>');
+
+            return;
+        }
+
+        $this->etape('4. Bordereau du mois envoyé à l\'assureur', function () use ($organisme) {
+            $bordereau = app(\App\Services\Assurance\BordereauService::class)->creer(
+                $organisme, now()->startOfMonth(), now()->endOfMonth(), 'Bordereau de démonstration', Auth::id()
+            );
+
+            return app(\App\Services\Assurance\BordereauService::class)->envoyer($bordereau, now());
+        });
+
+        $this->etape('5. Réponse de l\'assureur puis règlement partiel', function () use ($organisme, $reclamation) {
+            $reclamation = $reclamation->fresh('lignes');
+
+            $reponses = $reclamation->lignes->mapWithKeys(fn ($ligne) => [
+                $ligne->id => ['montant_accepte' => round((float) $ligne->montant_reclame * 0.9), 'motif_rejet' => 'Tarif conventionné'],
+            ])->all();
+
+            app(\App\Services\Assurance\ReclamationService::class)->enregistrerReponse($reclamation, $reponses, 'Règlement partiel de démonstration');
+
+            return app(\App\Services\Assurance\ReglementAssuranceService::class)->regler($organisme, (float) $reclamation->fresh()->approved_amount, [], [
+                'mode' => 'virement', 'reference' => 'VIR-DEMO-001', 'recu_le' => today()->toDateString(),
+            ]);
+        });
+    }
+
+    // ------------------------------------------------------------------ Caisse
+
+    /** Encaissements de démonstration : soldé, partiel, impayé. */
+    private function circuitCaisse(): void
+    {
+        $this->newLine();
+        $this->info('💰 Caisse');
+
+        $transactions = \App\Models\Transaction::where('status', '!=', 'cancel')->latest('id')->take(3)->get();
+
+        if ($transactions->isEmpty()) {
+            $this->line('  <fg=yellow>Aucune facture à encaisser.</>');
+
+            return;
+        }
+
+        $paiements = app(\App\Services\PaymentService::class);
+
+        $this->etape('1. Facture soldée en espèces', function () use ($paiements, $transactions) {
+            $transaction = $transactions->first();
+            $solde = \App\Support\Facturation\SoldeTransaction::pour($transaction);
+
+            return $solde->resteDuPatient() > 0
+                ? $paiements->payPatientTransaction($transaction, $solde->resteDuPatient(), 'CASH')
+                : null;
+        });
+
+        $this->etape('2. Paiement partiel (reste dû visible en caisse)', function () use ($paiements, $transactions) {
+            $transaction = $transactions->get(1);
+
+            if (! $transaction) {
+                return null;
+            }
+
+            $solde = \App\Support\Facturation\SoldeTransaction::pour($transaction);
+
+            return $solde->resteDuPatient() > 1
+                ? $paiements->payPatientTransaction($transaction, round($solde->resteDuPatient() / 2), 'MOBILE_MONEY')
+                : null;
+        });
+
+        $this->line('  ✔ Une facture soldée, une partielle, le reste impayé pour l\'écran des restes à payer');
+    }
+
+    // ------------------------------------------------------------------ Réseau
+
+    /** Partenariat avec une autre clinique de démonstration, si elle existe. */
+    private function circuitReseau(): void
+    {
+        if (! class_exists(\App\Models\Labo\LaboPartenariat::class)) {
+            return;
+        }
+
+        $clinique = Etablissement::where('id', '!=', $this->etab->id)->where('type', 'clinique')->first();
+
+        if (! $clinique) {
+            $this->newLine();
+            $this->line('  <fg=yellow>Réseau : lancez la commande sur un second établissement (slug différent) pour voir le circuit inter-établissements.</>');
+
+            return;
+        }
+
+        $this->newLine();
+        $this->info('🔗 Laboratoire en réseau avec ' . $clinique->nom);
+
+        // Un examen à prix zéro est refusé à l'envoi (lot 4e) : on s'assure que
+        // le catalogue de ce laboratoire est tarifé.
+        LaboExamen::withoutGlobalScopes()
+            ->where('etablissement_id', $this->etab->id)
+            ->where('actif', true)
+            ->where('prix', '<=', 0)
+            ->get()
+            ->each(fn ($examen) => $examen->forceFill(['prix' => 25000])->saveQuietly());
+
+        $bio = $this->comptes['biologiste']['user'] ?? Auth::user();
+        $medecinDistant = User::where('etablissement_id', $clinique->id)->first();
+
+        if (! $medecinDistant) {
+            $this->line('  <fg=yellow>Aucun compte dans l\'autre établissement : circuit réseau ignoré.</>');
+
+            return;
+        }
+
+        $this->etape('1. Partenariat proposé puis accepté', function () use ($clinique, $bio, $medecinDistant) {
+            Auth::guard('web')->setUser($bio);
+
+            $partenariat = \App\Models\Labo\LaboPartenariat::where('clinique_id', $clinique->id)->first()
+                ?? app(\App\Services\Labo\PartenariatService::class)->creer($clinique, [
+                    'mode_facturation_defaut' => 'partenaire', 'clinique_facture_patient' => true,
+                    'remise_pourcentage' => 10, 'delai_paiement_jours' => 30,
+                    'contact_nom' => 'Comptabilité', 'contact_telephone' => '620000000',
+                ], $bio);
+
+            if ($partenariat->estPropose()) {
+                Auth::guard('web')->setUser($medecinDistant);
+                app(\App\Services\Labo\LaboReseauService::class)->accepterProposition($partenariat->id, $medecinDistant);
+            }
+
+            return $partenariat->fresh();
+        });
+
+        $this->etape('2. Demande envoyée par la clinique partenaire', function () use ($clinique, $medecinDistant, $bio) {
+            Auth::guard('web')->setUser($medecinDistant);
+
+            $reseau = app(\App\Services\Labo\LaboReseauService::class);
+            $partenariat = $reseau->partenariat($reseau->partenaires()->firstOrFail()->id);
+
+            $patient = $clinique->patients()->first()
+                ?? Patient::create(['first_name' => 'Patient', 'last_name' => 'Partenaire', 'gender' => 'Homme', 'birth_date' => now()->subYears(40)->toDateString()]);
+            $clinique->patients()->syncWithoutDetaching([$patient->id]);
+
+            // On prend l'examen tel que la CLINIQUE le voit : c'est la seule
+            // liste dont l'envoi accepte les identifiants (catalogue du
+            // partenaire, actif, tarifé).
+            $ligne = $reseau->catalogue($partenariat)->firstWhere('prix', '>', 0)
+                ?? $reseau->catalogue($partenariat)->first();
+
+            if (! $ligne) {
+                throw new \RuntimeException('Le catalogue du laboratoire est vide ou entièrement à zéro.');
+            }
+
+            $demande = $reseau->envoyer($partenariat, $patient, [
+                'examens' => [$ligne['id']],
+                'renseignements_cliniques' => 'Bilan de démonstration',
+                'consentement_partage' => true,
+            ], $medecinDistant);
+
+            Auth::guard('web')->setUser($bio);
+
+            return $demande;
+        });
+
+        $this->etape('3. Relevé envoyé à la clinique partenaire', function () use ($clinique, $bio) {
+            Auth::guard('web')->setUser($bio);
+
+            $facturation = app(\App\Services\Labo\FacturationPartenaireService::class);
+
+            // Le partenariat du laboratoire courant avec CETTE clinique, pas le
+            // premier venu : une plateforme en compte plusieurs.
+            $partenariat = \App\Models\Labo\LaboPartenariat::where('clinique_id', $clinique->id)->firstOrFail();
+
+            $releve = $facturation->preparerReleve($partenariat, now()->startOfMonth(), now()->endOfMonth(), Auth::user());
+
+            return $facturation->envoyerReleve($releve);
+        });
     }
 
     // ------------------------------------------------------------------ Labo
@@ -310,11 +700,23 @@ class GenererDemo extends Command
         $this->etape('11. Facturée, NON réglée (résultats retenus)', fn () => $this->demande($f, ['VS'], facturer: true));
     }
 
+    /**
+     * Une étape de démonstration. Le retour sert seulement à l'affichage :
+     * un numéro s'il existe (demande, document, relevé), sinon l'identifiant,
+     * et rien du tout si l'étape n'avait rien à créer.
+     */
     private function etape(string $libelle, callable $action): void
     {
         try {
-            $d = $action();
-            $this->line("  ✔ {$libelle} → {$d->numero}");
+            $resultat = $action();
+
+            $reference = match (true) {
+                is_object($resultat) && isset($resultat->numero) => $resultat->numero,
+                is_object($resultat) && isset($resultat->id) => '#' . $resultat->id,
+                default => '',
+            };
+
+            $this->line(trim("  ✔ {$libelle} → {$reference}", ' →'));
         } catch (\Throwable $e) {
             $this->warn("  ✖ {$libelle} : " . $e->getMessage());
             report($e);
@@ -404,5 +806,17 @@ class GenererDemo extends Command
         $this->newLine();
         $this->info('🔑 Comptes (connexion par TÉLÉPHONE) — mot de passe : ' . self::MOT_DE_PASSE);
         $this->table(['Profil', 'Téléphone', 'Rôle'], collect($this->comptes)->map(fn ($c, $k) => [$k, $c['user']->phone, $c['role']])->values()->all());
+
+        $this->newLine();
+        $this->info('📋 Ce qui vous attend dans l\'application');
+        $this->line('  • Accueil du jour : un patient en attente avec ses constantes, une urgence en tête, un reparti');
+        $this->line('  • Ma file d\'attente : une consultation déjà terminée, avec ordonnance et prochain rendez-vous');
+        $this->line('  • Grossesses suivies : un suivi en cours avec sa première CPN rattachée');
+        $this->line('  • Documents du patient : un certificat médical et un arrêt de travail numérotés');
+        $this->line('  • Caisse : une facture soldée, une partielle, une impayée');
+        $this->line('  • Assurances : convention, patiente couverte à 80 %, bordereau envoyé, règlement partiel');
+        $this->line('  • Laboratoire : neuf demandes couvrant tous les états du circuit');
+        $this->line('  • Rapports : activité, recettes, impayés, créances — tous alimentés');
+        $this->line('  • Réseau : relancez la commande avec un autre slug pour voir le circuit entre deux établissements');
     }
 }

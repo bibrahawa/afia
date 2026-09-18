@@ -56,11 +56,17 @@ class Etablissement extends Model
             ->withTimestamps();
     }
 
+    /** Codes des modules actifs, chargés une seule fois par requête. */
+    private ?array $modulesActifs = null;
+
     public function aModule(string $code): bool
     {
-        return $this->modules()
-            ->where('code', $code)
+        // Mémorisé : la barre de menu pose la question une dizaine de fois par page.
+        $this->modulesActifs ??= $this->modules()
             ->wherePivot('est_actif', true)
-            ->exists();
+            ->pluck('code')
+            ->all();
+
+        return in_array($code, $this->modulesActifs, true);
     }
 }

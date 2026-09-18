@@ -3,7 +3,7 @@
   <head>
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta charset="UTF-8">
-    <title>Aprosafe - Admin</title>
+    <title>{{ \App\Support\Marque::titre('Administration') }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta
       content="width=device-width, initial-scale=1.0, shrink-to-fit=no"
@@ -40,7 +40,7 @@
     <link rel="stylesheet" href="{{asset("assets/css/kaiadmin.min.css")}}" />
 
     {{--
-        Reskin teal/santé Aprosafe — charge APRÈS kaiadmin.min.css pour
+        Reskin teal/santé Hali — charge APRÈS kaiadmin.min.css pour
         pouvoir surcharger ses classes sans !important à outrance.
         Unifie visuellement le back-office avec l'interface patient.
     --}}

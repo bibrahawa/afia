@@ -39,6 +39,16 @@
                     </span>
                     <h4 class="text-section">Patients</h4>
                 </li>
+                @can('rapports.view')
+                    <li class="nav-item {{ request()->routeIs('rapports.*') ? 'active' : '' }}">
+                        <a href="{{ route('rapports.index') }}">
+                            <i class="fas fa-chart-pie"></i>
+                            <p>Rapports</p>
+                        </a>
+                    </li>
+                @endcan
+
+@module('consultation')
                 @can('parcours.accueil')
                     <li class="nav-item {{ request()->routeIs('parcours.accueil.*') ? 'active' : '' }}">
                         <a href="{{ route('parcours.accueil.index') }}">
@@ -83,6 +93,8 @@
                         </a>
                     </li>
                 @endcan
+                @endmodule
+
 
                 @can('patient.view')
                     <li class="nav-item {{ request()->routeIs('patient.*') ? 'active' : '' }}">
@@ -93,6 +105,7 @@
                     </li>
                 @endcan
 
+@module('rdv')
                 @can('medecin.appointments')
                 <li class="nav-item {{ request()->routeIs('medecin.*') && request()->routeIs('*.appointments') ? 'active' : '' }}">
                     <a href="{{ route('medecin.appointments') }}">
@@ -101,7 +114,10 @@
                     </a>
                 </li>
                 @endcan
+                @endmodule
 
+
+@module('consultation')
                 @can('consultation.view')
                     <li class="nav-item {{ request()->routeIs('consultation.*') ? 'active' : '' }}">
                         <a href="{{ route('consultation.index') }}">
@@ -110,7 +126,10 @@
                         </a>
                     </li>
                 @endcan
+                @endmodule
 
+
+@module('hospitalisation')
                 @can('hospitalisation.view')
                     <li class="nav-item {{ request()->routeIs('hospitalisations.*') ? 'active' : '' }}">
                         <a href="{{ route('hospitalisations.index') }}">
@@ -119,8 +138,12 @@
                         </a>
                     </li>
                 @endcan
+                @endmodule
 
-                @include('labo.partials.sidebar')
+
+                @module('laboratoire')
+                    @include('labo.partials.sidebar')
+                @endmodule
 
                 @can('labo.reseau.view')
                     <li class="nav-item {{ request()->routeIs('labo.reseau.*') ? 'active' : '' }}">
@@ -172,6 +195,7 @@
                 </li>
                 @endcan
 
+@module('rdv')
                 @can('medecin.availabilities')
                     <li class="nav-item {{ request()->routeIs('medecin.*') && request()->routeIs('*.availabilities') ? 'active' : '' }}">
                         <a href="{{ route('medecin.availabilities.index') }}">
@@ -189,6 +213,8 @@
                         </a>
                     </li>
                 @endcan
+                @endmodule
+
 
                 @can('department.view')
                 <!-- RESSOURCES & SERVICES -->
@@ -216,6 +242,7 @@
                     </li>
                 @endcan
 
+@module('hospitalisation')
                 @can('chambre.view')
                     <li class="nav-item {{ request()->routeIs('chambres.*') ? 'active' : '' }}">
                         <a href="{{ route('chambres.index') }}">
@@ -224,6 +251,8 @@
                         </a>
                     </li>
                 @endcan
+                @endmodule
+
 
                 @can('test.view')
                     <li class="nav-item {{ request()->routeIs('test.*') ? 'active' : '' }}">
@@ -234,6 +263,7 @@
                     </li>
                 @endcan
 
+@module('consultation')
                 @can('package.view')
                     <li class="nav-item {{ request()->routeIs('package.*') ? 'active' : '' }}">
                         <a href="{{ route('package.index') }}">
@@ -242,6 +272,8 @@
                         </a>
                     </li>
                 @endcan
+                @endmodule
+
 
                 @can('medicament.view')
                     <li class="nav-item {{ request()->routeIs('medicaments.*') ? 'active' : '' }}">
@@ -252,6 +284,7 @@
                     </li>
                 @endcan
 
+@module('assurance')
                 @can('insurance_company.view')
                 <!-- ASSURANCES -->
                 <li class="nav-section">
@@ -310,6 +343,8 @@
                         </a>
                     </li>
                 @endcan
+                @endmodule
+
 
                 <!-- FACTURATION -->
                 @can('invoice.view')
@@ -382,6 +417,7 @@
                     </li>
                 @endcan
 
+@module('rdv')
                 @can('motif_rdv.view')
                     <li class="nav-item {{ request()->routeIs('motifs-rdv.*') ? 'active' : '' }}">
                         <a href="{{ route('motifs-rdv.index') }}">
@@ -390,6 +426,8 @@
                         </a>
                     </li>
                 @endcan
+                @endmodule
+
 
                 @can('patient.view')
                     <li class="nav-item {{ request()->routeIs('comptes-patients.*') ? 'active' : '' }}">

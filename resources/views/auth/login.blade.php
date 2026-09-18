@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connexion — Aprosafe</title>
+    <title>{{ \App\Support\Marque::titre('Connexion') }}</title>
     
     <link rel="stylesheet" href="{{ asset('assets/css/bootstrap.min.css') }}">
 
@@ -212,7 +212,7 @@
         <div class="login-brand">
             <div class="login-brand-icon">+</div>
             <div>
-                <div class="login-brand-name">Aprosafe</div>
+                <div class="login-brand-name">{{ \App\Support\Marque::nom() }}</div>
                 <span class="login-brand-sub">Espace personnel</span>
             </div>
         </div>
