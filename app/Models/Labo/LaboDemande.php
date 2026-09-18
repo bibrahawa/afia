@@ -27,6 +27,7 @@ class LaboDemande extends Model
         'semaines_amenorrhee', 'a_jeun_confirme', 'urgence', 'statut', 'mode_facturation',
         'resultats_retenus_si_impaye', 'enregistre_par', 'annule_le', 'annule_par',
         'resultat_notifie_le', 'resultat_vu_le', 'resultat_vu_par',
+        'consentement_partage_le', 'consentement_recueilli_par',
         'motif_annulation', 'premiere_publication_le',
     ];
 
@@ -42,6 +43,7 @@ class LaboDemande extends Model
         'premiere_publication_le' => 'datetime',
         'resultat_notifie_le' => 'datetime',
         'resultat_vu_le' => 'datetime',
+        'consentement_partage_le' => 'datetime',
     ];
 
     public function getRouteKeyName(): string

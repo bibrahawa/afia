@@ -50,6 +50,11 @@ class FacturationPartenaireTest extends LaboTestCase
             ->whereIn('code', ['GLY', 'NFS'])
             ->each(fn (LaboExamen $examen) => $examen->forceFill(['prix' => $examen->code === 'GLY' ? 20000 : 30000])->save());
 
+        // La clinique doit accepter la proposition avant tout envoi (lot 4f).
+        $this->actingAs($this->medecin);
+        $this->partenariat = app(LaboReseauService::class)->accepterProposition($this->partenariat->id, $this->medecin);
+
+
     }
 
     public function test_une_demande_partenaire_cree_une_creance_au_prix_negocie(): void

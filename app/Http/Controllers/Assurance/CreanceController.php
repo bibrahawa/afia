@@ -46,6 +46,7 @@ class CreanceController extends Controller
             'aEnvoyer' => $bordereaux->reclamationsAEnvoyer($assuranceOrganisme, null, null)->count(),
             'bordereaux' => Bordereau::where('insurance_company_id', $assuranceOrganisme->id)->withCount('reclamations')->latest()->limit(20)->get(),
             'reglements' => InsuranceSettlement::where('insurance_company_id', $assuranceOrganisme->id)->latest()->limit(20)->get(),
+            'anciennete' => $reglements->anciennete($assuranceOrganisme),
         ]);
     }
 }

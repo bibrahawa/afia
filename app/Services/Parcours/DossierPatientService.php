@@ -103,19 +103,51 @@ class DossierPatientService
             ]);
     }
 
+    /**
+     * Analyses du laboratoire interne ET analyses envoyées à un laboratoire
+     * partenaire : ces dernières appartiennent au laboratoire, elles étaient
+     * donc absentes du dossier alors que la clinique les avait prescrites.
+     */
     private function laboratoire(Patient $patient): Collection
     {
-        return LaboDemande::where('patient_id', $patient->id)->with('examens')->get()
-            ->map(fn (LaboDemande $d) => [
-                'date' => $d->created_at,
-                'type' => 'laboratoire',
-                'titre' => 'Analyses — ' . $d->numero,
-                'details' => array_filter([
-                    'Examens' => $d->examens->pluck('examen_nom')->join(', ') ?: null,
-                    'Statut' => $d->statut?->libelle() ?? null,
-                ]),
-                'lien' => null,
-            ]);
+        // collect(...) : une collection Eloquent transformée en tableaux ne peut
+        // plus être fusionnée (merge() y attend des modèles).
+        $internes = collect(LaboDemande::where('patient_id', $patient->id)->with('examens')->get()
+            ->map(fn (LaboDemande $d) => $this->ligneLabo($d, null))->all());
+
+        $etablissementId = \App\Support\EtablissementContext::id();
+
+        $envoyees = $etablissementId
+            ? LaboDemande::withoutGlobalScopes()
+                ->where('patient_id', $patient->id)
+                ->where('etablissement_prescripteur_id', $etablissementId)
+                ->with([
+                    'examens' => fn ($q) => $q->withoutGlobalScopes(),
+                    'etablissement' => fn ($q) => $q->withoutGlobalScopes(),
+                ])
+                ->get()
+                ->map(fn (LaboDemande $d) => $this->ligneLabo($d, $d->etablissement?->nom))
+                ->all()
+            : [];
+
+        return $internes->merge(collect($envoyees));
+    }
+
+    private function ligneLabo(LaboDemande $demande, ?string $laboratoire): array
+    {
+        return [
+            'date' => $demande->created_at,
+            'type' => 'laboratoire',
+            'titre' => 'Analyses — ' . $demande->numero,
+            'details' => array_filter([
+                'Laboratoire' => $laboratoire,
+                'Examens' => $demande->examens->pluck('examen_nom')->join(', ') ?: null,
+                'Statut' => $demande->statut?->libelle() ?? null,
+            ]),
+            'lien' => $laboratoire && \Illuminate\Support\Facades\Route::has('labo.reseau.show')
+                ? route('labo.reseau.show', $demande->id)
+                : null,
+        ];
     }
 
     private function rendezVous(Patient $patient): Collection

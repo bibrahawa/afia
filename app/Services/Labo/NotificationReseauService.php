@@ -36,11 +36,13 @@ class NotificationReseauService
             return;
         }
 
+        // Confidentialité : pas de nom de patient dans un SMS envoyé à un
+        // numéro saisi à la main. Le numéro de demande suffit à retrouver le
+        // dossier dans Aprosafe.
         $message = sprintf(
-            'Resultats disponibles : %s (%s), demande %s. Consultez Aprosafe.',
-            $demande->patient?->full_name ?? 'patient',
-            $demande->partenariat?->laboratoire?->nom ?? 'laboratoire',
-            $demande->numero
+            'Resultats disponibles pour la demande %s (%s). Consultez Aprosafe.',
+            $demande->numero,
+            $demande->partenariat?->laboratoire?->nom ?? 'laboratoire partenaire'
         );
 
         $resultat = $this->sms->sendSms($telephone, $message);

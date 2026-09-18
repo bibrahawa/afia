@@ -5,6 +5,10 @@
         <option value="partenaire" @selected($partenariat?->mode_facturation_defaut === 'partenaire')>Le laboratoire facture la clinique</option>
     </select></div>
 <div class="col-12">
+    <div class="small text-muted mb-1">
+        « Le laboratoire facture la clinique » sans l'option ci-dessous : personne ne facture le patient ici.
+        La clinique doit alors avoir encaissé ces analyses de son côté.
+    </div>
     <label class="small d-block">
         <input type="hidden" name="clinique_facture_patient" value="0">
         <input type="checkbox" name="clinique_facture_patient" value="1" @checked($partenariat?->clinique_facture_patient)>

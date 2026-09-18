@@ -39,8 +39,18 @@ class CreancePartenaireController extends Controller
             'releves' => LaboRelevePartenaire::where('partenariat_id', $laboPartenariat->id)->with('creances')->latest('id')->get(),
             'creancesOuvertes' => $this->facturation->creancesOuvertes($laboPartenariat),
             'reglements' => LaboReglementPartenaire::where('partenariat_id', $laboPartenariat->id)->with('imputations')->latest('id')->limit(20)->get(),
+            'anciennete' => $this->facturation->anciennete($laboPartenariat),
             'modes' => LaboReglementPartenaire::MODES,
         ]);
+    }
+
+    public function annulerReglement(Request $request, LaboReglementPartenaire $laboReglement)
+    {
+        $donnees = $request->validate(['motif_annulation' => ['required', 'string', 'max:255']]);
+
+        $this->facturation->annulerReglement($laboReglement, $donnees['motif_annulation'], $request->user());
+
+        return back()->with('success', 'Règlement annulé : les créances redeviennent dues.');
     }
 
     public function preparerReleve(Request $request, LaboPartenariat $laboPartenariat)

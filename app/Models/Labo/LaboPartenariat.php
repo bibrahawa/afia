@@ -20,17 +20,41 @@ class LaboPartenariat extends Model
 {
     use BelongsToEtablissement;
 
+    public const PROPOSE = 'propose';   // le laboratoire a proposé, la clinique doit accepter
     public const ACTIF = 'actif';
     public const SUSPENDU = 'suspendu';
+    public const REFUSE = 'refuse';
 
     protected $table = 'labo_partenariats';
 
     protected $fillable = [
         'etablissement_id', 'clinique_id', 'statut', 'mode_facturation_defaut', 'clinique_facture_patient',
         'remise_pourcentage', 'delai_paiement_jours', 'contact_nom', 'contact_telephone', 'notes', 'cree_par',
+        'propose_le', 'accepte_le', 'accepte_par', 'motif_refus',
     ];
 
-    protected $casts = ['remise_pourcentage' => 'decimal:2', 'clinique_facture_patient' => 'boolean'];
+    protected $casts = [
+        'remise_pourcentage' => 'decimal:2',
+        'clinique_facture_patient' => 'boolean',
+        'propose_le' => 'datetime',
+        'accepte_le' => 'datetime',
+    ];
+
+    public function estPropose(): bool
+    {
+        return $this->statut === self::PROPOSE;
+    }
+
+    public function libelleStatut(): string
+    {
+        return match ($this->statut) {
+            self::PROPOSE => 'En attente de la clinique',
+            self::ACTIF => 'Actif',
+            self::SUSPENDU => 'Suspendu',
+            self::REFUSE => 'Refusé par la clinique',
+            default => $this->statut,
+        };
+    }
 
     public function laboratoire()
     {

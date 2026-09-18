@@ -27,10 +27,14 @@ class PartenariatService
             throw new OperationLaboImpossible("Un partenariat existe déjà avec {$clinique->nom}.");
         }
 
+        // Le partenariat est PROPOSÉ : la clinique doit l'accepter avant de
+        // pouvoir envoyer des analyses. Un laboratoire n'ouvre pas seul un
+        // accord commercial au nom d'un autre établissement.
         $partenariat = LaboPartenariat::create([
             'etablissement_id' => $laboratoireId,
             'clinique_id' => $clinique->id,
-            'statut' => LaboPartenariat::ACTIF,
+            'statut' => LaboPartenariat::PROPOSE,
+            'propose_le' => now(),
             'mode_facturation_defaut' => in_array($donnees['mode_facturation_defaut'] ?? null, ['patient', 'partenaire'], true)
                 ? $donnees['mode_facturation_defaut']
                 : 'patient',
@@ -43,7 +47,7 @@ class PartenariatService
             'cree_par' => $auteur->id,
         ]);
 
-        ContexteLabo::journaliser('partenariat_cree', $partenariat, "Partenariat avec {$clinique->nom}");
+        ContexteLabo::journaliser('partenariat_propose', $partenariat, "Partenariat proposé à {$clinique->nom}");
 
         return $partenariat;
     }
@@ -71,6 +75,10 @@ class PartenariatService
     public function basculerStatut(LaboPartenariat $partenariat): LaboPartenariat
     {
         ContexteLabo::verifierAppartenance($partenariat);
+
+        if ($partenariat->estPropose()) {
+            throw new OperationLaboImpossible('Ce partenariat attend encore la réponse de la clinique.');
+        }
 
         $partenariat->update([
             'statut' => $partenariat->estActif() ? LaboPartenariat::SUSPENDU : LaboPartenariat::ACTIF,

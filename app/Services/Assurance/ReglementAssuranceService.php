@@ -261,4 +261,35 @@ class ReglementAssuranceService
         $reclamation->rafraichirStatut();
         $this->statuts->refresh($transaction);
     }
+
+    /**
+     * Ancienneté du reste dû par tranches de 30 jours : l'outil de relance.
+     * Le compte part de la date d'envoi du bordereau, à défaut de la facture.
+     */
+    public function anciennete(\App\Models\InsuranceCompany $organisme): array
+    {
+        $tranches = ['0-30' => 0.0, '30-60' => 0.0, '60-90' => 0.0, '90+' => 0.0];
+
+        foreach ($this->reclamationsOuvertes($organisme) as $reclamation) {
+            $reste = $reclamation->resteDu();
+
+            if ($reste < 1) {
+                continue;
+            }
+
+            $reference = $reclamation->submission_date ?? $reclamation->created_at;
+            $jours = $reference ? $reference->diffInDays(now()) : 0;
+
+            $cle = match (true) {
+                $jours <= 30 => '0-30',
+                $jours <= 60 => '30-60',
+                $jours <= 90 => '60-90',
+                default => '90+',
+            };
+
+            $tranches[$cle] += $reste;
+        }
+
+        return $tranches;
+    }
 }

@@ -54,6 +54,11 @@ class AssuranceEtNotificationReseauTest extends LaboTestCase
             ->whereIn('code', ['GLY', 'NFS'])
             ->each(fn (LaboExamen $examen) => $examen->forceFill(['prix' => $examen->code === 'GLY' ? 20000 : 30000])->save());
 
+        // La clinique doit accepter la proposition avant tout envoi (lot 4f).
+        $this->actingAs($this->medecin);
+        $this->partenariat = app(LaboReseauService::class)->accepterProposition($this->partenariat->id, $this->medecin);
+
+
     }
 
     public function test_la_clinique_facture_le_patient_sur_son_propre_catalogue(): void

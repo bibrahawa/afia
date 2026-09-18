@@ -28,12 +28,17 @@
                         <td class="text-end">{{ rtrim(rtrim(number_format((float) $p->remise_pourcentage, 2, ',', ''), '0'), ',') }} %</td>
                         <td class="text-center">{{ $a['total'] }}<div class="small text-muted">{{ $a['en_cours'] }} en cours · {{ $a['ce_mois'] }} ce mois</div></td>
                         <td class="small">{{ $a['derniere'] ? \Carbon\Carbon::parse($a['derniere'])->format('d/m/Y') : '—' }}</td>
-                        <td><span class="badge badge-{{ $p->estActif() ? 'success' : 'secondary' }}">{{ $p->estActif() ? 'Actif' : 'Suspendu' }}</span></td>
+                        <td>
+                            <span class="badge badge-{{ $p->estActif() ? 'success' : ($p->estPropose() ? 'warning' : 'secondary') }}">{{ $p->libelleStatut() }}</span>
+                            @if($p->motif_refus)<div class="small text-danger">{{ $p->motif_refus }}</div>@endif
+                        </td>
                         <td class="text-end text-nowrap">
                             <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#modalModifier{{ $p->id }}"><i class="fa fa-edit"></i></button>
-                            <form method="POST" action="{{ route('labo.partenariats.basculer', $p) }}" class="d-inline"
-                                  onsubmit="return confirm('{{ $p->estActif() ? 'Suspendre ce partenariat ? La clinique ne pourra plus envoyer de demande.' : 'Réactiver ce partenariat ?' }}');">@csrf
-                                <button class="btn btn-sm btn-outline-secondary">{{ $p->estActif() ? 'Suspendre' : 'Réactiver' }}</button></form>
+                            @unless($p->estPropose())
+                                <form method="POST" action="{{ route('labo.partenariats.basculer', $p) }}" class="d-inline"
+                                      onsubmit="return confirm('{{ $p->estActif() ? 'Suspendre ce partenariat ? La clinique ne pourra plus envoyer de demande.' : 'Réactiver ce partenariat ?' }}');">@csrf
+                                    <button class="btn btn-sm btn-outline-secondary">{{ $p->estActif() ? 'Suspendre' : 'Réactiver' }}</button></form>
+                            @endunless
                         </td>
                     </tr>
                 @empty

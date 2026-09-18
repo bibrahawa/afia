@@ -35,6 +35,7 @@ class DemandeExterneController extends Controller
         return view('labo.reseau.index', [
             'demandes' => $this->reseau->demandesEnvoyees($filtres)->paginate(25)->withQueryString(),
             'nonVus' => $this->reseau->resultatsNonVus(),
+            'propositions' => $this->reseau->propositions(),
             'partenaires' => $this->reseau->partenaires(),
             'statuts' => StatutDemande::cases(),
             'filtres' => $filtres,
@@ -83,6 +84,7 @@ class DemandeExterneController extends Controller
             'grossesse' => ['nullable', 'boolean'],
             'semaines_amenorrhee' => ['nullable', 'integer', 'min:1', 'max:45'],
             'urgence' => ['nullable', 'boolean'],
+            'consentement_partage' => ['nullable', 'boolean'],
         ], [
             'examens.required' => 'Sélectionnez au moins un examen.',
             'patient_id.required' => 'Choisissez le patient.',
@@ -149,7 +151,68 @@ class DemandeExterneController extends Controller
 
     public function facture(int $releve)
     {
-        return view('labo.reseau.facture', ['releve' => $this->reseau->releveRecu($releve)]);
+        $releve = $this->reseau->releveRecu($releve);
+
+        return view('labo.reseau.facture', [
+            'releve' => $releve,
+            'rapprochement' => $this->reseau->margeSurReleve($releve),
+        ]);
+    }
+
+    /** Partenariats proposés par des laboratoires, en attente de réponse. */
+    public function propositions()
+    {
+        return view('labo.reseau.propositions', ['propositions' => $this->reseau->propositions()]);
+    }
+
+    public function accepter(Request $request, int $partenariat)
+    {
+        $accepte = $this->reseau->accepterProposition($partenariat, $request->user());
+
+        return redirect()->route('labo.reseau.index')
+            ->with('success', 'Partenariat accepté : vous pouvez envoyer vos analyses à ' . $accepte->laboratoire?->nom . '.');
+    }
+
+    public function refuser(Request $request, int $partenariat)
+    {
+        $donnees = $request->validate(['motif_refus' => ['nullable', 'string', 'max:255']]);
+
+        $this->reseau->refuserProposition($partenariat, $donnees['motif_refus'] ?? '');
+
+        return back()->with('success', 'Proposition refusée.');
+    }
+
+    /** Correspondances examen du partenaire ↔ acte du catalogue de la clinique. */
+    public function correspondances(Request $request)
+    {
+        $partenaires = $this->reseau->partenaires();
+        $partenariat = $request->filled('partenariat_id')
+            ? $this->reseau->partenariat((int) $request->input('partenariat_id'))
+            : $partenaires->first();
+
+        return view('labo.reseau.correspondances', [
+            'partenaires' => $partenaires,
+            'partenariat' => $partenariat,
+            'lignes' => $partenariat ? $this->reseau->correspondances($partenariat) : collect(),
+            'actes' => \App\Models\Test::orderBy('name')->get(['id', 'name', 'amount']),
+        ]);
+    }
+
+    public function majCorrespondance(Request $request)
+    {
+        $donnees = $request->validate([
+            'partenariat_id' => ['required', 'integer'],
+            'examen_id' => ['required', 'integer'],
+            'test_id' => ['required', 'exists_etablissement:tests,id'],
+        ]);
+
+        $this->reseau->changerCorrespondance(
+            $this->reseau->partenariat((int) $donnees['partenariat_id']),
+            (int) $donnees['examen_id'],
+            (int) $donnees['test_id']
+        );
+
+        return back()->with('success', 'Correspondance mise à jour : les prochaines analyses seront facturées sur cet acte.');
     }
 
     /** Compte rendu PDF du laboratoire, lu par la clinique qui a prescrit. */

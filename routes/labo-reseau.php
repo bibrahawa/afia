@@ -17,6 +17,11 @@ Route::middleware('can:labo.reseau.view')->group(function () {
     // Facturation reçue du laboratoire (lot 4b)
     Route::get('factures', [DemandeExterneController::class, 'factures'])->name('factures');
     Route::get('factures/{releve}', [DemandeExterneController::class, 'facture'])->whereNumber('releve')->name('facture');
+    Route::get('propositions', [DemandeExterneController::class, 'propositions'])->name('propositions');
+    Route::post('propositions/{partenariat}/accepter', [DemandeExterneController::class, 'accepter'])->whereNumber('partenariat')->name('propositions.accepter');
+    Route::post('propositions/{partenariat}/refuser', [DemandeExterneController::class, 'refuser'])->whereNumber('partenariat')->name('propositions.refuser');
+    Route::get('correspondances', [DemandeExterneController::class, 'correspondances'])->name('correspondances');
+    Route::post('correspondances', [DemandeExterneController::class, 'majCorrespondance'])->name('correspondances.update');
 });
 
 Route::middleware('can:labo.reseau.demander')->group(function () {

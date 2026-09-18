@@ -110,9 +110,12 @@ class FacturationPartenaireService
         ContexteLabo::verifierAppartenance($partenariat);
 
         return DB::transaction(function () use ($partenariat, $debut, $fin, $auteur) {
+            // Verrou : deux comptables préparant un relevé en même temps se
+            // seraient partagé les mêmes créances.
             $creances = LaboCreancePartenaire::where('partenariat_id', $partenariat->id)
                 ->where('statut', LaboCreancePartenaire::A_FACTURER)
                 ->whereNull('releve_id')
+                ->lockForUpdate()
                 ->whereHas('demande', fn ($q) => $q->whereBetween('created_at', [$debut->copy()->startOfDay(), $fin->copy()->endOfDay()]))
                 ->get();
 
@@ -251,6 +254,83 @@ class FacturationPartenaireService
         });
     }
 
+    /**
+     * Annulation d'un règlement (virement rejeté, double saisie) : les
+     * imputations sont défaites, les créances et les relevés reviennent à leur
+     * état antérieur. Le règlement reste au dossier avec son motif.
+     */
+    public function annulerReglement(LaboReglementPartenaire $reglement, string $motif, ?User $auteur = null): LaboReglementPartenaire
+    {
+        ContexteLabo::verifierAppartenance($reglement);
+
+        if ($reglement->estAnnule()) {
+            throw new OperationLaboImpossible('Ce règlement est déjà annulé.');
+        }
+
+        return DB::transaction(function () use ($reglement, $motif, $auteur) {
+            foreach ($reglement->imputations()->with('creance')->get() as $imputation) {
+                $creance = $imputation->creance;
+
+                if ($creance) {
+                    $creance->update([
+                        'montant_regle' => max(0, round((float) $creance->montant_regle - (float) $imputation->montant)),
+                        'statut' => $creance->releve_id ? LaboCreancePartenaire::FACTUREE : LaboCreancePartenaire::A_FACTURER,
+                    ]);
+
+                    $this->rafraichirStatutReleve($creance->fresh()->releve);
+                }
+
+                $imputation->delete();
+            }
+
+            $reglement->update([
+                'annule_le' => now(),
+                'motif_annulation' => mb_substr(trim($motif), 0, 255) ?: 'Sans motif',
+                'annule_par' => $auteur?->id,
+            ]);
+
+            ContexteLabo::journaliser('reglement_partenaire_annule', $reglement, $motif);
+
+            return $reglement->fresh();
+        });
+    }
+
+    /**
+     * Ancienneté des créances non réglées : l'outil de recouvrement classique.
+     * Le découpage se fait sur la date d'envoi du relevé, à défaut sur la demande.
+     */
+    public function anciennete(LaboPartenariat $partenariat): array
+    {
+        $tranches = ['0-30' => 0.0, '30-60' => 0.0, '60-90' => 0.0, '90+' => 0.0];
+
+        $creances = LaboCreancePartenaire::where('partenariat_id', $partenariat->id)
+            ->ouvertes()
+            ->with(['releve', 'demande'])
+            ->get();
+
+        foreach ($creances as $creance) {
+            $reste = $creance->resteDu();
+
+            if ($reste < 1) {
+                continue;
+            }
+
+            $reference = $creance->releve?->date_envoi ?? $creance->demande?->created_at ?? now();
+            $jours = $reference->diffInDays(now());
+
+            $cle = match (true) {
+                $jours <= 30 => '0-30',
+                $jours <= 60 => '30-60',
+                $jours <= 90 => '60-90',
+                default => '90+',
+            };
+
+            $tranches[$cle] += $reste;
+        }
+
+        return $tranches;
+    }
+
     /** Créances ouvertes d'un partenaire, les plus anciennes d'abord (relevés envoyés en premier). */
     public function creancesOuvertes(LaboPartenariat $partenariat): Collection
     {
@@ -274,6 +354,7 @@ class FacturationPartenaireService
             'a_facturer' => round($creances->where('statut', LaboCreancePartenaire::A_FACTURER)->sum('montant')),
             'facture' => round($creances->where('statut', LaboCreancePartenaire::FACTUREE)->sum(fn ($c) => $c->resteDu())),
             'reste_du' => round($creances->sum(fn ($c) => $c->resteDu())),
+            'anciennete' => $this->anciennete($partenariat),
             'releves_en_attente' => $releves->where('statut', LaboRelevePartenaire::ENVOYE)->count(),
             'en_retard' => $releves->filter(fn (LaboRelevePartenaire $r) => $r->enRetard())->count(),
         ];

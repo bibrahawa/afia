@@ -15,9 +15,17 @@ class LaboReglementPartenaire extends Model
 
     protected $table = 'labo_reglements_partenaires';
 
-    protected $fillable = ['etablissement_id', 'partenariat_id', 'montant', 'mode', 'reference', 'recu_le', 'notes', 'enregistre_par'];
+    protected $fillable = [
+        'etablissement_id', 'partenariat_id', 'montant', 'mode', 'reference', 'recu_le', 'notes',
+        'enregistre_par', 'annule_le', 'motif_annulation', 'annule_par',
+    ];
 
-    protected $casts = ['montant' => 'decimal:2', 'recu_le' => 'date'];
+    protected $casts = ['montant' => 'decimal:2', 'recu_le' => 'date', 'annule_le' => 'datetime'];
+
+    public function estAnnule(): bool
+    {
+        return $this->annule_le !== null;
+    }
 
     public function partenariat() { return $this->belongsTo(LaboPartenariat::class, 'partenariat_id'); }
     public function imputations() { return $this->hasMany(LaboReglementImputation::class, 'reglement_id'); }

@@ -47,6 +47,11 @@ class ReseauCorrectionsTest extends LaboTestCase
             ->whereIn('code', ['GLY', 'NFS'])
             ->each(fn (LaboExamen $examen) => $examen->forceFill(['prix' => $examen->code === 'GLY' ? 20000 : 30000])->save());
 
+        // La clinique doit accepter la proposition avant tout envoi (lot 4f).
+        $this->actingAs($this->medecin);
+        $this->partenariat = app(LaboReseauService::class)->accepterProposition($this->partenariat->id, $this->medecin);
+
+
         // L'écran du bon d'analyses passe par la permission du réseau.
         $this->medecin->givePermissionTo(['labo.reseau.view', 'labo.reseau.demander']);
 

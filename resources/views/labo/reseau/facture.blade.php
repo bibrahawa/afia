@@ -34,7 +34,20 @@
                     <tr><th colspan="4" class="text-end">Reste à payer</th><th class="text-end">{{ $gnf($releve->resteDu()) }} GNF</th></tr>
                 </tfoot>
             </table>
-            <p class="small text-muted mb-0">Les règlements sont enregistrés par le laboratoire ; ce relevé se met à jour quand il les saisit.</p>
+            <div class="row g-2">
+                <div class="col-md-4"><div class="border rounded p-2 small">Dû au laboratoire<div class="h5 mb-0">{{ $gnf($rapprochement['du_au_laboratoire']) }} GNF</div></div></div>
+                <div class="col-md-4"><div class="border rounded p-2 small">Facturé à vos patients<div class="h5 mb-0">{{ $gnf($rapprochement['facture_au_patient']) }} GNF</div></div></div>
+                <div class="col-md-4"><div class="border rounded p-2 small {{ $rapprochement['marge'] < 0 ? 'border-danger text-danger' : '' }}">Marge<div class="h5 mb-0">{{ $gnf($rapprochement['marge']) }} GNF</div></div></div>
+            </div>
+
+            @if($rapprochement['facturation_absente'])
+                <div class="alert alert-warning small mt-2 mb-0">
+                    Aucune de ces analyses n'a été facturée à un patient dans votre établissement.
+                    Soit elles sont incluses dans vos consultations, soit personne n'a encaissé : vérifiez avant de régler ce relevé.
+                </div>
+            @endif
+
+            <p class="small text-muted mb-0 mt-2">Les règlements sont enregistrés par le laboratoire ; ce relevé se met à jour quand il les saisit.</p>
         </div>
     </div>
 </div></div>

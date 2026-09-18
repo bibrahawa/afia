@@ -12,6 +12,21 @@
         @endcan
     </div>
 
+    @forelse($propositions as $proposition)
+        <div class="alert alert-info d-flex flex-wrap align-items-center gap-2">
+            <span><strong>{{ $proposition->laboratoire?->nom }}</strong> vous propose un partenariat
+                @if($proposition->remise_pourcentage > 0)(remise de {{ rtrim(rtrim(number_format((float) $proposition->remise_pourcentage, 2, ',', ''), '0'), ',') }} %)@endif.</span>
+            <span class="ms-auto d-flex gap-2">
+                <form method="POST" action="{{ route('labo.reseau.propositions.accepter', $proposition->id) }}">@csrf
+                    <button class="btn btn-sm btn-success">Accepter</button></form>
+                <form method="POST" action="{{ route('labo.reseau.propositions.refuser', $proposition->id) }}" class="d-flex gap-1">@csrf
+                    <input name="motif_refus" class="form-control form-control-sm" maxlength="255" placeholder="Motif (facultatif)">
+                    <button class="btn btn-sm btn-outline-danger">Refuser</button></form>
+            </span>
+        </div>
+    @empty
+    @endforelse
+
     @if($partenaires->isEmpty())
         <div class="alert alert-info">Aucun laboratoire partenaire pour l'instant. C'est le laboratoire qui ouvre le partenariat depuis son écran « Cliniques partenaires ».</div>
     @endif

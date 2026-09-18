@@ -49,6 +49,66 @@ class LaboReseauService
             ->get();
     }
 
+    /** Partenariats proposés à la clinique, en attente de sa réponse. */
+    public function propositions(?int $cliniqueId = null): Collection
+    {
+        $cliniqueId ??= $this->cliniqueCourante();
+
+        return LaboPartenariat::withoutGlobalScopes()
+            ->where('clinique_id', $cliniqueId)
+            ->where('statut', LaboPartenariat::PROPOSE)
+            ->with(['laboratoire' => fn ($q) => $q->withoutGlobalScopes()])
+            ->get();
+    }
+
+    public function accepterProposition(int $partenariatId, User $auteur, ?int $cliniqueId = null): LaboPartenariat
+    {
+        return $this->repondreProposition($partenariatId, $cliniqueId, [
+            'statut' => LaboPartenariat::ACTIF,
+            'accepte_le' => now(),
+            'accepte_par' => $auteur->id,
+            'motif_refus' => null,
+        ]);
+    }
+
+    public function refuserProposition(int $partenariatId, string $motif, ?int $cliniqueId = null): LaboPartenariat
+    {
+        return $this->repondreProposition($partenariatId, $cliniqueId, [
+            'statut' => LaboPartenariat::REFUSE,
+            'motif_refus' => mb_substr(trim($motif), 0, 255) ?: 'Sans motif',
+        ]);
+    }
+
+    /**
+     * La ligne du partenariat appartient au LABORATOIRE : la réponse de la
+     * clinique s'écrit donc dans son contexte, une fois vérifié que la
+     * proposition lui est bien adressée.
+     */
+    private function repondreProposition(int $partenariatId, ?int $cliniqueId, array $valeurs): LaboPartenariat
+    {
+        $partenariat = $this->proposition($partenariatId, $cliniqueId);
+
+        ContexteTemporaire::pour($partenariat->etablissement_id, fn () => $partenariat->update($valeurs));
+
+        return LaboPartenariat::withoutGlobalScopes()
+            ->with(['laboratoire' => fn ($q) => $q->withoutGlobalScopes()])
+            ->findOrFail($partenariat->id);
+    }
+
+    private function proposition(int $partenariatId, ?int $cliniqueId = null): LaboPartenariat
+    {
+        $cliniqueId ??= $this->cliniqueCourante();
+
+        $partenariat = LaboPartenariat::withoutGlobalScopes()
+            ->where('clinique_id', $cliniqueId)
+            ->where('statut', LaboPartenariat::PROPOSE)
+            ->find($partenariatId);
+
+        abort_unless($partenariat, 404, 'Proposition introuvable.');
+
+        return $partenariat;
+    }
+
     public function partenariat(int $partenariatId, ?int $cliniqueId = null): LaboPartenariat
     {
         $cliniqueId ??= $this->cliniqueCourante();
@@ -62,8 +122,16 @@ class LaboReseauService
             throw new OperationLaboImpossible('Ce laboratoire n\'est pas partenaire de votre établissement.');
         }
 
+        if ($partenariat->estPropose()) {
+            throw new OperationLaboImpossible(
+                $partenariat->laboratoire?->nom . ' vous propose un partenariat : acceptez-le avant d\'envoyer des analyses.'
+            );
+        }
+
         if (! $partenariat->estActif()) {
-            throw new OperationLaboImpossible('Le partenariat avec ' . $partenariat->laboratoire?->nom . ' est suspendu.');
+            throw new OperationLaboImpossible(
+                'Le partenariat avec ' . $partenariat->laboratoire?->nom . ' est ' . ($partenariat->statut === LaboPartenariat::REFUSE ? 'refusé' : 'suspendu') . '.'
+            );
         }
 
         return $partenariat;
@@ -102,16 +170,24 @@ class LaboReseauService
             throw new OperationLaboImpossible('Sélectionnez au moins un examen.');
         }
 
-        $inconnus = $examens->diff(
-            LaboExamen::withoutGlobalScopes()
-                ->where('etablissement_id', $partenariat->etablissement_id)
-                ->where('actif', true)
-                ->whereIn('id', $examens)
-                ->pluck('id')
-        );
+        $choisis = LaboExamen::withoutGlobalScopes()
+            ->where('etablissement_id', $partenariat->etablissement_id)
+            ->where('actif', true)
+            ->whereIn('id', $examens)
+            ->get(['id', 'nom', 'prix']);
 
-        if ($inconnus->isNotEmpty()) {
+        if ($examens->diff($choisis->pluck('id'))->isNotEmpty()) {
             throw new OperationLaboImpossible('Un examen sélectionné n\'existe plus au catalogue du laboratoire.');
+        }
+
+        // Le catalogue modèle est livré à 0 : un laboratoire qui a oublié de
+        // tarifer facturerait tout à zéro, sans que personne ne s'en aperçoive.
+        $sansPrix = $choisis->filter(fn (LaboExamen $e) => (float) $e->prix <= 0)->pluck('nom');
+
+        if ($sansPrix->isNotEmpty()) {
+            throw new OperationLaboImpossible(
+                'Le laboratoire n\'a pas encore tarifé : « ' . $sansPrix->join(' », « ') . ' ». Demandez-lui de fixer le prix avant d\'envoyer.'
+            );
         }
 
         $cliniqueId = $this->cliniqueCourante();
@@ -144,6 +220,15 @@ class LaboReseauService
             // Le laboratoire encaisse le patient seulement si c'est le mode convenu.
             'facturer_maintenant' => $partenariat->modeFacturation() === ModeFacturation::LABO,
         ], $auteur));
+
+        // Trace de l'information donnée au patient sur l'envoi de ses analyses
+        // à un autre établissement (lot 4f).
+        if (! empty($donnees['consentement_partage'])) {
+            ContexteTemporaire::pour($partenariat->etablissement_id, fn () => LaboDemande::findOrFail($demande->id)->update([
+                'consentement_partage_le' => now(),
+                'consentement_recueilli_par' => $auteur->id,
+            ]));
+        }
 
         // La clinique facture son patient avec SES conventions d'assurance (lot 4c).
         if ($partenariat->cliniqueFacturePatient()) {
@@ -278,6 +363,66 @@ class LaboReseauService
             ->get());
 
         return $releve;
+    }
+
+    /**
+     * Rapprochement d'un relevé : ce que la clinique doit au laboratoire, et ce
+     * qu'elle a facturé à ses patients pour les mêmes analyses. La différence
+     * est sa marge — ou sa perte si elle vend en dessous du prix négocié.
+     */
+    public function margeSurReleve(\App\Models\Labo\LaboRelevePartenaire $releve): array
+    {
+        $lignes = $releve->creances->map(function ($creance) {
+            $facture = (float) \App\Models\Transaction::whereIn('transactionable_type', \App\Support\Facturation\TypesFacturables::variantes(LaboDemande::class))
+                ->where('transactionable_id', $creance->demande_id)
+                ->where('status', '!=', 'cancel')
+                ->sum('total');
+
+            return [
+                'creance' => $creance,
+                'du_au_laboratoire' => (float) $creance->montant,
+                'facture_au_patient' => $facture,
+                'marge' => round($facture - (float) $creance->montant),
+            ];
+        });
+
+        return [
+            'lignes' => $lignes,
+            'du_au_laboratoire' => round($lignes->sum('du_au_laboratoire')),
+            'facture_au_patient' => round($lignes->sum('facture_au_patient')),
+            'marge' => round($lignes->sum('marge')),
+            'facturation_absente' => $lignes->every(fn ($l) => $l['facture_au_patient'] <= 0),
+        ];
+    }
+
+    /** Correspondances examen du laboratoire ↔ acte du catalogue de la clinique. */
+    public function correspondances(LaboPartenariat $partenariat)
+    {
+        $liens = \App\Models\Labo\LaboPartenariatActe::where('partenariat_id', $partenariat->id)->get();
+
+        $examens = LaboExamen::withoutGlobalScopes()
+            ->whereIn('id', $liens->pluck('examen_id'))
+            ->get(['id', 'code', 'nom', 'prix'])
+            ->keyBy('id');
+
+        return $liens->map(fn ($lien) => [
+            'lien' => $lien,
+            'examen' => $examens->get($lien->examen_id),
+            'acte' => \App\Models\Test::find($lien->test_id),
+            'prix_negocie' => $examens->get($lien->examen_id)
+                ? $partenariat->prixNegocie((float) $examens->get($lien->examen_id)->prix)
+                : null,
+        ])->sortBy(fn ($ligne) => $ligne['examen']?->nom)->values();
+    }
+
+    public function changerCorrespondance(LaboPartenariat $partenariat, int $examenId, int $testId): void
+    {
+        $acte = \App\Models\Test::findOrFail($testId);
+
+        \App\Models\Labo\LaboPartenariatActe::updateOrCreate(
+            ['partenariat_id' => $partenariat->id, 'examen_id' => $examenId],
+            ['test_id' => $acte->id, 'cree_automatiquement' => false]
+        );
     }
 
     /** Total encore dû par la clinique à ses laboratoires partenaires. */

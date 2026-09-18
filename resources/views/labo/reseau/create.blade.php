@@ -50,6 +50,13 @@
                             <div class="col-6"><input type="hidden" name="grossesse" value="0">
                                 <label class="small"><input type="checkbox" name="grossesse" value="1"> Patiente enceinte</label></div>
                             <div class="col-6"><input type="number" min="1" max="45" name="semaines_amenorrhee" class="form-control form-control-sm" placeholder="SA"></div>
+                            <div class="col-12">
+                                <label class="small d-block mt-2">
+                                    <input type="hidden" name="consentement_partage" value="0">
+                                    <input type="checkbox" name="consentement_partage" value="1" checked>
+                                    Le patient a été informé que ses analyses sont confiées à ce laboratoire
+                                </label>
+                            </div>
                         </div>
                     </div></div>
                 </div>

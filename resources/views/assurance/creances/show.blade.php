@@ -56,6 +56,23 @@
         </div>
     </div>
 
+    <div class="card">
+        <div class="card-header"><h4 class="card-title">Ancienneté du reste dû</h4></div>
+        <div class="card-body">
+            <div class="row g-2">
+                @foreach($anciennete as $tranche => $montant)
+                    <div class="col-md-3">
+                        <div class="border rounded p-2 small {{ $tranche === '90+' && $montant > 0 ? 'border-danger text-danger' : '' }}">
+                            {{ $tranche === '90+' ? 'Plus de 90 jours' : $tranche . ' jours' }}
+                            <div class="h5 mb-0">{{ $gnf($montant) }} GNF</div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+            <p class="small text-muted mb-0 mt-2">Compté depuis l'envoi du bordereau, à défaut depuis la facture.</p>
+        </div>
+    </div>
+
     <div class="row">
         <div class="col-lg-6"><div class="card">
             <div class="card-header"><h4 class="card-title">Bordereaux</h4></div>

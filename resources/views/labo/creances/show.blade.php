@@ -116,13 +116,40 @@
             </div>
 
             <div class="card">
+                <div class="card-header"><h4 class="card-title">Ancienneté du reste dû</h4></div>
+                <ul class="list-group list-group-flush small">
+                    @foreach($resume['anciennete'] as $tranche => $montant)
+                        <li class="list-group-item d-flex justify-content-between {{ $tranche === '90+' && $montant > 0 ? 'text-danger' : '' }}">
+                            <span>{{ $tranche === '90+' ? 'Plus de 90 jours' : $tranche . ' jours' }}</span>
+                            <strong>{{ $gnf($montant) }} GNF</strong>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+
+            <div class="card">
                 <div class="card-header"><h4 class="card-title">Derniers règlements</h4></div>
                 <ul class="list-group list-group-flush small">
                     @forelse($reglements as $reglement)
-                        <li class="list-group-item d-flex justify-content-between">
-                            <span>{{ $reglement->recu_le->format('d/m/Y') }} — {{ $modes[$reglement->mode] ?? $reglement->mode }}
-                                @if($reglement->reference)<span class="text-muted">{{ $reglement->reference }}</span>@endif</span>
-                            <strong>{{ $gnf($reglement->montant) }} GNF</strong>
+                        <li class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <span class="{{ $reglement->estAnnule() ? 'text-muted text-decoration-line-through' : '' }}">
+                                    {{ $reglement->recu_le->format('d/m/Y') }} — {{ $modes[$reglement->mode] ?? $reglement->mode }}
+                                    @if($reglement->reference)<span class="text-muted">{{ $reglement->reference }}</span>@endif
+                                </span>
+                                <strong>{{ $gnf($reglement->montant) }} GNF</strong>
+                            </div>
+                            @if($reglement->estAnnule())
+                                <div class="small text-danger">Annulé — {{ $reglement->motif_annulation }}</div>
+                            @else
+                                <details>
+                                    <summary class="small text-danger" style="cursor:pointer">Annuler ce règlement</summary>
+                                    <form method="POST" action="{{ route('labo.creances.reglements.annuler', $reglement) }}" class="d-flex gap-1 mt-1">@csrf
+                                        <input name="motif_annulation" class="form-control form-control-sm" maxlength="255" placeholder="Motif (virement rejeté…)" required>
+                                        <button class="btn btn-sm btn-outline-danger">Annuler</button>
+                                    </form>
+                                </details>
+                            @endif
                         </li>
                     @empty
                         <li class="list-group-item text-muted">Aucun règlement enregistré.</li>

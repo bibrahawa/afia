@@ -67,6 +67,12 @@
         @endif
     </div>
 
+    @if($demande->consentement_partage_le)
+        <p class="consignes" style="background:#e6f4f1; border-left-color:#087f6b">
+            Le patient a été informé le {{ $demande->consentement_partage_le->format('d/m/Y') }} que ses analyses sont confiées à ce laboratoire.
+        </p>
+    @endif
+
     <div class="signature">Cachet et signature de la clinique<br><br><br>_______________________</div>
 </body>
 </html>

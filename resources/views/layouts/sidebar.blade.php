@@ -140,6 +140,21 @@
                     </li>
                 @endcan
 
+                @can('labo.reseau.demander')
+                    <li class="nav-item {{ request()->routeIs('labo.reseau.propositions*') ? 'active' : '' }}">
+                        <a href="{{ route('labo.reseau.propositions') }}">
+                            <i class="fas fa-handshake"></i>
+                            <p>Propositions de laboratoires</p>
+                        </a>
+                    </li>
+                    <li class="nav-item {{ request()->routeIs('labo.reseau.correspondances*') ? 'active' : '' }}">
+                        <a href="{{ route('labo.reseau.correspondances') }}">
+                            <i class="fas fa-exchange-alt"></i>
+                            <p>Correspondances labo</p>
+                        </a>
+                    </li>
+                @endcan
+
                 @can('employee.view')
                 <!-- PERSONNEL MÉDICAL -->
                 <li class="nav-section">

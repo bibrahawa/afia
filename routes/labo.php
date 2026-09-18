@@ -125,6 +125,7 @@ Route::middleware('can:labo.partenariat.facturer')->group(function () {
     Route::get('creances-partenaires/{laboPartenariat}', [CreancePartenaireController::class, 'show'])->name('creances.show');
     Route::post('creances-partenaires/{laboPartenariat}/releves', [CreancePartenaireController::class, 'preparerReleve'])->name('creances.releves.store');
     Route::post('creances-partenaires/{laboPartenariat}/reglements', [CreancePartenaireController::class, 'enregistrerReglement'])->name('creances.reglements.store');
+    Route::post('creances-partenaires/reglements/{laboReglement}/annuler', [CreancePartenaireController::class, 'annulerReglement'])->name('creances.reglements.annuler');
 
     Route::get('releves-partenaires/{laboReleve}', [RelevePartenaireController::class, 'show'])->name('releves.show');
     Route::get('releves-partenaires/{laboReleve}/imprimer', [RelevePartenaireController::class, 'imprimer'])->name('releves.imprimer');
