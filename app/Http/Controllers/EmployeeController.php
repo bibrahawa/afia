@@ -66,14 +66,28 @@ class EmployeeController extends Controller
         $donnees['first_name'] = $this->sansTitre($donnees['first_name']);
         $donnees['is_active'] = true;
 
-        $employe = \Illuminate\Support\Facades\DB::transaction(function () use ($donnees, $donneesAcces, $acces, &$resultatAcces) {
-            $employe = Employee::create($donnees);
-            if ($donneesAcces) {
-                $resultatAcces = $acces->creer($employe, $donneesAcces, auth()->user());
-            }
+        // Lot R : le rôle est vérifié AVANT toute écriture, puis fiche et accès sont
+        // enregistrés l'un après l'autre. Avant, tout était dans une même transaction
+        // qui englobait aussi l'envoi du SMS (jusqu'à 8 s de transaction ouverte, et un
+        // SMS déjà parti si l'enregistrement échouait ensuite).
+        if ($donneesAcces && ! $acces->peutAttribuer($request->user(), $donneesAcces['role'])) {
+            return back()->withInput()->withErrors(['role' => 'Vous ne pouvez pas attribuer ce rôle.']);
+        }
 
-            return $employe;
-        });
+        $employe = Employee::create($donnees);
+        $resultatAcces = null;
+
+        if ($donneesAcces) {
+            try {
+                // Compte créé dans sa propre transaction ; SMS envoyé une fois le compte enregistré.
+                $resultatAcces = $acces->creer($employe, $donneesAcces, $request->user());
+            } catch (\Throwable $e) {
+                report($e);
+
+                return redirect()->route('employee.edit', $employe->id)
+                    ->with('error', "La fiche de {$employe->nom_affiche} est créée, mais pas son accès. Créez-le depuis sa fiche (bloc « Accès à Hali »).");
+            }
+        }
 
         $retour = redirect()->route('employee.edit', $employe->id)->with('success', $employe->nom_affiche . ' ajouté(e) au personnel.');
 

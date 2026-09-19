@@ -753,7 +753,8 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:hospitalisation.delete')
         ->name('hospitalisations.destroy');
 
-    Route::get('hospitalisations/{hospitalisation}/payer', [HospitalisationController::class, 'payer'])
+    // Lot R : POST (clôture le séjour, libère la chambre, facture) — un GET se déclenchait par simple lien ou image.
+    Route::post('hospitalisations/{hospitalisation}/payer', [HospitalisationController::class, 'payer'])
         ->middleware('permission:hospitalisation.payer')
         ->name('hospitalisations.payer');
 
@@ -912,7 +913,8 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:payment.calculate')
         ->name('insurance.calculate');
 
-    Route::get('/hospitalisation/{hospitalisation}/paiement', [PaymentController::class, 'paiementHospitalisation'])
+    // Lot R : POST (crée la facture du séjour).
+    Route::post('/hospitalisation/{hospitalisation}/paiement', [PaymentController::class, 'paiementHospitalisation'])
         ->middleware('permission:payment.hospitalisation')
         ->name('hospitalisation.paiement');
 

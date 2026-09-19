@@ -15,6 +15,8 @@ use RuntimeException;
 class LecteurTableur
 {
     public const LIGNES_MAX = 2000;
+    public const OCTETS_MAX_PAR_FICHIER = 40 * 1024 * 1024;   // 40 Mo décompressés par partie du classeur
+    public const OCTETS_MAX_TOTAL = 80 * 1024 * 1024;         // 80 Mo décompressés en tout
 
     public function lire(string $chemin, string $nomOriginal): array
     {
@@ -74,6 +76,18 @@ class LecteurTableur
         $zip = new \ZipArchive();
         if ($zip->open($chemin) !== true) {
             throw new RuntimeException('Fichier Excel illisible ou endommagé.');
+        }
+
+        // Lot R — fichier piégé (« bombe zip ») : quelques Mo compressés peuvent se
+        // décompresser en plusieurs Go et saturer la mémoire. Tailles vérifiées AVANT lecture.
+        $total = 0;
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $info = $zip->statIndex($i);
+            $total += (int) ($info['size'] ?? 0);
+            if ((int) ($info['size'] ?? 0) > self::OCTETS_MAX_PAR_FICHIER || $total > self::OCTETS_MAX_TOTAL) {
+                $zip->close();
+                throw new RuntimeException('Fichier Excel trop volumineux une fois décompressé : enregistrez-le en CSV ou découpez-le.');
+            }
         }
 
         try {

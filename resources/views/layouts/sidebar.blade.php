@@ -347,14 +347,15 @@
                     </li>
                 @endcan
 
-                {{-- @can('insurance_patient.view') --}}
+                @can('patient_insurance.view')
                     <li class="nav-item {{ request()->routeIs('insurance_patient.*') ? 'active' : '' }}">
                         <a href="{{ route('insurance_patient.index') }}">
                             <i class="fas fa-user-shield"></i>
                             <p>Patients assurés</p>
                         </a>
                     </li>
-                {{-- @endcan --}}
+                @endcan
+                
 
                 @can('assurance.creances.view')
                     <li class="nav-item {{ request()->routeIs('assurance.creances.*', 'assurance.bordereaux.*', 'assurance.reclamations.*', 'assurance.reglements.*') ? 'active' : '' }}">

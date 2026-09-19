@@ -65,10 +65,12 @@
             @can('chambre.view')
                 <a href="{{ route('chambres.index') }}" class="hl-bouton"><i class="fas fa-bed" aria-hidden="true"></i> Plan des chambres</a>
             @endcan
-            <button type="button" class="hl-bouton hl-bouton-plein" data-bs-toggle="modal" data-bs-target="#addRowModal" @disabled($chambres->isEmpty())
-                    title="{{ $chambres->isEmpty() ? 'Aucune chambre libre' : '' }}">
-                <i class="fa fa-plus" aria-hidden="true"></i> Admettre un patient
-            </button>
+            @can('hospitalisation.create')
+                <button type="button" class="hl-bouton hl-bouton-plein" data-bs-toggle="modal" data-bs-target="#addRowModal" @disabled($chambres->isEmpty())
+                        title="{{ $chambres->isEmpty() ? 'Aucune chambre libre' : '' }}">
+                    <i class="fa fa-plus" aria-hidden="true"></i> Admettre un patient
+                </button>
+            @endcan
         </div>
     </header>
 
@@ -135,23 +137,26 @@
                         @endif
                     </div>
                     <div class="ho-actions">
-                        @if($facturable)
-                            <form action="{{ route('hospitalisation.paiement', $h->id) }}" method="GET"
+                        @if($facturable && auth()->user()?->can('payment.hospitalisation'))
+                            <form action="{{ route('hospitalisation.paiement', $h->id) }}" method="POST"
                                   onsubmit="return confirm('{{ $enCoursLigne ? 'Clôturer le séjour aujourd\'hui, libérer la chambre et créer la facture ?' : 'Créer la facture de ce séjour ?' }}')">
+                                @csrf
                                 <button class="hl-bouton {{ $enCoursLigne ? '' : 'hl-bouton-plein' }}" style="min-height:34px">{{ $enCoursLigne ? 'Clôturer et facturer' : 'Facturer' }}</button>
                             </form>
                         @endif
                         <details class="ho-plus">
                             <summary title="Autres actions" aria-label="Autres actions"><i class="fas fa-ellipsis-h"></i></summary>
                             <div class="ho-menu">
-                                <a href="{{ route('hospitalisations.facture', $h->id) }}" target="_blank"><i class="fas fa-file-invoice"></i> {{ $facturable ? 'Facture provisoire' : 'Facture' }}</a>
-                                @if($enCoursLigne)
+                                @can('hospitalisation.facture')
+                                    <a href="{{ route('hospitalisations.facture', $h->id) }}" target="_blank"><i class="fas fa-file-invoice"></i> {{ $facturable ? 'Facture provisoire' : 'Facture' }}</a>
+                                @endcan
+                                @if($enCoursLigne && auth()->user()?->can('hospitalisation.edit'))
                                     <button type="button" class="edit-button" data-info="{{ json_encode($h->only(['id', 'patient_id', 'chambre_id', 'date_entree', 'nombre_jours', 'observation'])) }}"><i class="fas fa-pen"></i> Modifier le séjour</button>
                                 @endif
                                 @if($p && Route::has('parcours.dossier.show'))
                                     @can('parcours.dossier')<a href="{{ route('parcours.dossier.show', $p->id) }}"><i class="fas fa-folder-open"></i> Dossier du patient</a>@endcan
                                 @endif
-                                @if($facturable)
+                                @if($facturable && auth()->user()?->can('hospitalisation.delete'))
                                     <form action="{{ route('hospitalisations.destroy', $h->id) }}" method="POST" onsubmit="return confirm('Supprimer ce séjour ? Cette action est définitive.')">
                                         @csrf @method('DELETE')
                                         <button type="submit" class="est-risque"><i class="fas fa-trash" style="color:inherit"></i> Supprimer</button>

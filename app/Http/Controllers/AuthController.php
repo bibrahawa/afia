@@ -34,8 +34,12 @@ class AuthController extends Controller
         $ipKey = 'login.ip.' . $request->ip();
         $userKey = 'login.user.' . $validated['phone'];
 
-        // Vérification des tentatives par IP (10 tentatives par heure)
-        if (RateLimiter::tooManyAttempts($ipKey, 10)) {
+        // Vérification des tentatives par IP.
+        // Lot R : 10 → 60 par heure. Toute une clinique partage souvent la même IP
+        // (connexion de l'établissement, réseau mobile) : 10 erreurs cumulées bloquaient
+        // la connexion de TOUT le personnel pendant une heure. Le verrou par compte
+        // (5 essais, puis 30 min) reste la vraie protection contre les essais en série.
+        if (RateLimiter::tooManyAttempts($ipKey, 60)) {
             $seconds = RateLimiter::availableIn($ipKey);
             throw ValidationException::withMessages([
                 'phone' => "Trop de tentatives depuis cette adresse IP. Réessayez dans " .
@@ -394,8 +398,12 @@ class AuthController extends Controller
         $ipKey = 'login.ip.' . $request->ip();
         $userKey = 'login.user.' . $validated['phone'];
 
-        // Vérification des tentatives par IP (10 tentatives par heure)
-        if (RateLimiter::tooManyAttempts($ipKey, 10)) {
+        // Vérification des tentatives par IP.
+        // Lot R : 10 → 60 par heure. Toute une clinique partage souvent la même IP
+        // (connexion de l'établissement, réseau mobile) : 10 erreurs cumulées bloquaient
+        // la connexion de TOUT le personnel pendant une heure. Le verrou par compte
+        // (5 essais, puis 30 min) reste la vraie protection contre les essais en série.
+        if (RateLimiter::tooManyAttempts($ipKey, 60)) {
             $seconds = RateLimiter::availableIn($ipKey);
             throw ValidationException::withMessages([
                 'phone' => "Trop de tentatives depuis cette adresse IP. Réessayez dans " .

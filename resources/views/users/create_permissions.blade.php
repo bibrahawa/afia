@@ -118,7 +118,7 @@
                             @can('users.permissions')
                                 <button type="submit" class="btn btn-primary btn-lg"><i class="fas fa-save"></i> Enregistrer</button>
                             @endcan
-                            @can('users.index')
+                            @can('users.view')
                                 <a href="{{ route('users.index') }}" class="btn btn-secondary btn-lg"><i class="fas fa-arrow-left"></i> Retour</a>
                             @endcan
                         </div>
