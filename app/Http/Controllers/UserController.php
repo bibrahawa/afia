@@ -159,10 +159,9 @@ class UserController extends Controller
      */
     public function create()
     {
-        $roles = \Spatie\Permission\Models\Role::all();
-        $departments = \App\Models\Department::all();
-
-        return view('users.create', compact('roles', 'departments'));
+        // Lot E1 — Un accès se crée désormais avec (ou depuis) la fiche du personnel :
+        // une seule saisie du nom, un type d'employé cohérent, mot de passe provisoire par SMS.
+        return redirect()->route('employee.create', ['acces' => 1]);
     }
 
     /**
@@ -250,13 +249,21 @@ class UserController extends Controller
     public function destroy($id)
     {
         try {
-            $user = User::deMonEtablissement()->findOrFail($id);
+            $user = User::deMonEtablissement()->with('employee')->findOrFail($id);
 
             // Empêcher la suppression de son propre compte
             if ($user->id === auth()->id()) {
                 return redirect()
                     ->back()
                     ->with('error', 'Vous ne pouvez pas supprimer votre propre compte.');
+            }
+
+            // CORRIGÉ (lot E1) — la suppression effaçait aussi la fiche employé d'un
+            // soignant qui avait déjà reçu des patients : consultations et rendez-vous
+            // perdaient leur médecin. On suspend l'accès à la place.
+            $employe = $user->employee;
+            if ($employe && ($employe->appointments()->exists() || \App\Models\Consultation::where('medecin_id', $employe->id)->exists())) {
+                return redirect()->back()->with('error', "{$user->name} a un historique de soins : son compte ne peut pas être supprimé. Suspendez son accès à la place.");
             }
 
             DB::beginTransaction();
@@ -292,21 +299,28 @@ class UserController extends Controller
         }
     }
 
+    /**
+     * Suspendre / réactiver un accès.
+     * CORRIGÉ (lot E1) : appel en GET (changement d'état sans jeton CSRF), message de
+     * réactivation jamais affiché (« withSucces »), suspension présentée comme une
+     * erreur, possibilité de suspendre son propre compte. La suspension est désormais
+     * réellement appliquée (connexion et sessions ouvertes : VerifierCompteActif).
+     */
     public function disableUser($id)
     {
-       $user = User::deMonEtablissement()->findOrFail($id);
+        $user = User::deMonEtablissement()->findOrFail($id);
 
-       if(is_null($user)){
-          return back();
+        if ($user->id === auth()->id()) {
+            return back()->with('error', 'Vous ne pouvez pas suspendre votre propre compte.');
         }
-        $user->status ? $user->status =  false : $user->status =  true;
-        if ($user->status ==false && $user->save()) {
-            return back()->withError('Utilisateur suspendu avec succes');
-        }else{
-            if ($user->status == true && $user->save()) {
-                return back()->withSucces('Utilisateur Activé avec succes');
-            }
+        if ($user->hasRole(\App\Support\EtablissementContext::ROLE_PLATEFORME) && ! \App\Support\EtablissementContext::estAdministrateurPlateforme()) {
+            abort(403);
         }
+
+        $actif = ! ($user->status === null || (bool) $user->status);
+        $user->forceFill(['status' => $actif])->save();
+
+        return back()->with('success', $actif ? "Accès de {$user->name} réactivé." : "Accès de {$user->name} suspendu : sa session est fermée immédiatement.");
     }
 
     /**

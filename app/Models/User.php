@@ -28,6 +28,7 @@ class User extends Authenticatable
         'last_login_at',
         'login_attempts',
         'locked_until',
+        'doit_changer_mot_de_passe',
     ];
 
     /**
@@ -49,6 +50,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'doit_changer_mot_de_passe' => 'boolean',
             'password' => 'hashed',
         ];
     }

@@ -32,6 +32,7 @@ class SmsJournal extends Model
         'resultats_labo' => 'Résultats d\'analyses',
         'labo_reseau' => 'Laboratoire partenaire',
         'cpn' => 'Rappel de consultation prénatale',
+        'acces_personnel' => 'Accès du personnel',
         'test' => 'Test',
         'autre' => 'Autre',
     ];

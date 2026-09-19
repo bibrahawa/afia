@@ -36,6 +36,10 @@
     .pf-infos dd { margin: 0; color: var(--hali-encre); font-weight: 600; white-space: pre-line; }
     .pf-form { display: grid; gap: 12px; max-width: 420px; padding: 16px 18px 20px; }
     .pf-form label { display: block; margin-bottom: 5px; color: var(--hali-encre); font-size: .83rem; font-weight: 650; }
+    .pf-provisoire { display: flex; gap: 14px; margin-bottom: 16px; padding: 16px 18px; border-radius: 14px; background: var(--hali-primaire); color: #fff; }
+    .pf-provisoire i { font-size: 1.4rem; margin-top: 2px; }
+    .pf-provisoire strong, .pf-provisoire span { display: block; }
+    .pf-provisoire span { margin-top: 3px; opacity: .9; font-size: .9rem; }
     @media (max-width: 991.98px) { .pf-grille { grid-template-columns: 1fr; } }
 </style>
 @endsection
@@ -53,6 +57,14 @@
     </header>
 
     @if($errors->any())<div class="hl-note hl-note-danger mb-3" role="alert"><ul class="mb-0 ps-3">@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>@endif
+
+    @if($estMonProfil && auth()->user()?->doit_changer_mot_de_passe)
+        <div class="pf-provisoire" role="alert">
+            <i class="fas fa-lock" aria-hidden="true"></i>
+            <div><strong>Choisissez votre propre mot de passe pour continuer.</strong>
+                <span>Vous êtes connecté(e) avec le mot de passe provisoire reçu par SMS. Saisissez-le comme « mot de passe actuel », puis choisissez le vôtre ci-dessous.</span></div>
+        </div>
+    @endif
 
     <div class="pf-grille">
         <section class="hl-bloc">
@@ -104,7 +116,7 @@
                     <h2 class="hl-bloc-titre">Changer mon mot de passe</h2>
                     <form method="POST" action="{{ route('employee.mot-de-passe') }}" class="pf-form" id="pfMdp">
                         @csrf @method('PUT')
-                        <div><label for="pfActuel">Mot de passe actuel</label><input type="password" id="pfActuel" name="mot_de_passe_actuel" class="form-control" autocomplete="current-password" required></div>
+                        <div><label for="pfActuel">{{ auth()->user()?->doit_changer_mot_de_passe ? 'Mot de passe provisoire (reçu par SMS)' : 'Mot de passe actuel' }}</label><input type="password" id="pfActuel" name="mot_de_passe_actuel" class="form-control" autocomplete="current-password" required></div>
                         <div><label for="pfNouveau">Nouveau mot de passe</label><input type="password" id="pfNouveau" name="password" class="form-control" autocomplete="new-password" minlength="8" required>
                             <p class="pf-sous mb-0 mt-1" style="font-size:.78rem">8 caractères au moins. Évitez votre date de naissance ou votre numéro.</p></div>
                         <div><label for="pfConfirme">Confirmer le nouveau mot de passe</label><input type="password" id="pfConfirme" name="password_confirmation" class="form-control" autocomplete="new-password" minlength="8" required></div>

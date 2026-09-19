@@ -338,9 +338,19 @@ Route::middleware('auth')->group(function () {
 
 
 
-    Route::get('disable-user/{id}', [UserController::class, 'disableUser'])
+    // Lot E1 : PATCH (jeton CSRF) au lieu d'un simple lien GET.
+    Route::patch('users/{id}/statut', [UserController::class, 'disableUser'])
+        ->whereNumber('id')
         ->middleware('permission:users.disable')
         ->name('user.disable');
+
+    // Lot E1 : accès à Hali géré depuis la fiche du personnel.
+    Route::prefix('employee/{employee}/acces')->whereNumber('employee')->controller(EmployeeController::class)->name('employee.acces.')->group(function () {
+        Route::post('/', 'creerAcces')->middleware('permission:users.create')->name('creer');
+        Route::put('/', 'modifierAcces')->middleware('permission:users.edit')->name('modifier');
+        Route::post('mot-de-passe', 'reinitialiserAcces')->middleware(['permission:users.change_password', 'throttle:10,1'])->name('mot-de-passe');
+        Route::patch('statut', 'basculerAcces')->middleware('permission:users.disable')->name('statut');
+    });
 
     Route::post('assign-permissions/{id}', [UserController::class, 'assignPermissions'])
         ->middleware('permission:users.permissions')

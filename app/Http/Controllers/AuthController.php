@@ -437,6 +437,16 @@ class AuthController extends Controller
                 'locked_until' => null,
             ]);
 
+            // CORRIGÉ (lot E1) — la suspension n'était jamais vérifiée à la connexion.
+            if ($user->status !== null && ! (bool) $user->status) {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                return back()->withInput($request->only('phone'))
+                    ->withErrors(['phone' => 'Ce compte est suspendu. Contactez l\'administrateur de la clinique.']);
+            }
+
             // Régénération de la session
             $request->session()->regenerate();
 

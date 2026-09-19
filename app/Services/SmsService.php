@@ -24,6 +24,7 @@ use Illuminate\Support\Facades\Log;
  *       'type'          => 'rdv_reminder_24h',
  *       'sujet'         => $rendezVous, // modèle lié (facultatif)
  *       'masquer'       => true,        // codes à usage unique : chiffres masqués au journal
+ *       'secret'        => $motDePasse, // texte à masquer tel quel (mot de passe provisoire)
  *   ]);
  */
 class SmsService
@@ -174,7 +175,7 @@ class SmsService
     private function journaliser(string $telephone, string $message, string $expediteur, ?Etablissement $etablissement, array $contexte, array $resultat): ?int
     {
         try {
-            $masquer = (bool) ($contexte['masquer'] ?? false);
+            $masquer = (bool) ($contexte['masquer'] ?? false) || ! empty($contexte['secret']);
             $sujet = $contexte['sujet'] ?? null;
 
             // Écriture hors cloisonnement : un envoi déclenché depuis une clinique
@@ -184,7 +185,10 @@ class SmsService
                 'etablissement_id' => $etablissement?->id,
                 'telephone' => mb_substr($telephone, 0, 30),
                 // Codes à usage unique : jamais en clair dans le journal.
-                'message' => $masquer ? preg_replace('/\b\d{4,8}\b/', '••••••', $message) : $message,
+                // Secret explicite (mot de passe provisoire) ou codes chiffrés : jamais en clair.
+                'message' => $masquer
+                    ? preg_replace('/\b\d{4,8}\b/', '••••••', ! empty($contexte['secret']) ? str_replace((string) $contexte['secret'], '••••••', $message) : $message)
+                    : $message,
                 'expediteur' => $expediteur,
                 'type' => mb_substr((string) ($contexte['type'] ?? 'autre'), 0, 40),
                 'statut' => ($resultat['success'] ?? false) ? SmsJournal::ENVOYE : SmsJournal::ECHEC,

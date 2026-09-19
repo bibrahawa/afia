@@ -13,6 +13,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
 
+        // Lot E1 : compte suspendu déconnecté, mot de passe provisoire à changer (toutes les pages web).
+        $middleware->appendToGroup('web', \App\Http\Middleware\VerifierCompteActif::class);
+
         $middleware->alias([
             'auth' => \Illuminate\Auth\Middleware\Authenticate::class,
             'auth.basic' => \Illuminate\Auth\Middleware\AuthenticateWithBasicAuth::class,
