@@ -80,6 +80,7 @@
         .pp-onglet .pastille { position: absolute; margin: -2px 0 0 16px; width: 8px; height: 8px; border-radius: 50%; background: var(--alerte); }
         [hidden] { display: none !important; }
     </style>
+@include('partials.fond-medical')
 </head>
 <body>
 <div class="pp">

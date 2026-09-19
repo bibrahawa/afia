@@ -3,9 +3,16 @@
     <div class="sidebar-logo">
         <!-- Logo Header -->
         <div class="logo-header" data-background-color="orange2">
-            {{-- <img src="{{ asset("assets/img/logo.jpeg") }}"
-                alt="Logo Aprosafe"
-                class="h-12 w-auto object-contain mx-auto"/> --}}
+            {{-- Logo de la clinique (Paramètres › Identité de la clinique), sur une pastille blanche
+                 pour rester lisible sur le bandeau vert ; sinon le nom de l'application. --}}
+            @php $identiteMenu = \App\Support\Etablissement\IdentiteDocument::courante(); @endphp
+            <a href="{{ url('/home') }}" class="logo hl-menu-logo" title="{{ $identiteMenu->nom }}">
+                @if($identiteMenu->logoWeb())
+                    <img src="{{ $identiteMenu->logoWeb() }}" alt="{{ $identiteMenu->nom }}">
+                @else
+                    <span>{{ \App\Support\Marque::nom() }}</span>
+                @endif
+            </a>
 
             <div class="nav-toggle">
                 <button class="btn btn-toggle toggle-sidebar">
@@ -108,6 +115,7 @@
             ['Chambres', 'fa-bed', 'chambres.index', $mod('hospitalisation') && $peut('chambre.view'), ['chambres.*']],
             ['Personnel', 'fa-id-badge', 'employee.index', $peut('employee.view'), ['employee.*', 'employees.*']],
             ['Comptes et accès', 'fa-user-lock', 'users.index', $peut('users.view'), ['users.*', 'user.*']],
+            ['Identité de la clinique', 'fa-stamp', 'identite.show', (bool) $etab && $peut('setting.access'), ['identite.*']],
         ]],
         ['Plateforme', [
             ['Établissements', 'fa-hospital', 'etablissement.index', $peut('etablissement.view'), ['etablissement.*']],
@@ -196,6 +204,9 @@
     .sidebar-wrapper.scrollbar-inner::-webkit-scrollbar { width: 6px; }
     .sidebar-wrapper.scrollbar-inner::-webkit-scrollbar-thumb { background-color: rgba(15, 118, 110, .3); border-radius: 3px; }
     .sidebar .nav-item a .hl-menu-externe { margin-left: auto; font-size: .62rem; opacity: .5; }
+    .hl-menu-logo { display: inline-flex; align-items: center; max-width: 170px; height: 44px; padding: 4px 10px; border-radius: 10px; background: #fff; text-decoration: none; }
+    .hl-menu-logo img { max-height: 36px; max-width: 150px; object-fit: contain; }
+    .hl-menu-logo span { color: #0f766e; font-size: 1.1rem; font-weight: 800; }
 </style>
 
 <script>

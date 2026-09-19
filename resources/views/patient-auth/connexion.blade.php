@@ -37,6 +37,7 @@
         .co-note { margin: 22px 0 0; padding-top: 16px; border-top: 1px solid var(--line); color: var(--soft); font-size: .78rem; line-height: 1.5; }
         [hidden] { display: none !important; }
     </style>
+@include('partials.fond-medical')
 </head>
 <body>
 <main class="co">

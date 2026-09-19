@@ -395,6 +395,18 @@ Route::middleware('auth')->group(function () {
         ->middleware('throttle:6,1')
         ->name('employee.mot-de-passe');
 
+    // Signature personnelle (médecin) : chacun gère la sienne, depuis son profil.
+    Route::post('mon-profil/signature', [EmployeeController::class, 'enregistrerSignature'])->middleware('throttle:10,1')->name('employee.signature.enregistrer');
+    Route::delete('mon-profil/signature', [EmployeeController::class, 'supprimerSignature'])->name('employee.signature.supprimer');
+    Route::get('mon-profil/signature/image', [EmployeeController::class, 'imageSignature'])->name('employee.signature.image');
+
+    // Paramètres › Identité de la clinique (logos, signature, cachet, coordonnées des documents).
+    Route::middleware('permission:setting.access')->prefix('parametres/identite')->name('identite.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\IdentiteEtablissementController::class, 'show'])->name('show');
+        Route::put('/', [\App\Http\Controllers\IdentiteEtablissementController::class, 'update'])->middleware('throttle:20,1')->name('update');
+        Route::get('image/{type}', [\App\Http\Controllers\IdentiteEtablissementController::class, 'image'])->name('image');
+    });
+
     // CORRIGÉ — « employee/{employee} » était déclarée AVANT « employee/profile » et
     // « employee/create » : ces deux adresses tombaient sur la fiche d'un employé
     // nommé « profile » / « create » (erreur). Identifiant désormais numérique.
@@ -557,7 +569,7 @@ Route::middleware('auth')->group(function () {
         ->name('consentement.demander');
 
     Route::post('patient/{patient}/consentement/confirmer-code', [ConsentementController::class, 'confirmerParCode'])
-        ->middleware('permission:consentement.demander')
+        ->middleware(['permission:consentement.demander', 'throttle:10,1'])
         ->name('consentement.confirmer-code');
 
     Route::delete('consentement/{consentement}/revoquer', [ConsentementController::class, 'revoquer'])

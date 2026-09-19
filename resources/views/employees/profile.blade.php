@@ -124,6 +124,34 @@
                     </form>
                 </section>
             @endif
+
+            {{-- Signature personnelle : seulement sur MON profil, et pour un médecin (ordonnances, certificats). --}}
+            @if($estMonProfil && $estMedecin && $employee && Route::has('employee.signature.enregistrer'))
+                <section class="hl-bloc">
+                    <h2 class="hl-bloc-titre">Ma signature</h2>
+                    <p class="pf-sous" style="margin:0 18px 12px; font-size:.84rem">Elle figure sur vos ordonnances, demandes d'examens et certificats, et seulement sur les vôtres. Personne d'autre ne peut la déposer ni la voir en dehors de vos documents.</p>
+                    <div style="padding:0 18px 18px">
+                        <form method="POST" action="{{ route('employee.signature.enregistrer') }}" enctype="multipart/form-data" id="pfSignature">
+                            @csrf
+                            @include('partials.image-controlee', [
+                                'type' => 'signature', 'champ' => 'signature',
+                                'apercu' => \App\Support\Images\ImageControlee::cheminAbsolu('signature', $employee->signature) ? route('employee.signature.image') . '?v=' . optional($employee->updated_at)->timestamp : null,
+                                'supprimable' => false,
+                            ])
+                            <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:12px">
+                                <button type="submit" class="hl-bouton hl-bouton-plein"><i class="fas fa-check" aria-hidden="true"></i> Enregistrer ma signature</button>
+                            </div>
+                        </form>
+                        @if($employee->signature)
+                            <form method="POST" action="{{ route('employee.signature.supprimer') }}" style="margin-top:8px" onsubmit="return confirm('Retirer votre signature de vos documents ?');">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="hl-bouton" style="color:var(--hali-danger); border-color:#fecaca"><i class="fas fa-trash" aria-hidden="true"></i> Retirer ma signature</button>
+                            </form>
+                        @endif
+                        <p class="hl-note hl-note-info mt-3 mb-0"><i class="fas fa-lightbulb" aria-hidden="true"></i> <span>Signez en noir sur une feuille blanche, photographiez-la bien à plat, puis détourez-la (fond transparent) avec un outil gratuit comme remove.bg ou l'application Photos de votre téléphone. Recadrez au plus près de la signature.</span></p>
+                    </div>
+                </section>
+            @endif
         </div>
     </div>
 </div></div>

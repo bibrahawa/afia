@@ -1,209 +1,77 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <title>Reçu de paiement A5</title>
-    <style>
-        @page {
-            size: A5 portrait;
-            margin: 10mm;
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: "Times New Roman", serif;
-            font-size: 13px;
-            color: #000;
-        }
-
-        .left {
-            float: left;
-            width: 50%;
-        }
-
-        .right {
-            float: right;
-            width: 50%;
-            text-align: right;
-        }
-
-        .logo img {
-            max-width: 130px;
-            max-height: 70px;
-            object-fit: contain;
-        }
-
-        .clinic-name {
-            font-size: 18px;
-            font-weight: 700;
-            text-transform: uppercase;
-            margin-top: 6px;
-        }
-
-        .clinic-line {
-            font-size: 12px;
-            line-height: 1.5;
-        }
-
-        .title {
-            text-align: center;
-            font-size: 22px;
-            font-weight: 700;
-            text-transform: uppercase;
-            text-decoration: underline;
-            margin-top: 10px;
-        }
-
-        .meta-box,
-        .info-box,
-        .words-box {
-            border: 1px solid #333;
-            padding: 10px 12px;
-            margin-top: 15px;
-        }
-
-        .meta-box,
-        .info-box {
-            line-height: 1.7;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 18px;
-        }
-
-        th, td {
-            border: 1px solid #333;
-            padding: 8px 6px;
-        }
-
-        th {
-            background: #efefef;
-            text-transform: uppercase;
-        }
-
-        td:last-child,
-        th:last-child {
-            text-align: right;
-        }
-
-        .status {
-            margin-top: 16px;
-            text-align: right;
-            font-weight: 700;
-        }
-    </style>
+<meta charset="UTF-8">
+<title>Reçu de paiement</title>
+@include('documents._a5')
 </head>
 <body>
 @php
-    $transaction = $consultation->transaction;
-    $invoice = optional($transaction)->invoice;
-    $paiements = $transaction?->paiements ?? collect();
-
-    $normalize = function ($value) {
-        return strtoupper(trim((string) $value));
-    };
-
-    $cashSources = ['ESPECE', 'ESPÈCE', 'CASH', 'LIQUIDE'];
-    $mobileSources = ['MOBILE', 'MOBILE MONEY', 'OM', 'ORANGE MONEY', 'WAVE', 'MTN MONEY'];
-    $cardSources = ['CARTE', 'CARD', 'CB', 'TPE'];
-
-    $cashAmount = $paiements->filter(fn($p) => in_array($normalize($p->source ?? ''), $cashSources))->sum('montant');
-    $mobileAmount = $paiements->filter(fn($p) => in_array($normalize($p->source ?? ''), $mobileSources))->sum('montant');
-    $cardAmount = $paiements->filter(fn($p) => in_array($normalize($p->source ?? ''), $cardSources))->sum('montant');
-
-    $totalPaid = $invoiceData['paid_amount'] ?? 0;
-    $patientAmount = $invoiceData['patient_amount'] ?? 0;
-    $remaining = $invoiceData['remaining'] ?? 0;
-    $status = $invoiceData['status'] ?? 'unpaid';
-
-    $lastPayment = $paiements->sortByDesc('created_at')->first();
-    $modePaiement = $lastPayment->source ?? 'Non précisé';
-
-    $receiptNumber = $receiptNumber ?? ('REC-' . now()->format('Y') . str_pad($consultation->id, 5, '0', STR_PAD_LEFT));
-    $invoiceRef = $invoiceRef ?? ($invoice->invoice_no ?? ('FAC-' . str_pad($consultation->id, 5, '0', STR_PAD_LEFT)));
-    $paymentAmountInWords = $paymentAmountInWords ?? 'À compléter';
-
-    $motif = $transaction->description ?? $consultation->motif ?? 'Paiement consultation';
+    $gnf = fn ($v) => number_format((float) $v, 0, ',', ' ') . ' GNF';
+    // CORRIGÉ : les paiements annulés étaient comptés dans les totaux par mode de paiement.
+    // Seuls les paiements du PATIENT non annulés (les règlements d'assurance ne figurent pas sur son reçu).
+    $paiements = ($consultation->transaction?->paiements ?? collect())
+        ->filter(fn ($p) => ($p->type ?? 'paiement') === 'paiement' && empty($p->annule_le))
+        ->sortBy('created_at')->values();
+    $dernier = $paiements->last();
+    $totalPaye = (float) ($invoiceData['paid_amount'] ?? $paiements->sum('montant'));
+    $numero = $dernier?->paiement_no ?: 'REC-' . str_pad($consultation->id, 6, '0', STR_PAD_LEFT);
+    $statut = $invoiceData['status'] ?? null;
+    $modes = $paiements->groupBy(fn ($p) => trim((string) $p->source) ?: 'Non précisé')->map->sum('montant');
 @endphp
 
-<table style="width:100%; margin-bottom:20px;">
-    <tr>
-        <!-- LEFT -->
-        <td style="width:50%; vertical-align:top;">
-            <div class="logo">
-                @if($identite->logoPdf())<img src="{{ $identite->logoPdf() }}" alt="Logo">@endif
-            </div>
+@include('documents._pied')
+@include('documents._entete', ['type' => 'Reçu', 'numero' => $numero, 'date' => $dernier?->created_at ?? now(), 'heure' => true])
+@include('documents._personnes', ['patient' => $consultation->patient, 'medecin' => $consultation->medecin, 'service' => $consultation->department?->name])
 
-            <div class="clinic-name">{{ $identite->nom }}</div>
-            <div class="clinic-line">{{ $identite->adresse }}</div>
-            <div class="clinic-line">{{ $identite->email }}</div>
-            <div class="clinic-line">{{ $identite->contact }}</div>
- 
+@if(! $invoiceData)
+    <div class="d-vide">Aucune facture n'a encore été établie pour cette consultation.</div>
+@else
+    <div class="d-titre-section">Paiements reçus</div>
+    @if($paiements->isEmpty())
+        <div class="d-vide" style="margin-top:0">Aucun paiement enregistré.</div>
+    @else
+        <table class="d-lignes">
+            <thead><tr><th>Date</th><th>Mode</th><th>Référence</th><th class="n">Montant</th></tr></thead>
+            <tbody>
+                @foreach($paiements as $p)
+                    <tr>
+                        <td>{{ $p->created_at?->format('d/m/Y H:i') }}</td>
+                        <td>{{ $p->source ?: 'Non précisé' }}</td>
+                        <td>{{ $p->paiement_no }}</td>
+                        <td class="n">{{ $gnf($p->montant) }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @endif
+
+    {{-- Tampon et cachet de la caisse à gauche des totaux : le reçu tient sur une page A5. --}}
+    <table style="margin-top:3mm"><tr>
+        <td style="width:40%; vertical-align:bottom; padding-right:4mm">
+            @if($statut === 'paid')<div class="d-cachet d-paye">Soldé</div>
+            @elseif($statut === 'partial')<div class="d-cachet d-partiel">Solde restant</div>
+            @else<div class="d-cachet d-du">Non payé</div>@endif
+            <div style="margin-top:3mm">@include('documents._validation', ['pdf' => true, 'etiquette' => 'La caisse', 'avecSignature' => false, 'nom' => (string) auth()->user()?->name, 'fonction' => ''])</div>
         </td>
-
-        <!-- RIGHT -->
-        <td style="width:50%; vertical-align:top; text-align:right;">
-            <div class="title">Reçu de paiement</div>
-
-            <div class="meta-box" style="display:inline-block; text-align:left;">
-                <strong>Numéro reçu :</strong> {{ $receiptNumber }}<br>
-                <strong>Référence facture :</strong> {{ $invoiceRef }}<br>
-                <strong>Date :</strong> {{ ($lastPayment?->created_at ?? $consultation->created_at)->format('d/m/Y H:i') }}
-            </div>
+        <td style="vertical-align:top">
+    <table class="d-totaux" style="width:100%; margin:0">
+        <tr><td>À votre charge</td><td class="n">{{ $gnf($invoiceData['patient_amount']) }}</td></tr>
+        <tr><td><strong>Total payé</strong></td><td class="n"><strong>{{ $gnf($totalPaye) }}</strong></td></tr>
+        @if($modes->count() > 1)
+            @foreach($modes as $mode => $montant)
+                <tr><td class="d-petit">&nbsp;&nbsp;dont {{ mb_strtolower($mode) }}</td><td class="n d-petit">{{ $gnf($montant) }}</td></tr>
+            @endforeach
+        @endif
+        <tr class="d-fort"><td>Reste à payer</td><td class="n">{{ $gnf($invoiceData['remaining']) }}</td></tr>
+    </table>
         </td>
-    </tr>
-</table>
+    </tr></table>
 
-<div class="info-box">
-    <strong>Nom :</strong> {{ $consultation->patient->last_name ?? '' }}<br>
-    <strong>Prénoms :</strong> {{ $consultation->patient->first_name ?? '' }}<br>
-    <strong>Contact :</strong> {{ $consultation->patient->phone ?? 'N/A' }}<br>
-    <strong>Motif :</strong> {{ $motif }}
-</div>
+    {{-- CORRIGÉ : affichait littéralement « À compléter ». --}}
+    <div class="d-lettres">Arrêté le présent reçu à la somme de <strong>{{ \App\Support\MontantEnLettres::gnf($totalPaye) }}</strong>.</div>
 
-<table>
-    <thead>
-        <tr>
-            <th>Type montant</th>
-            <th>Valeur</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td>Espèce</td>
-            <td>{{ number_format($cashAmount, 0, ',', ' ') }} GNF</td>
-        </tr>
-        <tr>
-            <td>Mobile</td>
-            <td>{{ number_format($mobileAmount, 0, ',', ' ') }} GNF</td>
-        </tr>
-        <tr>
-            <td>Carte</td>
-            <td>{{ number_format($cardAmount, 0, ',', ' ') }} GNF</td>
-        </tr>
-        <tr>
-            <td><strong>Total</strong></td>
-            <td><strong>{{ number_format($totalPaid, 0, ',', ' ') }} GNF</strong></td>
-        </tr>
-        <tr>
-            <td><strong>Solde</strong></td>
-            <td><strong>{{ number_format($remaining, 0, ',', ' ') }} GNF</strong></td>
-        </tr>
-    </tbody>
-</table>
 
-{{-- <div class="info-box">
-    <strong>Mode paiement :</strong> {{ $modePaiement }}
-</div> --}}
-
-<div class="words-box">
-    <strong>Somme en lettre :</strong><br>
-    {{ $paymentAmountInWords }}
-</div>
+@endif
 </body>
 </html>

@@ -54,7 +54,11 @@ class ConsentementController extends Controller
             $valide['motif'] ?? null
         );
 
-        return back()->with('success', "Demande envoyée au patient (expire dans 30 min). Code de secours : {$demande->codeEnClair}");
+        // CORRIGÉ (faille de consentement) — le code envoyé au patient s'affichait ici au
+        // soignant (« Code de secours : … ») : il pouvait le saisir lui-même via
+        // « Confirmer l'accès » et s'accorder le dossier sans l'accord du patient.
+        // Le code n'est connu que du patient ; c'est lui qui le communique s'il accepte.
+        return back()->with('success', 'Demande envoyée au patient par SMS (valable 30 min). S\'il accepte, il ouvrira le lien reçu ou vous communiquera le code à saisir.');
     }
 
     /**
@@ -102,7 +106,14 @@ class ConsentementController extends Controller
      */
     public function confirmerParCode(Request $request, Patient $patient, \App\Services\OtpService $otp)
     {
-        $valide = $request->validate(['code' => ['required', 'string']]);
+        $valide = $request->validate(['code' => ['required', 'string', 'max:10']]);
+
+        // CORRIGÉ — aucune limite d'essais : un code à 6 chiffres valable 30 minutes pouvait
+        // être trouvé par essais automatisés. 5 essais par patient et par soignant / 30 min.
+        $cle = 'consentement-code:' . $patient->id . ':' . $request->user()->id;
+        if (\Illuminate\Support\Facades\RateLimiter::tooManyAttempts($cle, 5)) {
+            return back()->with('error', 'Trop de codes erronés. Demandez au patient d\'ouvrir le lien reçu par SMS, ou réessayez dans ' . ceil(\Illuminate\Support\Facades\RateLimiter::availableIn($cle) / 60) . ' minutes.');
+        }
 
         // Le code est haché en base — on ne peut plus filtrer par égalité
         // directe en SQL. Le nombre de demandes en_attente pour un même
@@ -114,7 +125,12 @@ class ConsentementController extends Controller
             ->get()
             ->first(fn (DemandeAcces $d) => $otp->verifier($valide['code'], $d->code_confirmation));
 
-        abort_if(! $demande, 404, 'Code invalide ou expiré.');
+        if (! $demande) {
+            \Illuminate\Support\Facades\RateLimiter::hit($cle, 1800);
+
+            return back()->with('error', 'Code invalide ou expiré.');
+        }
+        \Illuminate\Support\Facades\RateLimiter::clear($cle);
 
         $this->acces->confirmerDemande($demande);
 

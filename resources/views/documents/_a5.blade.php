@@ -41,5 +41,10 @@
     .d-signature { margin-top: 8mm; width: 60%; margin-left: 40%; text-align: center; }
     .d-signature .d-ligne { height: 16mm; border-bottom: .6pt solid #9ca3af; }
     .d-pied { position: fixed; bottom: -11mm; left: 0; right: 0; padding-top: 1.5mm; border-top: .5pt solid #d1d5db; color: #6b7280; font-size: 6.6pt; text-align: center; }
+    .d-valide { text-align: center; }
+    .d-valide-zone { position: relative; height: 19mm; margin-top: .5mm; }
+    .d-valide-cachet { position: absolute; left: 0; top: 0; width: 19mm; height: 19mm; }
+    .d-valide-signature { position: relative; max-width: 38mm; max-height: 14mm; margin-top: 2.5mm; }
+    .d-valide-ligne { height: 0; border-top: .6pt solid #9ca3af; margin-bottom: 1mm; }
     .d-vide { margin-top: 12mm; padding: 6mm; border: 1pt dashed #d1d5db; color: #6b7280; text-align: center; }
 </style>

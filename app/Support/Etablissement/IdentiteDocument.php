@@ -3,6 +3,7 @@
 namespace App\Support\Etablissement;
 
 use App\Models\Etablissement;
+use App\Support\Images\ImageControlee;
 use App\Support\EtablissementContext;
 
 /**
@@ -28,6 +29,11 @@ final class IdentiteDocument
         public readonly ?string $numeroEnregistrement = null,
         public readonly ?string $messageFacture = null,
         public readonly ?string $logo = null,
+        public readonly ?string $logoDocuments = null,
+        public readonly ?string $signature = null,
+        public readonly ?string $cachet = null,
+        public readonly ?string $signataireNom = null,
+        public readonly ?string $signataireFonction = null,
     ) {
     }
 
@@ -51,6 +57,11 @@ final class IdentiteDocument
             numeroEnregistrement: $etablissement->numero_enregistrement,
             messageFacture: $etablissement->message_facture,
             logo: $etablissement->logo,
+            logoDocuments: $etablissement->logo_documents,
+            signature: $etablissement->signature,
+            cachet: $etablissement->cachet,
+            signataireNom: $etablissement->signataire_nom,
+            signataireFonction: $etablissement->signataire_fonction,
         );
     }
 
@@ -86,6 +97,86 @@ final class IdentiteDocument
         }
 
         return is_file(storage_path('app/public/' . ltrim($this->logo, '/'))) ? asset('storage/' . ltrim($this->logo, '/')) : null;
+    }
+
+    // ------------------------------------------------------------ Documents (identité visuelle)
+
+    /** Logo des documents pour DomPDF (chemin absolu) : logo dédié, sinon logo de l'application. */
+    public function logoDocumentsPdf(): ?string
+    {
+        return self::pourPdf(ImageControlee::cheminAbsolu('logo_documents', $this->logoDocuments) ?? $this->logoPdf());
+    }
+
+    /** Logo des documents imprimés par le navigateur. */
+    public function logoDocumentsWeb(): ?string
+    {
+        if ($this->logoDocuments && ($absolu = ImageControlee::cheminAbsolu('logo_documents', $this->logoDocuments))) {
+            return asset('storage/' . ltrim($this->logoDocuments, '/'));
+        }
+
+        return $this->logoWeb();
+    }
+
+    /** Signature et cachet de la clinique : chemins absolus PRIVÉS pour DomPDF. */
+    public function signaturePdf(): ?string
+    {
+        return self::pourPdf(ImageControlee::cheminAbsolu('signature', $this->signature));
+    }
+
+    public function cachetPdf(): ?string
+    {
+        return self::pourPdf(ImageControlee::cheminAbsolu('cachet', $this->cachet));
+    }
+
+    /** DomPDF a besoin de l'extension GD pour les PNG (transparence). */
+    public static function imagesPdfPossibles(): bool
+    {
+        return extension_loaded('gd');
+    }
+
+    /**
+     * Sans GD, DomPDF lève une exception sur une image PNG : la facture entière planterait.
+     * On omet alors l'image (le document s'imprime sans) et on le signale au journal.
+     */
+    private static function pourPdf(?string $chemin): ?string
+    {
+        if (! $chemin || self::imagesPdfPossibles()) {
+            return $chemin;
+        }
+        static $signale = false;
+        if (! $signale) {
+            $signale = true;
+            \Illuminate\Support\Facades\Log::warning('Extension PHP GD absente : logos, signatures et cachets sont omis des PDF.');
+        }
+
+        return null;
+    }
+
+    /** Idem en « data: URI » pour les documents imprimés par le navigateur (jamais d'adresse publique). */
+    public function signatureData(): ?string
+    {
+        return ImageControlee::dataUri('signature', $this->signature);
+    }
+
+    public function cachetData(): ?string
+    {
+        return ImageControlee::dataUri('cachet', $this->cachet);
+    }
+
+    public function aSignatureOuCachet(): bool
+    {
+        return (bool) ($this->signaturePdf() || $this->cachetPdf());
+    }
+
+    /** Signature propre à un médecin (sur SES documents uniquement). */
+    public static function signatureMedecinPdf(?\App\Models\Employee $medecin): ?string
+    {
+        return $medecin ? self::pourPdf(ImageControlee::cheminAbsolu('signature', $medecin->signature)) : null;
+    }
+
+    public static function signatureMedecinData(?\App\Models\Employee $medecin): ?string
+    {
+        return $medecin ? ImageControlee::dataUri('signature', $medecin->signature) : null;
     }
 
     /** « adresse · contact · email » sans séparateurs orphelins. */

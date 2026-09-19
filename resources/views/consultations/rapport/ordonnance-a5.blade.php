@@ -1,184 +1,56 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <title>Ordonnance A5</title>
-    <style>
-        @page {
-            size: A5 portrait;
-            margin: 10mm;
-        }
-
-        * { box-sizing: border-box; }
-
-        body {
-            margin: 0;
-            font-family: "Times New Roman", serif;
-            color: #000;
-            background: #fff;
-            font-size: 13px;
-        }
-
-        .page {
-            width: 100%;
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        .left, .right {
-            width: 48%;
-        }
-
-        .logo img {
-            max-width: 120px;
-            max-height: 70px;
-            object-fit: contain;
-        }
-
-        .clinic-name {
-            font-size: 17px;
-            font-weight: 700;
-            text-transform: uppercase;
-            margin-top: 6px;
-        }
-
-        .clinic-line {
-            line-height: 1.5;
-            font-size: 12px;
-        }
-
-        .title {
-            text-align: center;
-            font-size: 22px;
-            font-weight: 700;
-            text-transform: uppercase;
-            text-decoration: underline;
-            margin-top: 15px;
-        }
-
-        .date {
-            text-align: center;
-            margin-top: 10px;
-            font-size: 13px;
-            font-weight: 700;
-        }
-
-        .meta-box {
-            border: 1px solid #333;
-            padding: 10px 12px;
-            margin: 18px 0 22px;
-            font-size: 13px;
-            line-height: 1.7;
-        }
-
-        .content {
-            min-height: 300px;
-        }
-
-        .item {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 14px;
-            font-size: 15px;
-            line-height: 1.55;
-        }
-
-        .item-index {
-            width: 24px;
-            font-weight: 700;
-        }
-
-        .item-body {
-            flex: 1;
-        }
-
-        .item-name {
-            font-weight: 700;
-            font-size: 15px;
-        }
-
-        .footer {
-            margin-top: auto;
-            text-align: right;
-        }
-
-        .signature {
-            margin-top: 45px;
-            font-weight: 700;
-        }
-
-        .print-btn {
-            margin-bottom: 12px;
-            border: none;
-            background: #111;
-            color: #fff;
-            padding: 8px 14px;
-            cursor: pointer;
-            border-radius: 4px;
-        }
-
-        @media print {
-            .no-print { display: none !important; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ordonnance · {{ $consultation->patient->getFullName() }}</title>
+@include('documents._a5')
+@include('documents._ecran')
+<style>
+    .o-ligne { border-bottom: .5pt solid #e5e7eb; page-break-inside: avoid; }
+    .o-ligne td { padding: 3mm 0; }
+    .o-num { width: 7mm; color: #0f766e; font-weight: bold; vertical-align: top; }
+    .o-nom { font-size: 10.5pt; font-weight: bold; color: #111827; }
+    .o-forme { color: #6b7280; font-size: 8pt; font-weight: normal; }
+    .o-poso { margin-top: .8mm; font-size: 9.2pt; }
+    .o-instr { margin-top: .6mm; color: #374151; font-size: 8.2pt; font-style: italic; }
+    .o-qte { width: 22mm; text-align: right; vertical-align: top; font-size: 8pt; color: #374151; white-space: nowrap; }
+</style>
 </head>
-<body onload="window.print()">
-    <div class="page">
-        <div class="no-print">
-            <button class="print-btn" onclick="window.print()">Imprimer</button>
-        </div>
+<body onload="setTimeout(function () { window.print(); }, 300)">
+<div class="d-outils"><button type="button" onclick="window.print()">Imprimer</button><a href="javascript:history.back()">Retour</a></div>
+@php
+    $medicaments = $consultation->medicaments;
+    $formes = ['COMPRIMÉ' => 'comprimé', 'GÉLULE' => 'gélule', 'SIROP' => 'sirop', 'INJECTION' => 'injectable', 'PERFUSION' => 'perfusion', 'CRÈME' => 'crème', 'POMMADE' => 'pommade', 'SUPPOSITOIRE' => 'suppositoire', 'GOUTTES' => 'gouttes', 'SPRAY' => 'spray', 'INHALATEUR' => 'inhalateur'];
+@endphp
 
-        <div class="header">
-            <div class="left">
-                <div class="logo">
-                    @if($identite->logoWeb())<img src="{{ $identite->logoWeb() }}" alt="Logo">@endif
-                </div>
-                <div class="clinic-name">{{ $identite->nom }}</div>
-                <div class="clinic-line">{{ $identite->adresse }}</div>
-                <div class="clinic-line">Tél : {{ $identite->contact }}</div>
-                <div class="clinic-line">Email : {{ $identite->email }}</div>
-            </div>
+@include('documents._pied')
+@include('documents._entete', ['type' => 'Ordonnance', 'numero' => 'ORD-' . str_pad($consultation->id, 6, '0', STR_PAD_LEFT), 'date' => $consultation->created_at, 'pdf' => false])
+@include('documents._personnes', ['patient' => $consultation->patient, 'medecin' => $consultation->medecin, 'service' => $consultation->department?->name])
 
-            <div class="right">
-                <div class="title">Ordonnance</div>
-                <div class="date">
-                    {{ $consultation->created_at->translatedFormat('d F Y') }}
-                </div>
-            </div>
-        </div>
+<div class="d-titre-section">Prescription</div>
+@forelse($medicaments as $i => $med)
+    @php
+        $p = $med->pivot;
+        $dose = $p->dose ?: $med->dosage;
+        $posologie = collect([$dose, $p->frequence ?: $med->frequence, ($p->duree ?: $med->duree) ? 'pendant ' . ($p->duree ?: $med->duree) : null])->filter()->implode(' · ');
+        $quantite = (int) ($p->quantity ?? 1);
+    @endphp
+    <table class="o-ligne"><tr>
+        <td class="o-num">{{ $i + 1 }}.</td>
+        <td>
+            <div class="o-nom">{{ $med->nom }}@if($med->dosage && $med->dosage !== $dose) {{ $med->dosage }}@endif @if($med->forme)<span class="o-forme">· {{ $formes[$med->forme] ?? mb_strtolower($med->forme) }}</span>@endif</div>
+            @if($posologie)<div class="o-poso">{{ $posologie }}</div>@endif
+            @if($p->instructions ?: $med->instructions)<div class="o-instr">{{ $p->instructions ?: $med->instructions }}</div>@endif
+        </td>
+        <td class="o-qte">Qté : <strong>{{ $quantite }}</strong></td>
+    </tr></table>
+@empty
+    <div class="d-vide" style="margin-top:0">Aucun médicament prescrit.</div>
+@endforelse
 
-        <div class="meta-box">
-            <strong>Patient :</strong> {{ $consultation->patient->first_name }} {{ $consultation->patient->last_name }}<br>
-            <strong>Âge :</strong> {{ $consultation->patient->age ?? 'N/A' }} ans<br>
-            {{-- <strong>Médecin :</strong> Dr. {{ $consultation->medecin->first_name }} {{ $consultation->medecin->last_name }}<br> --}}
-            <strong>Service :</strong> {{ $consultation->department->name }}
-        </div>
-
-        <div class="content">
-            @forelse($consultation->medicaments as $index => $med)
-                <div class="item">
-                    <div class="item-index">{{ $index + 1 }}.</div>
-                    <div class="item-body">
-                        <div class="item-name">
-                            {{ $med->nom }}
-                            @if($med->pivot->dose ?: $med->dosage) {{ $med->pivot->dose ?: $med->dosage }} @endif
-                            @if(($med->pivot->quantity ?? 1) > 1) — {{ $med->pivot->quantity }} boîte(s) @endif
-                        </div>
-                        <div>{{ $med->pivot->frequence ?: $med->frequence }} @if($med->pivot->duree ?: $med->duree)- {{ $med->pivot->duree ?: $med->duree }}@endif</div>
-                        @if($med->pivot->instructions ?: $med->instructions)
-                            <div><em>{{ $med->pivot->instructions ?: $med->instructions }}</em></div>
-                        @endif
-                    </div>
-                </div>
-            @empty
-                <p style="text-align:center; margin-top:100px;">Aucun médicament prescrit.</p>
-            @endforelse
-        </div>
-    </div>
+<div class="d-signature" style="height:auto">
+    @include('documents._validation', ['pdf' => false, 'etiquette' => 'Signature et cachet du médecin', 'signatureMedecin' => $consultation->medecin])
+</div>
 </body>
 </html>

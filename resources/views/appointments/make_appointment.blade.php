@@ -46,6 +46,10 @@
         button, input, select { font: inherit; }
         button { -webkit-tap-highlight-color: transparent; }
         .rdv-app { min-height: 100vh; display: flex; flex-direction: column; }
+        .rdv-vide { display: grid; justify-items: center; gap: 8px; padding: 36px 20px; border: 1px dashed var(--border-strong); border-radius: var(--radius-md); background: var(--surface); text-align: center; color: var(--text-soft); }
+        .rdv-vide strong { color: var(--text); font-size: 1rem; }
+        .rdv-vide-icone { font-size: 2rem; }
+        .rdv-vide-appel { display: inline-flex; align-items: center; min-height: 46px; margin-top: 6px; padding: 0 20px; border-radius: 12px; background: var(--primary); color: #fff; font-weight: 700; text-decoration: none; }
         .rdv-shell { width: 100%; min-height: 100vh; display: flex; flex-direction: column; background: var(--bg); }
         @media (min-width: 768px) {
             body { display: flex; justify-content: center; padding: 28px; }
@@ -65,6 +69,7 @@
         .rdv-brand-name small { display: block; color: var(--text-soft); font-size: .74rem; font-weight: 500; }
         .rdv-pied { max-width: 620px; margin: 0 auto; padding: 0 20px 110px; color: var(--text-muted); font-size: .72rem; text-align: center; }
         .rdv-pied b { color: var(--primary); }
+        .rdv-brand-logo { height: 38px; max-width: 110px; flex: none; object-fit: contain; }
         .rdv-brand-icon { width: 38px; height: 38px; flex: none; display: flex; align-items: center; justify-content: center; border-radius: 11px; background: var(--primary); color: #fff; font-size: 18px; font-weight: 800; }
         .rdv-secure { display: flex; align-items: center; gap: 5px; color: var(--text-muted); font-size: .72rem; font-weight: 500; }
         .rdv-progress-track { height: 5px; overflow: hidden; border-radius: 999px; background: #e9eeec; }
@@ -177,6 +182,7 @@
             *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
         }
     </style>
+@include('partials.fond-medical', ['transparents' => '.rdv-shell'])
 </head>
 
 <body>
@@ -195,7 +201,8 @@
             <div class="rdv-header-inner">
                 <div class="rdv-brand">
                     <div class="rdv-brand-name">
-                        <span class="rdv-brand-icon" aria-hidden="true">+</span>
+                        @php $logoClinique = \App\Support\Etablissement\IdentiteDocument::pour($etablissement)->logoWeb(); @endphp
+                        @if($logoClinique)<img src="{{ $logoClinique }}" alt="" class="rdv-brand-logo">@else<span class="rdv-brand-icon" aria-hidden="true">+</span>@endif
                         <span style="min-width:0"><strong>{{ $etablissement->nom }}</strong><small>Prise de rendez-vous en ligne</small></span>
                     </div>
                     <div class="rdv-secure">
@@ -568,6 +575,8 @@
     }
 
     /* MOTIFS */
+    const TELEPHONE_CLINIQUE = @json($etablissement->contact);
+
     function chargerMotifs() {
 
         requeteJSON(`${BASE}/motifs`, {}, chargerMotifs)
@@ -575,6 +584,21 @@
 
                 const conteneur = document.getElementById("motifsListe");
                 conteneur.innerHTML = "";
+
+                // Seuls les départements qui ont au moins un motif actif (avant : titre seul, sans rien dessous).
+                departements = (departements || []).filter(dep => (dep.motifs_rdv || []).length > 0);
+
+                if (departements.length === 0) {
+                    // Avant : page blanche. Le patient sait maintenant quoi faire.
+                    conteneur.innerHTML = `
+                        <div class="rdv-vide" role="status">
+                            <span class="rdv-vide-icone" aria-hidden="true">📅</span>
+                            <strong>La prise de rendez-vous en ligne n'est pas encore ouverte.</strong>
+                            <span>Appelez la clinique pour prendre rendez-vous.</span>
+                            ${TELEPHONE_CLINIQUE ? `<a class="rdv-vide-appel" href="tel:${TELEPHONE_CLINIQUE.replace(/\s+/g, '')}">Appeler le ${escapeHtml(TELEPHONE_CLINIQUE)}</a>` : ''}
+                        </div>`;
+                    return;
+                }
 
                 departements.forEach(dep => {
 

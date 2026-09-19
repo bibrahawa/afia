@@ -35,6 +35,7 @@
         .mo-liens { display: flex; justify-content: space-between; gap: 10px; margin-top: 16px; font-size: .88rem; }
         .mo-liens a { color: var(--p); font-weight: 600; text-decoration: none; }
     </style>
+@include('partials.fond-medical')
 </head>
 <body>
 <main class="mo">

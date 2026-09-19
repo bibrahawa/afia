@@ -23,6 +23,7 @@
         .sd-carte span.sd-role { display: block; color: var(--soft); font-size: .82rem; }
         .sd-fleche { margin-left: auto; color: #9ca3af; font-size: 1.3rem; }
     </style>
+@include('partials.fond-medical')
 </head>
 <body>
 <main class="sd">

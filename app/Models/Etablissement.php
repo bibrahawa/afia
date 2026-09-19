@@ -17,6 +17,8 @@ class Etablissement extends Model
         'numero_pan', 'numero_enregistrement',
         'date_debut_contrat', 'date_fin_contrat',
         'ordre_file',
+        'logo_documents', 'signataire_nom', 'signataire_fonction',
+        // signature et cachet : jamais par formulaire générique (écran « Identité de la clinique »).
     ];
 
     protected $casts = [

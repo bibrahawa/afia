@@ -1,183 +1,46 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <title>Examens prescrits A5</title>
-    <style>
-        @page {
-            size: A5 portrait;
-            margin: 10mm;
-        }
-
-        * { box-sizing: border-box; }
-
-        body {
-            margin: 0;
-            font-family: "Times New Roman", serif;
-            color: #000;
-            background: #fff;
-            font-size: 13px;
-        }
-
-        .page {
-            width: 100%;
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        .left, .right {
-            width: 48%;
-        }
-
-        .logo img {
-            max-width: 120px;
-            max-height: 70px;
-            object-fit: contain;
-        }
-
-        .clinic-name {
-            font-size: 17px;
-            font-weight: 700;
-            text-transform: uppercase;
-            margin-top: 6px;
-        }
-
-        .clinic-line {
-            line-height: 1.5;
-            font-size: 12px;
-        }
-
-        .title {
-            text-align: center;
-            font-size: 22px;
-            font-weight: 700;
-            text-transform: uppercase;
-            text-decoration: underline;
-            margin-top: 15px;
-        }
-
-        .date {
-            text-align: center;
-            margin-top: 10px;
-            font-size: 13px;
-            font-weight: 700;
-        }
-
-        .meta-box {
-            border: 1px solid #333;
-            padding: 10px 12px;
-            margin: 18px 0 22px;
-            font-size: 13px;
-            line-height: 1.7;
-        }
-
-        .section-title {
-            margin-top: 18px;
-            font-weight: 700;
-            text-transform: uppercase;
-            font-size: 15px;
-        }
-
-        .exam-list {
-            margin-top: 15px;
-            min-height: 280px;
-        }
-
-        .exam-item {
-            margin-bottom: 12px;
-            font-size: 15px;
-        }
-
-        .instructions {
-            margin-top: 20px;
-            border: 1px solid #333;
-            padding: 12px;
-            min-height: 70px;
-        }
-
-        .footer {
-            margin-top: auto;
-            text-align: right;
-        }
-
-        .signature {
-            margin-top: 45px;
-            font-weight: 700;
-        }
-
-        .print-btn {
-            margin-bottom: 12px;
-            border: none;
-            background: #111;
-            color: #fff;
-            padding: 8px 14px;
-            cursor: pointer;
-            border-radius: 4px;
-        }
-
-        @media print {
-            .no-print { display: none !important; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demande d'examens · {{ $consultation->patient->getFullName() }}</title>
+@include('documents._a5')
+@include('documents._ecran')
+<style>
+    .e-ligne td { padding: 2.2mm 0; border-bottom: .5pt solid #e5e7eb; vertical-align: top; }
+    .e-case { width: 7mm; }
+    .e-case span { display: inline-block; width: 3.2mm; height: 3.2mm; border: .8pt solid #374151; border-radius: .6mm; }
+    .e-nom { font-size: 10pt; font-weight: bold; color: #111827; }
+    .e-rens { margin-top: 3mm; padding: 2.5mm 3mm; background: #f3f6f6; font-size: 8.5pt; }
+</style>
 </head>
-<body onload="window.print()">
-    <div class="page">
-        <div class="no-print">
-            <button class="print-btn" onclick="window.print()">Imprimer</button>
-        </div>
+<body onload="setTimeout(function () { window.print(); }, 300)">
+<div class="d-outils"><button type="button" onclick="window.print()">Imprimer</button><a href="javascript:history.back()">Retour</a></div>
 
-        <div class="header">
-            <div class="left">
-                <div class="logo">
-                    @if($identite->logoWeb())<img src="{{ $identite->logoWeb() }}" alt="Logo">@endif
-                </div>
+@include('documents._pied')
+@include('documents._entete', ['type' => "Demande d'examens", 'numero' => 'EXA-' . str_pad($consultation->id, 6, '0', STR_PAD_LEFT), 'date' => $consultation->created_at, 'pdf' => false])
+@include('documents._personnes', ['patient' => $consultation->patient, 'medecin' => $consultation->medecin, 'service' => $consultation->department?->name])
 
-                <div class="clinic-name">{{ $identite->nom }}</div>
-                <div class="clinic-line">{{ $identite->adresse }}</div>
-                <div class="clinic-line">Tél : {{ $identite->contact }}</div>
-                <div class="clinic-line">Email : {{ $identite->email }}</div>
-            </div>
-
-            <div class="right">
-                <div class="title">Demande d'examens</div>
-                <div class="date">
-                    {{ $consultation->created_at->translatedFormat('d F Y') }}
-                </div>
-            </div>
-        </div>
-
-        <div class="meta-box">
-            <strong>Patient :</strong> {{ $consultation->patient->first_name }} {{ $consultation->patient->last_name }}<br>
-            <strong>Téléphone :</strong> {{ $consultation->patient->phone }}<br>
-            {{-- <strong>Médecin :</strong> Dr. {{ $consultation->medecin->first_name }} {{ $consultation->medecin->last_name }}<br> --}}
-            <strong>Diagnostic :</strong> {{ $consultation->diagnostic ?? 'En cours' }}
-        </div>
-
-        <div><strong>Motif :</strong> {{ $consultation->motif ?? 'Non précisé' }}</div>
-
-        <div class="section-title">Examens demandés</div>
-
-        <div class="exam-list">
-            @forelse($consultation->tests as $index => $test)
-                <div class="exam-item">
-                    {{ $index + 1 }}. <strong>{{ $test->name }}</strong>
-                </div>
-            @empty
-                <p style="text-align:center; margin-top:90px;">Aucun examen demandé.</p>
-            @endforelse
-        </div>
-
-        @if($consultation->observation)
-            <div class="section-title">Instructions</div>
-            <div class="instructions">
-                {{ $consultation->observation }}
-            </div>
-        @endif
+@if($consultation->motif || $consultation->diagnostic)
+    {{-- Renseignements cliniques : utiles au laboratoire pour interpréter les résultats. --}}
+    <div class="e-rens">
+        @if($consultation->motif)<div><span class="d-etiquette">Motif</span> {{ $consultation->motif }}</div>@endif
+        @if($consultation->diagnostic)<div><span class="d-etiquette">Hypothèse</span> {{ $consultation->diagnostic }}</div>@endif
     </div>
+@endif
+
+<div class="d-titre-section">Examens demandés</div>
+<table>
+    @forelse($consultation->tests as $test)
+        <tr class="e-ligne"><td class="e-case"><span></span></td>
+            <td><div class="e-nom">{{ $test->name }}</div>@if($test->description)<span class="d-sous">{{ $test->description }}</span>@endif</td></tr>
+    @empty
+        <tr><td><div class="d-vide" style="margin-top:0">Aucun examen demandé.</div></td></tr>
+    @endforelse
+</table>
+
+<div class="d-signature" style="height:auto">
+    @include('documents._validation', ['pdf' => false, 'etiquette' => 'Signature et cachet du médecin', 'signatureMedecin' => $consultation->medecin])
+</div>
 </body>
 </html>

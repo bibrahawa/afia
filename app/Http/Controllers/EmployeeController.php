@@ -94,6 +94,68 @@ class EmployeeController extends Controller
         return $donneesAcces ? $this->retourAcces($retour, $resultatAcces ?? null) : $retour;
     }
 
+    // ------------------------------------------------------------ Signature personnelle (médecin)
+
+    /**
+     * Chacun ne dépose QUE sa propre signature, depuis son profil : l'administrateur ne peut
+     * pas en déposer une au nom d'un médecin. Elle n'apparaît que sur les documents de ce
+     * médecin (ordonnances, demandes d'examens, certificats).
+     */
+    public function enregistrerSignature(Request $request)
+    {
+        $employe = $this->employeConnecte();
+        $request->validate(['signature' => ['required', 'file', 'max:5120']], [
+            'signature.required' => 'Choisissez l\'image de votre signature.',
+            'signature.max' => 'Fichier trop lourd : 5 Mo au plus avant contrôle.',
+        ]);
+
+        $chemin = \App\Support\Images\ImageControlee::enregistrer($request->file('signature'), 'signature', "identite/employes/{$employe->id}", 'signature', $employe->signature);
+        $employe->forceFill(['signature' => $chemin])->save();
+        $this->journaliserSignature($employe, 'Signature personnelle déposée');
+
+        return back()->with('success', 'Signature enregistrée : elle figurera sur vos ordonnances et certificats.');
+    }
+
+    public function supprimerSignature()
+    {
+        $employe = $this->employeConnecte();
+        \App\Support\Images\ImageControlee::supprimer('signature', $employe->signature);
+        $employe->forceFill(['signature' => null])->save();
+        $this->journaliserSignature($employe, 'Signature personnelle retirée');
+
+        return back()->with('success', 'Signature retirée de vos documents.');
+    }
+
+    /** Aperçu protégé de SA signature (aucune adresse publique). */
+    public function imageSignature()
+    {
+        $chemin = \App\Support\Images\ImageControlee::cheminAbsolu('signature', $this->employeConnecte()->signature);
+        abort_unless($chemin, 404);
+
+        return response()->file($chemin, ['Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff']);
+    }
+
+    private function employeConnecte(): Employee
+    {
+        $employe = auth()->user()?->employee;
+        abort_unless($employe, 403, 'Aucune fiche du personnel n\'est liée à votre compte.');
+
+        return $employe;
+    }
+
+    private function journaliserSignature(Employee $employe, string $description): void
+    {
+        try {
+            \App\Models\ActivityLog::create([
+                'etablissement_id' => $employe->etablissement_id,
+                'causer_type' => \App\Models\User::class, 'causer_id' => auth()->id(),
+                'subject_type' => Employee::class, 'subject_id' => $employe->id,
+                'action' => 'employe.signature', 'description' => $description, 'ip_address' => request()->ip(),
+            ]);
+        } catch (\Throwable) {
+        }
+    }
+
     // ------------------------------------------------------------ Accès (lot E1)
 
     public function creerAcces(Request $request, $id, \App\Services\Personnel\AccesPersonnelService $acces)

@@ -100,10 +100,7 @@
         @else<div class="d-cachet d-du" style="width:60%">À payer</div>@endif
     </td>
     <td style="vertical-align:top">
-        <div class="d-signature" style="width:100%; margin:0">
-            <div class="d-etiquette">La direction</div>
-            <div class="d-ligne"></div>
-        </div>
+        @include('documents._validation', ['pdf' => true, 'etiquette' => 'La direction'])
     </td>
 </tr></table>
 </body>

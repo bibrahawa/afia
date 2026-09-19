@@ -58,7 +58,7 @@
     <div class="feuille {{ $document->annule ? 'est-annule' : '' }}">
         <header class="entete">
             <div class="etablissement">
-                @if($identite->logoWeb())<img src="{{ $identite->logoWeb() }}" alt="Logo">@endif
+                @if($identite->logoDocumentsWeb())<img src="{{ $identite->logoDocumentsWeb() }}" alt="Logo">@endif
                 <strong>{{ $identite->nom }}</strong>
                 <span>{{ $identite->coordonnees() }}</span>
             </div>
@@ -85,7 +85,13 @@
         <div class="signature">
             <div>
                 Fait à {{ $identite->ville ?? 'Conakry' }}, le {{ $document->created_at->format('d/m/Y') }}
-                <div class="cadre">Signature et cachet du médecin</div>
+                @php $signatureMedecin = \App\Support\Etablissement\IdentiteDocument::signatureMedecinData($document->medecin); @endphp
+                @if($signatureMedecin)
+                    {{-- Signature PROPRE du médecin (déposée depuis son profil) : jamais celle d'un autre. --}}
+                    <div class="cadre" style="border:0"><img src="{{ $signatureMedecin }}" alt="Signature" style="max-width:70mm; max-height:28mm; object-fit:contain"></div>
+                @else
+                    <div class="cadre">Signature et cachet du médecin</div>
+                @endif
             </div>
         </div>
 

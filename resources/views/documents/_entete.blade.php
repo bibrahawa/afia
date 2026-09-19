@@ -1,6 +1,7 @@
 {{-- En-tête commun. $identite, $type (« Facture »…), $numero, $date (Carbon), $pdf (bool : chemin de logo pour DomPDF). --}}
 @php
-    $logo = ($pdf ?? true) ? $identite->logoPdf() : $identite->logoWeb();
+    // Logo des documents (écran « Identité de la clinique »), sinon logo de l'application.
+    $logo = ($pdf ?? true) ? $identite->logoDocumentsPdf() : $identite->logoDocumentsWeb();
 @endphp
 <table class="d-entete">
     <tr>

@@ -42,7 +42,10 @@
 @section('content')
 <div class="container"><div class="page-inner hl">
     <div class="rs-impression" aria-hidden="true">
-        <div><strong>{{ $identite->nom }}</strong><br><small>{{ $identite->coordonnees() }}</small></div>
+        <div style="display:flex; align-items:center; gap:10px">
+            @if($identite->logoDocumentsWeb())<img src="{{ $identite->logoDocumentsWeb() }}" alt="" style="max-height:44px; max-width:140px; object-fit:contain">@endif
+            <div><strong>{{ $identite->nom }}</strong><br><small>{{ $identite->coordonnees() }}</small></div>
+        </div>
         <small>Édité le {{ now()->format('d/m/Y à H:i') }}</small>
     </div>
 

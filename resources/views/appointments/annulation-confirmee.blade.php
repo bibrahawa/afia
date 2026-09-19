@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rendez-vous annulé</title>
+@include('partials.fond-medical')
 </head>
 <body>
 <div class="ac-shell">

@@ -2,167 +2,64 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Facture A5</title>
-
-<style>
-@page { size: A5 portrait; margin: 10mm; }
-
-body {
-    font-family: "Times New Roman", serif;
-    font-size: 13px;
-}
-
-.header {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 20px;
-}
-
-.title {
-    text-align: center;
-    font-size: 20px;
-    font-weight: bold;
-    text-decoration: underline;
-}
-
-.meta {
-    border: 1px solid #333;
-    padding: 10px;
-    margin: 15px 0;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-th, td {
-    border: 1px solid #ddd;
-    padding: 8px;
-}
-
-th {
-    background: #f5f5f5;
-}
-
-.total {
-    margin-top: 20px;
-    float: right;
-    width: 250px;
-}
-
-.total div {
-    display: flex;
-    justify-content: space-between;
-    padding: 5px 0;
-}
-
-.bold { font-weight: bold; }
-
-.status {
-    margin-top: 10px;
-    font-weight: bold;
-}
-.logo img {
-        max-width: 130px;
-        max-height: 70px;
-        object-fit: contain;
-    }
-</style>
+<title>Facture</title>
+@include('documents._a5')
 </head>
+<body>
+@php
+    $gnf = fn ($v) => number_format((float) $v, 0, ',', ' ') . ' GNF';
+    $invoice = $invoiceData['invoice'] ?? null;
+    $numero = $consultation->transaction?->invoice_no ?: ($invoice ? 'FAC-' . str_pad($invoice->id, 6, '0', STR_PAD_LEFT) : null);
+    $reclamations = $invoice ? $invoice->insuranceClaims()->with('insuranceCompany', 'patientInsurance')->get() : collect();
+    $statut = $invoiceData['status'] ?? null;
+@endphp
 
-<body onload="window.print()">
+@include('documents._pied')
+@include('documents._entete', ['type' => 'Facture', 'numero' => $numero, 'date' => $consultation->created_at])
+@include('documents._personnes', ['patient' => $consultation->patient, 'medecin' => $consultation->medecin, 'service' => $consultation->department?->name])
 
-<div class="header">
-    <div>
-        <div class="logo">
-            @if($identite->logoPdf())<img src="{{ $identite->logoPdf() }}" alt="Logo">@endif
-        </div>
-        <strong>{{ $identite->nom }}</strong><br>
-        {{ $identite->adresse }}<br>
-        {{ $identite->contact }}
-    </div>
+@if(! $invoice)
+    {{-- CORRIGÉ : sans facture, la page plantait (accès à un tableau nul). --}}
+    <div class="d-vide">Aucune facture n'a encore été établie pour cette consultation.<br>Passez à la caisse pour la créer.</div>
+@else
+    <div class="d-titre-section">Détail des actes</div>
+    <table class="d-lignes">
+        <thead><tr><th>Acte</th><th class="n">Qté</th><th class="n">Montant</th><th class="n">À votre charge</th></tr></thead>
+        <tbody>
+            @foreach($invoice->items as $item)
+                <tr>
+                    <td>{{ $item->description }}
+                        @if((float) $item->insurance_covered_amount > 0)<span class="d-assurance">Pris en charge par l'assurance : {{ $gnf($item->insurance_covered_amount) }}</span>@endif</td>
+                    <td class="n">{{ (int) $item->quantity }}</td>
+                    <td class="n">{{ $gnf($item->total_amount) }}</td>
+                    <td class="n">{{ $gnf((float) $item->insurance_covered_amount > 0 ? $item->patient_amount : $item->total_amount) }}</td>
+                </tr>
+            @endforeach
+        </tbody>
+    </table>
 
-    <div>
-        <strong>Facture N°</strong><br>
-        {{ str_pad($consultation->id,6,'0',STR_PAD_LEFT) }}
-    </div>
-</div>
-
-<div class="title">FACTURE</div>
-
-<div class="meta">
-    Patient : {{ $consultation->patient->first_name }} {{ $consultation->patient->last_name }}<br>
-    {{-- Médecin : Dr. {{ $consultation->medecin->first_name }}<br> --}}
-    Date : {{ $consultation->created_at->format('d/m/Y') }}
-</div>
-
-<table>
-    <thead>
-        <tr>
-            <th>#</th>
-            <th>Description</th>
-            <th>Qté</th>
-            <th>Prix Patient</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach($invoiceData['invoice']->items as $index => $item)
-        <tr>
-            <td>{{ $index + 1 }}</td>
-            <td>
-                {{ $item->description }}
-
-                @if($item->insurance_covered_amount > 0)
-                    <br>
-                    <small style="color:green">
-                        Assurance: -{{ number_format($item->insurance_covered_amount) }} GNF
-                    </small>
-                @endif
-            </td>
-            <td>{{ $item->quantity }}</td>
-            @if($item->insurance_covered_amount > 0)
-                <td>{{ number_format($item->patient_amount) }} GNF</td>
-            @else
-             <td>{{ number_format($item->total_amount) }} GNF</td>
-            @endif
-        </tr>
+    {{-- Tampon et validation à gauche des totaux (espace libre) : la facture tient sur une page A5. --}}
+    <table style="margin-top:3mm"><tr>
+        <td style="width:40%; vertical-align:bottom; padding-right:4mm">
+            @if($statut === 'paid')<div class="d-cachet d-paye">Payée</div>
+            @elseif($statut === 'partial')<div class="d-cachet d-partiel">Paiement partiel</div>
+            @else<div class="d-cachet d-du">À payer</div>@endif
+            <div style="margin-top:3mm">@include('documents._validation', ['pdf' => true, 'etiquette' => 'La direction'])</div>
+        </td>
+        <td style="vertical-align:top">
+    <table class="d-totaux" style="width:100%; margin:0">
+        <tr><td>Total des actes</td><td class="n">{{ $gnf($invoice->total_amount) }}</td></tr>
+        @foreach($reclamations as $r)
+            <tr><td>Part {{ $r->insuranceCompany?->name }}@if($r->patientInsurance?->policy_number)<span class="d-sous">carte {{ $r->patientInsurance->policy_number }}</span>@endif</td><td class="n">− {{ $gnf($r->claimed_amount) }}</td></tr>
         @endforeach
-    </tbody>
-</table>
+        <tr><td><strong>À votre charge</strong></td><td class="n"><strong>{{ $gnf($invoiceData['patient_amount']) }}</strong></td></tr>
+        <tr><td>Déjà payé</td><td class="n">{{ $gnf($invoiceData['paid_amount']) }}</td></tr>
+        <tr class="d-fort"><td>Reste à payer</td><td class="n">{{ $gnf($invoiceData['remaining']) }}</td></tr>
+    </table>
+        </td>
+    </tr></table>
 
-<div class="total">
-    @foreach(($invoiceData['invoice']?->insuranceClaims()->with('insuranceCompany', 'patientInsurance')->get() ?? collect()) as $reclamation)
-        <div>
-            <span>Part {{ $reclamation->insuranceCompany->name }} (carte {{ $reclamation->patientInsurance?->policy_number }}) :</span>
-            <span>{{ number_format($reclamation->claimed_amount) }} GNF</span>
-        </div>
-    @endforeach
-    <div>
-        <span>Total Patient :</span>
-        <span>{{ number_format($invoiceData['patient_amount']) }} GNF</span>
-    </div>
 
-    <div>
-        <span>Payé :</span>
-        <span>{{ number_format($invoiceData['paid_amount']) }} GNF</span>
-    </div>
-
-    <div class="bold">
-        <span>Reste :</span>
-        <span>{{ number_format($invoiceData['remaining']) }} GNF</span>
-    </div>
-</div>
-
-<div class="status">
-    @if($invoiceData['status'] === 'paid')
-        Facture payée
-    @elseif($invoiceData['status'] === 'partial')
-        Paiement partiel
-    @else
-        Non payée
-    @endif
-</div>
-
+@endif
 </body>
 </html>
