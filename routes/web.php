@@ -848,6 +848,12 @@ Route::middleware('auth')->group(function () {
             ->middleware('permission:patient_insurance.create')
             ->name('insurance_patient.store');
 
+        // Lot Fix : recherche de patient au fil de la frappe pour le formulaire d'ajout
+        // (même recherche confidentielle que l'assurance : partielle sur les patients de la clinique).
+        Route::get('insurance_patient/patients/recherche', [PatientController::class, 'rechercheRapide'])
+            ->middleware(['permission:patient_insurance.create', 'throttle:60,1'])
+            ->name('insurance_patient.patients.recherche');
+
         Route::put('insurance_patient/update', [PatientInsuranceController::class, 'update'])
             ->middleware('permission:patient_insurance.edit')
             ->name('insurance_patient.update');

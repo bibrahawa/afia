@@ -1,812 +1,236 @@
 @extends('layouts.backend')
 
+@php
+    $gnf = fn ($v) => number_format((float) $v, 0, ',', ' ');
+    $libellesTypes = collect($types)->mapWithKeys(fn ($t) => [$t->value => $t->libelle()]);
+    $actifs = $organismes->where('status', 'active');
+    $totalAssures = (int) $assures->sum();
+    $totalDu = (float) $creances->sum();
+    $voirCreances = auth()->user()?->can('assurance.creances.view') && Route::has('assurance.creances.show');
+@endphp
+
+@section('style')
+<style>
+    .og-grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+    .og-carte { display: grid; grid-template-rows: auto auto 1fr auto; gap: 12px; padding: 18px; border: 1px solid var(--hali-bordure); border-radius: var(--hali-rayon); background: #fff; }
+    .og-carte.est-inactif { background: #fafafa; }
+    .og-carte.est-inactif .og-nom { color: var(--hali-discret); }
+    .og-haut { display: flex; align-items: flex-start; gap: 12px; }
+    .og-initiale { display: grid; place-items: center; width: 44px; height: 44px; flex: none; border-radius: 12px; background: var(--hali-primaire-pale); color: var(--hali-primaire-fonce); font-weight: 800; }
+    .og-carte.est-inactif .og-initiale { background: #f3f4f6; color: #9ca3af; }
+    .og-nom { display: block; color: var(--hali-encre); font-size: 1.05rem; font-weight: 750; line-height: 1.25; }
+    .og-sous { display: block; color: var(--hali-discret); font-size: .8rem; }
+    .og-code { padding: 1px 7px; border-radius: 6px; background: #f3f4f6; font-family: "SF Mono", Consolas, monospace; font-size: .72rem; letter-spacing: .04em; }
+    .og-chiffres { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .og-chiffres > * { padding: 8px; border-radius: 9px; background: #f9fafb; color: inherit; text-align: center; text-decoration: none; }
+    .og-chiffres a:hover { background: var(--hali-primaire-pale); text-decoration: none; }
+    .og-chiffres b { display: block; color: var(--hali-encre); font-size: 1rem; font-variant-numeric: tabular-nums; }
+    .og-chiffres span { color: var(--hali-discret); font-size: .72rem; }
+    .og-contact { display: grid; gap: 3px; font-size: .84rem; }
+    .og-contact i { width: 16px; color: #9ca3af; text-align: center; }
+    .og-pied { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 12px; border-top: 1px solid #f3f4f6; }
+    .og-pied form { margin: 0; }
+    .og-actions { display: flex; gap: 4px; }
+    .og-bouton { display: inline-grid; place-items: center; width: 34px; height: 34px; border: 1px solid var(--hali-bordure); border-radius: 8px; background: #fff; color: var(--hali-texte); cursor: pointer; }
+    .og-bouton:hover { border-color: var(--hali-primaire); color: var(--hali-primaire-fonce); background: var(--hali-primaire-pale); }
+    .og-bouton.est-risque:hover { border-color: var(--hali-danger); color: var(--hali-danger); background: var(--hali-danger-pale); }
+    .og-outils { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
+    .og-outils input { flex: 1 1 260px; min-height: 40px; }
+    .og-modal .modal-content { border: 0; border-radius: 16px; }
+    .og-modal .modal-body { display: grid; gap: 14px; padding: 6px 24px 16px; }
+    .og-modal .modal-header, .og-modal .modal-footer { padding: 18px 24px 8px; border: 0; }
+    .og-modal .modal-footer { padding: 8px 24px 20px; }
+    .og-modal label { display: block; margin-bottom: 5px; color: var(--hali-encre); font-size: .83rem; font-weight: 650; }
+    .og-deux { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .og-trois { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .og-types { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .og-type { position: relative; margin: 0; cursor: pointer; }
+    .og-type input { position: absolute; opacity: 0; }
+    .og-type span { display: grid; gap: 4px; place-items: center; height: 100%; padding: 10px 6px; border: 1.5px solid var(--hali-bordure); border-radius: 10px; font-size: .8rem; font-weight: 650; text-align: center; }
+    .og-type i { color: #9ca3af; font-size: 1.1rem; }
+    .og-type input:checked + span { border-color: var(--hali-primaire); background: var(--hali-primaire-pale); color: var(--hali-primaire-fonce); }
+    .og-type input:checked + span i { color: var(--hali-primaire); }
+    .og-type input:focus-visible + span { outline: 2px solid var(--hali-primaire); outline-offset: 2px; }
+    .og-suffixe { position: relative; }
+    .og-suffixe input { padding-right: 34px; }
+    .og-suffixe span { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--hali-discret); font-weight: 600; }
+    @media (max-width: 767.98px) { .og-deux, .og-trois { grid-template-columns: 1fr; } }
+</style>
+@endsection
+
 @section('content')
-
-<div class="container">
-    <div class="page-inner">
-      <div class="page-header">
-        <ul class="breadcrumbs">
-          <li class="nav-home">
-            <a href="{{url('/')}}">
-              <i class="icon-home"></i>
-            </a>
-          </li>
-          <li class="separator">
-            <i class="icon-arrow-right"></i>
-          </li>
-          <li class="nav-item">
-            <a href="{{ url('/') }}">Admin</a>
-          </li>
-          <li class="separator">
-            <i class="icon-arrow-right"></i>
-          </li>
-          <li class="nav-item">
-            <a href="{{ route('insurance-companies.index') }}">Compagnies d'Assurance</a>
-          </li>
-        </ul>
-      </div>
-
-      <div class="row">
-        <div class="col-md-12">
-          <div class="card">
-            <div class="card-header">
-              <div class="d-flex align-items-center">
-                <h4 class="card-title">Liste des compagnies d'assurance</h4>
-                @can('insurance_company.create')
-                    <button
-                    class="btn btn-primary btn-round ms-auto"
-                    data-bs-toggle="modal"
-                    data-bs-target="#addRowModal"
-                    >
-                    <i class="fa fa-plus"></i> Ajouter une compagnie
-                    </button>
-                @endcan
-              </div>
-            </div>
-
-            <div class="card-body">
-                <!-- Messages de feedback -->
-                @if(session('success'))
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        <i class="fa fa-check-circle me-2"></i>
-                        {{ session('success') }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                @endif
-
-                @if(session('error'))
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        <i class="fa fa-times-circle me-2"></i>
-                        {{ session('error') }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                @endif
-
-                <div class="table-responsive">
-                    <table id="add-row" class="display table table-striped table-hover">
-                        <thead class="bg-primary text-white">
-                            <tr>
-                            <th style="width: 5%">ID</th>
-                            <th>Nom</th>
-                            {{-- <th>Code</th> --}}
-                            <th>Contact</th>
-                            <th>Téléphone</th>
-                            {{-- <th>Total</th> --}}
-					        {{-- <th>Part Patient</th> --}}
-					        {{-- <th>Montant Du</th> --}}
-                            {{-- <th>Email</th> --}}
-                            <th>Statut</th>
-                            <th style="width: 10%">Action</th>
-                            </tr>
-                        </thead>
-                        <tfoot>
-                            <tr>
-                            <th>ID</th>
-                            <th>Nom</th>
-                            {{-- <th>Code</th> --}}
-                            <th>Contact</th>
-                            <th>Téléphone</th>
-                            {{-- <th>Total</th> --}}
-					        {{-- <th>Part Patient</th> --}}
-					        {{-- <th>Montant Du</th> --}}
-                            {{-- <th>Email</th> --}}
-                            <th>Statut</th>
-                            <th>Action</th>
-                            </tr>
-                        </tfoot>
-                        <tbody>
-                            @forelse($companies as $index => $company)
-                                <tr>
-                                    <td>{{ ++$index }}</td>
-                                    <td>{{ $company->name }}
-                                        <div class="small text-muted">{{ \App\Enums\Assurance\TypeOrganismePayeur::tryFrom($company->type ?? 'assureur')?->libelle() }}</div>
-                                    </td>
-                                    {{-- <td><span class="badge bg-secondary">{{ $company->code }}</span></td> --}}
-                                    <td>{{ $company->contact_person ?: '-' }}</td>
-                                    <td>
-                                        @if($company->phone)
-                                            <a href="tel:{{ $company->phone }}" class="text-decoration-none">
-                                                {{ $company->phone }}
-                                            </a>
-                                        @else
-                                            -
-                                        @endif
-                                    </td>
-                                    {{-- <td>
-                                        @if($company->email)
-                                            <a href="mailto:{{ $company->email }}" class="text-decoration-none">
-                                                {{ $company->email }}
-                                            </a>
-                                        @else
-                                            -
-                                        @endif
-                                    </td> --}}
-                                    <td>
-                                        @php
-                                            $statusClass = match($company->status) {
-                                                'active' => 'bg-success',
-                                                'inactive' => 'bg-warning text-dark',
-                                                default => 'bg-light text-dark'
-                                            };
-                                        @endphp
-                                        <span class="badge {{ $statusClass }}">
-                                            {{ ucfirst($company->status) }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div class="form-button-action">
-                                            <!-- Voir détails -->
-                                            @can('insurance_company.view')
-                                                <button
-                                                    type="button"
-                                                    class="btn btn-info btn-round btn-sm view-button"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#viewRowModal"
-                                                    data-info="{{ $company->code }},{{ $company->name }},{{ $company->contact_person }},{{ $company->phone }},{{ $company->email }},{{ $company->default_coverage_percentage }},{{ $company->status }},{{ $company->contract_start_date }},{{ $company->contract_end_date }},{{ $company->address }},{{ $company->notes }}"
-                                                >
-                                                    <i class="fa fa-eye"></i>
-                                                </button>
-                                            @endcan
-
-                                            <!-- Modifier -->
-                                            @can('insurance_company.edit')
-                                                <button
-                                                    type="button"
-                                                    class="btn btn-warning btn-round btn-sm edit-button"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#editRowModal"
-                                                    data-type="{{ $company->type ?? 'assureur' }}"
-                                                    data-info="{{ $company->id }},{{ $company->name }},{{ $company->code }},{{ $company->contact_person }},{{ $company->phone }},{{ $company->email }},{{ $company->default_coverage_percentage }},{{ $company->status }},{{ $company->contract_start_date }},{{ $company->contract_end_date }}, {{ $company->address }},{{ $company->notes }}"
-                                                >
-                                                    <i class="fa fa-edit"></i>
-                                                </button>
-                                            @endcan
-
-                                            <!-- Supprimer -->
-                                            @can('insurance_company.delete')
-                                                <button
-                                                    type="button"
-                                                    class="btn btn-danger btn-round btn-sm delete-button"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#deleteRowModal"
-                                                    data-id="{{$company->id}}"
-                                                    data-name="{{$company->name}}"
-                                                >
-                                                    <i class="fa fa-trash"></i>
-                                                </button>
-                                            @endcan
-                                        </div>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="8" class="text-center py-4">
-                                        <p class="text-muted">Aucune compagnie d'assurance trouvée.</p>
-                                    </td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Pagination -->
-                @if($companies->hasPages())
-                    <div class="d-flex justify-content-center mt-3">
-                        {{ $companies->links() }}
-                    </div>
-                @endif
-
-                <!-- Modal Add -->
-                <div class="modal fade" id="addRowModal" tabindex="-1" role="dialog" aria-hidden="true">
-                    <div class="modal-dialog modal-lg" role="document">
-                    <div class="modal-content">
-                        <div class="modal-header border-0">
-                        <h5 class="modal-title">
-                            <span class="fw-mediumbold"> Nouvelle</span>
-                            <span class="fw-light"> Compagnie d'Assurance</span>
-                        </h5>
-                        <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                        </div>
-                        <div class="modal-body">
-                        <p class="small">Créez une nouvelle compagnie d'assurance en remplissant le formulaire ci-dessous.</p>
-                        <form id="addCompanyForm" action="{{ route('insurance-companies.store') }}" method="POST">
-                            @csrf
-                            <div class="row">
-                                <div class="col-sm-12">
-                                    <div class="form-group form-group-default">
-                                    <label>Type d'organisme payeur</label>
-                                    <select id="type" name="type" class="form-control">
-                                        @foreach(\App\Enums\Assurance\TypeOrganismePayeur::cases() as $typeOrganisme)
-                                            <option value="{{ $typeOrganisme->value }}">{{ $typeOrganisme->libelle() }}</option>
-                                        @endforeach
-                                    </select>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-sm-6">
-                                    <div class="form-group form-group-default">
-                                    <label>Nom de la compagnie <span class="text-danger">*</span></label>
-                                    <input
-                                        id="name"
-                                        name="name"
-                                        type="text"
-                                        class="form-control"
-                                        placeholder="Entrez le nom"
-                                        required
-                                    />
-                                    </div>
-                                </div>
-                                <div class="col-sm-6">
-                                    <div class="form-group form-group-default">
-                                    <label>Code unique <span class="text-danger">*</span></label>
-                                    <input
-                                        id="code"
-                                        name="code"
-                                        type="text"
-                                        class="form-control"
-                                        placeholder="Entrez le code"
-                                        required
-                                    />
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-sm-6">
-                                    <div class="form-group form-group-default">
-                                    <label>Personne de contact</label>
-                                    <input
-                                        id="contact_person"
-                                        name="contact_person"
-                                        type="text"
-                                        class="form-control"
-                                        placeholder="Nom du contact"
-                                    />
-                                    </div>
-                                </div>
-                                <div class="col-sm-6">
-                                    <div class="form-group form-group-default">
-                                    <label>Téléphone</label>
-                                    <input
-                                        id="phone"
-                                        name="phone"
-                                        type="tel"
-                                        class="form-control"
-                                        placeholder="Numéro de téléphone"
-                                    />
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-sm-6">
-                                    <div class="form-group form-group-default">
-                                    <label>Email</label>
-                                    <input
-                                        id="email"
-                                        name="email"
-                                        type="email"
-                                        class="form-control"
-                                        placeholder="Adresse email"
-                                    />
-                                    </div>
-                                </div>
-
-                                <div class="col-sm-6">
-                                    <div class="form-group form-group-default">
-                                    <label>Pourcentage de couverture par défaut</label>
-                                    <input
-                                        id="default_coverage_percentage"
-                                        name="default_coverage_percentage"
-                                        type="number"
-                                        step="0.01"
-                                        min="0"
-                                        max="100"
-                                        class="form-control"
-                                        placeholder="Ex: 80.00"
-                                    />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-sm-6">
-                                    <div class="form-group form-group-default">
-                                    <label>Date début contrat</label>
-                                    <input
-                                        id="contract_start_date"
-                                        name="contract_start_date"
-                                        type="date"
-                                        class="form-control"
-                                    />
-                                    </div>
-                                </div>
-                                <div class="col-sm-6">
-                                    <div class="form-group form-group-default">
-                                    <label>Date fin contrat</label>
-                                    <input
-                                        id="contract_end_date"
-                                        name="contract_end_date"
-                                        type="date"
-                                        class="form-control"
-                                    />
-                                    </div>
-                                </div>
-                            </div>
-                           
-
-                            <div class="row">
-                                <div class="col-sm-6">
-                                    <div class="form-group form-group-default">
-                                    <label>Adresse</label>
-                                    <textarea
-                                        id="address"
-                                        name="address"
-                                        class="form-control"
-                                        rows="2"
-                                        placeholder="Adresse complète"
-                                    ></textarea>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-sm-6">
-                                    <div class="form-group form-group-default">
-                                    <label>Notes</label>
-                                    <textarea
-                                        id="notes"
-                                        name="notes"
-                                        class="form-control"
-                                        rows="3"
-                                        placeholder="Notes additionnelles"
-                                    ></textarea>
-                                    </div>
-                                </div>
-                            </div>
-                        </form>
-                        </div>
-                        <div class="modal-footer border-0">
-                        <button type="submit" id="addRowButton" class="btn btn-primary" form="addCompanyForm">
-                            Ajouter
-                            <div class="spinner-border spinner-border-sm text-light" role="status" id="addLoader" style="display: none;">
-                                <span class="sr-only">Loading...</span>
-                            </div>
-                        </button>
-
-                        <button type="button" class="btn btn-danger" data-bs-dismiss="modal">
-                            Fermer
-                        </button>
-                        </div>
-                    </div>
-                    </div>
-                </div>
-
-                <!-- Modal View -->
-                <div class="modal fade" id="viewRowModal" tabindex="-1" role="dialog" aria-hidden="true">
-                    <div class="modal-dialog modal-lg" role="document">
-                        <div class="modal-content">
-                            <div class="modal-header border-0">
-                                <h5 class="modal-title">
-                                    <span class="fw-mediumbold"> Détails</span>
-                                    <span class="fw-light"> Compagnie d'Assurance</span>
-                                </h5>
-                                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-                                    <span aria-hidden="true">&times;</span>
-                                </button>
-                            </div>
-                            <div class="modal-body">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label class="fw-bold">Nom :</label>
-                                            <p id="view_name"></p>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label class="fw-bold">Code :</label>
-                                            <p id="view_code"></p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label class="fw-bold">Contact :</label>
-                                            <p id="view_contact_person"></p>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label class="fw-bold">Téléphone :</label>
-                                            <p id="view_phone"></p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label class="fw-bold">Email :</label>
-                                            <p id="view_email"></p>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label class="fw-bold">Couverture par défaut :</label>
-                                            <p id="view_default_coverage_percentage"></p>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label class="fw-bold">Date début contrat :</label>
-                                            <p id="view_contract_start_date"></p>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label class="fw-bold">Date fin contrat :</label>
-                                            <p id="view_contract_end_date"></p>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label class="fw-bold">Notes :</label>
-                                            <p id="view_notes"></p>
-                                        </div>
-                                    </div>
-
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label class="fw-bold">Adresse :</label>
-                                            <p id="view_address"></p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label class="fw-bold">Statut :</label>
-                                        <p id="view_status"></p>
-                                    </div>
-                                </div>
-
-                            </div>
-                            <div class="modal-footer border-0">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Modal Edit -->
-                <div class="modal fade" id="editRowModal" tabindex="-1" role="dialog" aria-hidden="true">
-                    <div class="modal-dialog modal-lg" role="document">
-                        <div class="modal-content">
-                            <div class="modal-header border-0">
-                                <h5 class="modal-title">
-                                    <span class="fw-mediumbold"> Modifier</span>
-                                    <span class="fw-light"> Compagnie d'Assurance</span>
-                                </h5>
-                                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-                                    <span aria-hidden="true">&times;</span>
-                                </button>
-                            </div>
-                            <div class="modal-body">
-                                <form id='editCompanyForm' action="{{route('insurance-companies.update')}}" method="POST">
-                                    @csrf
-                                    @method('PUT')
-                                    <input type="hidden" id="edit_id" name="id" />
-                            <div class="row">
-                                <div class="col-sm-12">
-                                    <div class="form-group form-group-default">
-                                    <label>Type d'organisme payeur</label>
-                                    <select id="edit_type" name="type" class="form-control">
-                                        @foreach(\App\Enums\Assurance\TypeOrganismePayeur::cases() as $typeOrganisme)
-                                            <option value="{{ $typeOrganisme->value }}">{{ $typeOrganisme->libelle() }}</option>
-                                        @endforeach
-                                    </select>
-                                    </div>
-                                </div>
-                            </div>
-                                    <div class="row">
-                                        <div class="col-sm-6">
-                                            <div class="form-group form-group-default">
-                                                <label>Nom de la compagnie <span class="text-danger">*</span></label>
-                                                <input
-                                                    id="edit_name"
-                                                    name="name"
-                                                    type="text"
-                                                    class="form-control"
-                                                    placeholder="Entrez le nom"
-                                                    required
-                                                />
-                                            </div>
-                                        </div>
-                                        <div class="col-sm-6">
-                                            <div class="form-group form-group-default">
-                                                <label>Code unique <span class="text-danger">*</span></label>
-                                                <input
-                                                    id="edit_code"
-                                                    name="code"
-                                                    type="text"
-                                                    class="form-control"
-                                                    placeholder="Entrez le code"
-                                                    required
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-sm-6">
-                                            <div class="form-group form-group-default">
-                                                <label>Personne de contact</label>
-                                                <input
-                                                    id="edit_contact_person"
-                                                    name="contact_person"
-                                                    type="text"
-                                                    class="form-control"
-                                                    placeholder="Nom du contact"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div class="col-sm-6">
-                                            <div class="form-group form-group-default">
-                                                <label>Téléphone</label>
-                                                <input
-                                                    id="edit_phone"
-                                                    name="phone"
-                                                    type="tel"
-                                                    class="form-control"
-                                                    placeholder="Numéro de téléphone"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-sm-6">
-                                            <div class="form-group form-group-default">
-                                                <label>Email</label>
-                                                <input
-                                                    id="edit_email"
-                                                    name="email"
-                                                    type="email"
-                                                    class="form-control"
-                                                    placeholder="Adresse email"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div class="col-sm-3">
-                                            <div class="form-group form-group-default">
-                                                <label>Pourcentage de couverture par défaut</label>
-                                                <input
-                                                    id="edit_default_coverage_percentage"
-                                                    name="default_coverage_percentage"
-                                                    type="number"
-                                                    step="0.01"
-                                                    min="0"
-                                                    max="100"
-                                                    class="form-control"
-                                                    placeholder="Ex: 80.00"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div class="col-sm-3">
-                                            <div class="form-group form-group-default">
-                                                <label>Statut</label>
-                                                <select name="status" id="edit_status" class="form-control">
-                                                    <option value="active">Actif</option>
-                                                    <option value="inactive">Inactif</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="row">
-                                        <div class="col-sm-6">
-                                            <div class="form-group form-group-default">
-                                                <label>Date début contrat</label>
-                                                <input
-                                                    id="edit_contract_start_date"
-                                                    name="contract_start_date"
-                                                    type="date"
-                                                    class="form-control"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div class="col-sm-6">
-                                            <div class="form-group form-group-default">
-                                                <label>Date fin contrat</label>
-                                                <input
-                                                    id="edit_contract_end_date"
-                                                    name="contract_end_date"
-                                                    type="date"
-                                                    class="form-control"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="row">
-                                        <div class="col-sm-6">
-                                            <div class="form-group form-group-default">
-                                                <label>Adresse</label>
-                                                <textarea
-                                                    id="edit_address"
-                                                    name="address"
-                                                    class="form-control"
-                                                    rows="2"
-                                                    placeholder="Adresse complète"
-                                                ></textarea>
-                                            </div>
-                                        </div>
-                                        <div class="col-sm-6">
-                                            <div class="form-group form-group-default">
-                                                <label>Notes</label>
-                                                <textarea
-                                                    id="edit_notes"
-                                                    name="notes"
-                                                    class="form-control"
-                                                    rows="3"
-                                                    placeholder="Notes additionnelles"
-                                                ></textarea>
-                                            </div>
-                                        </div>
-                                    </div>
-                            </div>
-                            <div class="modal-footer border-0">
-                                <button type="submit" class="btn btn-success" id="editRowButton" form="editCompanyForm">
-                                    Modifier
-                                    <div class="spinner-border spinner-border-sm text-light" role="status" id="editLoader" style="display: none;">
-                                        <span class="sr-only">Loading...</span>
-                                    </div>
-                                </button>
-                                <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Fermer</button>
-                            </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Modal Delete -->
-                <div class="modal fade" id="deleteRowModal" tabindex="-1" role="dialog" aria-hidden="true">
-                    <div class="modal-dialog" role="document">
-                        <div class="modal-content">
-                            <div class="modal-header border-0">
-                                <h5 class="modal-title">Êtes-vous sûr de vouloir supprimer cette compagnie ?</h5>
-                                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-                                    <span aria-hidden="true">&times;</span>
-                                </button>
-                            </div>
-                            <div class="modal-body">
-                                <form id="deleteCompanyForm" action="{{ route('insurance-companies.destroy') }}" method="POST">
-                                    @csrf
-                                    @method('DELETE')
-                                    <p id="company_name_to_delete"></p>
-                                    <input type="hidden" id="delete_id" name="id">
-                                </form>
-                            </div>
-                            <div class="modal-footer border-0">
-                                <button type="submit" class="btn btn-danger" id="deleteRowButton" form="deleteCompanyForm">
-                                    Supprimer
-                                    <div class="spinner-border spinner-border-sm text-light" role="status" id="deleteLoader" style="display: none;">
-                                        <span class="sr-only">Loading...</span>
-                                    </div>
-                                </button>
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                    Annuler
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<div class="container"><div class="page-inner hl">
+    <header class="hl-entete">
+        <div>
+            <h1>Organismes payeurs</h1>
+            <p>Compagnies d'assurance, mutuelles et organismes publics qui prennent en charge une part des soins.</p>
         </div>
-      </div>
-    </div>
-</div>
+        @can('insurance_company.create')
+            <div class="hl-entete-actions"><button type="button" class="hl-bouton hl-bouton-plein js-ajouter"><i class="fa fa-plus" aria-hidden="true"></i> Nouvel organisme</button></div>
+        @endcan
+    </header>
 
+    @if($errors->any())<div class="hl-note hl-note-danger mb-3" role="alert"><ul class="mb-0 ps-3">@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>@endif
+
+    <div class="hl-kpis">
+        <div class="hl-bloc hl-kpi"><span class="hl-kpi-libelle">Organismes actifs</span><span class="hl-kpi-valeur">{{ $actifs->count() }}</span>@if($organismes->count() > $actifs->count())<span class="hl-kpi-detail">{{ $organismes->count() - $actifs->count() }} désactivé(s)</span>@endif</div>
+        <div class="hl-bloc hl-kpi"><span class="hl-kpi-libelle">Patients couverts</span><span class="hl-kpi-valeur">{{ $totalAssures }}</span><span class="hl-kpi-detail">couvertures en cours</span></div>
+        @if($voirCreances)
+            <div class="hl-bloc hl-kpi"><span class="hl-kpi-libelle">Reste dû par les organismes</span><span class="hl-kpi-valeur">{{ $gnf($totalDu) }} <small>GNF</small></span></div>
+        @endif
+    </div>
+
+    @if($organismes->isEmpty())
+        <section class="hl-bloc"><div class="hl-vide"><i class="fas fa-building" aria-hidden="true"></i>Aucun organisme payeur. Ajoutez la première compagnie d'assurance avec laquelle la clinique travaille.</div></section>
+    @else
+        <div class="og-outils">
+            <input type="search" id="ogRecherche" class="form-control" placeholder="Rechercher un organisme, un code…" aria-label="Rechercher un organisme">
+        </div>
+        <div class="og-grille">
+            @foreach($organismes as $o)
+                @php
+                    $inactif = $o->status !== 'active';
+                    $du = (float) ($creances[$o->id] ?? 0);
+                    $finContrat = $o->contract_end_date;
+                    $jours = $finContrat ? (int) floor(today()->diffInDays($finContrat, false)) : null;
+                    $donnees = $o->only(['id', 'type', 'name', 'code', 'contact_person', 'phone', 'email', 'address', 'default_coverage_percentage', 'status', 'notes'])
+                        + ['contract_start_date' => $o->contract_start_date?->toDateString(), 'contract_end_date' => $o->contract_end_date?->toDateString()];
+                @endphp
+                <article class="og-carte {{ $inactif ? 'est-inactif' : '' }}" data-recherche="{{ mb_strtolower($o->name . ' ' . $o->code . ' ' . $o->contact_person) }}">
+                    <div class="og-haut">
+                        <span class="og-initiale" aria-hidden="true">{{ mb_strtoupper(mb_substr($o->name, 0, 1)) }}</span>
+                        <div style="min-width:0; flex:1">
+                            <span class="og-nom">{{ $o->name }}</span>
+                            <span class="og-sous">{{ $libellesTypes[$o->type instanceof \BackedEnum ? $o->type->value : (string) $o->type] ?? 'Compagnie d\'assurance' }} · <span class="og-code">{{ $o->code }}</span></span>
+                        </div>
+                        @if($inactif)<span class="hl-statut hl-s-neutre">Désactivé</span>@else<span class="hl-statut hl-s-succes">Actif</span>@endif
+                    </div>
+
+                    <div class="og-chiffres">
+                        <div><b>{{ (int) ($assures[$o->id] ?? 0) }}</b><span>patients</span></div>
+                        <div><b>{{ rtrim(rtrim(number_format((float) $o->default_coverage_percentage, 2, ',', ''), '0'), ',') }} %</b><span>par défaut</span></div>
+                        @if($voirCreances)
+                            <a href="{{ route('assurance.creances.show', $o) }}" title="Voir les créances"><b style="{{ $du > 0 ? 'color:var(--hali-alerte)' : '' }}">{{ $du > 0 ? $gnf($du) : '—' }}</b><span>reste dû</span></a>
+                        @else
+                            <div><b>{{ (int) ($contrats[$o->id] ?? 0) }}</b><span>contrats</span></div>
+                        @endif
+                    </div>
+
+                    <div class="og-contact">
+                        @if($o->contact_person)<span><i class="fas fa-user" aria-hidden="true"></i> {{ $o->contact_person }}</span>@endif
+                        @if($o->phone)<span><i class="fas fa-phone" aria-hidden="true"></i> <a href="tel:{{ preg_replace('/\s+/', '', $o->phone) }}">{{ $o->phone }}</a></span>@endif
+                        @if($o->email)<span><i class="fas fa-envelope" aria-hidden="true"></i> <a href="mailto:{{ $o->email }}">{{ $o->email }}</a></span>@endif
+                        @if(! $o->contact_person && ! $o->phone && ! $o->email)<span class="og-sous">Aucun contact renseigné.</span>@endif
+                    </div>
+
+                    <div class="og-pied">
+                        <span class="og-sous" style="{{ $jours !== null && $jours < 0 ? 'color:var(--hali-danger); font-weight:700' : ($jours !== null && $jours <= 30 ? 'color:#b45309; font-weight:700' : '') }}">
+                            @if($finContrat){{ $jours < 0 ? 'Convention expirée le ' : 'Convention jusqu\'au ' }}{{ $finContrat->format('d/m/Y') }}@else Sans date de fin @endif
+                        </span>
+                        <div class="og-actions">
+                            @can('insurance_company.edit')
+                                <button type="button" class="og-bouton js-modifier" data-organisme="{{ json_encode($donnees) }}" title="Modifier" aria-label="Modifier {{ $o->name }}"><i class="fa fa-pen"></i></button>
+                            @endcan
+                            @can('insurance_company.delete')
+                                @unless($inactif)
+                                    <form method="POST" action="{{ route('insurance-companies.destroy') }}" onsubmit="return confirm('Supprimer {{ addslashes($o->name) }} ? S\'il a déjà des patients, des factures ou des réclamations, il sera seulement désactivé.');">
+                                        @csrf @method('DELETE')<input type="hidden" name="id" value="{{ $o->id }}">
+                                        <button type="submit" class="og-bouton est-risque" title="Supprimer ou désactiver" aria-label="Supprimer {{ $o->name }}"><i class="fa fa-trash"></i></button>
+                                    </form>
+                                @endunless
+                            @endcan
+                        </div>
+                    </div>
+                </article>
+            @endforeach
+        </div>
+        <div class="hl-vide" id="ogAucun" hidden>Aucun organisme ne correspond.</div>
+    @endif
+
+    {{-- ================= Fenêtre unique : ajout et modification ================= --}}
+    @canany(['insurance_company.create', 'insurance_company.edit'])
+    <div class="modal fade og-modal" id="ogModal" tabindex="-1" aria-hidden="true" aria-labelledby="ogTitre">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <form class="modal-content" method="POST" id="ogForm" data-ajout="{{ route('insurance-companies.store') }}" data-modif="{{ route('insurance-companies.update') }}" action="{{ route('insurance-companies.store') }}">
+                @csrf
+                <input type="hidden" name="_method" id="ogMethode" value="POST">
+                <input type="hidden" name="id" id="ogId">
+                <div class="modal-header"><h5 class="modal-title" id="ogTitre">Nouvel organisme</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button></div>
+                <div class="modal-body">
+                    <div>
+                        <span style="display:block; margin-bottom:5px; color:var(--hali-encre); font-size:.83rem; font-weight:650">Type</span>
+                        <div class="og-types" role="radiogroup" aria-label="Type d'organisme">
+                            @foreach($types as $t)
+                                <label class="og-type"><input type="radio" name="type" value="{{ $t->value }}" @checked(old('type', 'assureur') === $t->value)>
+                                    <span><i class="fas {{ ['assureur' => 'fa-shield-alt', 'mutuelle' => 'fa-hands-helping', 'etat' => 'fa-landmark'][$t->value] ?? 'fa-building' }}" aria-hidden="true"></i>{{ $t->libelle() }}</span></label>
+                            @endforeach
+                        </div>
+                    </div>
+                    <div class="og-trois" style="grid-template-columns: 2fr 1fr 1fr">
+                        <div><label for="ogNom">Nom *</label><input id="ogNom" name="name" class="form-control" maxlength="255" required value="{{ old('name') }}"></div>
+                        <div><label for="ogCode">Code *</label><input id="ogCode" name="code" class="form-control" maxlength="30" required placeholder="NSIA" style="text-transform:uppercase" value="{{ old('code') }}"></div>
+                        <div><label for="ogTaux">Prise en charge</label><div class="og-suffixe"><input id="ogTaux" type="number" name="default_coverage_percentage" class="form-control" min="0" max="100" step="0.01" placeholder="80" value="{{ old('default_coverage_percentage') }}"><span>%</span></div></div>
+                    </div>
+                    <div class="og-trois">
+                        <div><label for="ogContact">Interlocuteur</label><input id="ogContact" name="contact_person" class="form-control" value="{{ old('contact_person') }}"></div>
+                        <div><label for="ogTel">Téléphone</label><input id="ogTel" name="phone" type="tel" class="form-control" value="{{ old('phone') }}"></div>
+                        <div><label for="ogEmail">E-mail</label><input id="ogEmail" name="email" type="email" class="form-control" value="{{ old('email') }}"></div>
+                    </div>
+                    <div class="og-trois">
+                        <div><label for="ogDebut">Convention du</label><input id="ogDebut" name="contract_start_date" type="date" class="form-control" value="{{ old('contract_start_date') }}"></div>
+                        <div><label for="ogFin">au</label><input id="ogFin" name="contract_end_date" type="date" class="form-control" value="{{ old('contract_end_date') }}"></div>
+                        <div id="ogStatutBloc" hidden><label for="ogStatut">Statut</label>
+                            <select id="ogStatut" name="status" class="form-control"><option value="active">Actif</option><option value="inactive">Désactivé (plus proposé)</option></select></div>
+                    </div>
+                    <div><label for="ogAdresse">Adresse</label><input id="ogAdresse" name="address" class="form-control" maxlength="500" value="{{ old('address') }}"></div>
+                    <div><label for="ogNotes">Notes</label><textarea id="ogNotes" name="notes" class="form-control" rows="2" maxlength="2000" placeholder="Délais de paiement, pièces exigées, interlocuteur au service des sinistres…">{{ old('notes') }}</textarea></div>
+                </div>
+                <div class="modal-footer"><button type="button" class="hl-bouton" data-bs-dismiss="modal">Annuler</button><button type="submit" class="hl-bouton hl-bouton-plein" id="ogValider">Enregistrer</button></div>
+            </form>
+        </div>
+    </div>
+    @endcanany
+</div></div>
 @endsection
 
 @section('script')
-    <script type="text/javascript">
-        // Événement pour voir les détails d'une compagnie
-        $(document).on('click', '.view-button', function() {
-            var details = $(this).data('info').split(',');
-            
-            $('#view_code').text(details[0] || '-');
-            $('#view_name').text(details[1] || '-');
-            $('#view_contact_person').text(details[2] || '-');
-            $('#view_phone').text(details[3] || '-');
-            $('#view_email').text(details[4] || '-');
-            $('#view_default_coverage_percentage').text(details[5] ? details[5] + '%' : '-');
-            $('#view_status').html('<span class="badge bg-' + getStatusClass(details[6]) + '">' + (details[6] ? details[6].charAt(0).toUpperCase() + details[6].slice(1) : 'Non défini') + '</span>');
-            $('#view_contract_start_date').text(details[7] || '-');
-            $('#view_contract_end_date').text(details[8] || '-');
-            $('#view_address').text(details[10] || '-');
-            $('#view_notes').text(details[11] || '-');
-        });
+<script>
+(function () {
+    var modal = document.getElementById('ogModal'), form = document.getElementById('ogForm');
+    function ouvrir(o) {
+        if (!form) return;
+        var modif = !!o;
+        form.action = modif ? form.dataset.modif : form.dataset.ajout;
+        document.getElementById('ogMethode').value = modif ? 'PUT' : 'POST';
+        document.getElementById('ogTitre').textContent = modif ? 'Modifier ' + o.name : 'Nouvel organisme';
+        document.getElementById('ogStatutBloc').hidden = !modif;
+        o = o || { type: 'assureur', status: 'active' };
+        document.getElementById('ogId').value = o.id || '';
+        var champs = { name: 'ogNom', code: 'ogCode', default_coverage_percentage: 'ogTaux', contact_person: 'ogContact', phone: 'ogTel', email: 'ogEmail',
+                       contract_start_date: 'ogDebut', contract_end_date: 'ogFin', address: 'ogAdresse', notes: 'ogNotes', status: 'ogStatut' };
+        Object.keys(champs).forEach(function (k) { var el = document.getElementById(champs[k]); if (el) el.value = o[k] == null ? (k === 'status' ? 'active' : '') : o[k]; });
+        var radio = form.querySelector('input[name="type"][value="' + (o.type || 'assureur') + '"]');
+        if (radio) radio.checked = true;
+        bootstrap.Modal.getOrCreateInstance(modal).show();
+    }
+    document.querySelectorAll('.js-ajouter').forEach(function (b) { b.addEventListener('click', function () { ouvrir(null); }); });
+    document.querySelectorAll('.js-modifier').forEach(function (b) { b.addEventListener('click', function () { ouvrir(JSON.parse(b.dataset.organisme)); }); });
+    if (form) form.addEventListener('submit', function () { document.getElementById('ogValider').disabled = true; });
 
-        // Événement pour modifier une compagnie
-        $(document).on('click', '.edit-button', function() {
-            var details = $(this).data('info').split(',');
-            
-            $('#edit_id').val(details[0]);
-            $('#edit_type').val($(this).data('type') || 'assureur');
-            $('#edit_name').val(details[1]);
-            $('#edit_code').val(details[2]);
-            $('#edit_contact_person').val(details[3]);
-            $('#edit_phone').val(details[4]);
-            $('#edit_email').val(details[5]);
-            $('#edit_default_coverage_percentage').val(details[6]);
-            $('#edit_status').val(details[7]);
-            $('#edit_contract_start_date').val(details[8]);
-            $('#edit_contract_end_date').val(details[9]);
-            $('#edit_address').val(details[10]);
-            $('#edit_notes').val(details[11]);
-
-            // Mettre à jour l'action du formulaire avec l'ID
-        });
-
-        // Événement pour supprimer une compagnie
-        $(document).on('click', '.delete-button', function() {
-            var id = $(this).data('id');
-            var name = $(this).data('name');
-
-            // Afficher le nom de la compagnie à supprimer
-            $('#company_name_to_delete').text("Voulez-vous vraiment supprimer la compagnie : " + name + " ?");
-
-            // Mettre à jour l'action du formulaire de suppression avec l'ID
-            $('#delete_id').val(id);
-        });
-
-        // Afficher le loader pour l'ajout de compagnie
-        $('#addCompanyForm').on('submit', function() {
-            $('#addRowButton').prop('disabled', true);
-            $('#addLoader').show();
-        });
-
-        // Afficher le loader pour la modification de compagnie
-        $('#editCompanyForm').on('submit', function() {
-            $('#editRowButton').prop('disabled', true);
-            $('#editLoader').show();
-        });
-
-        // Afficher le loader pour la suppression de compagnie
-        $('#deleteCompanyForm').on('submit', function() {
-            $('#deleteRowButton').prop('disabled', true);
-            $('#deleteLoader').show();
-        });
-
-        // Fonction pour obtenir la classe CSS du statut
-        function getStatusClass(status) {
-            switch(status) {
-                case 'active':
-                    return 'success';
-                case 'inactive':
-                    return 'warning';
-                default:
-                    return 'light';
-            }
+    // Retour d'erreur de validation : on rouvre la fenêtre, champs déjà remplis par old().
+    @if($errors->any())
+        if (form) {
+            @if(old('id')) form.action = form.dataset.modif; document.getElementById('ogMethode').value = 'PUT'; document.getElementById('ogId').value = @json(old('id')); document.getElementById('ogStatutBloc').hidden = false; @endif
+            bootstrap.Modal.getOrCreateInstance(modal).show();
         }
+    @endif
 
-        // Lorsque la requête est terminée (réponse du serveur)
-        $(document).ajaxComplete(function() {
-            // Masquer les loaders et réactiver les boutons
-            $('#addRowButton').prop('disabled', false);
-            $('#addLoader').hide();
-
-            $('#editRowButton').prop('disabled', false);
-            $('#editLoader').hide();
-
-            $('#deleteRowButton').prop('disabled', false);
-            $('#deleteLoader').hide();
-        });
-
-    </script>
+    var champ = document.getElementById('ogRecherche');
+    if (champ) champ.addEventListener('input', function () {
+        var t = champ.value.trim().toLowerCase(), n = 0;
+        document.querySelectorAll('.og-carte').forEach(function (c) { var ok = !t || c.dataset.recherche.indexOf(t) !== -1; c.hidden = !ok; if (ok) n++; });
+        document.getElementById('ogAucun').hidden = n > 0;
+    });
+})();
+</script>
 @endsection

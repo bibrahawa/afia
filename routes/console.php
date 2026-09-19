@@ -59,13 +59,6 @@ Schedule::command('assurance:recalculer-creances')
     ->withoutOverlapping(30)
     ->appendOutputTo(storage_path('logs/creances.log'));
 
-// Sauvegarde quotidienne de la base (lot R2) : compressée, chiffrée si HALI_SAUVEGARDE_CLE,
-// copiée hors du serveur si HALI_SAUVEGARDE_DRIVER. Alerte SMS si elle échoue.
-Schedule::command('hali:sauvegarder')
-    ->dailyAt('02:30')
-    ->withoutOverlapping(120)
-    ->appendOutputTo(storage_path('logs/sauvegardes.log'));
-
 // Journaux SMS de plus de 90 jours (commande existante du projet).
 Schedule::command('sms:clean-logs --days=90')
     ->dailyAt('02:00');

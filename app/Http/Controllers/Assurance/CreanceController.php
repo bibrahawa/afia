@@ -16,20 +16,41 @@ use App\Services\Assurance\ReglementAssuranceService;
  */
 class CreanceController extends Controller
 {
-    public function index(ReglementAssuranceService $reglements)
+    /**
+     * Une seule requête agrégée sur les montants stockés (reste_du_calcule,
+     * ecart_calcule) au lieu de recalculer chaque réclamation : l'écran reste
+     * instantané quel que soit le nombre de réclamations ouvertes.
+     * Mêmes règles qu'avant : « ouverte » = non réglée avec un reste dû ≥ 0,01 ;
+     * « à envoyer » = brouillon hors bordereau.
+     */
+    public function index()
     {
-        $organismes = InsuranceCompany::orderBy('name')->get();
+        $ouverte = "status <> 'paid' AND reste_du_calcule >= 0.01";
 
-        $lignes = $organismes->map(function (InsuranceCompany $o) use ($reglements) {
-            $ouvertes = $reglements->reclamationsOuvertes($o);
+        $agregats = InsuranceClaim::query()
+            ->selectRaw('insurance_company_id')
+            ->selectRaw("SUM(CASE WHEN status = 'draft' AND bordereau_id IS NULL THEN 1 ELSE 0 END) AS a_envoyer")
+            ->selectRaw("SUM(CASE WHEN {$ouverte} THEN 1 ELSE 0 END) AS nb_ouvertes")
+            ->selectRaw("SUM(CASE WHEN {$ouverte} THEN reste_du_calcule ELSE 0 END) AS reste_du")
+            ->selectRaw("SUM(CASE WHEN {$ouverte} THEN ecart_calcule ELSE 0 END) AS ecarts")
+            ->selectRaw("MIN(CASE WHEN {$ouverte} THEN COALESCE(submission_date, DATE(created_at)) END) AS plus_ancienne")
+            ->where(fn ($q) => $q->where('status', '<>', 'paid')->orWhereNull('status'))
+            ->groupBy('insurance_company_id')
+            ->get()
+            ->keyBy('insurance_company_id');
+
+        $organismes = InsuranceCompany::whereIn('id', $agregats->keys())->orderBy('name')->get();
+
+        $lignes = $organismes->map(function (InsuranceCompany $o) use ($agregats) {
+            $a = $agregats->get($o->id);
 
             return [
                 'organisme' => $o,
-                'a_envoyer' => InsuranceClaim::where('insurance_company_id', $o->id)->where('status', 'draft')->whereNull('bordereau_id')->count(),
-                'nb_ouvertes' => $ouvertes->count(),
-                'reste_du' => round($ouvertes->sum(fn (InsuranceClaim $c) => $c->resteDu()), 2),
-                'ecarts' => round($ouvertes->sum(fn (InsuranceClaim $c) => $c->ecartEnAttente()), 2),
-                'plus_ancienne' => $ouvertes->min(fn (InsuranceClaim $c) => $c->submission_date ?? $c->created_at),
+                'a_envoyer' => (int) $a->a_envoyer,
+                'nb_ouvertes' => (int) $a->nb_ouvertes,
+                'reste_du' => round((float) $a->reste_du, 2),
+                'ecarts' => round((float) $a->ecarts, 2),
+                'plus_ancienne' => $a->plus_ancienne ? \Illuminate\Support\Carbon::parse($a->plus_ancienne) : null,
             ];
         })->filter(fn ($l) => $l['nb_ouvertes'] > 0 || $l['a_envoyer'] > 0)->sortByDesc('reste_du')->values();
 

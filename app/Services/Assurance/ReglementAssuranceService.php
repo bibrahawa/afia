@@ -129,6 +129,14 @@ class ReglementAssuranceService
     }
 
     /** Réclamations d'un organisme qui restent à solder, les plus anciennes d'abord (envoyées avant brouillons). */
+    /** Les colonnes reste_du_calcule / montants_calcules_le existent-elles ? (vérifié une fois par requête) */
+    private static function montantsStockes(): bool
+    {
+        static $present = null;
+
+        return $present ??= \Illuminate\Support\Facades\Schema::hasColumns('insurance_claims', ['reste_du_calcule', 'montants_calcules_le']);
+    }
+
     public function reclamationsOuvertes(InsuranceCompany $organisme): Collection
     {
         return InsuranceClaim::query()
@@ -139,7 +147,9 @@ class ReglementAssuranceService
             // Lot R2 — préfiltre sur le reste dû stocké : on ne charge plus toutes les
             // réclamations non réglées de l'organisme. Le calcul en direct ci-dessous reste
             // l'arbitre ; une réclamation jamais calculée (montants_calcules_le nul) passe.
-            ->where(fn ($q) => $q->where('reste_du_calcule', '>=', 0.01)->orWhereNull('montants_calcules_le'))
+            // Préfiltre seulement si la migration « montants calculés » est passée : sans elle,
+            // la colonne n'existe pas et la requête plantait (écran des créances en erreur 500).
+            ->when(self::montantsStockes(), fn ($q) => $q->where(fn ($q) => $q->where('reste_du_calcule', '>=', 0.01)->orWhereNull('montants_calcules_le')))
             ->with(['invoice.transaction.patient', 'bordereau', 'patientInsurance'])
             ->orderByRaw("CASE WHEN status = 'draft' THEN 1 ELSE 0 END")
             ->orderBy('submission_date')

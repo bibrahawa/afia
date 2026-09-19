@@ -37,7 +37,37 @@ class InsuranceClaim extends Model
         'documents', // Le champ JSON
     ];
 
+    /**
+     * Reste dû et écart stockés (reste_du_calcule, ecart_calcule), recalculés à
+     * chaque enregistrement : l'écran des créances les lit en une requête au lieu
+     * de recalculer chaque réclamation. Les écrans de détail gardent le calcul
+     * en direct (resteDu(), ecartEnAttente()), qui reste la référence.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (InsuranceClaim $reclamation) {
+            try {
+                [$reste, $ecart] = $reclamation->montantsCalcules();
+                $reclamation->reste_du_calcule = $reste;
+                $reclamation->ecart_calcule = $ecart;
+                $reclamation->montants_calcules_le = now();
+            } catch (\Throwable $e) {
+                // Jamais bloquer l'enregistrement : le recalcul nocturne rattrapera.
+                \Illuminate\Support\Facades\Log::warning('Réclamation : montants non recalculés', ['id' => $reclamation->id, 'error' => $e->getMessage()]);
+            }
+        });
+    }
+
+    /** [reste dû, écart en attente], arrondis au centime. */
+    public function montantsCalcules(): array
+    {
+        return [round($this->resteDu(), 2), round($this->ecartEnAttente(), 2)];
+    }
+
     protected $casts = [
+        'reste_du_calcule' => 'decimal:2',
+        'ecart_calcule' => 'decimal:2',
+        'montants_calcules_le' => 'datetime',
         'claimed_amount' => 'decimal:2',
         'approved_amount' => 'decimal:2',
         'paid_amount' => 'decimal:2',

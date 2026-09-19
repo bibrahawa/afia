@@ -33,19 +33,29 @@ class PatientInsuranceController extends Controller
 
     public function index()
     {
-        $patientInsurances = PatientInsurance::with('patient', 'insuranceCompany', 'beneficiaire.adhesion')->latest()->get();
-        $patients = Patient::suivisParEtablissement()->orderBy('last_name')->get();
-        $insuranceCompanies = InsuranceCompany::all();
+        // Lot Fix : on ne charge plus TOUS les patients de la clinique pour une liste déroulante
+        // (inutilisable au-delà de quelques centaines) ; le formulaire les cherche au fil de la frappe.
+        $patientInsurances = PatientInsurance::with([
+            'patient', 'insuranceCompany',
+            'beneficiaire.adhesion.patient', 'beneficiaire.adhesion.formule.contrat.entreprise',
+        ])->latest()->get();
+        $insuranceCompanies = InsuranceCompany::where('status', 'active')->orderBy('name')->get();
 
-        return view('patient_insurance.index', compact('patientInsurances', 'patients', 'insuranceCompanies'));
+        return view('patient_insurance.index', compact('patientInsurances', 'insuranceCompanies'));
     }
 
     public function store(Request $request)
     {
         $donnees = $this->valider($request);
 
+        // Un patient d'une autre clinique donnait une page 404 : message clair à la place.
+        $patient = Patient::suivisParEtablissement()->find($donnees['patient_id']);
+        if (! $patient) {
+            return back()->withInput()->with('error', 'Ce patient n\'est pas suivi par votre clinique : enregistrez-le d\'abord à l\'accueil.');
+        }
+
         $this->referentiel->creerContratIndividuel(
-            Patient::suivisParEtablissement()->findOrFail($donnees['patient_id']),
+            $patient,
             InsuranceCompany::findOrFail($donnees['insurance_company_id']),
             $donnees
         );

@@ -37,7 +37,9 @@
 <div class="container"><div class="page-inner hl">
     @include('labo.partials.entete', ['titre' => $ligne->examen_nom, 'fil' => [route('labo.paillasse.index') => 'Paillasse', route('labo.demandes.show', $demande) => $demande->numero]])
 
-    @php($initiales = mb_strtoupper(mb_substr((string) $patient->first_name, 0, 1) . mb_substr((string) $patient->last_name, 0, 1)))
+    {{-- Forme bloc obligatoire : un @php(...) court placé avant un bloc @php … @endphp
+         faisait avaler par Blade tout le HTML jusqu'au @endphp suivant (écran cassé). --}}
+    @php $initiales = mb_strtoupper(mb_substr((string) $patient->first_name, 0, 1) . mb_substr((string) $patient->last_name, 0, 1)); @endphp
     <section class="hl-bloc {{ $demande->urgence ? 'labo-urgent' : '' }}" style="margin-bottom:16px">
         <div class="lb-patient">
             <span class="hl-avatar {{ $demande->urgence ? 'est-urgent' : '' }}" aria-hidden="true">{{ $initiales }}</span>
