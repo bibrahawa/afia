@@ -697,16 +697,20 @@ Route::middleware('auth')->group(function () {
     // ============================================
     // RAPPORTS
     // ============================================
-    Route::get('report', [ReportController::class, 'index'])
+    // Lot F — l'ancienne page d'accueil des rapports et le « rapport des actes » appelaient
+    // des vues supprimées (erreur 500) : redirigés vers le module Rapports.
+    Route::get('report', fn () => redirect()->route('rapports.index'))
         ->middleware('permission:report.view')
         ->name('reports.index');
 
-    Route::post('report/actes', [ReportController::class, 'rapportActes'])
+    Route::post('report/actes', fn () => redirect()->route('rapports.index'))
         ->middleware('permission:report.actes')
         ->name('reports.actes');
 
-     Route::get('/reports/situation-par-acte', [ReportController::class, 'situationParActe'])
-     ->name('rapports.situation');
+    // CORRIGÉ (lot F) : aucune permission — tout membre du personnel pouvait ouvrir cet état comptable.
+    Route::get('/reports/situation-par-acte', [ReportController::class, 'situationParActe'])
+        ->middleware('permission:report.view')
+        ->name('rapports.situation');
 
      Route::get('/reports/actes-par-assurance', [ReportController::class, 'actesParAssurance'])
         ->middleware('permission:report.view')

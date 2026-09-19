@@ -457,14 +457,8 @@
                 </li>
                 @endcan
 
-                @can('report.view')
-                <li class="nav-item {{ request()->routeIs('reports.*') ? 'active' : '' }}">
-                    <a href="{{ route('reports.index') }}">
-                        <i class="fas fa-chart-bar"></i>
-                        <p>Rapports & Analytics</p>
-                    </a>
-                </li>
-                @endcan
+                {{-- Lot F : l'ancienne entrée « Rapports & Analytics » (page en erreur) est retirée ;
+                     les rapports sont dans l'entrée « Rapports » en haut du menu. --}}
             </ul>
         </div>
     </div>

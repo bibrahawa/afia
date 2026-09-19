@@ -18,7 +18,9 @@ class RapportController extends Controller
     public function index()
     {
         return view('rapports.index', [
-            'catalogue' => collect($this->rapports->catalogue())->groupBy('famille'),
+            // CORRIGÉ — groupBy() sans « true » remplaçait les clés (« activite »,
+            // « recettes »…) par 0, 1, 2 : chaque « Ouvrir » menait à /rapports/0 (404).
+            'catalogue' => collect($this->rapports->catalogue())->groupBy('famille', true),
             'periode' => $this->periodeParDefaut(),
         ]);
     }
