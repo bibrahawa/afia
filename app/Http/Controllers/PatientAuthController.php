@@ -44,7 +44,8 @@ class PatientAuthController extends Controller
                 'otp_expire_le' => now()->addMinutes(5),
             ]);
 
-            $sms->sendSms($compte->telephone, "Votre code de connexion : {$code} (valable 5 minutes).");
+            // Portail patient : plateforme, pas une clinique → expéditeur par défaut. Code masqué au journal.
+            $sms->sendSms($compte->telephone, "Votre code de connexion : {$code} (valable 5 minutes).", ['type' => 'code_portail', 'masquer' => true]);
         }
 
         return response()->json(['message' => 'Si ce numéro est enregistré, un code vient de vous être envoyé.']);

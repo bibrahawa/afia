@@ -2,62 +2,74 @@
 
 @php $gnf = fn ($m) => number_format((float) $m, 0, ',', ' '); @endphp
 
+@section('style')
+    @include('labo.partials.styles')
+    <style>
+        .rl-barre { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 14px 18px; border-bottom: 1px solid var(--hali-bordure); }
+        .rl-barre form { margin: 0; }
+        .rl-barre .lb-droite { margin-left: auto; display: flex; gap: 8px; }
+        .rl-total td { background: #fafbfc; font-weight: 700; color: var(--hali-encre); border-top: 2px solid var(--hali-bordure) !important; }
+    </style>
+@endsection
+
 @section('content')
-<div class="container"><div class="page-inner">
-    <div class="page-header d-flex flex-wrap align-items-center gap-2">
-        <h3 class="fw-bold mb-0">Relevé {{ $releve->numero }}</h3>
-        <span class="badge badge-{{ $releve->statut === 'solde' ? 'success' : ($releve->statut === 'envoye' ? 'info' : 'secondary') }}">{{ ucfirst($releve->statut) }}</span>
-        <a href="{{ route('labo.creances.show', $releve->partenariat) }}" class="btn btn-sm btn-secondary ms-auto">Retour</a>
+<div class="container"><div class="page-inner hl">
+    @include('labo.partials.entete', ['titre' => 'Relevé ' . $releve->numero, 'fil' => [route('labo.creances.index') => 'Créances', route('labo.creances.show', $releve->partenariat) => $releve->partenariat->clinique?->nom, 0 => $releve->numero]])
+
+    <div class="hl-kpis">
+        <div class="hl-bloc hl-kpi"><span class="hl-kpi-libelle">Montant du relevé</span><span class="hl-kpi-valeur">{{ $gnf($releve->montant_total) }} <small>GNF</small></span></div>
+        <div class="hl-bloc hl-kpi"><span class="hl-kpi-libelle">Réglé</span><span class="hl-kpi-valeur">{{ $gnf($releve->montantRegle()) }} <small>GNF</small></span></div>
+        <div class="hl-bloc hl-kpi {{ $releve->enRetard() ? 'est-danger' : ($releve->resteDu() > 0 ? 'est-alerte' : '') }}"><span class="hl-kpi-libelle">Reste dû</span><span class="hl-kpi-valeur">{{ $gnf($releve->resteDu()) }} <small>GNF</small></span>
+            @if($releve->echeance)<span class="hl-kpi-detail">échéance {{ $releve->echeance->format('d/m/Y') }}</span>@endif</div>
     </div>
 
-    <div class="card">
-        <div class="card-header d-flex flex-wrap align-items-center gap-2">
+    <section class="hl-bloc">
+        <div class="rl-barre">
             <div>
-                <strong>{{ $releve->partenariat->clinique?->nom }}</strong>
-                <div class="small text-muted">Période du {{ $releve->periode_debut->format('d/m/Y') }} au {{ $releve->periode_fin->format('d/m/Y') }}
-                    @if($releve->echeance) · échéance {{ $releve->echeance->format('d/m/Y') }}@endif</div>
+                <span class="lb-fort">{{ $releve->partenariat->clinique?->nom }}</span>
+                <span class="hl-statut {{ $releve->statut === 'solde' ? 'hl-s-succes' : ($releve->statut === 'envoye' ? 'hl-s-info' : 'hl-s-neutre') }}">{{ ucfirst($releve->statut) }}</span>
+                <span class="lb-sous">Période du {{ $releve->periode_debut->format('d/m/Y') }} au {{ $releve->periode_fin->format('d/m/Y') }}</span>
             </div>
-            <div class="ms-auto d-flex gap-2">
-                <a href="{{ route('labo.releves.imprimer', $releve) }}" target="_blank" class="btn btn-sm btn-outline-secondary"><i class="fa fa-print"></i> Imprimer</a>
+            <div class="lb-droite">
+                <a href="{{ route('labo.releves.imprimer', $releve) }}" target="_blank" class="hl-bouton"><i class="fa fa-print" aria-hidden="true"></i> Imprimer</a>
                 @if(! $releve->estEnvoye())
                     <form method="POST" action="{{ route('labo.releves.envoyer', $releve) }}" onsubmit="return confirm('Marquer ce relevé envoyé ? Les montants seront figés.');">@csrf
-                        <button class="btn btn-sm btn-primary">Marquer envoyé</button></form>
+                        <button class="hl-bouton hl-bouton-plein">Marquer envoyé</button></form>
                 @elseif($releve->montantRegle() < 1)
                     <form method="POST" action="{{ route('labo.releves.rouvrir', $releve) }}" onsubmit="return confirm('Rouvrir ce relevé ?');">@csrf
-                        <button class="btn btn-sm btn-outline-warning">Rouvrir</button></form>
+                        <button class="hl-bouton">Rouvrir</button></form>
                 @endif
             </div>
         </div>
-        <div class="card-body table-responsive">
-            <table class="table table-sm align-middle">
-                <thead><tr><th>Demande</th><th>Patient</th><th>Examens</th><th>Date</th><th class="text-end">Montant</th><th class="text-end">Réglé</th><th></th></tr></thead>
+        <div class="table-responsive">
+            <table class="lb-table">
+                <thead><tr><th>Demande</th><th>Patient</th><th>Examens</th><th>Date</th><th class="lb-n">Montant</th><th class="lb-n">Réglé</th><th></th></tr></thead>
                 <tbody>
                 @foreach($releve->creances as $creance)
                     <tr>
-                        <td>{{ $creance->demande?->numero }}</td>
+                        <td class="lb-fort">{{ $creance->demande?->numero }}</td>
                         <td>{{ $creance->demande?->patient?->full_name }}</td>
-                        <td class="small">{{ $creance->demande?->examens->pluck('examen_nom')->join(', ') }}</td>
-                        <td class="small">{{ $creance->demande?->created_at->format('d/m/Y') }}</td>
-                        <td class="text-end">{{ $gnf($creance->montant) }}</td>
-                        <td class="text-end">{{ $gnf($creance->montant_regle) }}</td>
-                        <td class="text-end">
+                        <td style="font-size:.84rem">{{ $creance->demande?->examens->pluck('examen_nom')->join(', ') }}</td>
+                        <td style="font-size:.84rem">{{ $creance->demande?->created_at->format('d/m/Y') }}</td>
+                        <td class="lb-n">{{ $gnf($creance->montant) }}</td>
+                        <td class="lb-n">{{ $gnf($creance->montant_regle) }}</td>
+                        <td class="lb-actions">
                             @unless($releve->estEnvoye())
                                 <form method="POST" action="{{ route('labo.creances.retirer', $creance) }}">@csrf
-                                    <button class="btn btn-sm btn-link text-danger">Retirer</button></form>
+                                    <button class="hl-bouton lb-petit lb-risque">Retirer</button></form>
                             @endunless
                         </td>
                     </tr>
                 @endforeach
-                </tbody>
-                <tfoot><tr>
-                    <th colspan="4" class="text-end">Total</th>
-                    <th class="text-end">{{ $gnf($releve->montant_total) }}</th>
-                    <th class="text-end">{{ $gnf($releve->montantRegle()) }}</th>
-                    <th></th>
+                <tr class="rl-total">
+                    <td colspan="4" style="text-align:right">Total</td>
+                    <td class="lb-n">{{ $gnf($releve->montant_total) }}</td>
+                    <td class="lb-n">{{ $gnf($releve->montantRegle()) }}</td>
+                    <td></td>
                 </tr>
-                <tr><th colspan="4" class="text-end">Reste dû</th><th colspan="2" class="text-end">{{ $gnf($releve->resteDu()) }} GNF</th><th></th></tr></tfoot>
+                </tbody>
             </table>
         </div>
-    </div>
+    </section>
 </div></div>
 @endsection

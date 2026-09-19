@@ -16,6 +16,9 @@ class AppointmentExportController extends Controller
         }
 
         $query = Appointment::with(['patient.comptesPatients'])
+            // « Mes rendez-vous » d'un médecin : export limité à ses rendez-vous
+            // (sans ce filtre, le PDF contenait ceux de toute la clinique).
+            ->when($request->filled('employee_id'), fn ($q) => $q->where('employee_id', (int) $request->input('employee_id')))
             ->orderBy('appointment_date')
             ->orderBy('appointment_time');
 

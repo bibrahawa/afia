@@ -46,7 +46,7 @@ class NotificationReseauService
             \App\Support\Marque::nom()
         );
 
-        $resultat = $this->sms->sendSms($telephone, $message);
+        $resultat = $this->sms->sendSms($telephone, $message, ['type' => 'labo_reseau', 'sujet' => $demande]);
 
         ContexteLabo::journaliser('resultats_notifies', $demande, 'Notification à la clinique partenaire', [
             'telephone' => $telephone,

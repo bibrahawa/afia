@@ -62,7 +62,7 @@ class SuggestionsConsultationService
         }
 
         $posologies = DB::table('consultation_medicament')->whereIn('id', $lignes->pluck('derniere'))->get()->keyBy('id');
-        $medicaments = Medicament::whereIn('id', $lignes->pluck('medicament_id'))->get()->keyBy('id');
+        $medicaments = Medicament::actifs()->whereIn('id', $lignes->pluck('medicament_id'))->get()->keyBy('id');
 
         return $lignes->map(function ($ligne) use ($posologies, $medicaments) {
             $medicament = $medicaments->get($ligne->medicament_id);

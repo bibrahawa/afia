@@ -42,6 +42,12 @@ Route::middleware('can:parcours.file')->group(function () {
     Route::post('file-attente/{visite}/appeler', [FileAttenteController::class, 'appeler'])->name('file.appeler');
     Route::post('file-attente/{visite}/terminer', [FileAttenteController::class, 'terminer'])->name('file.terminer');
 
+    // Consultation directe : le médecin reçoit un patient sans passer par l'accueil,
+    // par le même chemin (visite créée puis appelée) — remplace « Nouvelle consultation ».
+    Route::get('consultations/nouvelle', [\App\Http\Controllers\Parcours\ConsultationDirecteController::class, 'create'])->name('consultation.nouvelle');
+    Route::post('consultations/nouvelle', [\App\Http\Controllers\Parcours\ConsultationDirecteController::class, 'store'])->name('consultation.directe');
+    Route::get('consultations/patients/recherche', [PatientController::class, 'rechercheRapide'])->name('consultation.patients.recherche');
+
     // Écran de consultation rapide (lot 3b)
     Route::get('consultations/{consultation}', [ConsultationRapideController::class, 'show'])->name('consultation.show');
     Route::post('consultations/{consultation}/enregistrer', [ConsultationRapideController::class, 'enregistrer'])->name('consultation.enregistrer');

@@ -145,7 +145,7 @@ class RapportService
             $medecin = $groupe->first()->medecin;
 
             return [
-                $medecin ? 'Dr ' . $medecin->full_name : '—',
+                $medecin?->nom_affiche ?? '—',
                 $groupe->count(),
                 $groupe->where('statut', StatutVisite::Terminee)->count(),
                 (int) ($consultations[$medecinId] ?? 0),
@@ -233,7 +233,7 @@ class RapportService
                 $g->termeLisible(),
                 $g->dpa->format('d/m/Y'),
                 $prochain ? $prochain['semaines'] . ' SA le ' . $prochain['date_cible']->format('d/m/Y') : '—',
-                $g->medecin ? 'Dr ' . $g->medecin->full_name : '—',
+                $g->medecin?->nom_affiche ?? '—',
             ];
         })->all();
 

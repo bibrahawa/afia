@@ -78,10 +78,14 @@ class DossierPatientService
                 'titre' => $c->diagnostic ?: ($c->motif ?: 'Consultation'),
                 'details' => array_filter([
                     'Motif' => $c->motif,
-                    'Médecin' => $c->medecin ? 'Dr ' . $c->medecin->full_name : null,
+                    'Médecin' => $c->medecin?->nom_affiche,
                     'Examens' => $c->tests->pluck('name')->join(', ') ?: null,
                     'Ordonnance' => $c->medicaments->pluck('nom')->join(', ') ?: null,
-                    'Statut' => $c->statut === Consultation::EN_COURS ? 'En cours' : null,
+                    'Statut' => match ($c->statut) {
+                        Consultation::EN_COURS => 'En cours',
+                        Consultation::ANNULEE => 'Annulée (patient reparti)',
+                        default => null,
+                    },
                 ]),
                 'lien' => route('consultation.show', $c),
             ]);
@@ -158,7 +162,7 @@ class DossierPatientService
                 'type' => 'rendez_vous',
                 'titre' => 'Rendez-vous — ' . ($a->motifRdv?->nom ?? 'consultation'),
                 'details' => array_filter([
-                    'Médecin' => $a->employee ? 'Dr ' . $a->employee->full_name : null,
+                    'Médecin' => $a->employee?->nom_affiche,
                     'Statut' => match ($a->status) {
                         'pending' => 'À confirmer', 'confirmed' => 'Confirmé', 'completed' => 'Honoré',
                         'cancelled' => 'Annulé', 'no_show' => 'Absent', default => $a->status,

@@ -12,16 +12,17 @@ class TestController extends Controller
 	{
 
 		$services = Service::get();
-		$tests = Test::get();
+		$tests = Test::orderBy('report_type')->orderBy('name')->get();
         $antibiotics = [];
 		return view('tests.test', compact('tests', 'services' ));
 	}
 
 	public function store(Request $request)
     {
-        $request->validate( ['name' => 'required|unique_etablissement:tests,name']);
-        $test = Test::create($request->all());
-        return back()->with('success', 'Examen saved Successfully.');
+        $request->validate(['name' => 'required|unique_etablissement:tests,name', 'amount' => 'nullable|numeric|min:0'],
+            ['name.required' => 'Indiquez le nom de l\'examen.', 'name.unique_etablissement' => 'Cet examen existe déjà.']);
+        Test::create($request->only(['name', 'report_type', 'description', 'amount']));
+        return back()->with('success', 'Examen ajouté.');
     }
 
 
@@ -43,23 +44,27 @@ class TestController extends Controller
 
     public function edit(Request $request)
     {
-        $request->validate(['name'=>'required']);
-        $test = Test::find($request->edit_id);
-        $test->update($request->all());
-        return back()->with('success', 'Examen Updated successfully');
+        $request->validate([
+            'edit_id' => 'required|exists_etablissement:tests,id',
+            'name' => 'required|unique_etablissement:tests,name,' . (int) $request->edit_id,
+            'amount' => 'nullable|numeric|min:0',
+        ], ['name.required' => 'Indiquez le nom de l\'examen.', 'name.unique_etablissement' => 'Un autre examen porte déjà ce nom.']);
+        $test = Test::findOrFail($request->edit_id);
+        $test->update($request->only(['name', 'report_type', 'description', 'amount']));
+        return back()->with('success', 'Examen modifié.');
     }
 
     public function delete(Request $request)
     {
-        $examen = Test::find($request->id);
+        $examen = Test::findOrFail($request->id);
 
-        if (count($examen->consultations)) {
-            return back()->with('error', 'Test cannot be deleted...');
+        if ($examen->consultations()->exists()) {
+            return back()->with('error', "« {$examen->name} » a déjà été prescrit : il ne peut pas être supprimé.");
         }
 
         $examen->delete();
 
-        return back()->with('success', 'Test successfully Deleted');
+        return back()->with('success', 'Examen supprimé.');
 
     }
 

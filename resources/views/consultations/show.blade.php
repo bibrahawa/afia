@@ -529,6 +529,13 @@
         }
     }
     
+
+    /* ---------------- Hali : alignement sur la charte (ajouté, rien retiré) */
+    .financial-summary { background: var(--hali-primaire-fonce, #115e59); box-shadow: 0 6px 18px rgba(17, 94, 89, .18); }
+    .financial-summary .amount { font-variant-numeric: tabular-nums; }
+    /* Un diagnostic n'est pas une alerte : plus de rouge vif. */
+    .diagnostic-badge { background: var(--hali-primaire-pale, #f0fdfa); color: var(--hali-encre, #111827); border: 1px solid var(--hali-primaire-clair, #ccfbf1); }
+    .service-icon { background: var(--hali-primaire-clair, #ccfbf1); color: var(--hali-primaire-fonce, #115e59); }
 </style>
 
 <style>

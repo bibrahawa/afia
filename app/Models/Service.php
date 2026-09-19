@@ -15,7 +15,20 @@ class Service extends Model
 
     
     
-	protected $fillable = ['name', 'amount', 'department_id', 'famille_acte'];
+	protected $fillable = ['name', 'amount', 'department_id', 'famille_acte', 'actif'];
+
+    protected $casts = ['actif' => 'boolean'];
+
+    /**
+     * Seuls les éléments proposés au choix (accueil, consultation, forfaits…).
+     * NE PAS en faire un filtre global : les consultations et factures passées
+     * doivent continuer à relire un élément masqué.
+     */
+    public function scopeActifs($query)
+    {
+        return $query->where($this->getTable() . '.actif', true);
+    }
+
 
     public function department()
     {

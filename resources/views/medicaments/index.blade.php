@@ -1,415 +1,151 @@
 @extends('layouts.backend')
 
+@php
+    $gnf = fn ($v) => number_format((float) $v, 0, ',', ' ');
+    $nbMasques = $medicaments->where('actif', false)->count();
+@endphp
+
 @section('content')
-
-<div class="container">
-    <div class="page-inner">
-      <div class="page-header">
-        <ul class="breadcrumbs">
-          <li class="nav-home">
-            <a href="{{url('/')}}">
-              <i class="icon-home"></i>
-            </a>
-          </li>
-          <li class="separator">
-            <i class="icon-arrow-right"></i>
-          </li>
-          <li class="nav-item">
-            <a href="{{ url('/') }}">Admin</a>
-          </li>
-          <li class="separator">
-            <i class="icon-arrow-right"></i>
-          </li>
-          <li class="nav-item">
-            <a href="{{ route('medicaments.index') }}">medicaments</a>
-          </li>
-        </ul>
-      </div>
-
-      <div class="row">
-        <div class="col-md-12">
-          <div class="card">
-            <div class="card-header">
-              <div class="d-flex align-items-center">
-                <h4 class="card-title">Liste des medicaments</h4>
-                @can('medicament.create')
-                    <button
-                    class="btn btn-primary btn-round ms-auto"
-                    data-bs-toggle="modal"
-                    data-bs-target="#addRowModal"
-                    >
-                    <i class="fa fa-plus"></i> Ajouter un medicament
-                    </button>
-                @endcan
-              </div>
+<div class="container"><div class="page-inner hl">
+    <header class="hl-entete">
+        <div>
+            <h1>Médicaments</h1>
+            <p>La liste où le médecin choisit en rédigeant une ordonnance, avec la posologie proposée par défaut.</p>
+        </div>
+        @can('medicament.create')
+            <div class="hl-entete-actions">
+                @if(Route::has('catalogue.import'))<a href="{{ route('catalogue.import', ['type' => 'medicaments']) }}" class="hl-bouton"><i class="fas fa-file-import" aria-hidden="true"></i> Importer depuis Excel</a>@endif
+                <button type="button" class="hl-bouton hl-bouton-plein" data-bs-toggle="modal" data-bs-target="#addRowModal"><i class="fa fa-plus" aria-hidden="true"></i> Nouveau médicament</button>
             </div>
+        @endcan
+    </header>
 
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table id="add-row" class="display table table-striped table-hover">
-                    <thead class="bg-primary text-white"> <!-- Ajout de couleur d'entête -->
-                        <tr>
-                            <th>Nom</th>
-                            <th>Forme</th>
-                            <th>Dosage</th>
-                            <th>Frequence</th>
-                            <th>instructions</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tfoot>
-                        <tr>
-                            <th>Nom</th>
-                            <th>Forme</th>
-                            <th>Dosage</th>
-                            <th>Frequence</th>
-                            <th>instructions</th>
-                            <th>Actions</th>
-                        </tr>
-                    </tfoot>
-                    <tbody>
-                        @forelse ($medicaments as $medicament)
-                        <tr>
-                            <td>{{ $medicament->nom }}</td>
-                            <td>{{ $medicament->forme }}</td>
-                            <td>{{ $medicament->dosage }}</td>
-                            <td>{{ $medicament->frequence }}</td>
-                            {{-- <td>{{ $medicament->duree }}</td> --}}
-                            <td>{{ $medicament->instructions }}</td>
-                            <td>
-                                <div class="form-button-action">
-                                    @can('medicament.edit')
-                                        <button
-                                            type="button"
-                                            class="btn btn-warning btn-round btn-sm edit-button"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#editRowModal"
-                                            data-info="{{$medicament}}"
-                                        >
-                                            <i class="fa fa-edit"></i>
-                                        </button>
-                                    @endcan
-                                    @can('medicament.delete')
-                                        <!-- Supprimer : Ajout des data-bs-toggle et data-bs-target -->
-                                        <button
-                                            type="button"
-                                            class="btn btn-danger btn-round btn-sm delete-button"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#deleteRowModal"
-                                            data-medicament = "{{$medicament}}"
-                                        >
-                                            <i class="fa fa-trash"></i>
-                                        </button>
-                                    @endcan
-                                </div>
+    @include('partials.catalogue')
+
+    @if($errors->any())<div class="hl-note hl-note-danger mb-3" role="alert"><ul class="mb-0 ps-3">@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>@endif
+
+    <section class="hl-bloc">
+        <div class="cat-outils">
+            <label class="cat-recherche mb-0">
+                <span class="sr-only visually-hidden">Rechercher</span>
+                <i class="fas fa-search" aria-hidden="true"></i>
+                <input type="search" class="form-control js-cat-filtre" data-cible="#catListe" data-vide="#catAucun" data-filtre="#catForme" placeholder="Rechercher un médicament…" autocomplete="off">
+            </label>
+            <select id="catForme" class="form-control" aria-label="Forme">
+                <option value="">Toutes les formes</option>
+                @foreach($medicaments->pluck('forme')->filter()->unique()->sort() as $f)<option value="{{ $f }}">{{ ucfirst(mb_strtolower($f)) }}</option>@endforeach
+            </select>
+            @if($nbMasques)<label class="cat-masques"><input type="checkbox" id="catMasques"> Afficher les masqués ({{ $nbMasques }})</label>@endif
+        </div>
+
+        @if($medicaments->isEmpty())
+            <div class="hl-vide"><i class="fas fa-pills" aria-hidden="true"></i>Aucun médicament. Ajoutez les plus prescrits pour accélérer les ordonnances.</div>
+        @else
+            <div class="table-responsive">
+                <table class="cat-table">
+                    <thead><tr><th>Médicament</th><th>Forme</th><th>Posologie proposée</th><th class="cat-n">Prix</th><th></th></tr></thead>
+                    <tbody id="catListe">
+                    @foreach($medicaments as $medicament)
+                        <tr data-recherche="{{ $medicament->nom }} {{ $medicament->dosage }}" data-groupe="{{ $medicament->forme }}" data-masque="{{ $medicament->actif ? 0 : 1 }}">
+                            <td><span class="cat-nom">{{ $medicament->nom }}</span>@unless($medicament->actif) <span class="hl-statut hl-s-neutre">Masqué</span>@endunless @if($medicament->dosage)<span class="cat-sous">{{ $medicament->dosage }}</span>@endif</td>
+                            <td>@if($medicament->forme)<span class="cat-etiquette">{{ ucfirst(mb_strtolower($medicament->forme)) }}</span>@endif</td>
+                            <td style="font-size:.84rem">{{ collect([$medicament->frequence, $medicament->duree])->filter()->implode(' · ') ?: '—' }}
+                                @if($medicament->instructions)<span class="cat-sous">{{ \Illuminate\Support\Str::limit($medicament->instructions, 60) }}</span>@endif</td>
+                            <td class="cat-n">@if((float) $medicament->amount > 0)<span class="cat-prix">{{ $gnf($medicament->amount) }} <small>GNF</small></span>@else<span class="cat-sous">non vendu</span>@endif</td>
+                            <td class="cat-actions">
+                                @can('medicament.edit')
+                                    <button type="button" class="cat-icone edit-button" title="Modifier" aria-label="Modifier {{ $medicament->nom }}"
+                                            data-info="{{ json_encode($medicament->only(['id', 'nom', 'forme', 'dosage', 'frequence', 'duree', 'amount', 'instructions'])) }}"><i class="fa fa-pen"></i></button>
+                                @endcan
+                                @can('medicament.edit')
+                                    @if(Route::has('medicaments.visibilite'))
+                                        <form method="POST" action="{{ route('medicaments.visibilite', $medicament) }}">@csrf @method('PATCH')
+                                            <button type="submit" class="cat-icone" title="{{ $medicament->actif ? 'Masquer : ne plus proposer' : 'Proposer à nouveau' }}" aria-label="{{ $medicament->actif ? 'Masquer' : 'Réafficher' }} {{ $medicament->nom }}"><i class="fa {{ $medicament->actif ? 'fa-eye-slash' : 'fa-eye' }}"></i></button>
+                                        </form>
+                                    @endif
+                                @endcan
+                                @can('medicament.delete')
+                                    <button type="button" class="cat-icone est-risque delete-button" title="Supprimer" aria-label="Supprimer {{ $medicament->nom }}" data-id="{{ $medicament->id }}" data-name="{{ $medicament->nom }}"><i class="fa fa-trash"></i></button>
+                                @endcan
                             </td>
                         </tr>
-                        @empty
-                            <tr>
-                                <td colspan="7" class="text-center text-muted">Aucune medicament enregistrée.</td>
-                            </tr>
-                        @endforelse
+                    @endforeach
                     </tbody>
-                    </table>
-                </div>
-
-                <!-- Modal Add -->
-                <div class="modal fade" id="addRowModal" tabindex="-1" role="dialog" aria-hidden="true">
-                    <div class="modal-dialog" role="document">
-                        <div class="modal-content">
-                            <div class="modal-header border-0">
-                                <h5 class="modal-title">
-                                    <span class="fw-mediumbold"> Nouveau</span>
-                                    <span class="fw-light"> medicament</span>
-                                </h5>
-                                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-                                    <span aria-hidden="true">&times;</span>
-                                </button>
-                            </div>
-                            <div class="modal-body">
-                                <p class="small">Créez un nouveau medicament en remplissant le formulaire ci-dessous.</p>
-                                <form id="addDepartmentForm" action="{{ route('medicaments.store') }}" method="POST">
-                                    @csrf
-                                    <div class="row">
-
-                                        <div class="col-sm-12">
-                                            <div class="form-group form-group-default">
-                                                <label>Sélectionnez une forme :</label>
-                                                <select name="forme" class="form-control">
-                                                    <option value="COMPRIMÉ">COMPRIMÉ</option>
-                                                    <option value="GÉLULE">GÉLULE</option>
-                                                    <option value="SIROP">SIROP</option>
-                                                    <option value="INJECTION">INJECTION</option>
-                                                    <option value="PERFUSION">PERFUSION</option>
-                                                    <option value="CRÈME">CRÈME</option>
-                                                    <option value="POMMADE">POMMADE</option>
-                                                    <option value="SUPPOSITOIRE">SUPPOSITOIRE</option>
-                                                    <option value="INHALATEUR">INHALATEUR</option>
-                                                    <option value="GOUTTES">GOUTTES</option>
-                                                    <option value="SPRAY">SPRAY</option>
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        <div class="col-sm-6">
-                                            <div class="form-group form-group-default">
-                                                <label>Nom:</label>
-                                                <input type="text" name="nom" class="form-control" required>
-                                            </div>
-                                        </div>
-
-                                        <div class="col-sm-6">
-                                            <div class="form-group form-group-default">
-                                                <label>Dosage:</label>
-                                                <input type="text" name="dosage" class="form-control">
-                                            </div>
-                                        </div>
-                                        <div class="col-sm-6">
-                                            <div class="form-group form-group-default">
-                                                <label>Frequence:</label>
-                                                <input type="text" name="frequence" class="form-control">
-                                            </div>
-                                        </div>
-                                        <div class="col-sm-6">
-                                            <div class="form-group form-group-default">
-                                                <label>Duree:</label>
-                                                <input type="text" name="duree" class="form-control">
-                                            </div>
-                                        </div>
-                                        <div class="col-sm-12">
-                                            <div class="form-group form-group-default">
-                                                <label>Instruction:</label>
-                                                <textarea name="instructions" class="form-control"></textarea>
-                                            </div>
-                                        </div>
-                                        <div class="col-sm-12">
-                                            <div class="form-group form-group-default">
-                                                <label>Prix:</label>
-                                                <input type="text" name="amount" class="form-control">
-                                            </div>
-                                        </div>
-                                    </div>
-                                </form>
-                            </div>
-                            <div class="modal-footer border-0">
-                                <button type="submit" id="addRowButton" class="btn btn-primary" form="addDepartmentForm">
-                                    Ajouter
-                                    <div class="spinner-border spinner-border-sm text-light" role="status" id="addLoader" style="display: none;">
-                                        <span class="sr-only">Loading...</span>
-                                    </div>
-                                </button>
-
-                                <button type="button" class="btn btn-danger" data-bs-dismiss="modal">
-                                    Fermer
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Modal Edit -->
-                <div class="modal fade" id="editRowModal" tabindex="-1" role="dialog" aria-hidden="true">
-                    <div class="modal-dialog" role="document">
-                        <div class="modal-content">
-                            <div class="modal-header border-0">
-                                <h5 class="modal-title">
-                                    <span class="fw-mediumbold"> Modifier</span>
-                                    <span class="fw-light"> medicament</span>
-                                </h5>
-                                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-                                    <span aria-hidden="true">&times;</span>
-                                </button>
-                            </div>
-                            <div class="modal-body">
-                                <form id='editMedicamentForm' action="" method="POST">
-                                    @csrf
-                                    @method('PUT')
-                                    @csrf
-                                    <div class="row">
-                                        <input type="hidden" name="id" id="edit_id">
-                                        <div class="col-sm-12">
-                                            <div class="form-group form-group-default">
-                                                <label>Sélectionnez une forme :</label>
-                                                <select name="forme" id="edit_form" class="form-control">
-                                                    <option value="COMPRIMÉ">COMPRIMÉ</option>
-                                                    <option value="GÉLULE">GÉLULE</option>
-                                                    <option value="SIROP">SIROP</option>
-                                                    <option value="INJECTION">INJECTION</option>
-                                                    <option value="PERFUSION">PERFUSION</option>
-                                                    <option value="CRÈME">CRÈME</option>
-                                                    <option value="POMMADE">POMMADE</option>
-                                                    <option value="SUPPOSITOIRE">SUPPOSITOIRE</option>
-                                                    <option value="INHALATEUR">INHALATEUR</option>
-                                                    <option value="GOUTTES">GOUTTES</option>
-                                                    <option value="SPRAY">SPRAY</option>
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        <div class="col-sm-6">
-                                            <div class="form-group form-group-default">
-                                                <label>Nom:</label>
-                                                <input type="text" name="nom" id="edit_nom" class="form-control" required>
-                                            </div>
-                                        </div>
-
-                                        <div class="col-sm-6">
-                                            <div class="form-group form-group-default">
-                                                <label>Dosage:</label>
-                                                <input type="text" name="dosage" id="edit_dosage" class="form-control">
-                                            </div>
-                                        </div>
-                                        <div class="col-sm-6">
-                                            <div class="form-group form-group-default">
-                                                <label>Frequence:</label>
-                                                <input type="text" name="frequence" id="edit_frequence" class="form-control">
-                                            </div>
-                                        </div>
-                                        <div class="col-sm-6">
-                                            <div class="form-group form-group-default">
-                                                <label>Duree:</label>
-                                                <input type="text" name="duree" id="edit_duree" class="form-control">
-                                            </div>
-                                        </div>
-                                        <div class="col-sm-12">
-                                            <div class="form-group form-group-default">
-                                                <label>Instruction:</label>
-                                                <textarea name="instructions" id="edit_instructions" class="form-control"></textarea>
-                                            </div>
-                                        </div>
-                                        <div class="col-sm-12">
-                                            <div class="form-group form-group-default">
-                                                <label>Prix:</label>
-                                                <input type="text" id="edit_amount" name="amount" class="form-control">
-                                            </div>
-                                        </div>
-
-                                    </div>
-                            </div>
-                            <div class="modal-footer border-0">
-                                <!-- Bouton pour la modification -->
-                                <button type="submit" class="btn btn-success" id="editRowButton" form="editMedicamentForm">
-                                    Modifier
-                                    <div class="spinner-border spinner-border-sm text-light" role="status" id="editLoader" style="display: none;">
-                                        <span class="sr-only">Loading...</span>
-                                    </div>
-                                </button>
-                                <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Fermer</button>
-                            </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Modal Delete -->
-                <div class="modal fade" id="deleteRowModal" tabindex="-1" role="dialog" aria-hidden="true">
-                    <div class="modal-dialog" role="document">
-                        <div class="modal-content">
-                            <div class="modal-header border-0">
-                                <h5 class="modal-title">Êtes-vous sûr de vouloir supprimer ce medicament ?</h5>
-                                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-                                    <span aria-hidden="true">&times;</span>
-                                </button>
-                            </div>
-                            <div class="modal-body">
-                                <!-- Formulaire de suppression -->
-                                <form id="deleteMedicamentForm" action="#" method="POST">
-                                    @csrf
-                                    @method('DELETE') <!-- Utiliser la méthode DELETE -->
-                                    <p id="medicament_name_to_delete"></p>
-                                    <input type="hidden" id="delete_id" name="id">
-                                </form>
-                            </div>
-                            <div class="modal-footer border-0">
-                                <!-- Bouton pour la suppression -->
-                                <button type="submit" class="btn btn-danger" id="deleteRowButton" form="deleteMedicamentForm">
-                                    Supprimer
-                                    <div class="spinner-border spinner-border-sm text-light" role="status" id="deleteLoader" style="display: none;">
-                                        <span class="sr-only">Loading...</span>
-                                    </div>
-                                </button>
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                    Annuler
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                </table>
             </div>
-        </div>
-      </div>
-    </div>
-</div>
+            <div class="hl-vide" id="catAucun" hidden>Aucun médicament ne correspond.</div>
+        @endif
+    </section>
 
+    <div class="modal fade cat-modal" id="addRowModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <form class="modal-content" id="addDepartmentForm" action="{{ route('medicaments.store') }}" method="POST">
+                @csrf
+                <div class="modal-header"><h5 class="modal-title">Nouveau médicament</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button></div>
+                <div class="modal-body">@include('medicaments._champs', ['p' => '', 'm' => null])</div>
+                <div class="modal-footer">
+                    <button type="button" class="hl-bouton" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" id="addRowButton" class="hl-bouton hl-bouton-plein">Ajouter <span class="spinner-border spinner-border-sm" role="status" id="addLoader" style="display:none"></span></button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal fade cat-modal" id="editRowModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <form class="modal-content" id="editMedicamentForm" action="" method="POST">
+                @csrf @method('PUT')
+                <input type="hidden" name="id" id="edit_id">
+                <div class="modal-header"><h5 class="modal-title">Modifier le médicament</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button></div>
+                <div class="modal-body">@include('medicaments._champs', ['p' => 'edit_', 'm' => null])</div>
+                <div class="modal-footer">
+                    <button type="button" class="hl-bouton" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" id="editRowButton" class="hl-bouton hl-bouton-plein">Enregistrer <span class="spinner-border spinner-border-sm" role="status" id="editLoader" style="display:none"></span></button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal fade cat-modal" id="deleteRowModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <form class="modal-content" id="deleteMedicamentForm" action="#" method="POST">
+                @csrf @method('DELETE')
+                <div class="modal-header"><h5 class="modal-title">Supprimer le médicament</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button></div>
+                <div class="modal-body"><p class="mb-0" id="medicament_name_to_delete"></p></div>
+                <div class="modal-footer">
+                    <button type="button" class="hl-bouton" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" id="deleteRowButton" class="hl-bouton cat-danger">Supprimer <span class="spinner-border spinner-border-sm" role="status" id="deleteLoader" style="display:none"></span></button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div></div>
 @endsection
 
 @section('script')
-    <script type="text/javascript">
-        // Événement pour modifier un medicament
-        $(document).on('click', '.edit-button', function() {
-            var medicament = $(this).data('info');
-            // Mettre à jour le champ du modal
-            $('#edit_id').val(medicament.id);
-            $('#edit_forme').val(medicament.forme);
-            $('#edit_nom').val(medicament.nom);
-            $('#edit_frequence').val(medicament.frequence);
-            $('#edit_instructions').val(medicament.instructions);
-            $('#edit_amount').val(medicament.amount);
-            $('#edit_duree').val(medicament.duree);
-            $('#edit_dosage').val(medicament.dosage);
-
-            $('#editMedicamentForm').attr('action', '/medicaments/' + medicament.id);
-
-            // Afficher le modal
-            $('#editRowModal').modal('show');
+<script>
+(function () {
+    var modal = function (id) { return bootstrap.Modal.getOrCreateInstance(document.getElementById(id)); };
+    document.querySelectorAll('.edit-button').forEach(function (b) {
+        b.addEventListener('click', function () {
+            var m = JSON.parse(b.dataset.info);
+            ['nom', 'forme', 'dosage', 'frequence', 'duree', 'instructions'].forEach(function (k) { document.getElementById('edit_' + k).value = m[k] || ''; });
+            document.getElementById('edit_amount').value = m.amount ? Math.round(parseFloat(m.amount)) : '';
+            document.getElementById('edit_id').value = m.id;
+            document.getElementById('editMedicamentForm').action = '/medicaments/' + m.id;
+            modal('editRowModal').show();
         });
-
-        // Événement pour supprimer un medicament
-        $(document).on('click', '.delete-button', function() {
-            var id = $(this).data('medicament').id;
-            var name = $(this).data('medicament').nom;
-
-            // Afficher le nom du medicament à supprimer
-            $('#medicament_name_to_delete').text("Voulez-vous vraiment supprimer le medicament : " + name + " ?");
-
-            // Mettre à jour l'action du formulaire de suppression avec l'ID du medicament
-            $('#delete_id').val(id);
-            $('#deleteMedicamentForm').attr('action', '/medicaments/' + id);
-
-            // Afficher le modal de confirmation
-            $('#deleteRowModal').modal('show');
+    });
+    document.querySelectorAll('.delete-button').forEach(function (b) {
+        b.addEventListener('click', function () {
+            document.getElementById('medicament_name_to_delete').textContent = 'Supprimer « ' + b.dataset.name + ' » ? Un médicament déjà prescrit ne peut pas être supprimé : masquez-le plutôt (icône œil).';
+            document.getElementById('deleteMedicamentForm').action = '/medicaments/' + b.dataset.id;
+            modal('deleteRowModal').show();
         });
-
-        // Afficher le loader pour l'ajout de medicament
-        $('#addDepartmentForm').on('submit', function() {
-            $('#addRowButton').prop('disabled', true);  // Désactive le bouton pour éviter plusieurs clics
-            $('#addLoader').show();  // Affiche le loader
-        });
-
-        // Afficher le loader pour la modification de medicament
-        $('#editMedicamentForm').on('submit', function() {
-            $('#editRowButton').prop('disabled', true);  // Désactive le bouton pour éviter plusieurs clics
-            $('#editLoader').show();  // Affiche le loader
-        });
-
-        // Afficher le loader pour la suppression de medicament
-        $('#deleteMedicamentForm').on('submit', function() {
-            $('#deleteRowButton').prop('disabled', true);  // Désactive le bouton pour éviter plusieurs clics
-            $('#deleteLoader').show();  // Affiche le loader
-        });
-
-        // Lorsque la requête est terminée (réponse du serveur)
-        $(document).ajaxComplete(function() {
-            // Masquer les loaders et réactiver les boutons
-            $('#addRowButton').prop('disabled', false);  // Réactive le bouton "Ajouter"
-            $('#addLoader').hide();  // Masque le loader "Ajouter"
-
-            $('#editRowButton').prop('disabled', false);  // Réactive le bouton "Modifier"
-            $('#editLoader').hide();  // Masque le loader "Modifier"
-
-            $('#deleteRowButton').prop('disabled', false);  // Réactive le bouton "Supprimer"
-            $('#deleteLoader').hide();  // Masque le loader "Supprimer"
-        });
-
-    </script>
+    });
+    [['addDepartmentForm', 'addRowButton', 'addLoader'], ['editMedicamentForm', 'editRowButton', 'editLoader'], ['deleteMedicamentForm', 'deleteRowButton', 'deleteLoader']].forEach(function (t) {
+        document.getElementById(t[0]).addEventListener('submit', function () { document.getElementById(t[1]).disabled = true; document.getElementById(t[2]).style.display = 'inline-block'; });
+    });
+})();
+</script>
 @endsection

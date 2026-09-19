@@ -16,51 +16,39 @@ class PackageController extends Controller
 
 	public function getIndex()
 	{
-        $packages = Package::with(['tests', 'services'])->get(); // Récupérer les packages pour la liste
-        $departments = Department::all(); // Récupérer les départements pour le formulaire de création
-        $tests = Test::all(); // Récupérer les départements pour le formulaire de création
-        $services = Service::all(); // Récupérer les départements pour le formulaire de création
+        $packages = Package::with(['tests', 'services', 'department'])->orderBy('name')->get();
+        $departments = Department::orderBy('name')->get();
+        $tests = Test::orderBy('name')->get();
+        $services = Service::actifs()->orderBy('name')->get();
 		return view('packages.index', compact('packages', 'departments', 'tests', 'services'));
 	}
 
 	public function store(Request $request)
 	{
 
-		$request->validate([
-            'name' => 'required'
-            ]);
+		$request->validate($this->regles(), $this->messages());
 
 		$package['name'] = $request->name;
 		$package['description'] = $request->description;
         $package['department_id'] = $request->department_id;
         $package['famille_acte'] = \App\Enums\Assurance\FamilleActe::tryFrom((string) $request->famille_acte)?->value;
-        $package['price'] = 0;
-
-        if ($request->has('tests')) {
-            foreach ($request->tests as $test) {
-                $package['price'] += Test::find($test)->amount;
-            }
-        }
-
-        if ($request->has('services')) {
-            foreach ($request->services as $service) {
-                $package['price'] += Service::find($service)->amount;
-            }
-        }
+        $package['price'] = $this->prix($request);
 
 		$package = Package::create($package);
-        $package->services()->attach($request->services);
-        $package->tests()->attach($request->tests);
+        $package->services()->attach($request->input('services', []));
+        $package->tests()->attach($request->input('tests', []));
 
-		return back()->with('success', 'Package Created Successfully.');
+		return back()->with('success', 'Forfait créé.');
 
 	}
 
     public function edit($id){
-        $package = Package::find($id);
+        $package = Package::findOrFail($id);
         $departments = Department::all();
         $tests = Test::all();
-        $services = Service::all();
+        // Actes proposés + ceux déjà dans le forfait (même masqués, pour ne pas les perdre à l'enregistrement).
+        $dejaInclus = $package->services()->pluck('services.id');
+        $services = Service::where(fn ($q) => $q->where('actif', true)->orWhereIn('id', $dejaInclus))->orderBy('name')->get();
 
         return view('packages.edit', [
             'package' => $package,
@@ -71,37 +59,20 @@ class PackageController extends Controller
     }
 	public function update(Request $request, $id)
 	{
-        $package = Package::find($request->id);
+        // CORRIGÉ — lisait $request->id (champ absent du formulaire) au lieu de l'identifiant de l'URL.
+        $package = Package::findOrFail($id);
+		$request->validate($this->regles(), $this->messages());
 		$data['name'] = $request->name;
 		$data['description'] = $request->description;
 		$data['department_id'] = $request->department_id;
 		$data['famille_acte'] = \App\Enums\Assurance\FamilleActe::tryFrom((string) $request->famille_acte)?->value ?? $package->famille_acte;
-		$data['price'] = 0;
-
-
-        if ($request->has('tests')) {
-            foreach ($request->tests as $test) {
-                $data['price'] += Test::find($test)->amount;
-            }
-        }
-
-        if ($request->has('services')) {
-            foreach ($request->services as $service) {
-                $data['price'] += Service::find($service)->amount;
-            }
-        }
+		$data['price'] = $this->prix($request);
 
 		$package->update($data);
 
-		// Gérer les tests associés
-        if ($request->has('tests')) {
-            $package->tests()->sync($request->tests);
-		}
-
-        // Gérer les services associés
-        if ($request->has('services')) {
-            $package->services()->sync($request->services);
-		}
+		// CORRIGÉ — décocher tous les examens (ou tous les actes) ne les retirait pas.
+        $package->tests()->sync($request->input('tests', []));
+        $package->services()->sync($request->input('services', []));
 
         return redirect()->route('package.index')->with('success', 'Package modifié avec succès');
 	}
@@ -120,18 +91,51 @@ class PackageController extends Controller
 	 public function delete(Request $request)
 	 {
 	 	//return $request->all();
-	 	$package = Package::find($request->id);
+	 	$package = Package::findOrFail($request->id);
 
-	 	// if(count($package->packageSales)) {
-	 	// 	return back()->with('error', 'Package cannot deleted..');
-	 	// }
+	 	if (\Illuminate\Support\Facades\DB::table('consultation_package')->where('package_id', $package->id)->exists()) {
+	 		return back()->with('error', "« {$package->name} » a déjà été utilisé en consultation : il ne peut pas être supprimé.");
+	 	}
 
         $package->tests()->detach();
         $package->services()->detach();
 	 	$package->delete();
 
-	 	return back()->with('success', 'Package Deleted Successfully.');
+	 	return back()->with('success', 'Forfait supprimé.');
 	 }
+
+    /** Actes et examens du catalogue de l'établissement uniquement. */
+    private function regles(): array
+    {
+        return [
+            'name' => ['required', 'string', 'max:255'],
+            'department_id' => ['nullable', 'exists_etablissement:departments,id'],
+            'services' => ['nullable', 'array'],
+            'services.*' => ['exists_etablissement:services,id'],
+            'tests' => ['nullable', 'array'],
+            'tests.*' => ['exists_etablissement:tests,id'],
+            'prix_forfait' => ['nullable', 'numeric', 'min:0'],
+        ];
+    }
+
+    private function messages(): array
+    {
+        return ['name.required' => 'Indiquez le nom du forfait.'];
+    }
+
+    /**
+     * Prix du forfait : celui saisi (un forfait est souvent moins cher que la
+     * somme de ses actes), sinon la somme des actes et examens choisis.
+     */
+    private function prix(Request $request): float
+    {
+        if ($request->filled('prix_forfait')) {
+            return (float) $request->input('prix_forfait');
+        }
+
+        return (float) Test::whereIn('id', $request->input('tests', []))->sum('amount')
+            + (float) Service::whereIn('id', $request->input('services', []))->sum('amount');
+    }
 
      public function getServicesByDepartment($departmentId)
      {

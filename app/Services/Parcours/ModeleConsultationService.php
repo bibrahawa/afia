@@ -105,19 +105,19 @@ class ModeleConsultationService
         $modele->update(['actif' => false]);
     }
 
-    /** Actes encore présents au catalogue de l'établissement (un acte supprimé disparaît du modèle). */
+    /** Actes encore proposés au catalogue de l'établissement (un acte supprimé ou masqué disparaît du modèle). */
     private function catalogue(ModeleConsultation $modele): array
     {
         $parType = $modele->lignes->groupBy('type');
 
         return [
-            'service' => \App\Models\Service::whereIn('id', $parType->get('service', collect())->pluck('acte_id'))->get()
+            'service' => \App\Models\Service::actifs()->whereIn('id', $parType->get('service', collect())->pluck('acte_id'))->get()
                 ->mapWithKeys(fn ($a) => [$a->id => ['nom' => $a->name, 'prix' => (float) $a->amount]])->all(),
             'package' => \App\Models\Package::whereIn('id', $parType->get('package', collect())->pluck('acte_id'))->get()
                 ->mapWithKeys(fn ($a) => [$a->id => ['nom' => $a->name, 'prix' => (float) $a->price]])->all(),
             'test' => \App\Models\Test::whereIn('id', $parType->get('test', collect())->pluck('acte_id'))->get()
                 ->mapWithKeys(fn ($a) => [$a->id => ['nom' => $a->name, 'prix' => (float) $a->amount]])->all(),
-            'medicament' => \App\Models\Medicament::whereIn('id', $parType->get('medicament', collect())->pluck('acte_id'))->get()
+            'medicament' => \App\Models\Medicament::actifs()->whereIn('id', $parType->get('medicament', collect())->pluck('acte_id'))->get()
                 ->mapWithKeys(fn ($a) => [$a->id => ['nom' => $a->nom, 'prix' => (float) $a->amount]])->all(),
         ];
     }

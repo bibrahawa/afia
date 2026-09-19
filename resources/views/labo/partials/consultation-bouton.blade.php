@@ -19,9 +19,9 @@
     @endphp
 
     <div class="btn-group">
-        <button type="button" class="btn btn-sm btn-outline-danger dropdown-toggle" data-bs-toggle="dropdown">
+        <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
             <i class="fas fa-flask me-1"></i> Laboratoire
-            @if($demandesLabo->isNotEmpty())<span class="badge bg-danger ms-1">{{ $demandesLabo->count() }}</span>@endif
+            @if($demandesLabo->isNotEmpty())<span class="badge bg-primary ms-1">{{ $demandesLabo->count() }}</span>@endif
         </button>
         <ul class="dropdown-menu dropdown-menu-end shadow-sm">
             @can('labo.demande.create')
@@ -31,7 +31,7 @@
                               onsubmit="return confirm('Envoyer au laboratoire les {{ $testsRelies }} examen(s) prescrit(s) ? Ils sont déjà facturés avec la consultation.')">
                             @csrf
                             <button class="dropdown-item">
-                                <i class="fas fa-paper-plane me-2 text-danger"></i>Envoyer les examens prescrits ({{ $testsRelies }})
+                                <i class="fas fa-paper-plane me-2 text-primary"></i>Envoyer les examens prescrits ({{ $testsRelies }})
                             </button>
                         </form>
                     </li>

@@ -33,4 +33,9 @@
         <label>Email</label>
         <input type="email" name="email" class="form-control">
     </div>
+    <div class="col-sm-12 mb-2">
+        <label>Nom d'expéditeur SMS</label>
+        <input type="text" name="sms_expediteur" class="form-control" maxlength="11" pattern="[A-Za-z0-9 \-]{1,11}" placeholder="{{ \App\Support\Marque::expediteurSms() }}" style="text-transform:uppercase; letter-spacing:.06em">
+        <small class="text-muted">11 caractères, sans accent. À faire enregistrer chez Nimba AVANT de le saisir, sinon les SMS seront refusés. Vide : « {{ \App\Support\Marque::expediteurSms() }} ».</small>
+    </div>
 </div>

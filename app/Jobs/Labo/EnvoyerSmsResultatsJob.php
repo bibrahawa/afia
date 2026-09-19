@@ -66,7 +66,7 @@ class EnvoyerSmsResultatsJob implements ShouldQueue
             ? "{$etablissement}: un compte rendu RECTIFIE de vos analyses ({$demande->numero}) est disponible : {$lien}"
             : "{$etablissement}: les resultats de vos analyses ({$demande->numero}) sont disponibles : {$lien}";
 
-        $retour = $sms->sendSms($telephone, $message);
+        $retour = $sms->sendSms($telephone, $message, ['etablissement' => $demande->etablissement, 'type' => 'resultats_labo', 'sujet' => $cr]);
 
         if ($retour['success'] ?? false) {
             $cr->update(['sms_envoye_le' => now()]);

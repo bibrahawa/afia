@@ -5,15 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>Prendre rendez-vous</title>
+    <title>Prendre rendez-vous · {{ $etablissement->nom }}</title>
+    <meta name="theme-color" content="#0f766e">
 
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
 
     <style>
         :root {
-            --primary: #087f6b;
-            --primary-dark: #056655;
-            --primary-soft: #e9f7f3;
+            --primary: #0f766e;
+            --primary-dark: #115e59;
+            --primary-soft: #f0fdfa;
             --accent: #e5a23c;
             --bg: #f5f7f6;
             --surface: #ffffff;
@@ -27,7 +28,7 @@
             --danger-soft: #fff1ed;
             --warning: #b6791f;
             --warning-soft: #fdf3e3;
-            --success: #087f6b;
+            --success: #0f766e;
             --radius-sm: 10px;
             --radius-md: 14px;
             --radius-lg: 20px;
@@ -59,8 +60,12 @@
         .rdv-header { padding: max(18px, env(safe-area-inset-top)) 20px 14px; background: var(--surface); border-bottom: 1px solid var(--border); }
         .rdv-header-inner { max-width: 620px; margin: auto; }
         .rdv-brand { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
-        .rdv-brand-name { display: flex; align-items: center; gap: 9px; font-size: .9rem; font-weight: 700; color: var(--primary); }
-        .rdv-brand-icon { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 9px; background: var(--primary-soft); color: var(--primary); font-size: 15px; }
+        .rdv-brand-name { display: flex; align-items: center; gap: 10px; min-width: 0; font-size: .9rem; font-weight: 700; color: var(--primary); }
+        .rdv-brand-name strong { display: block; color: var(--text); font-size: 1rem; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .rdv-brand-name small { display: block; color: var(--text-soft); font-size: .74rem; font-weight: 500; }
+        .rdv-pied { max-width: 620px; margin: 0 auto; padding: 0 20px 110px; color: var(--text-muted); font-size: .72rem; text-align: center; }
+        .rdv-pied b { color: var(--primary); }
+        .rdv-brand-icon { width: 38px; height: 38px; flex: none; display: flex; align-items: center; justify-content: center; border-radius: 11px; background: var(--primary); color: #fff; font-size: 18px; font-weight: 800; }
         .rdv-secure { display: flex; align-items: center; gap: 5px; color: var(--text-muted); font-size: .72rem; font-weight: 500; }
         .rdv-progress-track { height: 5px; overflow: hidden; border-radius: 999px; background: #e9eeec; }
         .rdv-progress-bar { width: 0%; height: 100%; border-radius: inherit; background: var(--primary); transition: width .35s ease; }
@@ -190,8 +195,8 @@
             <div class="rdv-header-inner">
                 <div class="rdv-brand">
                     <div class="rdv-brand-name">
-                        <span class="rdv-brand-icon">+</span>
-                        <span>Prise de rendez-vous</span>
+                        <span class="rdv-brand-icon" aria-hidden="true">+</span>
+                        <span style="min-width:0"><strong>{{ $etablissement->nom }}</strong><small>Prise de rendez-vous en ligne</small></span>
                     </div>
                     <div class="rdv-secure">
                         <span>🔒</span>
@@ -315,6 +320,8 @@
             </section>
 
         </main>
+
+        <p class="rdv-pied">Vos données sont transmises uniquement à {{ $etablissement->nom }} · <b>Hali</b></p>
 
         <footer class="rdv-actions" id="footerActions">
             <div class="rdv-actions-inner">

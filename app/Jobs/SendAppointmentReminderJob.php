@@ -36,7 +36,7 @@ class SendAppointmentReminderJob implements ShouldQueue
             // CORRIGÉ — 'patient.user' n'a plus de sens depuis ComptePatient ;
             // charge la relation qui contient réellement le téléphone
             // aujourd'hui.
-            $appointment = $this->appointment->fresh(['patient.comptesPatients', 'employee']);
+            $appointment = $this->appointment->fresh(['patient.comptesPatients', 'employee', 'etablissement']);
 
             if (!$appointment || !in_array($appointment->status, ['pending', 'confirmed'])) {
                 Log::info("Rappel SMS annulé - RDV non valide", [
@@ -60,7 +60,11 @@ class SendAppointmentReminderJob implements ShouldQueue
             // pas de l'ancien User staff. Un patient peut en théorie avoir
             // plusieurs comptes liés (délégation) — on prend le premier,
             // cohérent avec le reste de la plateforme (voir AppointmentController).
-            $telephone = $appointment->patient?->comptesPatients?->first()?->telephone;
+            // CORRIGÉ — seul le compte du portail était lu : un patient enregistré à
+            // l'accueil (sans compte portail, le cas le plus courant) ne recevait
+            // AUCUN rappel. Le numéro de sa fiche sert désormais de repli.
+            $telephone = $appointment->patient?->comptesPatients?->first()?->telephone
+                ?: $appointment->patient?->telephone;
 
             if (!$telephone) {
                 Log::warning("Pas de numéro de téléphone", [
@@ -85,7 +89,11 @@ class SendAppointmentReminderJob implements ShouldQueue
                 'status' => 'pending'
             ]);
 
-            $result = $smsService->sendSms($telephone, $message);
+            $result = $smsService->sendSms($telephone, $message, [
+                'etablissement' => $appointment->etablissement ?? $appointment->etablissement_id,
+                'type' => 'rdv_' . $this->reminderType,
+                'sujet' => $appointment,
+            ]);
 
             if ($result['success']) {
                 $smsLog->markAsSent();
@@ -125,15 +133,18 @@ class SendAppointmentReminderJob implements ShouldQueue
 
     private function generateMessage(Appointment $appointment): string
     {
-        $patientName = $appointment->patient->getFullNameAttribute();
-        $doctorName = $appointment->employee->getFullNameAttribute();
+        // Sans accents : un seul accent fait passer le SMS en Unicode (70 caractères
+        // au lieu de 160) et en double le coût. « Dr » vient de nom_affiche
+        // (CORRIGÉ : « Dr Dr » quand le prénom contenait déjà le titre).
+        $patientName = \Illuminate\Support\Str::ascii($appointment->patient->first_name ?: $appointment->patient->getFullNameAttribute());
+        $doctorName = \Illuminate\Support\Str::ascii($appointment->employee->nom_affiche);
         $appointmentDate = $appointment->getFormattedDateShortAttribute();
         $appointmentTime = $appointment->getFormattedTimeAttribute();
 
         // Nom et téléphone de la clinique DU RENDEZ-VOUS (et non plus
         // « Clinique X / 628 16 44 22 » pour toutes les cliniques).
         $identite = \App\Support\Etablissement\IdentiteDocument::pour($appointment->etablissement);
-        $clinicName = $identite->nom;
+        $clinicName = \Illuminate\Support\Str::ascii($identite->nom);
         $clinicPhone = $identite->contact ?: config('clinic.phone', '');
 
         // NOUVEAU — lien d'annulation intégré DANS le SMS de confirmation
@@ -146,13 +157,18 @@ class SendAppointmentReminderJob implements ShouldQueue
             $lienAnnulation = $this->genererLienAnnulationCourt($appointment);
         }
 
+        // NOUVEAU — rappel de la veille avec « Empêché ? » : le patient libère son
+        // créneau en un clic au lieu de ne pas venir.
+        $lienEmpeche = $this->reminderType === 'reminder_24h' ? $this->genererLienAnnulationCourt($appointment, 'empeche') : '';
+
         $messages = [
-            'reminder_24h' => "Bonjour {$patientName}, nous vous rappelons votre RDV avec Dr {$doctorName} demain le {$appointmentDate} à {$appointmentTime}. N'oubliez pas vos documents médicaux. {$clinicName}",
-            'reminder_2h' => "Rappel {$patientName} : Votre RDV avec Dr {$doctorName} est dans 2h à {$appointmentTime}. Arrivée conseillée 15min avant. Tel: {$clinicPhone}",
-            'confirmation' => "{$patientName} : Votre RDV avec Dr {$doctorName} le {$appointmentDate} à {$appointmentTime} est confirmé. Pas vous ? Annulez : {$lienAnnulation}",
-            'cancellation' => "Annulation {$patientName} : Votre RDV du {$appointmentDate} avec Dr {$doctorName} est annulé. Reprenez RDV via l'app ou au {$clinicPhone}. {$clinicName}",
-            'rescheduling' => "{$patientName} : votre RDV avec Dr {$doctorName} est déplacé au {$appointmentDate} à {$appointmentTime}. Pas d'accord ? Annulez : {$lienAnnulation}",
-            'no_availability' => "Bonjour {$patientName}, aucun créneau disponible actuellement avec Dr {$doctorName}. Nous vous contacterons dès qu'un créneau se libère. Contact: {$clinicPhone}"
+            'reminder_24h' => trim("{$patientName}, rappel : RDV demain {$appointmentDate} a {$appointmentTime} avec {$doctorName}, {$clinicName}."
+                . ($lienEmpeche ? " Empeche ? Liberez le creneau : {$lienEmpeche}" : ($clinicPhone ? " Empeche ? Appelez le {$clinicPhone}" : ''))),
+            'reminder_2h' => "{$patientName}, votre RDV avec {$doctorName} est a {$appointmentTime}. Arrivez 15 min avant. {$clinicName}" . ($clinicPhone ? " {$clinicPhone}" : ''),
+            'confirmation' => "{$patientName}, RDV confirme le {$appointmentDate} a {$appointmentTime} avec {$doctorName}, {$clinicName}. Pas vous ? Annulez : {$lienAnnulation}",
+            'cancellation' => "{$patientName}, votre RDV du {$appointmentDate} avec {$doctorName} est annule. Reprenez RDV au {$clinicPhone}. {$clinicName}",
+            'rescheduling' => "{$patientName}, votre RDV avec {$doctorName} est deplace au {$appointmentDate} a {$appointmentTime}. Pas d'accord ? Annulez : {$lienAnnulation}",
+            'no_availability' => "{$patientName}, aucun creneau libre pour l'instant avec {$doctorName}. Nous vous rappellerons. {$clinicName} {$clinicPhone}",
         ];
 
         return $messages[$this->reminderType] ?? $messages['reminder_24h'];
@@ -164,22 +180,28 @@ class SendAppointmentReminderJob implements ShouldQueue
      * vide plutôt que de faire échouer tout l'envoi du SMS de confirmation
      * — le rendez-vous reste confirmé même sans ce filet de sécurité.
      */
-    protected function genererLienAnnulationCourt(Appointment $appointment): string
+    protected function genererLienAnnulationCourt(Appointment $appointment, ?string $motif = null): string
     {
         try {
-            $etablissement = $appointment->employee->etablissement;
+            $etablissement = $appointment->etablissement ?? $appointment->employee->etablissement;
 
             if (! $etablissement) {
                 return '';
             }
 
-            $lienSigne = \Illuminate\Support\Facades\URL::temporarySignedRoute(
-                'rdv-public.annulation',
-                now()->addHours(48),
-                ['etablissement' => $etablissement->slug, 'appointment' => $appointment->id]
-            );
+            // Lien valable jusqu'à l'heure du rendez-vous (au moins 2 h).
+            $expiration = $motif === 'empeche'
+                ? max(now()->addHours(2), $appointment->appointment_datetime->copy())
+                : now()->addHours(48);
 
-            return app(LienCourtService::class)->creer($lienSigne, now()->addHours(48));
+            $parametres = ['etablissement' => $etablissement->slug, 'appointment' => $appointment->id];
+            if ($motif) {
+                $parametres['motif'] = $motif; // couvert par la signature
+            }
+
+            $lienSigne = \Illuminate\Support\Facades\URL::temporarySignedRoute('rdv-public.annulation', $expiration, $parametres);
+
+            return app(LienCourtService::class)->creer($lienSigne, $expiration);
         } catch (\Throwable $e) {
             Log::warning('Échec génération lien annulation court', [
                 'appointment_id' => $appointment->id,

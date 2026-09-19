@@ -106,14 +106,35 @@
                 @endcan
 
 @module('rdv')
-                @can('medecin.appointments')
-                <li class="nav-item {{ request()->routeIs('medecin.*') && request()->routeIs('*.appointments') ? 'active' : '' }}">
-                    <a href="{{ route('medecin.appointments') }}">
+                {{-- Deux écrans distincts : la réception voit ceux de toute la clinique,
+                     un médecin voit les siens. L'administrateur, qui n'est pas médecin,
+                     voyait jusqu'ici une page « Rendez-vous » toujours vide. --}}
+                @can('appointment.view')
+                <li class="nav-item {{ request()->routeIs('appointment.*') ? 'active' : '' }}">
+                    <a href="{{ route('appointment.index') }}">
                         <i class="fas fa-calendar-alt"></i>
                         <p>Rendez-vous</p>
                     </a>
                 </li>
                 @endcan
+                @can('appointment.view')
+                <li class="nav-item {{ request()->routeIs('rdv.affiche') ? 'active' : '' }}">
+                    <a href="{{ route('rdv.affiche') }}">
+                        <i class="fas fa-qrcode"></i>
+                        <p>Affiche et QR code</p>
+                    </a>
+                </li>
+                @endcan
+                @if(auth()->user()?->employee?->type === 'Doctor')
+                @can('medecin.appointments')
+                <li class="nav-item {{ request()->routeIs('medecin.appointments') ? 'active' : '' }}">
+                    <a href="{{ route('medecin.appointments') }}">
+                        <i class="fas fa-calendar-check"></i>
+                        <p>Mes rendez-vous</p>
+                    </a>
+                </li>
+                @endcan
+                @endif
                 @endmodule
 
 
@@ -367,30 +388,18 @@
                 @endcan
 
                 <!-- COMMUNICATION -->
-                {{-- @can('sms.access') --}}
-                {{-- <li class="nav-section">
-                    <span class="sidebar-mini-icon">
-                        <i class="fa fa-ellipsis-h"></i>
-                    </span>
-                    <h4 class="text-section">Communication</h4>
-                </li>
-
-                <li class="nav-item {{ request()->routeIs('sms.lists') ? 'active' : '' }}">
-                    <a href="{{ route('sms.lists') }}">
-                        <i class="fas fa-list"></i>
-                        <p>Sms envoyés</p>
-                    </a>
-                </li> --}}
-                {{-- @endcan --}}
-
-                {{-- @can('sms.new') --}}
-                {{-- <li class="nav-item {{ request()->routeIs('sms.new') ? 'active' : '' }}">
-                    <a href="{{ route('sms.new') }}">
-                        <i class="fas fa-sms"></i>
-                        <p>Nouveau SMS</p>
-                    </a>
-                </li> --}}
-                {{-- @endcan --}}
+                @can('sms.journal')
+                    <li class="nav-section">
+                        <span class="sidebar-mini-icon"><i class="fa fa-ellipsis-h"></i></span>
+                        <h4 class="text-section">Communication</h4>
+                    </li>
+                    <li class="nav-item {{ request()->routeIs('sms.journal.*') ? 'active' : '' }}">
+                        <a href="{{ route('sms.journal.index') }}">
+                            <i class="fas fa-sms"></i>
+                            <p>Journal des SMS</p>
+                        </a>
+                    </li>
+                @endcan
 
                 <!-- ADMINISTRATION -->
 
@@ -462,80 +471,13 @@
 </div>
 <!-- End Sidebar -->
 
+{{-- Styles du menu : dans public/assets/css/admin-theme.css (section « Menu latéral »).
+     L'ancien bloc appliquait l'état actif à TOUS les liens d'un groupe ouvert :
+     chaque sous-élément paraissait sélectionné. --}}
 <style>
-    /* Styles pour le menu actif — recodés en teal (marque Aprosafe)
-       au lieu de l'orange d'origine du template KaiAdmin */
-    .nav-item.active a {
-        background: linear-gradient(90deg, rgba(8, 127, 107, 0.1) 0%, transparent 100%);
-        color: #087f6b !important;
-        border-left: 3px solid #087f6b;
-        font-weight: 600;
-    }
-
-    .nav-item a {
-        border-left: 3px solid transparent;
-        transition: all 0.3s ease;
-        padding: 12px 20px;
-    }
-
-    .nav-item a:hover {
-        background: rgba(8, 127, 107, 0.05);
-        color: #087f6b;
-        border-left-color: #087f6b;
-    }
-
-    /* Sections du menu */
-    .nav-section {
-        margin-top: 20px;
-        padding-top: 15px;
-        border-top: 1px solid #f0f0f0;
-    }
-
-    .nav-section:first-of-type {
-        margin-top: 10px;
-        border-top: none;
-    }
-
-    .text-section {
-        font-size: 11px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: #999;
-        padding: 0 20px;
-        margin-bottom: 8px;
-    }
-
-    /* Icônes */
-    .nav-item i {
-        width: 24px;
-        text-align: center;
-        margin-right: 12px;
-        font-size: 16px;
-    }
-
-    /* Scroll personnalisé */
-    .sidebar-wrapper.scrollbar-inner {
-        scrollbar-width: thin;
-        scrollbar-color: rgba(8, 127, 107, 0.3) transparent;
-    }
-
-    .sidebar-wrapper.scrollbar-inner::-webkit-scrollbar {
-        width: 6px;
-    }
-
-    .sidebar-wrapper.scrollbar-inner::-webkit-scrollbar-track {
-        background: transparent;
-    }
-
-    .sidebar-wrapper.scrollbar-inner::-webkit-scrollbar-thumb {
-        background-color: rgba(8, 127, 107, 0.3);
-        border-radius: 3px;
-    }
-
-    .sidebar-wrapper.scrollbar-inner::-webkit-scrollbar-thumb:hover {
-        background-color: rgba(8, 127, 107, 0.5);
-    }
+    .sidebar-wrapper.scrollbar-inner { scrollbar-width: thin; scrollbar-color: rgba(15, 118, 110, .3) transparent; }
+    .sidebar-wrapper.scrollbar-inner::-webkit-scrollbar { width: 6px; }
+    .sidebar-wrapper.scrollbar-inner::-webkit-scrollbar-thumb { background-color: rgba(15, 118, 110, .3); border-radius: 3px; }
 </style>
 
 <script>

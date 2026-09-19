@@ -56,10 +56,13 @@ class DoctorAvailabilityService
                 $data['end_time']
             );
 
+            // CORRIGÉ — la case « Active » du formulaire était validée puis ignorée :
+            // un médecin ne pouvait pas suspendre un jour sans le supprimer.
             $availability->update([
                 'day_of_week' => $data['day_of_week'],
                 'start_time' => $data['start_time'],
                 'end_time' => $data['end_time'],
+                'is_active' => (bool) ($data['is_active'] ?? $availability->is_active),
             ]);
 
             return $cancelledCount;

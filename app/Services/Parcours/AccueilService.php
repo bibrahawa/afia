@@ -176,6 +176,11 @@ class AccueilService
             $this->annulerFactureAccueil($visite);
         }
 
+        // CORRIGÉ — la consultation n'était fermée que si la facture était annulée
+        // ET existait : sans acte facturé, ou case décochée, elle restait « en cours »,
+        // encore modifiable par le médecin et comptée dans les listes.
+        $visite->consultation?->update(['statut' => \App\Models\Consultation::ANNULEE]);
+
         $visite->update([
             'statut' => StatutVisite::Partie,
             'terminee_le' => now(),
@@ -266,7 +271,7 @@ class AccueilService
 
             app(\App\Services\PatientAccountService::class)->retirerTransaction($transaction);
             $transaction->update(['status' => 'cancel']);
-            $visite->consultation?->update(['statut' => \App\Models\Consultation::TERMINEE]);
+            $visite->consultation?->update(['statut' => \App\Models\Consultation::ANNULEE]);
         });
     }
 

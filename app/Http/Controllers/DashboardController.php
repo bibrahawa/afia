@@ -14,42 +14,87 @@ use App\Models\Transaction;
 
 class DashboardController extends Controller
 {
+    /**
+     * Tableau de bord : la journée en cours, pas des totaux de toujours.
+     *
+     * L'ancienne version affichait un « chiffre d'affaires » calculé sur les
+     * dix dernières transactions et un nombre de « patients assurés » égal au
+     * nombre total de patients. Tout est recalculé ici, sur des périodes
+     * explicites, et les soldes passent par SoldeTransaction comme partout.
+     */
     public function admin()
     {
-        $rdv_today = Appointment::whereDate('appointment_date', today())->count();
-        $hospitalisations_active = Hospitalisation::where('statut', 'active')->count();
-        $chambres_libres = Chambre::where('statut', 'libre')->count();
-        $patients_assures = Patient::suivisParEtablissement()->count();
-        $factures_impayees = Invoice::whereIn('insurance_status', ['pending', 'approved'])->count();
-        $montant_impaye = Invoice::whereIn('insurance_status', ['pending', 'approved'])->sum('insurance_amount');
-        $medicaments_stock_faible = Medicament::count();
-        $reclamations_en_attente = InsuranceClaim::where('status', 'draft')->count();
+        $aujourdhui = [today()->startOfDay(), today()->endOfDay()];
 
-        $rdv_aujourdhui = Appointment::with(['patient.comptesPatients', 'employee'])
+        // ----------------------------------------------------------- Journée
+        $visites = class_exists(\App\Models\Parcours\Visite::class)
+            ? \App\Models\Parcours\Visite::whereBetween('arrivee_le', $aujourdhui)->with(['patient', 'medecin'])->get()
+            : collect();
+
+        $enAttente = $visites->filter(fn ($v) => $v->statut->value === 'en_attente');
+        $enConsultation = $visites->filter(fn ($v) => $v->statut->value === 'en_consultation');
+
+        $rdvDuJour = Appointment::with(['patient', 'employee', 'motifRdv'])
             ->whereDate('appointment_date', today())
             ->orderBy('appointment_time')
             ->get();
 
-        $total_patient = Patient::suivisParEtablissement()->count();
-        $patientes = Patient::suivisParEtablissement()->latest()->limit(5)->get();
-        $consultations = Consultation::latest()->limit(10)->get();
-        $transactions = Transaction::latest()->limit(10)->get();
+        // ----------------------------------------------------------- Caisse
+        $paiements = \App\Models\Paiement::whereBetween('created_at', $aujourdhui)->get();
 
-        return view('dashboard', compact(
-            'total_patient',
-            'consultations',
-            'transactions',
-            'patientes',
-            'rdv_aujourdhui',
-            'rdv_today',
-            'hospitalisations_active',
-            'chambres_libres',
-            'patients_assures',
-            'factures_impayees',
-            'montant_impaye',
-            'medicaments_stock_faible',
-            'reclamations_en_attente'
-        ));
+        $resteAEncaisser = Transaction::whereBetween('created_at', $aujourdhui)
+            ->where('status', '!=', 'cancel')
+            ->get()
+            ->sum(fn (Transaction $t) => \App\Support\Facturation\SoldeTransaction::pour($t)->resteDuPatient());
+
+        // ----------------------------------------------------------- Activité des 7 jours
+        $semaine = collect(range(6, 0))->map(function (int $recul) {
+            $jour = today()->subDays($recul);
+
+            return [
+                'date' => $jour,
+                'consultations' => Consultation::whereBetween('created_at', [$jour->copy()->startOfDay(), $jour->copy()->endOfDay()])->count(),
+            ];
+        });
+
+        return view('dashboard', [
+            'visites' => $visites,
+            'enAttente' => $enAttente->sortBy('arrivee_le'),
+            'enConsultation' => $enConsultation,
+            'terminees' => $visites->filter(fn ($v) => $v->statut->value === 'terminee')->count(),
+            'attenteMoyenne' => $this->attenteMoyenne($visites),
+
+            'rdvDuJour' => $rdvDuJour,
+            'rdvHonores' => $rdvDuJour->where('status', 'completed')->count(),
+            'rdvAbsents' => $rdvDuJour->where('status', 'no_show')->count(),
+
+            'encaisseCejour' => round($paiements->where('type', '!=', 'remise')->sum('montant')),
+            'resteAEncaisser' => round($resteAEncaisser),
+
+            'hospitalisesActifs' => Hospitalisation::where('statut', 'active')->count(),
+            'chambresLibres' => Chambre::where('statut', 'libre')->count(),
+
+            'creancesAssurance' => round(InsuranceClaim::whereIn('status', ['draft', 'submitted', 'approved'])->get()
+                ->sum(fn (InsuranceClaim $c) => $c->resteDu())),
+            'reclamationsAEnvoyer' => InsuranceClaim::where('status', 'draft')->count(),
+
+            'laboEnCours' => class_exists(\App\Models\Labo\LaboDemande::class)
+                ? \App\Models\Labo\LaboDemande::whereNotIn('statut', ['publiee', 'annulee'])->count()
+                : 0,
+
+            'nouveauxPatients' => Patient::suivisParEtablissement()->whereBetween('patients.created_at', $aujourdhui)->count(),
+            'derniersPatients' => Patient::suivisParEtablissement()->latest('patients.id')->limit(6)->get(),
+            'semaine' => $semaine,
+        ]);
+    }
+
+    /** Minutes écoulées entre l'arrivée et l'appel, pour les patients déjà appelés. */
+    private function attenteMoyenne($visites): ?int
+    {
+        $attentes = $visites->filter(fn ($v) => $v->appele_le)
+            ->map(fn ($v) => (int) $v->arrivee_le->diffInMinutes($v->appele_le, true));
+
+        return $attentes->isEmpty() ? null : (int) round($attentes->avg());
     }
 
     public function indexProfessionel()

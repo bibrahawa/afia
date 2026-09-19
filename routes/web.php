@@ -88,14 +88,43 @@ Route::middleware('auth')->group(function () {
 
     Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 
-    // SMS - À définir selon vos besoins
-    Route::middleware('permission:dashboard.view')->group(function () {
-        Route::get('/sms/lists', [SmsController::class, 'smsLists'])->name('sms.lists');
-        Route::get('/sms/send', [SmsController::class, 'newSms'])->name('sms.new');
-        Route::post('/sms/send', [SmsController::class, 'send'])->name('sms.send');
-        Route::get('/sms-report', [SmsReportController::class, 'index'])->name('admin.sms-report');
-        Route::post('/sms-report/resend-failed', [SmsReportController::class, 'resendFailed']);
-    });
+    /*
+    | SMS — DÉSACTIVÉ (sécurité), en attente d'un vrai module de journal des SMS.
+    |   - /sms/lists affichait TOUS les SMS du compte fournisseur partagé : ceux de
+    |     toutes les cliniques et d'autres activités (OTP, débits de portefeuille…),
+    |     à tout utilisateur connecté ;
+    |   - POST /sms/send ignorait le formulaire et envoyait un SMS de test à un
+    |     numéro écrit en dur ;
+    |   - /sms/send appelait une route supprimée (erreur 500) et /sms-report une vue
+    |     inexistante (erreur 500).
+    | Les SMS métier (rappels de rendez-vous, résultats, codes du portail) ne passent
+    | pas par ces routes et continuent de fonctionner.
+    |
+    | Route::get('/sms/lists', [SmsController::class, 'smsLists'])->name('sms.lists');
+    | Route::get('/sms/send', [SmsController::class, 'newSms'])->name('sms.new');
+    | Route::post('/sms/send', [SmsController::class, 'send'])->name('sms.send');
+    | Route::get('/sms-report', [SmsReportController::class, 'index'])->name('admin.sms-report');
+    | Route::post('/sms-report/resend-failed', [SmsReportController::class, 'resendFailed']);
+    */
+
+    // Cloche : alertes calculées (lot S4), rafraîchies par la barre du haut.
+    Route::get('cloche', \App\Http\Controllers\ClocheController::class)
+        ->middleware('throttle:30,1')
+        ->name('cloche');
+
+    // Journal des SMS de la clinique (lot S1) : remplace les écrans désactivés ci-dessus.
+    // Affiche et cartes de prise de rendez-vous avec QR code (lot S2).
+    Route::get('rendez-vous/affiche', \App\Http\Controllers\AfficheRdvController::class)
+        ->middleware('permission:appointment.view')
+        ->name('rdv.affiche');
+
+    Route::get('sms/journal', [\App\Http\Controllers\Sms\JournalSmsController::class, 'index'])
+        ->middleware('permission:sms.journal')
+        ->name('sms.journal.index');
+    Route::post('sms/journal/{journal}/renvoyer', [\App\Http\Controllers\Sms\JournalSmsController::class, 'renvoyer'])
+        ->whereNumber('journal')
+        ->middleware(['permission:sms.renvoyer', 'throttle:20,1'])
+        ->name('sms.journal.renvoyer');
 
     /*
     |--------------------------------------------------------------------------
@@ -341,10 +370,18 @@ Route::middleware('auth')->group(function () {
     // ============================================
     // EMPLOYÉS
     // ============================================
+    // Mon profil : ouvert à tout membre du personnel connecté (plus besoin de employee.view).
+    Route::get('mon-profil', [EmployeeController::class, 'profile'])->name('employee.profile');
+    Route::put('mon-profil/mot-de-passe', [EmployeeController::class, 'motDePasse'])
+        ->middleware('throttle:6,1')
+        ->name('employee.mot-de-passe');
+
+    // CORRIGÉ — « employee/{employee} » était déclarée AVANT « employee/profile » et
+    // « employee/create » : ces deux adresses tombaient sur la fiche d'un employé
+    // nommé « profile » / « create » (erreur). Identifiant désormais numérique.
     Route::middleware('permission:employee.view')->group(function () {
         Route::get('employee', [EmployeeController::class, 'index'])->name('employee.index');
-        Route::get('employee/{employee}', [EmployeeController::class, 'show'])->name('employee.show');
-        Route::get('employee/profile', [EmployeeController::class, 'profile'])->name('employee.profile');
+        Route::get('employee/{employee}', [EmployeeController::class, 'show'])->whereNumber('employee')->name('employee.show');
     });
 
     Route::get('employee/create', [EmployeeController::class, 'create'])
@@ -355,15 +392,15 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:employee.create')
         ->name('employee.store');
 
-    Route::get('employee/{employee}/edit', [EmployeeController::class, 'edit'])
+    Route::get('employee/{employee}/edit', [EmployeeController::class, 'edit'])->whereNumber('employee')
         ->middleware('permission:employee.edit')
         ->name('employee.edit');
 
-    Route::put('employee/{employee}', [EmployeeController::class, 'update'])
+    Route::put('employee/{employee}', [EmployeeController::class, 'update'])->whereNumber('employee')
         ->middleware('permission:employee.edit')
         ->name('employee.update');
 
-    Route::delete('employee/{employee}', [EmployeeController::class, 'destroy'])
+    Route::delete('employee/{employee}', [EmployeeController::class, 'destroy'])->whereNumber('employee')
         ->middleware('permission:employee.delete')
         ->name('employee.destroy');
 
@@ -423,6 +460,22 @@ Route::middleware('auth')->group(function () {
         Route::delete('delete/{id?}', [ServiceController::class, 'delete'])
             ->middleware('permission:service.delete')
             ->name('delete');
+
+        // Lot S3 : masquer / réafficher (garde l'historique, allège les listes).
+        Route::patch('{service}/visibilite', [ServiceController::class, 'basculerVisibilite'])
+            ->whereNumber('service')
+            ->middleware('permission:service.edit')
+            ->name('visibilite');
+    });
+
+    // Lot S3 : import du catalogue (actes, examens, médicaments) depuis Excel ou CSV.
+    // Les droits de création sont vérifiés par type dans le contrôleur.
+    Route::prefix('catalogue/import')->name('catalogue.import')->controller(\App\Http\Controllers\Catalogue\ImportCatalogueController::class)->group(function () {
+        Route::get('/', 'index')->name('');
+        Route::get('modele/{type}', 'modele')->whereIn('type', ['actes', 'examens', 'medicaments'])->name('.modele');
+        Route::post('analyser', 'analyser')->middleware('throttle:20,1')->name('.analyser');
+        Route::post('confirmer', 'confirmer')->name('.confirmer');
+        Route::post('annuler', 'annuler')->name('.annuler');
     });
 
     // ============================================
@@ -560,6 +613,10 @@ Route::middleware('auth')->group(function () {
     Route::delete('medicaments/{medicament}', [MedicamentController::class, 'destroy'])
         ->middleware('permission:medicament.delete')
         ->name('medicaments.destroy');
+
+    Route::patch('medicaments/{medicament}/visibilite', [MedicamentController::class, 'basculerVisibilite'])
+        ->middleware('permission:medicament.edit')
+        ->name('medicaments.visibilite');
 
     // ============================================
     // PACKAGES
@@ -801,7 +858,10 @@ Route::middleware('auth')->group(function () {
     //     ->middleware('permission:payment.view')
     //     ->name('payment.show');
 
-    Route::get('facture', [PaymentController::class, 'factureNonPayer'])
+    // « Paiements en attente » ouvre désormais la caisse (liens du menu, du
+    // laboratoire… conservés). Retour arrière : remettre
+    // [PaymentController::class, 'factureNonPayer'] à la place de la redirection.
+    Route::get('facture', fn () => redirect()->route('caisse.index'))
             ->middleware('permission:account.facture')
             ->name('account.facture');
 
@@ -811,6 +871,20 @@ Route::middleware('auth')->group(function () {
     Route::post('/payment/process', [PaymentController::class, 'processPayment'])
         ->middleware('permission:payment.process')
         ->name('account.payer');
+
+    // Caisse : encaissement de la part patient telle que calculée à la
+    // facturation par le moteur de prise en charge (aucun recalcul côté navigateur).
+    Route::controller(\App\Http\Controllers\Facturation\CaisseController::class)->group(function () {
+        Route::get('caisse', 'index')->middleware('permission:account.facture')->name('caisse.index');
+        Route::get('caisse/patients/{patientId}', 'show')->whereNumber('patientId')
+            ->middleware('permission:account.facture')->name('caisse.show');
+        Route::post('caisse/patients/{patientId}/encaisser', 'encaisser')->whereNumber('patientId')
+            ->middleware('permission:payment.process')->name('caisse.encaisser');
+        Route::post('caisse/factures/{transactionId}/remises', 'remises')->whereNumber('transactionId')
+            ->middleware('permission:payment.process')->name('caisse.remises');
+        Route::post('caisse/factures/{transactionId}/recalculer', 'recalculer')->whereNumber('transactionId')
+            ->middleware('permission:payment.process')->name('caisse.recalculer');
+    });
 
     // Annulation d'un encaissement (trace conservée, motif obligatoire).
     Route::post('/paiements/{paiement}/annuler', \App\Http\Controllers\Facturation\AnnulationPaiementController::class)

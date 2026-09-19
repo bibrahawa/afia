@@ -14,7 +14,7 @@ class DepartmentController extends Controller
      */
     public function getIndex()
     {
-        $departments = Department::all();
+        $departments = Department::withCount(['services', 'employees', 'motifsRdv'])->orderBy('name')->get();
         return view('departments.index', compact('departments'));
         //
     }
@@ -27,10 +27,10 @@ class DepartmentController extends Controller
      */
     public function store(Request $request)
     {
-        $data = $request->all();
-        $request->validate( ['name'=>'required|unique_etablissement:departments,name']);
-        Department::create($data);
-        return back()->with('success', 'Department saved successfully.');
+        $request->validate(['name' => 'required|string|max:255|unique_etablissement:departments,name'],
+            ['name.required' => 'Indiquez le nom du département.', 'name.unique_etablissement' => 'Ce département existe déjà.']);
+        Department::create($request->only('name'));
+        return back()->with('success', 'Département ajouté.');
         //
     }
 
@@ -45,10 +45,16 @@ class DepartmentController extends Controller
     {
         //return $request->all();
 
-        $data = Department::find($request->id );
-        $data->name = ($request->name);
-        $data->save ();
-        return back()->with('success', 'Department Updated successfully');
+        // CORRIGÉ — aucune validation : un nom vide ou un identifiant d'un autre établissement passait.
+        $request->validate([
+            'id' => 'required|exists_etablissement:departments,id',
+            'name' => 'required|string|max:255|unique_etablissement:departments,name,' . (int) $request->id,
+        ], ['name.required' => 'Indiquez le nom du département.', 'name.unique_etablissement' => 'Ce département existe déjà.']);
+
+        $data = Department::findOrFail($request->id);
+        $data->name = $request->name;
+        $data->save();
+        return back()->with('success', 'Département renommé.');
         //
     }
 
@@ -66,14 +72,14 @@ class DepartmentController extends Controller
             $department->employees()->exists()
             // || $department->doctors()->exists()
             ) {
-            return back()->with('error', 'Department cannot be deleted because it has related records.');
+            return back()->with('error', 'Ce département contient des actes ou des employés : déplacez-les avant de le supprimer.');
         }
 
         try {
             $department->delete();
-            return back()->with('success', 'Department deleted successfully.');
+            return back()->with('success', 'Département supprimé.');
         } catch (\Exception $e) {
-            return back()->with('error', 'Failed to delete department.');
+            return back()->with('error', 'Suppression impossible : ce département est encore utilisé (motifs de rendez-vous, forfaits…).');
         }
     }
 

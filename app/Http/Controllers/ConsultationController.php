@@ -208,21 +208,67 @@ class ConsultationController extends Controller
     }
 
 
-    public function index()
+    /**
+     * Liste des consultations, paginée et filtrable.
+     *
+     * CORRIGÉ — chargeait TOUTES les consultations de la clinique d'un coup
+     * (Consultation::latest()->get()), plus deux requêtes par ligne pour le
+     * patient et le département : la page ralentissait à chaque consultation
+     * ajoutée. Désormais 25 par page, relations chargées en une fois.
+     */
+    public function index(Request $request)
     {
-        $consultations = Consultation::latest()->get();
+        $filtres = $request->validate([
+            'q' => ['nullable', 'string', 'max:100'],
+            'statut' => ['nullable', 'in:' . Consultation::EN_COURS . ',' . Consultation::TERMINEE . ',' . Consultation::ANNULEE],
+            'periode' => ['nullable', 'in:jour,semaine,mois'],
+            'medecin_id' => ['nullable', 'integer'],
+        ]);
 
-        return view('consultations.index', compact('consultations'));
+        $consultations = Consultation::with(['patient', 'department', 'medecin', 'transaction'])
+            ->when($filtres['q'] ?? null, function ($requete, $texte) {
+                $requete->where(function ($q) use ($texte) {
+                    $q->where('motif', 'like', "%{$texte}%")
+                        ->orWhere('diagnostic', 'like', "%{$texte}%")
+                        ->orWhereHas('patient', fn ($p) => $p->where('first_name', 'like', "%{$texte}%")
+                            ->orWhere('last_name', 'like', "%{$texte}%")
+                            ->orWhere('identifiant_national_sante', 'like', "%{$texte}%"));
+                });
+            })
+            ->when($filtres['statut'] ?? null, fn ($requete, $statut) => $requete->where('statut', $statut))
+            ->when($filtres['medecin_id'] ?? null, fn ($requete, $id) => $requete->where('medecin_id', $id))
+            ->when($filtres['periode'] ?? null, fn ($requete, $periode) => $requete->where('created_at', '>=', match ($periode) {
+                'jour' => today(),
+                'semaine' => today()->startOfWeek(),
+                'mois' => today()->startOfMonth(),
+            }))
+            ->latest()
+            ->paginate(25)
+            ->withQueryString();
+
+        return view('consultations.index', [
+            'consultations' => $consultations,
+            'filtres' => $filtres,
+            'medecins' => \App\Models\Employee::where('type', 'Doctor')->orderBy('first_name')->get(),
+            'enCours' => Consultation::where('statut', Consultation::EN_COURS)->count(),
+        ]);
     }
 
     public function create()
     {
+        // Un médecin passe par la consultation directe : même rapidité, mais le
+        // patient est enregistré comme arrivé (file, statistiques, caisse, dossier)
+        // et l'écran de consultation rapide lui propose modèles et suggestions.
+        if (auth()->user()?->employee?->type === 'Doctor' && auth()->user()->can('parcours.file')) {
+            return redirect()->route('parcours.consultation.nouvelle');
+        }
+
         // $employeeDepartmentId = auth()->user()->employee->department_id;
 
         return view('consultations.new', [
             'patients' => Patient::suivisParEtablissement()->orderBy('first_name')->get(),
 
-            'services' => Service::select('id', 'name', 'amount')
+            'services' => Service::actifs()->select('id', 'name', 'amount')
                 // ->where('department_id', $employeeDepartmentId)
                 ->orderBy('name')
                 ->get(),
@@ -231,7 +277,7 @@ class ConsultationController extends Controller
                 ->orderBy('name')
                 ->get(),
 
-            'medicaments' => Medicament::select('id', 'nom', 'amount')
+            'medicaments' => Medicament::actifs()->select('id', 'nom', 'amount')
                 ->orderBy('nom')
                 ->get(),
 

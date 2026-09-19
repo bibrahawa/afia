@@ -1,6 +1,15 @@
 @extends('layouts.backend')
 @section('style') @include('labo.partials.styles')
-<style>.param-card { border-left: 3px solid var(--aprosafe-primary, #087f6b); } .norme-row input, .norme-row select { font-size: .8rem; }</style>
+<style>
+    .param-card { margin-bottom: 12px; border: 1px solid var(--hali-bordure); border-left: 4px solid var(--hali-primaire); border-radius: 10px; background: #fff; box-shadow: none; }
+    .param-card .card-body { padding: 14px 16px; }
+    .param-card .form-label { font-weight: 600; color: var(--hali-encre); }
+    .normes { margin-top: 12px; padding: 10px 12px; border-radius: 8px; background: #f9fafb; }
+    .normes:empty { display: none; }
+    .norme-row input, .norme-row select { font-size: .8rem; }
+    .ex-bloc { margin-bottom: 16px; }
+    .ex-bloc .card-body, .ex-corps { padding: 16px 18px; }
+</style>
 @endsection
 
 @php
@@ -16,15 +25,15 @@
 @endphp
 
 @section('content')
-<div class="container"><div class="page-inner">
+<div class="container"><div class="page-inner hl">
     @include('labo.partials.entete', ['titre' => $examen->exists ? 'Modifier : ' . $examen->nom : 'Nouvel examen', 'fil' => [route('labo.catalogue.index') => 'Catalogue']])
 
-    @if($errors->any())<div class="alert alert-danger"><ul class="mb-0">@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>@endif
+    @if($errors->any())<div class="lb-alerte lb-alerte-erreur" role="alert"><i class="fas fa-exclamation-circle mt-1" aria-hidden="true"></i><ul>@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>@endif
 
     <form method="POST" action="{{ $examen->exists ? route('labo.catalogue.examens.update', $examen) : route('labo.catalogue.examens.store') }}">@csrf
         @if($examen->exists) @method('PUT') @endif
 
-        <div class="card"><div class="card-header"><h4 class="card-title">Examen</h4></div><div class="card-body">
+        <section class="hl-bloc ex-bloc"><h2 class="hl-bloc-titre">Examen</h2><div class="ex-corps">
             <div class="row g-3">
                 <div class="col-md-3"><label class="form-label">Section</label>
                     <select name="section_id" class="form-select" required>@foreach($sections as $s)<option value="{{ $s->id }}" @selected(old('section_id', $examen->section_id) == $s->id)>{{ $s->nom }}</option>@endforeach</select></div>
@@ -61,21 +70,21 @@
                 <div class="col-md-2 d-flex align-items-center"><div class="form-check mt-3"><input class="form-check-input" type="checkbox" name="mdo_immediate" value="1" id="mdoImm" @checked(old('mdo_immediate', $examen->mdo_immediate))><label class="form-check-label" for="mdoImm">Notification immédiate</label></div></div>
                 <div class="col-md-6"><label class="form-label">Laboratoire sous-traitant</label><input name="laboratoire_sous_traitant" value="{{ old('laboratoire_sous_traitant', $examen->laboratoire_sous_traitant) }}" class="form-control"></div>
             </div>
-        </div></div>
+        </div></section>
 
-        <div class="card"><div class="card-header d-flex align-items-center"><h4 class="card-title">Paramètres et normes</h4>
-            <button type="button" class="btn btn-sm btn-outline-primary ms-auto" id="ajouterParam"><i class="fa fa-plus"></i> Paramètre</button></div>
-            <div class="card-body" id="parametres">
-                <p class="small text-muted">Normes : laissez sexe/âge vides pour « tous ». Âges en jours (1 an = 365). Pour un enfant sans plage pédiatrique, le résultat affichera « norme non définie » — c'est volontaire. Formules : codes des paramètres, ex. <code>CT - HDL - TG / 2.2</code>.</p>
+        <section class="hl-bloc ex-bloc"><h2 class="hl-bloc-titre">Paramètres et normes
+            <button type="button" class="hl-bouton lb-petit" id="ajouterParam" style="margin-left:auto"><i class="fa fa-plus" aria-hidden="true"></i> Paramètre</button></h2>
+            <div class="ex-corps" id="parametres">
+                <p class="lb-alerte lb-alerte-info" style="font-size:.82rem"><i class="fas fa-info-circle mt-1" aria-hidden="true"></i><span>Normes : laissez sexe/âge vides pour « tous ». Âges en jours (1 an = 365). Pour un enfant sans plage pédiatrique, le résultat affichera « norme non définie » — c'est volontaire. Formules : codes des paramètres, ex. <code>CT - HDL - TG / 2.2</code>.</span></p>
                 @foreach($parametres as $i => $p)
                     @include('labo.catalogue._parametre', ['i' => $i, 'p' => $p, 'typesResultat' => $typesResultat])
                 @endforeach
             </div>
-        </div>
+        </section>
 
-        <div class="d-flex gap-2 mb-4">
-            <button class="btn btn-primary">Enregistrer</button>
-            <a href="{{ route('labo.catalogue.index') }}" class="btn btn-link">Annuler</a>
+        <div class="lb-barre-bas">
+            <button class="hl-bouton hl-bouton-plein"><i class="fas fa-check" aria-hidden="true"></i> Enregistrer l'examen</button>
+            <span class="lb-droite"><a href="{{ route('labo.catalogue.index') }}" class="hl-bouton">Annuler</a></span>
         </div>
     </form>
 

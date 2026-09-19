@@ -40,7 +40,7 @@ class AccueilController extends Controller
                 ->get(),
             'medecins' => Employee::where('type', 'Doctor')->where('is_active', true)->orderBy('first_name')->get(),
             'motifs' => MotifRdv::where('actif', true)->orderBy('ordre_affichage')->get(),
-            'services' => Service::orderBy('name')->get(),
+            'services' => Service::actifs()->orderBy('name')->get(),
         ]);
     }
 

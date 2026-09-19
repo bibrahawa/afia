@@ -46,27 +46,33 @@ class EnvoyerRappelsCpn extends Command
                 continue;
             }
 
+            // CORRIGÉ — un envoi ÉCHOUÉ comptait comme « déjà envoyé » : jamais retenté.
             $dejaEnvoye = GrossesseRappel::withoutGlobalScopes()
                 ->where('grossesse_id', $grossesse->id)
                 ->where('semaines', $contact['semaines'])
+                ->where('succes', true)
                 ->exists();
 
             if ($dejaEnvoye) {
                 continue;
             }
 
-            $telephone = $grossesse->patient?->comptesPatients->first()?->telephone;
+            // CORRIGÉ — seul le compte du portail était lu : sans compte, pas de rappel.
+            $telephone = $grossesse->patient?->comptesPatients->first()?->telephone
+                ?: $grossesse->patient?->telephone;
 
             if (! $telephone) {
                 $ignores++;
                 continue;
             }
 
+            $clinique = \App\Models\Etablissement::find($grossesse->etablissement_id);
             $message = sprintf(
-                'Bonjour %s, votre consultation prenatale (%s SA) est prevue vers le %s. Merci de passer a la clinique.',
-                $grossesse->patient->first_name,
+                'Bonjour %s, votre consultation prenatale (%s SA) est prevue vers le %s. Merci de passer a %s.',
+                \Illuminate\Support\Str::ascii($grossesse->patient->first_name),
                 $contact['semaines'],
-                $contact['date_cible']->format('d/m/Y')
+                $contact['date_cible']->format('d/m/Y'),
+                $clinique ? \Illuminate\Support\Str::ascii($clinique->nom) : 'la clinique'
             );
 
             if ($this->option('test')) {
@@ -75,7 +81,7 @@ class EnvoyerRappelsCpn extends Command
                 continue;
             }
 
-            $resultat = $sms->sendSms($telephone, $message);
+            $resultat = $sms->sendSms($telephone, $message, ['etablissement' => $clinique ?? $grossesse->etablissement_id, 'type' => 'cpn', 'sujet' => $grossesse]);
 
             GrossesseRappel::withoutGlobalScopes()->create([
                 'etablissement_id' => $grossesse->etablissement_id,

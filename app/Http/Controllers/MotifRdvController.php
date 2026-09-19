@@ -11,9 +11,13 @@ class MotifRdvController extends Controller
 {
     public function getIndex()
     {
-        $departments = Department::with(['motifsRdv' => fn ($q) => $q->orderBy('ordre_affichage')])->get();
+        $departments = Department::with(['motifsRdv' => fn ($q) => $q->orderBy('ordre_affichage')->with('service')])->orderBy('name')->get();
+        // Actes proposés + ceux déjà liés à un motif (même masqués, pour que la modification ne les efface pas).
+        $dejaLies = \App\Models\MotifRdv::whereNotNull('service_id')->pluck('service_id');
+        $services = \App\Models\Service::where(fn ($q) => $q->where('actif', true)->orWhereIn('id', $dejaLies))
+            ->orderBy('name')->get(['id', 'name', 'amount', 'department_id']);
 
-        return view('motifs_rdv.index', compact('departments'));
+        return view('motifs_rdv.index', compact('departments', 'services'));
     }
 
     public function store(Request $request)
@@ -24,6 +28,9 @@ class MotifRdvController extends Controller
             'duree_minutes_defaut' => ['required', 'integer', 'min:1', 'max:240'],
             'marge_tampon_minutes' => ['required', 'integer', 'min:0', 'max:60'],
             'couleur' => ['nullable', 'string', 'max:7'],
+            // Acte facturé automatiquement à l'arrivée du patient pour ce motif
+            // (utilisé par l'accueil, jusque-là impossible à régler à l'écran).
+            'service_id' => ['nullable', 'exists_etablissement:services,id'],
         ]);
 
         $data['code'] = Str::slug($data['nom']);
@@ -42,6 +49,7 @@ class MotifRdvController extends Controller
             'marge_tampon_minutes' => ['required', 'integer', 'min:0', 'max:60'],
             'couleur' => ['nullable', 'string', 'max:7'],
             'actif' => ['sometimes', 'boolean'],
+            'service_id' => ['nullable', 'exists_etablissement:services,id'],
         ]);
 
         // Le département n'est volontairement pas modifiable après coup :

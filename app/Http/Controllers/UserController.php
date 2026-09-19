@@ -67,17 +67,19 @@ class UserController extends Controller
                 $workingDays = implode(',', $request->working_day);
             }
 
-            // Préfixe "DR" pour les médecins
-            $firstName = $validated['first_name'];
-            if ($validated['role_id'] === 'medecin') {
-                $firstName = 'Dr ' . $firstName;
-            }
+            // CORRIGÉ — le titre était ajouté au prénom à CHAQUE enregistrement :
+            // une fiche modifiée devenait « Dr Dr Alpha », puis « Dr Dr Dr Alpha ».
+            // La fiche employé garde le prénom seul (Employee::nom_affiche ajoute
+            // « Dr » à l'affichage) ; le nom du compte utilisateur, affiché dans la
+            // barre du haut, reçoit le titre une seule fois.
+            $firstName = preg_replace('/^\s*(dr\.?|docteur)\s+/iu', '', trim($validated['first_name']));
+            $nomCompte = ($validated['role_id'] === 'medecin' ? 'Dr ' : '') . $firstName;
 
             // ============================================
             // CRÉATION DE L'UTILISATEUR
             // ============================================
             $user = User::create([
-                'name' => $firstName . ' ' . $validated['last_name'],
+                'name' => $nomCompte . ' ' . $validated['last_name'],
                 'email' => $validated['email'],
                 'phone' => $validated['phone'],
                 'password' => Hash::make($validated['password']),
@@ -188,15 +190,17 @@ class UserController extends Controller
         try {
             DB::beginTransaction();
 
-            // Préfixe "DR" pour les médecins
-            $firstName = $validated['first_name'];
-            if ($validated['role_id'] === 'medecin') {
-                $firstName = 'Dr ' . $firstName;
-            }
+            // CORRIGÉ — le titre était ajouté au prénom à CHAQUE enregistrement :
+            // une fiche modifiée devenait « Dr Dr Alpha », puis « Dr Dr Dr Alpha ».
+            // La fiche employé garde le prénom seul (Employee::nom_affiche ajoute
+            // « Dr » à l'affichage) ; le nom du compte utilisateur, affiché dans la
+            // barre du haut, reçoit le titre une seule fois.
+            $firstName = preg_replace('/^\s*(dr\.?|docteur)\s+/iu', '', trim($validated['first_name']));
+            $nomCompte = ($validated['role_id'] === 'medecin' ? 'Dr ' : '') . $firstName;
 
             // Mise à jour utilisateur
             $user->update([
-                'name' => $firstName . ' ' . $validated['last_name'],
+                'name' => $nomCompte . ' ' . $validated['last_name'],
                 'email' => $validated['email'],
                 'phone' => $validated['phone'],
             ]);

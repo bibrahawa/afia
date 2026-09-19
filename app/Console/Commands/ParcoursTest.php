@@ -666,7 +666,7 @@ class ParcoursTest extends Command
             {
             }
 
-            public function sendSms(string $phoneNumber, string $message): array
+            public function sendSms(string $phoneNumber, string $message, array|string|null $contexte = []): array
             {
                 ($this->compteur)();
 

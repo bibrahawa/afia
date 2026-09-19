@@ -5,12 +5,12 @@
     <title>Relevé {{ $releve->numero }}</title>
     <style>
         body { font-family: Arial, sans-serif; font-size: 12px; color: #222; margin: 25px 30px; }
-        .entete { display: flex; justify-content: space-between; border-bottom: 2px solid #087f6b; padding-bottom: 8px; }
+        .entete { display: flex; justify-content: space-between; border-bottom: 2px solid #0f766e; padding-bottom: 8px; }
         h1 { font-size: 18px; text-align: center; margin: 22px 0 4px; text-transform: uppercase; }
         .sous-titre { text-align: center; color: #666; margin-bottom: 20px; }
         table { width: 100%; border-collapse: collapse; margin-top: 12px; }
         th, td { border: 1px solid #bbb; padding: 5px 7px; }
-        th { background: #087f6b; color: #fff; text-align: left; }
+        th { background: #0f766e; color: #fff; text-align: left; }
         .droite { text-align: right; }
         .total { font-weight: bold; background: #f2f2f2; }
         .signatures { display: flex; justify-content: space-between; margin-top: 50px; }

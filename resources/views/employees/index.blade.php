@@ -1,449 +1,159 @@
 @extends('layouts.backend')
 
+@php
+    $initiales = fn ($e) => mb_strtoupper(mb_substr((string) $e->first_name, 0, 1) . mb_substr((string) $e->last_name, 0, 1)) ?: '?';
+    $parType = $employees->where('is_active', true)->countBy('type');
+@endphp
+
+@section('style')
+<style>
+    .em-ligne { display: grid; grid-template-columns: minmax(220px, 1.5fr) minmax(140px, 1fr) minmax(160px, 1fr) minmax(170px, 1fr) auto; align-items: center; gap: 14px; padding: 12px 18px; border-top: 1px solid #f3f4f6; }
+    .em-ligne:first-of-type { border-top: 0; }
+    .em-ligne:hover { background: var(--hali-primaire-pale); }
+    .em-ligne.est-inactif { opacity: .55; }
+    .em-qui { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .em-qui .hl-avatar { width: 40px; height: 40px; flex-basis: 40px; border-radius: 11px; }
+    .em-qui .hl-avatar.est-medecin { background: var(--hali-primaire); color: #fff; }
+    .em-nom { display: block; color: var(--hali-encre); font-weight: 650; text-decoration: none; }
+    .em-sous { display: block; color: var(--hali-discret); font-size: .78rem; }
+    .em-compte { font-size: .84rem; }
+    .em-actions { display: flex; justify-content: flex-end; gap: 4px; }
+    .em-icone { display: inline-grid; place-items: center; width: 34px; height: 34px; border: 1px solid var(--hali-bordure); border-radius: 8px; background: #fff; color: var(--hali-texte); cursor: pointer; text-decoration: none; }
+    .em-icone:hover { border-color: var(--hali-primaire); color: var(--hali-primaire-fonce); background: var(--hali-primaire-pale); text-decoration: none; }
+    .em-icone.est-risque:hover { border-color: var(--hali-danger); color: var(--hali-danger); background: var(--hali-danger-pale); }
+    .em-outils { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--hali-bordure); }
+    .em-outils .em-recherche { position: relative; flex: 1 1 240px; }
+    .em-outils .em-recherche i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #9ca3af; }
+    .em-outils .em-recherche input { width: 100%; min-height: 40px; padding-left: 40px; }
+    @media (max-width: 991.98px) { .em-ligne { grid-template-columns: 1fr 1fr; } .em-qui { grid-column: 1 / -1; } .em-actions { grid-column: 1 / -1; justify-content: flex-start; } }
+</style>
+@endsection
+
 @section('content')
+<div class="container"><div class="page-inner hl">
+    <header class="hl-entete">
+        <div>
+            <h1>Personnel</h1>
+            <p>Médecins, infirmiers, accueil, caisse… Les médecins actifs apparaissent à l'accueil et dans la prise de rendez-vous.</p>
+        </div>
+        <div class="hl-entete-actions">
+            @can('users.create')
+                @if(Route::has('users.create'))<a href="{{ route('users.create') }}" class="hl-bouton"><i class="fas fa-user-lock" aria-hidden="true"></i> Créer un compte de connexion</a>@endif
+            @endcan
+            @can('employee.create')
+                <a href="{{ route('employee.create') }}" class="hl-bouton hl-bouton-plein"><i class="fa fa-plus" aria-hidden="true"></i> Nouvel employé</a>
+            @endcan
+        </div>
+    </header>
 
-<div class="container">
-    <div class="page-inner">
-      <div class="page-header">
-        <ul class="breadcrumbs">
-          <li class="nav-home">
-            <a href="{{url('/')}}">
-              <i class="icon-home"></i>
-            </a>
-          </li>
-          <li class="separator">
-            <i class="icon-arrow-right"></i>
-          </li>
-          <li class="nav-item">
-            <a href="{{ url('/') }}">Admin</a>
-          </li>
-          <li class="separator">
-            <i class="icon-arrow-right"></i>
-          </li>
-          <li class="nav-item">
-            <a href="{{ route('employee.index') }}">employees</a>
-          </li>
-        </ul>
-      </div>
+    <div class="hl-kpis">
+        <div class="hl-bloc hl-kpi"><span class="hl-kpi-libelle">Personnel actif</span><span class="hl-kpi-valeur">{{ $employees->where('is_active', true)->count() }}</span></div>
+        <div class="hl-bloc hl-kpi"><span class="hl-kpi-libelle">Médecins</span><span class="hl-kpi-valeur">{{ $parType['Doctor'] ?? 0 }}</span></div>
+        <div class="hl-bloc hl-kpi"><span class="hl-kpi-libelle">Sans compte de connexion</span><span class="hl-kpi-valeur">{{ $employees->whereNull('user_id')->count() }}</span><span class="hl-kpi-detail">ne peuvent pas se connecter</span></div>
+    </div>
 
-      <div class="row">
-        <div class="col-md-12">
-          <div class="card">
-            <div class="card-header">
-              <div class="d-flex align-items-center">
-                <h4 class="card-title">Liste des employees</h4>
-                {{-- <button
-                  class="btn btn-primary btn-round ms-auto"
-                  data-bs-toggle="modal"
-                  data-bs-target="#addRowModal"
-                >
-                  <i class="fa fa-plus"></i> Ajouter un employee
-                </button> --}}
-              </div>
-            </div>
-
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table id="add-row" class="display table table-striped table-hover">
-                    <thead class="bg-primary text-white"> <!-- Ajout de couleur d'entête -->
-                        <tr>
-                            <th>ID</th>
-					        <th>Name</th>
-					        <th>Contact</th>
-					        <th>Type</th>
-                            <th style="width: 10%">Actions</th>
-                        </tr>
-                    </thead>
-                    <tfoot>
-                        <tr>
-                            <th>ID</th>
-					        <th>Name</th>
-					        <th>Contact</th>
-					        <th>Type</th>
-                            <th>Actions</th>
-                        </tr>
-                    </tfoot>
-                    <tbody>
-                        @foreach($employees as $employee)
-                            <tr>
-                                <td>{{ $employee->id}}</td>
-                                <td>{{$employee->first_name}} {{$employee->middle_name}} {{$employee->last_name}}</td>
-                                <td>{{$employee->phone}}</td>
-                                <td>{{$employee->type}}</td>
-                                <td>
-                                    <div class="form-button-action">
-                                        @can('employee.edit')
-                                            <button
-                                                type="button"
-                                                class="btn btn-warning btn-round btn-sm edit-button"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#editRowModal"
-                                                data-info="{{ $employee }}"
-                                            >
-                                                <i class="fa fa-edit"></i>
-                                            </button>
-                                        @endcan
-
-                                        @can('employee.delete')
-                                            <button
-                                                type="button"
-                                                class="btn btn-danger btn-round btn-sm delete-button"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#deleteRowModal"
-                                                data-employee="{{$employee}}"
-                                            >
-                                                <i class="fa fa-trash"></i>
-                                            </button>
-                                        @endcan
-                                    </div>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                    </table>
-                </div>
-
-                <!-- Modal Add -->
-                <div class="modal fade" id="addRowModal" tabindex="-1" role="dialog" aria-hidden="true">
-                    <div class="modal-dialog" role="document">
-                        <div class="modal-content">
-                            <div class="modal-header border-0">
-                                <h5 class="modal-title">
-                                    <span class="fw-mediumbold"> Nouveau</span>
-                                    <span class="fw-light"> employee</span>
-                                </h5>
-                                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-                                    <span aria-hidden="true">&times;</span>
-                                </button>
-                            </div>
-                            <div class="modal-body">
-                                <p class="small">Créez un nouveau employee en remplissant le formulaire ci-dessous.</p>
-                                <form id="addEmployeForm" action="{{ route('employee.store') }}" method="POST">
-                                    @csrf
-                                    <div class="row">
-
-                                        <div class="col-sm-6">
-                                            <div class="form-group form-group-default">
-                                                <label>First Name:</label>
-                                                <input id="first_name" name="first_name" type="text" class="form-control" placeholder="Entrez votre prenom" required/>
-                                            </div>
-                                        </div>
-
-                                        <div class="col-sm-6">
-                                            <div class="form-group form-group-default">
-                                                <label>Last Name:</label>
-                                                <input id="last_name" name="last_name" type="text" class="form-control" placeholder="Entrez votre nom" required/>
-                                            </div>
-                                        </div>
-
-                                        <div class="col-sm-6">
-                                            <div class="form-group form-group-default">
-                                                <label>Type:</label>
-                                                <select class="form-control" name="type" required>
-                                                    <option value="Docteur">Docteur</option>
-                                                    <option value="Laboratoire">Laboratoire</option>
-                                                    <option value="Secretaire">Secretaire</option>
-                                                    <option value="Comptable">Comptable</option>
-                                                    <option value="Infirmière">Infirmière</option>
-                                                    <option value="Autre">Autre</option>
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        <div class="col-sm-6">
-                                            <div class="form-group form-group-default">
-                                                <label>Departement</label>
-                                                <select name="department_id" class="form-control">
-                                                    <option disabled selected>Selectionnez un departement</option>
-                                                    @foreach ($departments as $department)
-                                                        <option value="{{$department->id}}">{{ $department->name }}</option>
-                                                    @endforeach
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        <div class="col-sm-6">
-                                            <div class="form-group form-group-default">
-                                                <label>Address:</label>
-                                                <textarea id="address" name="address" class="form-control" placeholder="Description"></textarea>
-                                            </div>
-                                        </div>
-
-                                        <div class="col-sm-6">
-                                            <div class="form-group form-group-default">
-                                                <label>Education:</label>
-                                                <textarea id="education" name="education" class="form-control" placeholder="Description"></textarea>
-                                            </div>
-                                        </div>
-
-                                        <div class="col-sm-6">
-                                            <div class="form-group form-group-default">
-                                                <label>Descrption:</label>
-                                                <textarea id="description" name="description" class="form-control" placeholder="Description"></textarea>
-                                            </div>
-                                        </div>
-
-
-                                        <div class="col-sm-6">
-                                            <div class="form-group form-group-default">
-                                                <label>Certificate:</label>
-                                                <textarea id="certificate" name="certificate" class="form-control" placeholder="Description"></textarea>
-                                            </div>
-                                        </div>
-
-                                        <div class="col-sm-6">
-                                            <div class="form-group form-group-default">
-                                                <label>Speciality:</label>
-                                                <textarea id="speciality" name="speciality" class="form-control" placeholder="Description"></textarea>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </form>
-                            </div>
-                            <div class="modal-footer border-0">
-                                <button type="submit" id="addRowButton" class="btn btn-primary" form="addEmployeForm">
-                                    Ajouter
-                                    <div class="spinner-border spinner-border-sm text-light" role="status" id="addLoader" style="display: none;">
-                                        <span class="sr-only">Loading...</span>
-                                    </div>
-                                </button>
-
-                                <button type="button" class="btn btn-danger" data-bs-dismiss="modal">
-                                    Fermer
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Modal Edit -->
-                <div class="modal fade" id="editRowModal" tabindex="-1" role="dialog" aria-hidden="true">
-                    <div class="modal-dialog" role="document">
-                        <div class="modal-content">
-                            <div class="modal-header border-0">
-                                <h5 class="modal-title">
-                                    <span class="fw-mediumbold"> Modifier</span>
-                                    <span class="fw-light"> employee</span>
-                                </h5>
-                                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-                                    <span aria-hidden="true">&times;</span>
-                                </button>
-                            </div>
-                            <div class="modal-body">
-                                <form id='editEmployeForm' action="" method="POST">
-                                    @csrf
-                                    @method('PUT')
-                                    <div class="row">
-                                        <input type="hidden" name="id" id="edit_id">
-
-                                        <div class="col-sm-6">
-                                            <div class="form-group">
-                                                <label>First Name:</label>
-                                                <input id="edit_first_name" name="first_name" type="text" class="form-control" placeholder="Entrez l'email" required/>
-                                            </div>
-                                        </div>
-
-                                        <div class="col-sm-6">
-                                            <div class="form-group">
-                                                <label>Last Name:</label>
-                                                <input id="edit_last_name" name="last_name" type="text" class="form-control" placeholder="Entrez l'email" required/>
-                                            </div>
-                                        </div>
-
-                                        <div class="col-sm-6">
-                                            <div class="form-group">
-                                                <label>Type:</label>
-                                                <select class="form-control" name="type" id="edit_type" required>
-                                                    <option value="Docteur">Docteur</option>
-                                                    <option value="Laboratoire">Laboratoire</option>
-                                                    <option value="Secretaire">Secretaire</option>
-                                                    <option value="Comptable">Comptable</option>
-                                                    <option value="Infirmière">Infirmière</option>
-                                                    <option value="Autre">Autre</option>
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        <div class="col-sm-6">
-                                            <div class="form-group">
-                                                <label>Departement</label>
-                                                <select name="department_id" id="edit_department_id" class="form-control">
-                                                    <option disabled selected>Selectionnez un departement</option>
-                                                    @foreach ($departments as $department)
-                                                        <option value="{{$department->id}}">{{ $department->name }}</option>
-                                                    @endforeach
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        <div class="col-sm-6">
-                                            <div class="form-group">
-                                                <label>Address:</label>
-                                                <textarea id="edit_address" name="address" class="form-control" placeholder="Description"></textarea>
-                                            </div>
-                                        </div>
-
-                                        <div class="col-sm-6">
-                                            <div class="form-group">
-                                                <label>Education:</label>
-                                                <textarea id="edit_education" name="education" class="form-control" placeholder="Description"></textarea>
-                                            </div>
-                                        </div>
-
-                                        <div class="col-sm-6">
-                                            <div class="form-group">
-                                                <label>Descrption:</label>
-                                                <textarea id="edit_description" name="description" class="form-control" placeholder="Description"></textarea>
-                                            </div>
-                                        </div>
-
-
-                                        <div class="col-sm-6">
-                                            <div class="form-group">
-                                                <label>Certificate:</label>
-                                                <textarea id="edit_certificate" name="certificate" class="form-control" placeholder="Description"></textarea>
-                                            </div>
-                                        </div>
-
-                                        <div class="col-sm-12">
-                                            <div class="form-group">
-                                                <label>Speciality:</label>
-                                                <textarea id="edit_speciality" name="speciality" class="form-control" placeholder="Description"></textarea>
-                                            </div>
-                                        </div>
-
-                                    </div>
-                                </form>
-                            </div>
-                            <div class="modal-footer border-0">
-                                <!-- Bouton pour la modification -->
-                                <button type="submit" class="btn btn-success" id="editRowButton" form="editEmployeForm">
-                                    Modifier
-                                    <div class="spinner-border spinner-border-sm text-light" role="status" id="editLoader" style="display: none;">
-                                        <span class="sr-only">Loading...</span>
-                                    </div>
-                                </button>
-
-                                <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Fermer</button>
-
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Modal Delete -->
-                <div class="modal fade" id="deleteRowModal" tabindex="-1" role="dialog" aria-hidden="true">
-                    <div class="modal-dialog" role="document">
-                        <div class="modal-content">
-                            <div class="modal-header border-0">
-                                <h5 class="modal-title">Êtes-vous sûr de vouloir supprimer ce employee ?</h5>
-                                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-                                    <span aria-hidden="true">&times;</span>
-                                </button>
-                            </div>
-                            <div class="modal-body">
-                                <!-- Formulaire de suppression -->
-                                <form id="deleteEmployeForm" action="#" method="POST">
-                                    @csrf
-                                    @method('DELETE') <!-- Utiliser la méthode DELETE -->
-                                    <p id="employes_name_to_delete"></p>
-                                    <input type="hidden" id="delete_id" name="id">
-                                </form>
-                            </div>
-                            <div class="modal-footer border-0">
-                                <!-- Bouton pour la suppression -->
-                                <button type="submit" class="btn btn-danger" id="deleteRowButton" form="deleteEmployeForm">
-                                    Supprimer
-                                    <div class="spinner-border spinner-border-sm text-light" role="status" id="deleteLoader" style="display: none;">
-                                        <span class="sr-only">Loading...</span>
-                                    </div>
-                                </button>
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                    Annuler
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+    <section class="hl-bloc">
+        <div class="em-outils">
+            <label class="em-recherche mb-0">
+                <span class="sr-only visually-hidden">Rechercher</span>
+                <i class="fas fa-search" aria-hidden="true"></i>
+                <input type="search" id="emRecherche" class="form-control" placeholder="Nom, spécialité, département…" autocomplete="off">
+            </label>
+            <div class="hl-puces" role="group" aria-label="Fonction">
+                <button type="button" class="hl-puce est-actif" data-type="">Tous</button>
+                @foreach(\App\Models\Employee::TYPES as $v => $l)
+                    @if($employees->where('type', $v)->isNotEmpty())<button type="button" class="hl-puce" data-type="{{ $v }}">{{ $l }} <b>{{ $employees->where('type', $v)->count() }}</b></button>@endif
+                @endforeach
             </div>
         </div>
-      </div>
-    </div>
-</div>
 
+        @if($employees->isEmpty())
+            <div class="hl-vide"><i class="fas fa-user-md" aria-hidden="true"></i>Aucun employé.</div>
+        @else
+            <div id="emListe">
+                @foreach($employees as $employee)
+                    <div class="em-ligne {{ $employee->is_active ? '' : 'est-inactif' }}" data-type="{{ $employee->type }}"
+                         data-recherche="{{ mb_strtolower($employee->full_name . ' ' . $employee->speciality . ' ' . $employee->department?->name) }}">
+                        <div class="em-qui">
+                            <span class="hl-avatar {{ $employee->type === 'Doctor' ? 'est-medecin' : '' }}" aria-hidden="true">{{ $initiales($employee) }}</span>
+                            <div style="min-width:0">
+                                <a href="{{ route('employee.show', $employee->id) }}" class="em-nom">{{ $employee->nom_affiche }}</a>
+                                <span class="em-sous">{{ $employee->speciality ?: $employee->type_libelle }}</span>
+                            </div>
+                        </div>
+                        <div><span class="hl-statut {{ $employee->type === 'Doctor' ? 'hl-s-info' : 'hl-s-neutre' }}">{{ $employee->type_libelle }}</span></div>
+                        <div style="font-size:.86rem">{{ $employee->department?->name ? ucfirst(mb_strtolower($employee->department->name)) : '—' }}</div>
+                        <div class="em-compte">
+                            @if($employee->user)
+                                <span style="color:var(--hali-succes); font-weight:600"><i class="fas fa-check-circle" aria-hidden="true"></i> Compte actif</span>
+                                <span class="em-sous">{{ $employee->user->phone ?: $employee->user->email }}</span>
+                            @else
+                                <span class="em-sous"><i class="fas fa-user-slash" aria-hidden="true"></i> Sans compte</span>
+                            @endif
+                            @unless($employee->is_active)<span class="em-sous" style="color:var(--hali-danger)">Fiche désactivée</span>@endunless
+                        </div>
+                        <div class="em-actions">
+                            @if($employee->type === 'Doctor')
+                                @can('employee.edit')<a href="{{ route('employees.motifs', $employee) }}" class="em-icone" title="Motifs pratiqués" aria-label="Motifs pratiqués par {{ $employee->nom_affiche }}"><i class="fas fa-calendar-plus"></i></a>@endcan
+                            @endif
+                            @can('employee.edit')<a href="{{ route('employee.edit', $employee->id) }}" class="em-icone" title="Modifier" aria-label="Modifier {{ $employee->nom_affiche }}"><i class="fa fa-pen"></i></a>@endcan
+                            @can('employee.delete')
+                                @unless($employee->user_id)
+                                    <button type="button" class="em-icone est-risque delete-button" title="Supprimer" aria-label="Supprimer {{ $employee->nom_affiche }}" data-id="{{ $employee->id }}" data-name="{{ $employee->nom_affiche }}"><i class="fa fa-trash"></i></button>
+                                @endunless
+                            @endcan
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+            <div class="hl-vide" id="emAucun" hidden>Personne ne correspond.</div>
+        @endif
+    </section>
+
+    <div class="modal fade" id="deleteRowModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <form class="modal-content" id="deleteEmployeForm" action="#" method="POST" style="border:0; border-radius:14px">
+                @csrf @method('DELETE')
+                <input type="hidden" id="delete_id" name="id">
+                <div class="modal-header" style="border:0"><h5 class="modal-title">Supprimer la fiche</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button></div>
+                <div class="modal-body"><p class="mb-0" id="emSupprimerTexte"></p></div>
+                <div class="modal-footer" style="border:0">
+                    <button type="button" class="hl-bouton" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="hl-bouton" style="background:var(--hali-danger); border-color:var(--hali-danger); color:#fff">Supprimer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div></div>
 @endsection
 
 @section('script')
-    <script type="text/javascript">
-
-        // Événement pour modifier un employee
-        $(document).on('click', '.edit-button', function() {
-            var employee = $(this).data('info');
-
-            // Mettre à jour le champ du modal
-            $('#edit_id').val(employee.id);
-            $('#edit_first_name').val(employee.first_name);
-            $('#edit_last_name').val(employee.last_name);=
-            $('#edit_phone').val(employee.phone);
-            $('#edit_address').val(employee.address);
-            $('#edit_education').val(employee.education);
-            $('#edit_description').val(employee.description);
-            $('#edit_certificate').val(employee.certificate);
-            $('#edit_speciality').val(employee.speciality);
-            $('#edit_type').val(employee.type);
-            $('#edit_department_id').val(employee.department_id);
-
-            $('#editEmployeForm').attr('action', '/employee/' + employee.id);
-
-            // Afficher le modal
-            $('#editRowModal').modal('show');
+<script>
+(function () {
+    var type = '', champ = document.getElementById('emRecherche');
+    function appliquer() {
+        var t = champ.value.trim().toLowerCase(), n = 0;
+        document.querySelectorAll('.em-ligne').forEach(function (l) {
+            var ok = (!type || l.dataset.type === type) && (!t || l.dataset.recherche.indexOf(t) !== -1);
+            l.hidden = !ok; if (ok) n++;
         });
-
-        // Événement pour supprimer un employee
-        $(document).on('click', '.delete-button', function() {
-            var employee = $(this).data('employee');
-
-            // Afficher le nom du employee à supprimer
-            $('#employes_name_to_delete').text("Voulez-vous vraiment supprimer l'employee : " + employee.first_name +' '+ employee.last_name + " ?");
-
-            // Mettre à jour l'action du formulaire de suppression avec l'ID du employee
-            $('#delete_id').val(employee.id);
-            $('#deleteEmployeForm').attr('action', '/employee/' + employee.id);
-
-            // Afficher le modal de confirmation
-            $('#deleteRowModal').modal('show');
+        var a = document.getElementById('emAucun'); if (a) a.hidden = n > 0;
+    }
+    champ.addEventListener('input', appliquer);
+    document.querySelectorAll('[data-type].hl-puce').forEach(function (b) {
+        b.addEventListener('click', function () {
+            document.querySelectorAll('[data-type].hl-puce').forEach(function (x) { x.classList.remove('est-actif'); });
+            b.classList.add('est-actif'); type = b.dataset.type; appliquer();
         });
-
-        // Afficher le loader pour l'ajout de employee
-        $('#addEmployeForm').on('submit', function() {
-            $('#addRowButton').prop('disabled', true);  // Désactive le bouton pour éviter plusieurs clics
-            $('#addLoader').show();  // Affiche le loader
+    });
+    document.querySelectorAll('.delete-button').forEach(function (b) {
+        b.addEventListener('click', function () {
+            document.getElementById('delete_id').value = b.dataset.id;
+            document.getElementById('emSupprimerTexte').textContent = 'Supprimer la fiche de ' + b.dataset.name + ' ? Si ce soignant a déjà reçu des patients, désactivez plutôt sa fiche.';
+            document.getElementById('deleteEmployeForm').action = '/employee/' + b.dataset.id;
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('deleteRowModal')).show();
         });
-
-        // Afficher le loader pour la modification de employee
-        $('#editEmployeForm').on('submit', function() {
-            $('#editRowButton').prop('disabled', true);  // Désactive le bouton pour éviter plusieurs clics
-            $('#editLoader').show();  // Affiche le loader
-        });
-
-        // Afficher le loader pour la suppression de employee
-        $('#deleteEmployeForm').on('submit', function() {
-            $('#deleteRowButton').prop('disabled', true);  // Désactive le bouton pour éviter plusieurs clics
-            $('#deleteLoader').show();  // Affiche le loader
-        });
-
-        // Lorsque la requête est terminée (réponse du serveur)
-        $(document).ajaxComplete(function() {
-            // Masquer les loaders et réactiver les boutons
-            $('#addRowButton').prop('disabled', false);  // Réactive le bouton "Ajouter"
-            $('#addLoader').hide();  // Masque le loader "Ajouter"
-
-            $('#editRowButton').prop('disabled', false);  // Réactive le bouton "Modifier"
-            $('#editLoader').hide();  // Masque le loader "Modifier"
-
-            $('#deleteRowButton').prop('disabled', false);  // Réactive le bouton "Supprimer"
-            $('#deleteLoader').hide();  // Masque le loader "Supprimer"
-        });
-
-    </script>
+    });
+})();
+</script>
 @endsection

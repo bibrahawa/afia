@@ -23,6 +23,11 @@ class AppServiceProvider extends ServiceProvider
     {
         Appointment::observe(AppointmentObserver::class);
 
+        // Pagination aux couleurs de Bootstrap 5 (celui de KaiAdmin). Par défaut
+        // Laravel produit du balisage Tailwind, non chargé ici : les listes
+        // paginées affichaient des flèches géantes et des liens sans style.
+        \Illuminate\Pagination\Paginator::useBootstrapFive();
+
         /*
         | @module('laboratoire') … @endmodule
         |

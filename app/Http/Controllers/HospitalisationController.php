@@ -20,19 +20,23 @@ class HospitalisationController extends Controller
 
     public function index()
     {
-        $hospitalisations = Hospitalisation::with('patient', 'chambre')->latest()->get();
+        $hospitalisations = Hospitalisation::with('patient', 'chambre', 'transaction')->latest()->get();
 
         $patients = Patient::suivisParEtablissement()->orderBy('last_name')->get();
 
-        $chambres = Chambre::where('statut', 'Libre')
-            ->orWhereIn('id', function ($query) {
-                $query->select('chambre_id')
-                    ->from('hospitalisations')
-                    ->where('statut', '!=', 'En cours');
-            })
+        // CORRIGÉ — proposait aussi toute chambre ayant eu UNE hospitalisation
+        // terminée, même si un autre patient l'occupait encore : double attribution.
+        // Disponible = pas en maintenance et aucun séjour en cours.
+        $chambres = Chambre::where('statut', '!=', 'En maintenance')
+            ->whereDoesntHave('hospitalisations', fn ($q) => $q->where('statut', 'En cours'))
+            ->orderBy('numero')
             ->get();
 
-        return view('hospitalisations.index', compact('hospitalisations', 'patients', 'chambres'));
+        // Pour MODIFIER un séjour, sa chambre actuelle doit figurer dans la liste
+        // (sinon le formulaire basculait le patient sur la première chambre libre).
+        $toutesChambres = Chambre::orderBy('numero')->get();
+
+        return view('hospitalisations.index', compact('hospitalisations', 'patients', 'chambres', 'toutesChambres'));
     }
 
     public function create()

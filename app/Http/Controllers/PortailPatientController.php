@@ -31,30 +31,78 @@ class PortailPatientController extends Controller
         $patient->load(['antecedant', 'relationsFamiliales.personneLiee']);
 
         $prochainRdv = $patient->appointments()
-            ->with(['employee', 'motifRdv'])
+            ->with(['employee', 'motifRdv', 'etablissement'])
             ->where('status', '!=', 'cancelled')
             ->where('appointment_datetime', '>', now())
             ->orderBy('appointment_datetime')
             ->first();
 
         $historiqueRdv = $patient->appointments()
-            ->with(['employee', 'motifRdv'])
+            ->with(['employee', 'motifRdv', 'etablissement'])
             ->where('appointment_datetime', '<=', now())
             ->orderByDesc('appointment_datetime')
             ->limit(20)
             ->get();
 
-        $consentements = $patient->consentementsAccordes()->latest()->get();
-        $demandesEnAttente = $patient->demandesAcces()->where('statut', 'en_attente')->latest()->get();
-        $consultations = $patient->consultations()->latest()->limit(10)->get();
+        $consentements = $patient->consentementsAccordes()->with('beneficiaire')->latest()->get();
+        $demandesEnAttente = $patient->demandesAcces()->with('demandeur')->where('statut', 'en_attente')->latest()->get();
+        $consultations = $patient->consultations()->with('etablissement')->latest()->limit(10)->get();
 
         $comptePatient = Auth::guard('patient')->user();
         $autresDossiers = $comptePatient->patients->reject(fn ($p) => $p->id === $patient->id);
 
+        $resultats = $this->resultatsLabo($patient);
+
         return view('portail.dossier', compact(
             'patient', 'prochainRdv', 'historiqueRdv', 'consentements',
-            'demandesEnAttente', 'consultations', 'autresDossiers'
+            'demandesEnAttente', 'consultations', 'autresDossiers', 'resultats'
         ));
+    }
+
+    /**
+     * Lot S2 — Résultats d'analyses PUBLIÉS du patient, toutes cliniques confondues.
+     *
+     * Chaque ligne porte un lien signé de courte durée vers la page de résultats
+     * existante (celle du lien SMS) : même rendu, même journal de consultation,
+     * aucune nouvelle surface d'accès. Un résultat retenu pour impayé est listé
+     * sans lien, avec la marche à suivre.
+     */
+    private function resultatsLabo(Patient $patient): \Illuminate\Support\Collection
+    {
+        if (! \Illuminate\Support\Facades\Route::has('labo.public.resultats')
+            || ! \Illuminate\Support\Facades\Schema::hasTable('labo_comptes_rendus')) {
+            return collect();
+        }
+
+        return \App\Models\Labo\LaboDemande::withoutGlobalScope('etablissement')
+            ->where('patient_id', $patient->id)
+            ->whereNull('annule_le')
+            ->whereHas('comptesRendus', fn ($q) => $q->withoutGlobalScope('etablissement'))
+            ->with([
+                'etablissement',
+                'examens' => fn ($q) => $q->withoutGlobalScope('etablissement')->with(['examen' => fn ($e) => $e->withoutGlobalScope('etablissement')]),
+                'comptesRendus' => fn ($q) => $q->withoutGlobalScope('etablissement'),
+            ])
+            ->orderByDesc('premiere_publication_le')
+            ->orderByDesc('id')
+            ->limit(20)
+            ->get()
+            ->map(function ($demande) {
+                $dernier = $demande->comptesRendus->first(); // trié par version décroissante
+                $disponible = $demande->peutEtreRemisAuPatient();
+
+                return (object) [
+                    'numero' => $demande->numero,
+                    'clinique' => $demande->etablissement?->nom,
+                    'date' => $demande->premiere_publication_le ?? $dernier?->created_at ?? $demande->created_at,
+                    'examens' => $demande->examens->map(fn ($l) => $l->examen?->nom)->filter()->values(),
+                    'rectifie' => (bool) ($dernier?->est_rectificatif),
+                    'disponible' => $disponible,
+                    'lien' => $disponible ? \Illuminate\Support\Facades\URL::temporarySignedRoute(
+                        'labo.public.resultats', now()->addHours(2), ['demandeId' => $demande->id, 'source' => 'portail']
+                    ) : null,
+                ];
+            });
     }
 
     public function annulerRdv(Request $request, \App\Models\Appointment $appointment, AppointmentStatusService $statusService)

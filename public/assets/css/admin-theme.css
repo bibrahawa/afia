@@ -1,173 +1,756 @@
-/* =========================================================
-   ADMIN-THEME.CSS
-   Reskin de KaiAdmin vers la palette Aprosafe (teal/santé),
-   pour unifier le back-office avec l'interface patient.
+/* ==========================================================================
+   HALI — couche de design du back-office
+   --------------------------------------------------------------------------
+   Chargée APRÈS kaiadmin.min.css : elle surcharge le thème sans modifier une
+   seule vue. Aucune classe nouvelle n'est nécessaire, le HTML existant suffit.
 
-   Principe : on ne renomme AUCUNE valeur de data-background-color
-   dans le HTML. On cible les valeurs réelles trouvées dans les
-   fichiers (orange, orange2, white-color) et on ne surcharge que
-   la couleur de remplissage — les règles de contraste que KaiAdmin
-   associe déjà à ces valeurs connues (couleur du texte, des icônes)
-   restent actives. Renommer vers une valeur inconnue aurait fait
-   perdre ce traitement de contraste sans qu'on le voie avant un
-   test réel — c'est pour ça qu'on ne touche pas au HTML ici.
-
-   À charger APRÈS kaiadmin.min.css.
-========================================================= */
+   Principes :
+   - lisibilité d'abord : des tableaux denses, lus toute la journée ;
+   - sobriété : la couleur signale, elle ne décore pas ;
+   - légèreté : aucune police ni image supplémentaire (connexions lentes) ;
+   - l'impression reste propre (ordonnances, feuilles de soins, relevés).
+   ========================================================================== */
 
 :root {
-    --aprosafe-primary: #087f6b;
-    --aprosafe-primary-dark: #056655;
-    --aprosafe-primary-soft: #e9f7f3;
-    --aprosafe-accent: #e5a23c;
-    --aprosafe-ink: #17231f;
-    --aprosafe-ink-soft: #66756f;
-    --aprosafe-border: #e1e8e5;
-    --aprosafe-bg: #f5f7f6;
+    /* Palette santé : un vert profond pour l'identité, des gris neutres
+       pour tout le reste. Une seule couleur vive, sinon l'écran crie. */
+    --hali-primaire: #0f766e;
+    --hali-primaire-fonce: #115e59;
+    --hali-primaire-clair: #ccfbf1;
+    --hali-primaire-pale: #f0fdfa;
+
+    --hali-succes: #15803d;
+    --hali-succes-pale: #f0fdf4;
+    --hali-alerte: #b45309;
+    --hali-alerte-pale: #fffbeb;
+    --hali-danger: #b91c1c;
+    --hali-danger-pale: #fef2f2;
+    --hali-info: #1d4ed8;
+    --hali-info-pale: #eff6ff;
+
+    --hali-encre: #111827;
+    --hali-texte: #374151;
+    --hali-discret: #6b7280;
+    --hali-bordure: #e5e7eb;
+    --hali-fond: #f6f7f9;
+    --hali-surface: #ffffff;
+
+    --hali-rayon: 12px;
+    --hali-rayon-petit: 8px;
+    --hali-ombre: 0 1px 2px rgba(17, 24, 39, .04), 0 4px 12px rgba(17, 24, 39, .06);
+    --hali-ombre-forte: 0 8px 24px rgba(17, 24, 39, .10);
 }
+
+/* ------------------------------------------------------------------ Base */
 
 body {
-    background: var(--aprosafe-bg);
-    color: var(--aprosafe-ink);
+    background: var(--hali-fond);
+    color: var(--hali-texte);
+    font-size: 14px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
 }
 
-/* ---------------------------------------------------------
-   BANDEAUX COLORÉS
-   logo-header (sidebar ET main-header), navbar supérieure —
-   trois usages différents de la même paire de valeurs
-   "orange" / "orange2" dans tes fichiers.
---------------------------------------------------------- */
-
-.logo-header[data-background-color="orange"],
-.logo-header[data-background-color="orange2"],
-.sidebar[data-background-color="orange"],
-.sidebar[data-background-color="orange2"],
-.navbar[data-background-color="orange"],
-.navbar[data-background-color="orange2"],
-.navbar-header[data-background-color="orange"],
-.navbar-header[data-background-color="orange2"] {
-    background: linear-gradient(180deg, var(--aprosafe-primary-dark), var(--aprosafe-primary)) !important;
+h1, h2, h3, h4, h5, .card-title, .page-header h3 {
+    color: var(--hali-encre);
+    font-weight: 600;
+    letter-spacing: -.01em;
 }
 
-/* La navbar supérieure a des icônes/texte posés directement sur
-   le fond coloré (cloche, actions rapides, "Bonjour, X") — on
-   s'assure explicitement qu'ils restent lisibles, sans toucher
-   à l'icône de recherche qui elle repose sur un encart blanc. */
-.navbar[data-background-color="orange"] .topbar-nav .nav-link,
-.navbar[data-background-color="orange"] .topbar-nav .nav-link i,
-.navbar[data-background-color="orange"] .profile-username,
-.navbar[data-background-color="orange2"] .topbar-nav .nav-link,
-.navbar[data-background-color="orange2"] .topbar-nav .nav-link i,
-.navbar[data-background-color="orange2"] .profile-username {
-    color: #fff !important;
+a { color: var(--hali-primaire); }
+a:hover { color: var(--hali-primaire-fonce); }
+
+.text-muted, .small.text-muted { color: var(--hali-discret) !important; }
+
+/* Titre de page : une respiration avant le contenu. */
+.page-header {
+    margin-bottom: 1.25rem;
+    padding-bottom: .875rem;
+    border-bottom: 1px solid var(--hali-bordure);
 }
+.page-header h3 { font-size: 1.35rem; margin: 0; }
 
-.navbar[data-background-color="orange"] .profile-username .op-7,
-.navbar[data-background-color="orange2"] .profile-username .op-7 {
-    color: rgba(255, 255, 255, .75) !important;
-}
-
-/* ---------------------------------------------------------
-   BOUTONS & LIENS
---------------------------------------------------------- */
-
-.btn-primary {
-    background-color: var(--aprosafe-primary) !important;
-    border-color: var(--aprosafe-primary) !important;
-}
-
-.btn-primary:hover,
-.btn-primary:focus {
-    background-color: var(--aprosafe-primary-dark) !important;
-    border-color: var(--aprosafe-primary-dark) !important;
-}
-
-.btn-outline-primary {
-    color: var(--aprosafe-primary) !important;
-    border-color: var(--aprosafe-primary) !important;
-}
-
-.btn-outline-primary:hover {
-    background-color: var(--aprosafe-primary) !important;
-    color: #fff !important;
-}
-
-a { color: var(--aprosafe-primary); }
-a:hover { color: var(--aprosafe-primary-dark); }
-
-/* ---------------------------------------------------------
-   CARTES, TABLEAUX, BADGES
---------------------------------------------------------- */
+/* ------------------------------------------------------------------ Cartes */
 
 .card {
-    border: 1px solid var(--aprosafe-border);
-    border-radius: 14px;
-    box-shadow: 0 2px 8px rgba(20, 40, 34, .04);
+    background: var(--hali-surface);
+    border: 1px solid var(--hali-bordure);
+    border-radius: var(--hali-rayon);
+    box-shadow: var(--hali-ombre);
+    margin-bottom: 1.25rem;
 }
 
 .card-header {
     background: transparent;
-    border-bottom: 1px solid var(--aprosafe-border);
-    font-weight: 650;
+    border-bottom: 1px solid var(--hali-bordure);
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    flex-wrap: wrap;
 }
 
-.table thead th {
-    color: var(--aprosafe-ink-soft);
-    font-size: .78rem;
+.card-header .card-title {
+    font-size: 1rem;
+    margin: 0;
+}
+
+.card-body { padding: 1.25rem; }
+.card-footer { background: var(--hali-primaire-pale); border-top: 1px solid var(--hali-bordure); padding: .875rem 1.25rem; }
+
+/* Cartes de chiffres : le nombre domine, le libellé s'efface. */
+.card-stats .card-category,
+.card-stats .card-title {
+    margin: 0;
+}
+.card-stats .card-category {
+    font-size: .75rem;
     text-transform: uppercase;
-    letter-spacing: .05em;
-    border-bottom: 2px solid var(--aprosafe-border);
+    letter-spacing: .06em;
+    color: var(--hali-discret);
+    font-weight: 600;
+}
+.card-stats .card-title {
+    font-size: 1.6rem;
+    font-weight: 650;
+    color: var(--hali-encre);
+    line-height: 1.2;
 }
 
-.badge-primary,
-.bg-primary {
-    background-color: var(--aprosafe-primary) !important;
+/* ------------------------------------------------------------------ Tableaux */
+
+.table {
+    color: var(--hali-texte);
+    margin-bottom: 0;
 }
 
-.text-primary { color: var(--aprosafe-primary) !important; }
-
-/* Avatar de profil : petit anneau teal pour la cohérence visuelle,
-   sans changer la photo elle-même */
-.avatar-sm .avatar-img,
-.avatar-lg .avatar-img {
-    box-shadow: 0 0 0 2px var(--aprosafe-primary-soft);
+.table > thead > tr > th {
+    background: #fafbfc;
+    border-bottom: 1px solid var(--hali-bordure) !important;
+    border-top: none;
+    color: var(--hali-discret);
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    padding: .75rem 1rem;
+    white-space: nowrap;
 }
 
-/* ---------------------------------------------------------
-   FORMULAIRES
---------------------------------------------------------- */
-
-.form-control,
-.form-select,
-.bootstrap-select .dropdown-toggle {
-    border-radius: 10px;
-    border-color: var(--aprosafe-border);
+.table > tbody > tr > td {
+    border-top: 1px solid #f1f2f4;
+    padding: .8rem 1rem;
+    vertical-align: middle;
 }
 
-.form-control:focus,
-.form-select:focus {
-    border-color: var(--aprosafe-primary);
-    box-shadow: 0 0 0 3px rgba(8, 127, 107, .12);
+.table > tbody > tr:hover > td { background: var(--hali-primaire-pale); }
+
+/* Les montants s'alignent à droite et s'écrivent en chiffres tabulaires :
+   sans cela, une colonne de francs guinéens est illisible. */
+.table td.text-end, .table th.text-end { font-variant-numeric: tabular-nums; }
+
+.table tfoot tr th, .table tfoot tr td {
+    background: #fafbfc;
+    border-top: 2px solid var(--hali-bordure);
+    font-weight: 650;
+    color: var(--hali-encre);
 }
 
-/* ---------------------------------------------------------
-   NOTIFICATIONS bootstrap-notify (succès/erreur)
---------------------------------------------------------- */
+.table-responsive { border-radius: var(--hali-rayon-petit); }
 
-.alert-success,
-.notifyjs-bootstrap-success {
-    background-color: var(--aprosafe-primary-soft) !important;
-    color: var(--aprosafe-primary-dark) !important;
-    border-color: #cde9e1 !important;
+/* ------------------------------------------------------------------ Badges */
+
+.badge {
+    border-radius: 999px;
+    font-size: .72rem;
+    font-weight: 600;
+    letter-spacing: .01em;
+    padding: .35em .7em;
 }
 
-/* ---------------------------------------------------------
-   FOOTER
---------------------------------------------------------- */
+.badge-success, .bg-success { background: var(--hali-succes-pale) !important; color: var(--hali-succes) !important; }
+.badge-warning, .bg-warning { background: var(--hali-alerte-pale) !important; color: var(--hali-alerte) !important; }
+.badge-danger,  .bg-danger  { background: var(--hali-danger-pale)  !important; color: var(--hali-danger)  !important; }
+.badge-info,    .bg-info    { background: var(--hali-info-pale)    !important; color: var(--hali-info)    !important; }
+.badge-primary, .bg-primary { background: var(--hali-primaire-clair) !important; color: var(--hali-primaire-fonce) !important; }
+.badge-light, .badge-secondary { background: #f3f4f6 !important; color: var(--hali-texte) !important; }
 
-.footer {
-    border-top: 1px solid var(--aprosafe-border);
-    color: var(--aprosafe-ink-soft);
+/* ------------------------------------------------------------------ Boutons */
+
+.btn {
+    border-radius: var(--hali-rayon-petit);
+    font-weight: 550;
+    padding: .5rem 1rem;
+    transition: background-color .12s ease, border-color .12s ease, box-shadow .12s ease;
+}
+.btn:focus-visible { outline: 2px solid var(--hali-primaire); outline-offset: 2px; box-shadow: none; }
+
+.btn-sm { padding: .35rem .7rem; font-size: .8rem; }
+
+.btn-primary {
+    background: var(--hali-primaire);
+    border-color: var(--hali-primaire);
+    color: #fff;
+}
+.btn-primary:hover, .btn-primary:focus {
+    background: var(--hali-primaire-fonce);
+    border-color: var(--hali-primaire-fonce);
 }
 
-.footer a { font-weight: 600; }
+.btn-success { background: var(--hali-succes); border-color: var(--hali-succes); }
+.btn-danger  { background: var(--hali-danger);  border-color: var(--hali-danger); }
+.btn-warning { background: var(--hali-alerte);  border-color: var(--hali-alerte); color: #fff; }
+
+.btn-secondary {
+    background: #fff;
+    border-color: var(--hali-bordure);
+    color: var(--hali-texte);
+}
+.btn-secondary:hover { background: #f9fafb; color: var(--hali-encre); }
+
+.btn-outline-primary { border-color: var(--hali-primaire); color: var(--hali-primaire); }
+.btn-outline-primary:hover { background: var(--hali-primaire); color: #fff; }
+
+/* Boutons d'action d'une ligne de tableau : discrets au repos. */
+.table .btn-sm i { font-size: .8rem; }
+
+/* ------------------------------------------------------------------ Formulaires */
+
+.form-label, label {
+    color: var(--hali-encre);
+    font-size: .82rem;
+    font-weight: 600;
+    margin-bottom: .35rem;
+}
+
+.form-control, .form-select, select.form-control {
+    border: 1px solid var(--hali-bordure);
+    border-radius: var(--hali-rayon-petit);
+    color: var(--hali-encre);
+    font-size: .9rem;
+    padding: .5rem .75rem;
+    min-height: 40px;
+    background-color: #fff;
+    transition: border-color .12s ease, box-shadow .12s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--hali-primaire);
+    box-shadow: 0 0 0 3px var(--hali-primaire-clair);
+}
+
+.form-control::placeholder { color: #9ca3af; }
+.form-control-sm { min-height: 34px; padding: .3rem .6rem; font-size: .82rem; }
+.form-text { color: var(--hali-discret); font-size: .78rem; }
+
+textarea.form-control { min-height: 84px; line-height: 1.5; }
+
+/* Champ en erreur : le rouge encadre, le message explique. */
+.is-invalid, .form-control.is-invalid { border-color: var(--hali-danger); }
+.invalid-feedback { color: var(--hali-danger); font-size: .78rem; }
+
+/* ------------------------------------------------------------------ Alertes */
+
+.alert {
+    border: 1px solid transparent;
+    border-left-width: 4px;
+    border-radius: var(--hali-rayon-petit);
+    font-size: .88rem;
+    padding: .875rem 1rem;
+}
+.alert-success { background: var(--hali-succes-pale); border-color: var(--hali-succes); color: #14532d; }
+.alert-warning { background: var(--hali-alerte-pale); border-color: var(--hali-alerte); color: #78350f; }
+.alert-danger  { background: var(--hali-danger-pale);  border-color: var(--hali-danger);  color: #7f1d1d; }
+.alert-info    { background: var(--hali-info-pale);    border-color: var(--hali-info);    color: #1e3a8a; }
+
+/* ------------------------------------------------------------------ Menu latéral */
+
+.sidebar {
+    border-right: 1px solid var(--hali-bordure);
+    box-shadow: none;
+}
+
+.sidebar .nav-item > a {
+    border-radius: var(--hali-rayon-petit);
+    color: var(--hali-texte);
+    font-size: .88rem;
+    font-weight: 500;
+    margin: 1px .5rem;
+    padding: .6rem .75rem;
+    transition: background-color .12s ease, color .12s ease;
+}
+
+.sidebar .nav-item > a:hover { background: var(--hali-primaire-pale); color: var(--hali-primaire-fonce); }
+
+.sidebar .nav-item.active > a,
+.sidebar .nav-item > a.active {
+    background: var(--hali-primaire-clair);
+    color: var(--hali-primaire-fonce);
+    font-weight: 600;
+}
+
+.sidebar .nav-item i { width: 1.35rem; text-align: center; opacity: .85; }
+
+/* Intertitres de section : ils structurent, ils ne doivent pas attirer l'œil. */
+.sidebar .nav-section .text-section {
+    color: #9ca3af;
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    margin: 1.1rem 0 .3rem;
+    padding-left: 1.25rem;
+}
+
+.sidebar .nav-collapse li a { font-size: .84rem; padding: .45rem .75rem .45rem 2.6rem; }
+
+/* ------------------------------------------------------------------ Barre du haut */
+
+.main-header, .main-header .navbar-header {
+    background: var(--hali-primaire) !important;
+    box-shadow: var(--hali-ombre);
+}
+.main-header .navbar-nav .nav-link { color: rgba(255, 255, 255, .92) !important; }
+.main-header .input-group .form-control { background: rgba(255, 255, 255, .14); border: none; color: #fff; }
+.main-header .input-group .form-control::placeholder { color: rgba(255, 255, 255, .7); }
+
+/* ------------------------------------------------------------------ DataTables */
+
+div.dataTables_wrapper div.dataTables_filter input,
+div.dataTables_wrapper div.dataTables_length select {
+    border: 1px solid var(--hali-bordure);
+    border-radius: var(--hali-rayon-petit);
+    min-height: 34px;
+    padding: .25rem .6rem;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    background: var(--hali-primaire) !important;
+    border-color: var(--hali-primaire) !important;
+    border-radius: var(--hali-rayon-petit);
+    color: #fff !important;
+}
+
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter { color: var(--hali-discret); font-size: .84rem; }
+
+/* ------------------------------------------------------------------ Divers */
+
+.list-group-item { border-color: #f1f2f4; padding: .8rem 1rem; }
+.list-group-item:hover { background: var(--hali-primaire-pale); }
+
+.modal-content { border: none; border-radius: var(--hali-rayon); box-shadow: var(--hali-ombre-forte); }
+.modal-header, .modal-footer { border-color: var(--hali-bordure); padding: 1rem 1.25rem; }
+
+details > summary { cursor: pointer; }
+details > summary::marker { color: var(--hali-discret); }
+
+hr { border-color: var(--hali-bordure); opacity: 1; }
+
+/* Message « rien à afficher » : une page vide doit rester accueillante. */
+.text-center.text-muted.py-4 { color: var(--hali-discret) !important; font-size: .9rem; }
+
+/* ==========================================================================
+   CORRECTIFS KAIADMIN
+   --------------------------------------------------------------------------
+   KaiAdmin impose certaines couleurs avec !important : sans ce bloc, on
+   retrouve l'en-tête orange, les boutons bleus et le violet des pages
+   actives. On répond avec la même arme, et seulement ici.
+   ========================================================================== */
+
+/* En-tête du logo : orange → vert Hali, quelle que soit la valeur de
+   data-background-color (orange, orange2...). */
+.logo-header,
+.logo-header[data-background-color] {
+    background: var(--hali-primaire-fonce) !important;
+}
+
+/* Boutons pleins */
+.btn-primary,
+.btn-primary:disabled {
+    background: var(--hali-primaire) !important;
+    border-color: var(--hali-primaire) !important;
+    color: #fff !important;
+}
+.btn-primary:hover, .btn-primary:focus, .btn-primary:active {
+    background: var(--hali-primaire-fonce) !important;
+    border-color: var(--hali-primaire-fonce) !important;
+}
+
+/* Le vert « succès » de KaiAdmin est un vert pomme criard : on le calme. */
+.btn-success {
+    background: var(--hali-succes) !important;
+    border-color: var(--hali-succes) !important;
+    color: #fff !important;
+}
+.btn-success:hover, .btn-success:focus { background: #166534 !important; border-color: #166534 !important; }
+
+.btn-danger { background: var(--hali-danger) !important; border-color: var(--hali-danger) !important; color: #fff !important; }
+.btn-info   { background: var(--hali-info) !important;   border-color: var(--hali-info) !important;   color: #fff !important; }
+
+/* Le « secondary » de KaiAdmin est violet : ici c'est un bouton neutre. */
+.btn-secondary {
+    background: #fff !important;
+    border-color: var(--hali-bordure) !important;
+    color: var(--hali-texte) !important;
+}
+.btn-secondary:hover { background: #f9fafb !important; color: var(--hali-encre) !important; }
+
+/* Boutons « contour » : une seule famille neutre, sauf le rouge qui garde
+   son sens (action risquée). Une colonne de six couleurs ne dit plus rien. */
+.btn-outline-primary,
+.btn-outline-success {
+    background: #fff !important;
+    border-color: var(--hali-primaire) !important;
+    color: var(--hali-primaire) !important;
+}
+.btn-outline-primary:hover, .btn-outline-success:hover {
+    background: var(--hali-primaire) !important;
+    color: #fff !important;
+}
+
+.btn-outline-info,
+.btn-outline-warning,
+.btn-outline-secondary,
+.btn-outline-dark {
+    background: #fff !important;
+    border-color: var(--hali-bordure) !important;
+    color: var(--hali-texte) !important;
+}
+.btn-outline-info:hover, .btn-outline-warning:hover,
+.btn-outline-secondary:hover, .btn-outline-dark:hover {
+    background: var(--hali-primaire-pale) !important;
+    border-color: var(--hali-primaire) !important;
+    color: var(--hali-primaire-fonce) !important;
+}
+
+.btn-outline-danger {
+    background: #fff !important;
+    border-color: #fecaca !important;
+    color: var(--hali-danger) !important;
+}
+.btn-outline-danger:hover {
+    background: var(--hali-danger-pale) !important;
+    border-color: var(--hali-danger) !important;
+}
+
+.btn-link { color: var(--hali-primaire) !important; font-weight: 600; text-decoration: none !important; }
+.btn-link:hover { color: var(--hali-primaire-fonce) !important; text-decoration: underline !important; }
+
+/* Couleurs de texte et bordures « primary » */
+.text-primary { color: var(--hali-primaire) !important; }
+.text-info    { color: var(--hali-info) !important; }
+.text-success { color: var(--hali-succes) !important; }
+.text-warning { color: var(--hali-alerte) !important; }
+.text-danger  { color: var(--hali-danger) !important; }
+.border-primary { border-color: var(--hali-primaire) !important; }
+.border-success { border-color: #bbf7d0 !important; }
+
+/* Cases à cocher et boutons radio aux couleurs Hali */
+input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color: var(--hali-primaire); }
+
+/* Élément actif du menu : le violet de KaiAdmin disparaît */
+.sidebar .nav > .nav-item.active > a:before,
+.sidebar .nav > .nav-item > a[data-toggle="collapse"][aria-expanded="true"]:before {
+    background: var(--hali-primaire) !important;
+}
+.sidebar .nav > .nav-item.active > a i,
+.sidebar .nav > .nav-item.active > a p,
+.sidebar .nav > .nav-item.active a .caret {
+    color: var(--hali-primaire-fonce) !important;
+}
+
+/* Lignes de tableau colorées (urgence, en cours...) : un fond pâle et un
+   filet à gauche, au lieu d'un aplat qui écrase le texte. */
+.table > tbody > tr.table-danger > td  { background: var(--hali-danger-pale) !important; }
+.table > tbody > tr.table-warning > td { background: var(--hali-alerte-pale) !important; }
+.table > tbody > tr.table-success > td { background: var(--hali-primaire-pale) !important; }
+.table > tbody > tr.table-info > td    { background: var(--hali-info-pale) !important; }
+.table > tbody > tr.table-danger > td:first-child  { box-shadow: inset 3px 0 0 var(--hali-danger); }
+.table > tbody > tr.table-warning > td:first-child { box-shadow: inset 3px 0 0 var(--hali-alerte); }
+.table > tbody > tr.table-success > td:first-child { box-shadow: inset 3px 0 0 var(--hali-primaire); }
+.table > tbody > tr.table-info > td:first-child    { box-shadow: inset 3px 0 0 var(--hali-info); }
+
+/* ==========================================================================
+   ICÔNE GROSSESSE
+   --------------------------------------------------------------------------
+   « fa-baby » n'existe pas dans la version de Font Awesome livrée avec
+   KaiAdmin : l'icône restait vide (menu, dossier, bandeau de consultation).
+   On la dessine en SVG, en masque : elle prend la couleur du texte comme
+   n'importe quelle icône, partout, sans toucher aux vues.
+   ========================================================================== */
+
+.fa-baby::before {
+    content: "" !important;
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    vertical-align: -.125em;
+    background-color: currentColor;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='4.2' r='3.2'/%3E%3Cpath d='M2.5 10.2A3.2 3.2 0 0 1 5.7 7h4.6a3.2 3.2 0 0 1 3.2 3.2v.6A4.2 4.2 0 0 1 9.3 15H6.7a4.2 4.2 0 0 1-4.2-4.2z'/%3E%3C/svg%3E") center / contain no-repeat;
+            mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='4.2' r='3.2'/%3E%3Cpath d='M2.5 10.2A3.2 3.2 0 0 1 5.7 7h4.6a3.2 3.2 0 0 1 3.2 3.2v.6A4.2 4.2 0 0 1 9.3 15H6.7a4.2 4.2 0 0 1-4.2-4.2z'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+/* ==========================================================================
+   COMPOSANTS HALI (hl-)
+   --------------------------------------------------------------------------
+   Briques partagées par les écrans repensés : en-tête de page, blocs,
+   boutons, puces de filtre, pastilles de statut, jauges, chiffres clés,
+   classements. Une page qui les utilise n'a plus de CSS à embarquer.
+   ========================================================================== */
+
+.hl *, .hl *::before, .hl *::after { box-sizing: border-box; }
+
+/* En-tête de page */
+.hl-entete { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 16px; margin-bottom: 20px; }
+.hl-entete h1 { margin: 0; font-size: 1.45rem; font-weight: 700; color: var(--hali-encre); letter-spacing: -.015em; line-height: 1.25; }
+.hl-entete p { margin: 4px 0 0; color: var(--hali-discret); font-size: .9rem; }
+.hl-entete-actions { margin-left: auto; display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Blocs */
+.hl-bloc { background: #fff; border: 1px solid var(--hali-bordure); border-radius: var(--hali-rayon); box-shadow: 0 1px 2px rgba(17, 24, 39, .04); }
+.hl-bloc-titre { display: flex; align-items: center; gap: 8px; margin: 0; padding: 14px 18px; border-bottom: 1px solid var(--hali-bordure); font-size: .95rem; font-weight: 650; color: var(--hali-encre); }
+.hl-bloc-titre small { margin-left: auto; color: var(--hali-discret); font-weight: 500; font-size: .8rem; }
+.hl-bloc-corps { padding: 16px 18px; }
+
+/* Boutons */
+.hl-bouton {
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 36px; padding: 0 14px;
+    border: 1px solid var(--hali-bordure); border-radius: var(--hali-rayon-petit); background: #fff;
+    color: var(--hali-texte); font-size: .85rem; font-weight: 600; text-decoration: none; cursor: pointer;
+    transition: border-color .12s ease, color .12s ease, background-color .12s ease;
+}
+.hl-bouton:hover { border-color: var(--hali-primaire); color: var(--hali-primaire-fonce); text-decoration: none; }
+.hl-bouton:focus-visible { outline: 2px solid var(--hali-primaire); outline-offset: 2px; }
+.hl-bouton-plein { background: var(--hali-primaire); border-color: var(--hali-primaire); color: #fff; }
+.hl-bouton-plein:hover { background: var(--hali-primaire-fonce); color: #fff; }
+
+/* Puces de filtre (liens ou boutons) */
+.hl-puces { display: flex; flex-wrap: wrap; gap: 8px; }
+.hl-puce {
+    display: inline-flex; align-items: center; gap: 7px; min-height: 34px; padding: 0 13px;
+    border: 1px solid var(--hali-bordure); border-radius: 999px; background: #fff;
+    color: var(--hali-texte); font-size: .83rem; font-weight: 600; text-decoration: none; cursor: pointer;
+    transition: background-color .12s ease, border-color .12s ease, color .12s ease;
+}
+.hl-puce:hover { border-color: var(--hali-primaire); color: var(--hali-primaire-fonce); text-decoration: none; }
+.hl-puce:focus-visible { outline: 2px solid var(--hali-primaire); outline-offset: 2px; }
+.hl-puce.est-actif, .hl-puce[aria-pressed="true"] { background: var(--hali-primaire); border-color: var(--hali-primaire); color: #fff; }
+.hl-puce b { font-weight: 700; font-variant-numeric: tabular-nums; opacity: .75; }
+
+/* Pastilles de statut */
+.hl-statut { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px; border-radius: 999px; font-size: .76rem; font-weight: 600; white-space: nowrap; }
+.hl-statut::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.hl-s-succes { background: var(--hali-succes-pale); color: var(--hali-succes); }
+.hl-s-alerte { background: var(--hali-alerte-pale); color: var(--hali-alerte); }
+.hl-s-danger { background: var(--hali-danger-pale); color: var(--hali-danger); }
+.hl-s-info   { background: var(--hali-info-pale);   color: var(--hali-info); }
+.hl-s-neutre { background: #f3f4f6; color: var(--hali-texte); }
+
+/* Jauges */
+.hl-jauge { position: relative; height: 6px; border-radius: 999px; background: var(--hl-jauge-fond, #eef0f3); overflow: hidden; }
+.hl-jauge > span { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: var(--hl-jauge, var(--hali-primaire)); }
+.hl-jauge-empilee { display: flex; height: 8px; border-radius: 999px; overflow: hidden; background: #eef0f3; gap: 2px; }
+.hl-jauge-empilee > span { height: 100%; }
+
+/* Chiffres clés */
+.hl-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 16px; }
+.hl-kpi { padding: 18px 20px; display: grid; gap: 6px; align-content: start; }
+.hl-kpi-libelle { color: var(--hali-discret); font-size: .85rem; font-weight: 600; }
+.hl-kpi-valeur { color: var(--hali-encre); font-size: 1.9rem; font-weight: 700; line-height: 1.1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.hl-kpi-valeur small { font-size: .95rem; font-weight: 600; color: var(--hali-discret); letter-spacing: 0; }
+.hl-kpi-detail { color: var(--hali-discret); font-size: .83rem; }
+.hl-kpi.est-alerte .hl-kpi-valeur { color: var(--hali-alerte); }
+.hl-kpi.est-danger .hl-kpi-valeur { color: var(--hali-danger); }
+.hl-legende { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .78rem; color: var(--hali-discret); }
+.hl-legende i { display: inline-block; width: 8px; height: 8px; margin-right: 5px; border-radius: 2px; vertical-align: 0; }
+
+/* Classements (motifs, diagnostics, médecins) */
+.hl-classement { margin: 0; padding: 6px 18px 14px; list-style: none; }
+.hl-classement li { padding: 9px 0; border-bottom: 1px solid #f3f4f6; }
+.hl-classement li:last-child { border-bottom: 0; }
+.hl-classement-haut { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 6px; font-size: .88rem; }
+.hl-classement-haut span { color: var(--hali-encre); font-weight: 500; overflow-wrap: anywhere; }
+.hl-classement-haut b { color: var(--hali-encre); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hl-classement-haut b small { color: var(--hali-discret); font-weight: 500; }
+
+/* États vides */
+.hl-vide { padding: 40px 24px; text-align: center; color: var(--hali-discret); }
+.hl-vide i { display: block; margin-bottom: 10px; font-size: 1.6rem; color: #d1d5db; }
+
+/* Alerte en ligne */
+.hl-note { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 10px; font-size: .86rem; }
+.hl-note-alerte { background: var(--hali-alerte-pale); color: #78350f; }
+.hl-note-info { background: #f3f4f6; color: var(--hali-texte); }
+.hl-note-danger { background: var(--hali-danger-pale); color: #7f1d1d; }
+
+@media (max-width: 767.98px) {
+    .hl-entete-actions { margin-left: 0; width: 100%; }
+    .hl-kpi-valeur { font-size: 1.6rem; }
+}
+
+
+/* ==========================================================================
+   PARCOURS PATIENT (accueil, file d'attente, consultation)
+   ========================================================================== */
+
+/* Hauteur de la barre du haut de KaiAdmin : les éléments collants
+   s'arrêtent juste dessous au lieu de disparaître derrière. */
+:root { --hali-haut: 78px; }
+
+/* Initiales du patient */
+.hl-avatar {
+    width: 40px; height: 40px; flex: 0 0 40px; display: grid; place-items: center;
+    border-radius: 11px; background: var(--hali-primaire-clair); color: var(--hali-primaire-fonce);
+    font-size: .85rem; font-weight: 700; letter-spacing: .02em;
+}
+.hl-avatar.est-urgent { background: var(--hali-danger-pale); color: var(--hali-danger); }
+
+/* Pastille grossesse (rose, comme partout ailleurs) */
+.hl-s-rose { background: #fdf2f8; color: #9d174d; }
+a.hl-statut { text-decoration: none; }
+a.hl-statut:hover { filter: brightness(.96); text-decoration: none; }
+
+/* Bandeau patient : qui, pourquoi, depuis quand, et ce qu'il ne faut pas rater */
+.hl-patient {
+    background: #fff; border: 1px solid var(--hali-bordure); border-radius: var(--hali-rayon);
+    box-shadow: 0 1px 2px rgba(17, 24, 39, .04); margin-bottom: 16px;
+}
+.hl-patient.est-collant {
+    position: sticky; top: var(--hali-haut); z-index: 20;
+    box-shadow: 0 6px 16px rgba(17, 24, 39, .07);
+}
+.hl-patient-ligne { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 12px 16px; }
+.hl-patient-nom { display: grid; min-width: 0; }
+.hl-patient-nom strong { color: var(--hali-encre); font-size: 1.05rem; font-weight: 700; line-height: 1.3; }
+.hl-patient-nom span { color: var(--hali-discret); font-size: .84rem; }
+.hl-patient-pastilles { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.hl-allergie {
+    display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px;
+    background: var(--hali-danger); color: #fff; font-size: .78rem; font-weight: 700;
+}
+.hl-patient-liens { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-left: auto; font-size: .85rem; font-weight: 600; }
+.hl-patient-liens a { text-decoration: none; }
+.hl-patient-bas {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; padding: 8px 16px;
+    border-top: 1px solid #f3f4f6; background: #fafbfc; border-radius: 0 0 var(--hali-rayon) var(--hali-rayon);
+    font-size: .84rem; color: var(--hali-texte);
+}
+.hl-patient-bas i { color: var(--hali-danger); }
+.hl-patient-bas .hl-note-accueil { color: var(--hali-discret); }
+
+/* Blocs repliables avec une vraie flèche : un titre replié ne doit pas
+   ressembler à un bloc vide. */
+details.hl-repli > summary { display: flex; align-items: center; gap: 10px; list-style: none; cursor: pointer; }
+details.hl-repli > summary::-webkit-details-marker { display: none; }
+details.hl-repli > summary::after {
+    content: ""; margin-left: auto; width: 8px; height: 8px; flex: none;
+    border-right: 2px solid #9ca3af; border-bottom: 2px solid #9ca3af;
+    transform: rotate(45deg); transition: transform .12s ease;
+}
+details.hl-repli[open] > summary::after { transform: rotate(-135deg); }
+details.hl-repli > summary .hl-repli-aide { color: var(--hali-discret); font-size: .8rem; font-weight: 500; }
+details.hl-repli[open] > summary .hl-repli-aide { display: none; }
+
+/* Heure de mise à jour automatique */
+.hl-maj { display: inline-flex; align-items: center; gap: 6px; color: var(--hali-discret); font-size: .8rem; }
+.hl-maj::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #34d399; box-shadow: 0 0 0 3px #d1fae5; }
+
+
+/* Pied de page */
+.footer.hl-pied { padding: 14px 0; border-top: 1px solid var(--hali-bordure); background: #fff; color: var(--hali-discret); font-size: .82rem; }
+.footer.hl-pied .container-fluid { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; }
+.footer.hl-pied strong { color: var(--hali-primaire-fonce); }
+
+
+/* ==========================================================================
+   EN-TÊTES DE CARTES COLORÉS ET PAGINATION
+   --------------------------------------------------------------------------
+   Plusieurs écrans posent bg-primary / bg-dark / bg-warning… sur les en-têtes
+   de cartes. Avec les titres foncés de ce thème, « bg-dark » rendait le titre
+   illisible (noir sur noir). Tous deviennent sobres, avec un filet de couleur.
+   ========================================================================== */
+.card-header[class*="bg-"] {
+    background: #fafbfc !important;
+    color: var(--hali-encre) !important;
+    border-bottom: 1px solid var(--hali-bordure) !important;
+    box-shadow: inset 4px 0 0 var(--hl-filet, var(--hali-primaire));
+}
+.card-header[class*="bg-"] .card-title,
+.card-header[class*="bg-"] h1, .card-header[class*="bg-"] h2, .card-header[class*="bg-"] h3,
+.card-header[class*="bg-"] h4, .card-header[class*="bg-"] h5, .card-header[class*="bg-"] h6 { color: var(--hali-encre) !important; }
+.card-header[class*="bg-"] i { color: var(--hl-filet, var(--hali-primaire)) !important; }
+.card-header.bg-danger  { --hl-filet: var(--hali-danger); }
+.card-header.bg-warning { --hl-filet: var(--hali-alerte); }
+.card-header.bg-info    { --hl-filet: var(--hali-info); }
+.card-header.bg-dark, .card-header.bg-secondary { --hl-filet: #6b7280; }
+
+/* En-têtes de tableaux « bg-primary text-white » : même rendu que les autres tableaux */
+.table > thead.bg-primary, .table > thead.bg-primary > tr > th { background: #fafbfc !important; color: var(--hali-discret) !important; }
+
+/* Pagination (Bootstrap 5) */
+.pagination { gap: 4px; margin: 0; flex-wrap: wrap; }
+.pagination .page-link { min-width: 36px; height: 36px; display: grid; place-items: center; padding: 0 10px; border: 1px solid var(--hali-bordure); border-radius: 8px !important; color: var(--hali-texte); font-size: .85rem; font-weight: 600; }
+.pagination .page-link:hover { background: var(--hali-primaire-pale); border-color: var(--hali-primaire); color: var(--hali-primaire-fonce); }
+.pagination .page-item.active .page-link { background: var(--hali-primaire); border-color: var(--hali-primaire); color: #fff; }
+.pagination .page-item.disabled .page-link { color: #d1d5db; background: #fff; }
+nav .small.text-muted, nav p.small { margin: 0 0 8px; }
+
+
+/* ==========================================================================
+   MENU LATÉRAL : SOUS-MENUS
+   --------------------------------------------------------------------------
+   Sélecteurs volontairement longs : ceux de KaiAdmin (.nav.nav-secondary…)
+   sont plus spécifiques que les nôtres et remettaient du violet partout.
+   ========================================================================== */
+body .sidebar .sidebar-wrapper .nav.nav-secondary > .nav-item.submenu { background: transparent !important; }
+
+/* Élément parent d'un groupe ouvert : icône et texte teal, jamais violet */
+body .sidebar .sidebar-wrapper .nav.nav-secondary > .nav-item.active > a i,
+body .sidebar .sidebar-wrapper .nav.nav-secondary > .nav-item.active > a p,
+body .sidebar .sidebar-wrapper .nav.nav-secondary > .nav-item.active > a .caret { color: var(--hali-primaire-fonce) !important; }
+body .sidebar .sidebar-wrapper .nav.nav-secondary > .nav-item.active > a:before { background: var(--hali-primaire) !important; }
+
+/* Sous-éléments : sobres, sans filet ; seul l'élément courant est marqué */
+body .sidebar .sidebar-wrapper .nav.nav-secondary > .nav-item .nav-collapse { margin: 2px 0 8px; padding: 2px 0; }
+body .sidebar .sidebar-wrapper .nav.nav-secondary > .nav-item .nav-collapse li a {
+    margin: 1px .5rem 1px 2.1rem !important;
+    padding: .42rem .75rem !important;
+    border: 0 !important;
+    border-radius: var(--hali-rayon-petit);
+    background: transparent !important;
+    color: var(--hali-texte) !important;
+    font-weight: 500;
+}
+body .sidebar .sidebar-wrapper .nav.nav-secondary > .nav-item .nav-collapse li a:before { display: none !important; }
+body .sidebar .sidebar-wrapper .nav.nav-secondary > .nav-item .nav-collapse li a .sub-item { margin-left: 12px; font-size: .85rem; opacity: 1; }
+body .sidebar .sidebar-wrapper .nav.nav-secondary > .nav-item .nav-collapse li a .sub-item:before { left: -12px; width: 5px; height: 5px; background: #d1d5db; }
+body .sidebar .sidebar-wrapper .nav.nav-secondary > .nav-item .nav-collapse li a:hover { background: var(--hali-primaire-pale) !important; color: var(--hali-primaire-fonce) !important; }
+body .sidebar .sidebar-wrapper .nav.nav-secondary > .nav-item .nav-collapse li.active > a { background: var(--hali-primaire-clair) !important; color: var(--hali-primaire-fonce) !important; font-weight: 650; }
+body .sidebar .sidebar-wrapper .nav.nav-secondary > .nav-item .nav-collapse li.active > a .sub-item:before { background: var(--hali-primaire); }
+
+/* ------------------------------------------------------------------ Mobile */
+
+@media (max-width: 767.98px) {
+    .card-body { padding: 1rem; }
+    .page-header { flex-wrap: wrap; }
+    .table > tbody > tr > td, .table > thead > tr > th { padding: .6rem .75rem; }
+}
+
+/* ------------------------------------------------------------------ Impression */
+
+@media print {
+    .sidebar, .main-header, .no-print, .btn, .dataTables_filter, .dataTables_length, .dataTables_paginate,
+    .hl-entete-actions, .hl-puces, .hl-bouton {
+        display: none !important;
+    }
+    .main-panel, .container, .page-inner { margin: 0 !important; padding: 0 !important; width: 100% !important; }
+    .card, .hl-bloc { border: none !important; box-shadow: none !important; }
+    body { background: #fff; font-size: 12px; }
+}
+
+/* Respect des préférences système : pas d'animation pour qui n'en veut pas. */
+@media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+}

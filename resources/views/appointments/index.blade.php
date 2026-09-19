@@ -1,138 +1,170 @@
 @extends('layouts.backend')
 
+@php
+    $statuts = [
+        'pending' => ['À confirmer', 'hl-s-alerte'],
+        'confirmed' => ['Confirmé', 'hl-s-succes'],
+        'completed' => ['Honoré', 'hl-s-neutre'],
+        'cancelled' => ['Annulé', 'hl-s-danger'],
+        'no_show' => ['Absent', 'hl-s-danger'],
+    ];
+    $jour = \Carbon\Carbon::parse($date);
+    $jours = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+    $mois = ['', 'janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+    $libelleJour = ($jour->isToday() ? "Aujourd'hui, " : ($jour->isTomorrow() ? 'Demain, ' : ($jour->isYesterday() ? 'Hier, ' : ''))) . $jours[$jour->dayOfWeek] . ' ' . $jour->day . ' ' . $mois[$jour->month];
+    $avecJour = fn ($d) => request()->fullUrlWithQuery(['date' => $d->toDateString(), 'page' => null]);
+@endphp
+
+@section('style')
+<style>
+    .rv-jour { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--hali-bordure); }
+    .rv-jour h2 { margin: 0 8px; color: var(--hali-encre); font-size: 1.1rem; font-weight: 700; }
+    .rv-fleche { display: inline-grid; place-items: center; width: 36px; height: 36px; border: 1px solid var(--hali-bordure); border-radius: 8px; background: #fff; color: var(--hali-texte); text-decoration: none; }
+    .rv-fleche:hover { border-color: var(--hali-primaire); color: var(--hali-primaire-fonce); background: var(--hali-primaire-pale); text-decoration: none; }
+    .rv-jour input[type=date] { width: auto; min-height: 36px; }
+    .rv-filtres { display: flex; flex-wrap: wrap; gap: 10px; padding: 12px 18px; border-bottom: 1px solid var(--hali-bordure); }
+    .rv-filtres select { width: auto; min-width: 190px; min-height: 40px; }
+    .rv-filtres .rv-recherche { position: relative; flex: 1 1 240px; }
+    .rv-filtres .rv-recherche i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #9ca3af; }
+    .rv-filtres .rv-recherche input { width: 100%; min-height: 40px; padding-left: 40px; }
+
+    .rv-ligne { display: grid; grid-template-columns: 70px minmax(200px, 1.4fr) minmax(150px, 1fr) minmax(150px, 1fr) 120px auto; align-items: center; gap: 14px; padding: 12px 18px; border-top: 1px solid #f3f4f6; }
+    .rv-ligne:first-of-type { border-top: 0; }
+    .rv-ligne:hover { background: var(--hali-primaire-pale); }
+    .rv-ligne.est-passe { opacity: .7; }
+    .rv-heure { color: var(--hali-encre); font-size: 1.05rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .rv-patient { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .rv-patient .hl-avatar { width: 34px; height: 34px; flex-basis: 34px; font-size: .75rem; border-radius: 9px; }
+    .rv-patient strong { display: block; color: var(--hali-encre); }
+    .rv-sous { display: block; color: var(--hali-discret); font-size: .8rem; }
+    .rv-motif { display: inline-flex; align-items: center; gap: 7px; color: var(--hali-texte); font-size: .88rem; }
+    .rv-motif i { width: 9px; height: 9px; border-radius: 3px; flex: none; }
+    .rv-actions { display: flex; justify-content: flex-end; gap: 6px; }
+    .rv-actions form { margin: 0; }
+    .rv-icone { display: inline-grid; place-items: center; width: 34px; height: 34px; border: 1px solid var(--hali-bordure); border-radius: 8px; background: #fff; color: var(--hali-texte); cursor: pointer; text-decoration: none; }
+    .rv-icone:hover { border-color: var(--hali-primaire); color: var(--hali-primaire-fonce); background: var(--hali-primaire-pale); text-decoration: none; }
+    .rv-icone.est-risque:hover { border-color: var(--hali-danger); color: var(--hali-danger); background: var(--hali-danger-pale); }
+    .rv-pagination { padding: 14px 18px; border-top: 1px solid var(--hali-bordure); }
+    .rv-pagination nav { display: flex; justify-content: center; }
+    @media (max-width: 991.98px) {
+        .rv-ligne { grid-template-columns: 60px 1fr; gap: 6px 12px; }
+        .rv-ligne > :nth-child(n+3) { grid-column: 2; }
+        .rv-actions { justify-content: flex-start; }
+    }
+</style>
+@endsection
+
 @section('content')
 <div class="container">
-    <div class="page-inner">
-      <div class="page-header">
-        <ul class="breadcrumbs">
-          <li class="nav-home"><a href="{{url('/')}}"><i class="icon-home"></i></a></li>
-          <li class="separator"><i class="icon-arrow-right"></i></li>
-          <li class="nav-item"><a href="{{ route('appointment.index') }}">Rendez-vous</a></li>
-        </ul>
-      </div>
+    <div class="page-inner hl">
 
-      <div class="row mb-3">
-        <div class="col-6 col-md-2">
-          <div class="card text-center p-2"><div class="h4 mb-0">{{ $stats['total'] }}</div><small class="text-muted">Total du jour</small></div>
-        </div>
-        <div class="col-6 col-md-2">
-          <div class="card text-center p-2"><div class="h4 mb-0 text-warning">{{ $stats['pending'] }}</div><small class="text-muted">En attente</small></div>
-        </div>
-        <div class="col-6 col-md-2">
-          <div class="card text-center p-2"><div class="h4 mb-0 text-success">{{ $stats['confirmed'] }}</div><small class="text-muted">Confirmés</small></div>
-        </div>
-        <div class="col-6 col-md-2">
-          <div class="card text-center p-2"><div class="h4 mb-0 text-primary">{{ $stats['completed'] }}</div><small class="text-muted">Terminés</small></div>
-        </div>
-        <div class="col-6 col-md-2">
-          <div class="card text-center p-2"><div class="h4 mb-0 text-danger">{{ $stats['cancelled'] }}</div><small class="text-muted">Annulés</small></div>
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="col-md-12">
-          <div class="card">
-            <div class="card-header">
-              <div class="d-flex align-items-center">
-                <h4 class="card-title">Rendez-vous de la clinique</h4>
-                @can('appointment.create')
-                    <button class="btn btn-primary btn-round ms-auto" data-bs-toggle="modal" data-bs-target="#nouveauRdvModal">
-                        <i class="fa fa-plus"></i> Nouveau rendez-vous
-                    </button>
-                @endcan
-              </div>
-            </div>
-            <div class="card-body">
-                <form method="GET" action="{{ route('appointment.index') }}" class="row g-2 mb-3">
-                    <div class="col-md-2">
-                        <input type="date" name="date" class="form-control" value="{{ $date }}" onchange="this.form.submit()">
-                    </div>
-                    <div class="col-md-3">
-                        <select name="employee_id" class="form-control" onchange="this.form.submit()">
-                            <option value="">Tous les médecins</option>
-                            @foreach($medecins as $m)
-                                <option value="{{ $m->id }}" {{ request('employee_id') == $m->id ? 'selected' : '' }}>
-                                    Dr. {{ $m->full_name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <select name="status" class="form-control" onchange="this.form.submit()">
-                            <option value="">Tous les statuts</option>
-                            <option value="pending" {{ request('status')=='pending'?'selected':'' }}>En attente</option>
-                            <option value="confirmed" {{ request('status')=='confirmed'?'selected':'' }}>Confirmé</option>
-                            <option value="completed" {{ request('status')=='completed'?'selected':'' }}>Terminé</option>
-                            <option value="cancelled" {{ request('status')=='cancelled'?'selected':'' }}>Annulé</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <input type="text" name="search" class="form-control" placeholder="Patient, téléphone, motif..." value="{{ request('search') }}">
-                    </div>
-                    <div class="col-md-1">
-                        <button type="submit" class="btn btn-primary w-100"><i class="fa fa-search"></i></button>
-                    </div>
-                </form>
-
-                <div class="table-responsive">
-                    <table class="table table-striped table-hover">
-                        <thead class="bg-primary text-white">
-                            <tr>
-                                <th>Heure</th>
-                                <th>Patient</th>
-                                <th>Médecin</th>
-                                <th>Motif</th>
-                                <th>Statut</th>
-                                <th style="width:15%">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($appointments as $rdv)
-                                <tr>
-                                    <td>{{ $rdv->appointment_time->format('H:i') }}</td>
-                                    <td>
-                                        {{ $rdv->patient?->getFullName() }}
-                                        <br><small class="text-muted">{{ $rdv->patient?->identifiant_national_sante }}</small>
-                                    </td>
-                                    <td>Dr. {{ $rdv->employee->full_name }}</td>
-                                    <td>
-                                        @if($rdv->motifRdv)
-                                            <span style="display:inline-block;width:10px;height:10px;background:{{ $rdv->motifRdv->couleur }};border-radius:2px;"></span>
-                                            {{ $rdv->motifRdv->nom }}
-                                        @endif
-                                    </td>
-                                    <td>
-                                        <span class="badge badge-{{ ['pending'=>'warning','confirmed'=>'success','completed'=>'primary','cancelled'=>'danger','no_show'=>'secondary'][$rdv->status] }}">
-                                            {{ ['pending'=>'En attente','confirmed'=>'Confirmé','completed'=>'Terminé','cancelled'=>'Annulé','no_show'=>'Absence'][$rdv->status] }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div class="form-button-action">
-                                            <a href="{{ route('appointment.show', $rdv) }}" class="btn btn-info btn-round btn-sm"><i class="fa fa-eye"></i></a>
-                                            @can('appointment.edit')
-                                                @if(in_array($rdv->status, ['pending','confirmed']))
-                                                    <form action="{{ route('appointment.cancel', $rdv) }}" method="POST" class="d-inline" onsubmit="return confirm('Annuler ce rendez-vous ?');">
-                                                        @csrf @method('DELETE')
-                                                        <input type="hidden" name="reason" value="Annulé par la réception">
-                                                        <button type="submit" class="btn btn-danger btn-round btn-sm"><i class="fa fa-times"></i></button>
-                                                    </form>
-                                                @endif
-                                            @endcan
-                                        </div>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr><td colspan="6" class="text-center text-muted">Aucun rendez-vous pour cette journée.</td></tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-
-                {{ $appointments->withQueryString()->links() }}
-            </div>
+      <header class="hl-entete">
+          <div>
+              <h1>Rendez-vous de la clinique</h1>
+              <p>Tous les médecins, jour par jour.</p>
           </div>
-        </div>
+          <div class="hl-entete-actions">
+              @can('parcours.accueil')
+                  <a href="{{ route('parcours.accueil.index') }}" class="hl-bouton"><i class="fas fa-door-open" aria-hidden="true"></i> Accueil du jour</a>
+              @endcan
+              @can('appointment.create')
+                  <button type="button" class="hl-bouton hl-bouton-plein" data-bs-toggle="modal" data-bs-target="#nouveauRdvModal">
+                      <i class="fa fa-plus" aria-hidden="true"></i> Nouveau rendez-vous
+                  </button>
+              @endcan
+          </div>
+      </header>
+
+      <div class="hl-kpis">
+          <div class="hl-bloc hl-kpi"><span class="hl-kpi-libelle">Rendez-vous du jour</span><span class="hl-kpi-valeur">{{ $stats['total'] }}</span></div>
+          <div class="hl-bloc hl-kpi {{ $stats['pending'] > 0 ? 'est-alerte' : '' }}"><span class="hl-kpi-libelle">À confirmer</span><span class="hl-kpi-valeur">{{ $stats['pending'] }}</span></div>
+          <div class="hl-bloc hl-kpi"><span class="hl-kpi-libelle">Confirmés</span><span class="hl-kpi-valeur">{{ $stats['confirmed'] }}</span></div>
+          <div class="hl-bloc hl-kpi"><span class="hl-kpi-libelle">Honorés</span><span class="hl-kpi-valeur">{{ $stats['completed'] }}</span><span class="hl-kpi-detail">{{ $stats['cancelled'] }} annulé{{ $stats['cancelled'] > 1 ? 's' : '' }}</span></div>
       </div>
+
+      <section class="hl-bloc">
+          <div class="rv-jour">
+              <a class="rv-fleche" href="{{ $avecJour($jour->copy()->subDay()) }}" title="Jour précédent" aria-label="Jour précédent"><i class="fas fa-chevron-left"></i></a>
+              <h2>{{ ucfirst($libelleJour) }}</h2>
+              <a class="rv-fleche" href="{{ $avecJour($jour->copy()->addDay()) }}" title="Jour suivant" aria-label="Jour suivant"><i class="fas fa-chevron-right"></i></a>
+              @unless($jour->isToday())
+                  <a class="hl-puce" href="{{ $avecJour(today()) }}">Aujourd'hui</a>
+              @endunless
+              <form method="GET" action="{{ route('appointment.index') }}" style="margin-left:auto">
+                  @foreach(request()->except(['date', 'page']) as $cle => $valeur)
+                      @if(is_string($valeur))<input type="hidden" name="{{ $cle }}" value="{{ $valeur }}">@endif
+                  @endforeach
+                  <input type="date" name="date" class="form-control" value="{{ $date }}" onchange="this.form.submit()" aria-label="Choisir une date">
+              </form>
+          </div>
+
+          <form method="GET" action="{{ route('appointment.index') }}" class="rv-filtres">
+              <input type="hidden" name="date" value="{{ $date }}">
+              <label class="rv-recherche mb-0">
+                  <span class="sr-only visually-hidden">Rechercher</span>
+                  <i class="fas fa-search" aria-hidden="true"></i>
+                  <input type="search" name="search" class="form-control" placeholder="Patient, téléphone, motif… puis Entrée" value="{{ request('search') }}">
+              </label>
+              <select name="employee_id" class="form-control" onchange="this.form.submit()" aria-label="Médecin">
+                  <option value="">Tous les médecins</option>
+                  @foreach($medecins as $m)
+                      <option value="{{ $m->id }}" @selected((int) request('employee_id') === $m->id)>{{ $m->nom_affiche }}</option>
+                  @endforeach
+              </select>
+              <select name="status" class="form-control" onchange="this.form.submit()" aria-label="Statut">
+                  <option value="">Tous les statuts</option>
+                  @foreach($statuts as $valeur => [$libelle])
+                      <option value="{{ $valeur }}" @selected(request('status') === $valeur)>{{ $libelle }}</option>
+                  @endforeach
+              </select>
+          </form>
+
+          @if($appointments->isEmpty())
+              <div class="hl-vide">
+                  <i class="fas fa-calendar-day" aria-hidden="true"></i>
+                  Aucun rendez-vous {{ request()->hasAny(['search', 'status', 'employee_id']) && (request('search') || request('status') || request('employee_id')) ? 'ne correspond à ces filtres' : 'ce jour-là' }}.
+              </div>
+          @else
+              @foreach($appointments as $rdv)
+                  @php
+                      [$libelleStatut, $tonStatut] = $statuts[$rdv->status] ?? [$rdv->status, 'hl-s-neutre'];
+                      $patient = $rdv->patient;
+                      $initiales = $patient ? mb_strtoupper(mb_substr((string) $patient->first_name, 0, 1) . mb_substr((string) $patient->last_name, 0, 1)) : '?';
+                  @endphp
+                  <div class="rv-ligne {{ in_array($rdv->status, ['completed', 'cancelled', 'no_show'], true) ? 'est-passe' : '' }}">
+                      <span class="rv-heure">{{ $rdv->appointment_time?->format('H:i') }}</span>
+                      <div class="rv-patient">
+                          <span class="hl-avatar" aria-hidden="true">{{ $initiales }}</span>
+                          <div style="min-width:0">
+                              <strong>{{ $patient?->full_name ?? 'Patient inconnu' }}</strong>
+                              <span class="rv-sous">{{ $patient?->telephone ?: $patient?->identifiant_national_sante }}</span>
+                          </div>
+                      </div>
+                      <span class="rv-motif">
+                          @if($rdv->motifRdv)<i style="background: {{ $rdv->motifRdv->couleur ?: '#9ca3af' }}"></i>{{ $rdv->motifRdv->nom }}@else — @endif
+                      </span>
+                      <span class="rv-sous" style="font-size:.88rem; color: var(--hali-texte)">{{ $rdv->employee?->nom_affiche }}</span>
+                      <span><span class="hl-statut {{ $tonStatut }}">{{ $libelleStatut }}</span></span>
+                      <div class="rv-actions">
+                          <a href="{{ route('appointment.show', $rdv) }}" class="rv-icone" title="Voir le rendez-vous" aria-label="Voir le rendez-vous"><i class="fa fa-eye"></i></a>
+                          @can('appointment.edit')
+                              @if(in_array($rdv->status, ['pending', 'confirmed'], true))
+                                  <form action="{{ route('appointment.cancel', $rdv) }}" method="POST" onsubmit="return confirm('Annuler ce rendez-vous ? Le patient sera prévenu si les SMS sont activés.');">
+                                      @csrf @method('DELETE')
+                                      <input type="hidden" name="reason" value="Annulé par la réception">
+                                      <button type="submit" class="rv-icone est-risque" title="Annuler" aria-label="Annuler le rendez-vous"><i class="fa fa-times"></i></button>
+                                  </form>
+                              @endif
+                          @endcan
+                      </div>
+                  </div>
+              @endforeach
+
+              @if($appointments->hasPages())
+                  <div class="rv-pagination">{{ $appointments->withQueryString()->links() }}</div>
+              @endif
+          @endif
+      </section>
 
       {{-- ============ MODAL NOUVEAU RENDEZ-VOUS ============ --}}
       <div class="modal fade" id="nouveauRdvModal" tabindex="-1" aria-hidden="true">

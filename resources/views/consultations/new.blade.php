@@ -527,6 +527,23 @@
         .selected-item {
             will-change: transform;
         }
+
+        /* ---------------- Hali : alignement sur la charte (ajouté, rien retiré) */
+        :root {
+            --primary: var(--hali-primaire, #0f766e);
+            --primary-dark: var(--hali-primaire-fonce, #115e59);
+            --success: var(--hali-succes, #15803d);
+            --danger: var(--hali-danger, #b91c1c);
+            --warning: var(--hali-alerte, #b45309);
+        }
+        /* En-tête de page : un titre, pas une bannière */
+        .page-header { background: none !important; color: var(--hali-encre, #111827) !important; box-shadow: none !important; padding: 0 0 12px !important; border-bottom: 1px solid var(--hali-bordure, #e5e7eb); }
+        .page-header h1, .page-header h1 i { color: var(--hali-encre, #111827) !important; font-size: 1.45rem !important; }
+        .page-header h1 i { color: var(--hali-primaire, #0f766e) !important; }
+        .card-header-custom { background: #fafbfc !important; }
+        .card-header-custom::before { background: var(--hali-primaire, #0f766e) !important; height: 3px; }
+        .selected-item { background: var(--hali-primaire-pale, #f0fdfa) !important; color: var(--hali-primaire-fonce, #115e59) !important; border: 1px solid var(--hali-primaire-clair, #ccfbf1); box-shadow: none !important; }
+        .modal-header-enhanced { background: var(--hali-primaire, #0f766e) !important; }
     </style>
 @endsection
 

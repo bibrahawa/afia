@@ -37,7 +37,7 @@ class ResultatsPublicsController extends Controller
             'action' => 'labo.resultats_consultes_patient',
             'subject_type' => LaboCompteRendu::class,
             'subject_id' => $cr->id,
-            'description' => 'Consultation via lien SMS',
+            'description' => $request->query('source') === 'portail' ? 'Consultation depuis le portail patient' : 'Consultation via lien SMS',
             'proprietes' => ['version' => $cr->version],
             'ip_address' => $request->ip(),
         ]);

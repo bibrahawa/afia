@@ -63,7 +63,7 @@
                                                 data-bs-toggle="modal" data-bs-target="#editEtablissementModal"
                                                 data-action="{{ route('etablissement.update', $e) }}"
                                                 data-nom="{{ $e->nom }}" data-type="{{ $e->type }}" data-statut="{{ $e->statut }}"
-                                                data-adresse="{{ $e->adresse }}" data-contact="{{ $e->contact }}" data-email="{{ $e->email }}">
+                                                data-adresse="{{ $e->adresse }}" data-contact="{{ $e->contact }}" data-email="{{ $e->email }}" data-sms="{{ $e->sms_expediteur }}">
                                                 <i class="fa fa-edit"></i>
                                             </button>
                                         @endcan
@@ -138,6 +138,7 @@ document.querySelectorAll('.edit-etablissement').forEach(btn => {
         f.querySelector('[name=adresse]').value = btn.dataset.adresse || '';
         f.querySelector('[name=contact]').value = btn.dataset.contact || '';
         f.querySelector('[name=email]').value = btn.dataset.email || '';
+        f.querySelector('[name=sms_expediteur]').value = btn.dataset.sms || '';
     });
 });
 </script>

@@ -10,7 +10,11 @@ class ChambreController extends Controller
 {
     public function index()
     {
-        $chambres = Chambre::latest()->get();
+        // Avec l'occupant éventuel : le plan des chambres affiche qui est dedans.
+        $chambres = Chambre::with(['hospitalisations' => fn ($q) => $q->where('statut', 'En cours')->with('patient')])
+            ->orderBy('numero')
+            ->get();
+
         return view('chambres.index', compact('chambres'));
     }
 
@@ -55,8 +59,15 @@ class ChambreController extends Controller
 
     public function destroy(Chambre $chambre)
     {
+        // CORRIGÉ — supprimait aussi TOUTES les hospitalisations passées de la
+        // chambre (historique des patients et base de leur facturation).
+        if ($chambre->hospitalisations()->exists()) {
+            return redirect()->route('chambres.index')->with('error',
+                'Cette chambre a déjà accueilli des patients : elle ne peut pas être supprimée. Passez-la « En maintenance » pour ne plus l\'attribuer.');
+        }
+
         $chambre->delete();
-        $chambre->hospitalisations()->delete();
+
         return redirect()->route('chambres.index')->with('success', 'Chambre supprimée.');
     }
 }

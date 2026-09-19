@@ -37,6 +37,7 @@ class ConsultationRapideController extends Controller
     public function show(Consultation $consultation)
     {
         $medecin = $this->medecinAutorise($consultation);
+        $this->refuserSiAnnulee($consultation);
 
         $consultation->load([
             'patient.antecedant', 'services', 'packages', 'tests', 'medicaments',
@@ -70,6 +71,7 @@ class ConsultationRapideController extends Controller
     public function enregistrer(Request $request, Consultation $consultation)
     {
         $this->medecinAutorise($consultation);
+        $this->refuserSiAnnulee($consultation);
 
         $donnees = $request->validate([
             'action' => ['required', 'in:terminer,brouillon'],
@@ -116,13 +118,13 @@ class ConsultationRapideController extends Controller
         $terme = '%' . $donnees['q'] . '%';
 
         $resultats = match ($donnees['categorie']) {
-            'services' => Service::where('name', 'like', $terme)->orderBy('name')->limit(15)->get()
+            'services' => Service::actifs()->where('name', 'like', $terme)->orderBy('name')->limit(15)->get()
                 ->map(fn ($a) => ['id' => $a->id, 'nom' => $a->name, 'prix' => (float) $a->amount]),
             'packages' => Package::where('name', 'like', $terme)->orderBy('name')->limit(15)->get()
                 ->map(fn ($a) => ['id' => $a->id, 'nom' => $a->name, 'prix' => (float) $a->price]),
             'examens' => Test::where('name', 'like', $terme)->orderBy('name')->limit(15)->get()
                 ->map(fn ($a) => ['id' => $a->id, 'nom' => $a->name, 'prix' => (float) $a->amount]),
-            'medicaments' => Medicament::where('nom', 'like', $terme)->orderBy('nom')->limit(15)->get()
+            'medicaments' => Medicament::actifs()->where('nom', 'like', $terme)->orderBy('nom')->limit(15)->get()
                 ->map(fn ($a) => ['id' => $a->id, 'nom' => $a->nom, 'prix' => (float) $a->amount,
                     'dose' => $a->dosage, 'frequence' => $a->frequence, 'duree' => $a->duree, 'instructions' => $a->instructions]),
         };
@@ -184,6 +186,16 @@ class ConsultationRapideController extends Controller
         return back()->with('success', 'Modèle retiré de vos propositions.');
     }
 
+    /** Patient reparti sans consulter : rien à remplir, rien à facturer. */
+    private function refuserSiAnnulee(Consultation $consultation): void
+    {
+        if ($consultation->statut === Consultation::ANNULEE) {
+            throw new \App\Exceptions\Parcours\OperationParcoursImpossible(
+                'Ce patient est reparti sans consulter : cette consultation est close. S\'il revient, l\'accueil l\'ajoute de nouveau à la file.'
+            );
+        }
+    }
+
     private function medecinAutorise(Consultation $consultation): Employee
     {
         $medecin = Employee::findOrFail($this->authenticatedEmployeeId());
@@ -209,10 +221,10 @@ class ConsultationRapideController extends Controller
         $limiter = fn ($collection) => $collection->count() > self::CATALOGUE_EMBARQUE_MAX ? collect() : $collection;
 
         return array_map($limiter, [
-            'services' => Service::orderBy('name')->get()->map(fn ($a) => ['id' => $a->id, 'nom' => $a->name, 'prix' => (float) $a->amount])->values(),
+            'services' => Service::actifs()->orderBy('name')->get()->map(fn ($a) => ['id' => $a->id, 'nom' => $a->name, 'prix' => (float) $a->amount])->values(),
             'packages' => Package::orderBy('name')->get()->map(fn ($a) => ['id' => $a->id, 'nom' => $a->name, 'prix' => (float) $a->price])->values(),
             'examens' => Test::orderBy('name')->get()->map(fn ($a) => ['id' => $a->id, 'nom' => $a->name, 'prix' => (float) $a->amount])->values(),
-            'medicaments' => Medicament::orderBy('nom')->get()->map(fn ($a) => [
+            'medicaments' => Medicament::actifs()->orderBy('nom')->get()->map(fn ($a) => [
                 'id' => $a->id, 'nom' => $a->nom, 'prix' => (float) $a->amount,
                 'dose' => $a->dosage, 'frequence' => $a->frequence, 'duree' => $a->duree, 'instructions' => $a->instructions,
             ])->values(),

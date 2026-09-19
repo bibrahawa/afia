@@ -26,99 +26,133 @@ class EmployeeController extends Controller
      */
     public function index()
     {
-        $employees = Employee::all();
-        $departments = Department::select('id','name')->get();
-        //$days = explode(',',$employees->working_day);
-        return view('employees.index' , compact('employees', 'departments'));
+        $employees = Employee::with(['department', 'user'])->orderByDesc('is_active')->orderBy('first_name')->get();
+        $departments = Department::select('id', 'name')->orderBy('name')->get();
+
+        return view('employees.index', compact('employees', 'departments'));
     }
 
-    public function profile(){
-        return view('employees.profile');
-    }
+    /**
+     * Mon profil (utilisateur connecté).
+     * CORRIGÉ — la page affichait des données d'exemple (« Lueilwitz, Wisoky and Leuschke »,
+     * « k.anderson@example.com », « Country : USA ») et des liens vers Twitter.
+     */
+    public function profile()
+    {
+        $employee = auth()->user()?->employee?->load('department');
 
+        return view('employees.profile', ['employee' => $employee, 'estMonProfil' => true]);
+    }
 
     public function create()
     {
-        $departments = Department::select('id','name')->get();
+        $departments = Department::select('id', 'name')->orderBy('name')->get();
+
         return view('employees.create', compact('departments'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
     public function store(Request $request)
     {
+        $donnees = $this->valider($request);
+        $donnees['first_name'] = $this->sansTitre($donnees['first_name']);
+        $donnees['is_active'] = true;
 
-        $request->validate(['department_id'=>'required|numeric']);
-        
-        $data = $request->all();
-        
-        if($request->type == 'Doctor')
-        {
-            $data['first_name'] = 'DR '.$request->first_name;
-        }
+        Employee::create($donnees);
 
-        Employee::create($data);
-        return redirect()->route('employee.index')->with('success', 'Employee saved Successfully.');
-        //
+        return redirect()->route('employee.index')->with('success', 'Employé ajouté.');
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
     public function show($id)
     {
-        $employee = Employee::find($id);
-        $departments = Department::get();
-        return view('employees.profile', compact('employee', 'departments'));
-        //
+        $employee = Employee::with('department')->findOrFail($id);
+
+        return view('employees.profile', ['employee' => $employee, 'estMonProfil' => auth()->user()?->employee?->id === $employee->id]);
     }
 
     public function edit($id)
     {
-        $employee = Employee::find($id);
-        $departments = Department::get();
+        $employee = Employee::findOrFail($id);
+        $departments = Department::orderBy('name')->get();
+
         return view('employees.edit', compact('employee', 'departments'));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
     public function update(Request $request, $id)
     {
+        $employee = Employee::findOrFail($id);
+        $donnees = $this->valider($request);
 
-        $employee = Employee::find ( $id );
-        
-        if($request->type == 'Doctor')
-        {
-            $request['first_name'] = 'DR.'.$request->first_name;
-        }
-        $employee->update($request->all());
-        $departments = Department::get();
-         return redirect()->route('employee.index')->with('success', 'Employee Updated Successfully');
-        //
+        // CORRIGÉ — « DR. » était ajouté au prénom à CHAQUE enregistrement
+        // (« DR.DR.DR. Alpha ») : le prénom est gardé seul, nom_affiche ajoute le titre.
+        $donnees['first_name'] = $this->sansTitre($donnees['first_name']);
+        $donnees['is_active'] = $request->boolean('is_active');
+
+        $employee->update($donnees);
+
+        return redirect()->route('employee.index')->with('success', 'Fiche de ' . $employee->nom_affiche . ' mise à jour.');
     }
-
 
     public function destroy($id)
     {
-        //return $id;
-        $employee = Employee::find($id);
-        if (count($employee->doctor)) {
-            return back()->with('error', 'Doctor cannot be delete...');
-        }
-        $employee->delete();
-        return redirect()->route('employee.index')->with('success', 'Employee Deleted Successfully');
+        $employee = Employee::findOrFail($id);
 
+        // CORRIGÉ — testait une relation « doctor » inexistante (erreur à chaque suppression).
+        // Un soignant qui a déjà reçu des patients garde son historique : on le désactive.
+        $aUnHistorique = $employee->appointments()->exists()
+            || \App\Models\Consultation::where('medecin_id', $employee->id)->exists()
+            || $employee->user_id;
+
+        if ($aUnHistorique) {
+            return back()->with('error', "{$employee->nom_affiche} a un compte ou un historique de soins : il ne peut pas être supprimé. Désactivez sa fiche à la place.");
+        }
+
+        $employee->delete();
+
+        return redirect()->route('employee.index')->with('success', 'Employé supprimé.');
+    }
+
+    /** Changement de mot de passe depuis « Mon profil ». */
+    public function motDePasse(Request $request)
+    {
+        $donnees = $request->validate([
+            'mot_de_passe_actuel' => ['required', 'current_password'],
+            'password' => ['required', 'string', 'min:8', 'confirmed', 'different:mot_de_passe_actuel'],
+        ], [
+            'mot_de_passe_actuel.current_password' => 'Le mot de passe actuel est incorrect.',
+            'password.min' => 'Le nouveau mot de passe doit contenir au moins 8 caractères.',
+            'password.confirmed' => 'Les deux saisies du nouveau mot de passe ne correspondent pas.',
+            'password.different' => 'Choisissez un mot de passe différent de l\'actuel.',
+        ]);
+
+        $request->user()->forceFill(['password' => \Illuminate\Support\Facades\Hash::make($donnees['password'])])->save();
+
+        return back()->with('success', 'Mot de passe modifié.');
+    }
+
+    private function valider(Request $request): array
+    {
+        return $request->validate([
+            'first_name' => ['required', 'string', 'max:100'],
+            'last_name' => ['required', 'string', 'max:100'],
+            'middle_name' => ['nullable', 'string', 'max:100'],
+            'type' => ['required', 'in:' . implode(',', array_keys(Employee::TYPES))],
+            'department_id' => ['required', 'exists_etablissement:departments,id'],
+            'speciality' => ['nullable', 'string', 'max:255'],
+            'address' => ['nullable', 'string', 'max:500'],
+            'education' => ['nullable', 'string', 'max:2000'],
+            'certificate' => ['nullable', 'string', 'max:2000'],
+            'description' => ['nullable', 'string', 'max:2000'],
+        ], [
+            'first_name.required' => 'Indiquez le prénom.',
+            'last_name.required' => 'Indiquez le nom.',
+            'department_id.required' => 'Choisissez le département.',
+        ]);
+    }
+
+    private function sansTitre(string $prenom): string
+    {
+        // « Dr », « Dr. », « DR.DR. », « Docteur » en tête ; jamais « Drissa ».
+        return trim(preg_replace('/^\s*(?:(?:docteur|dr)\s*\.\s*|(?:docteur|dr)\s+)+/iu', '', $prenom));
     }
 
     public function dashboard()

@@ -20,6 +20,64 @@ class Employee extends Model
         'is_active' => 'boolean'
     ];
 
+    /**
+     * Valeurs autorisées par la colonne `employees.type` (ENUM stricte) et leur libellé.
+     * Toute l'application teste `type === 'Doctor'` pour reconnaître un médecin.
+     */
+    public const TYPES = [
+        'Doctor' => 'Médecin',
+        'Nurse' => 'Infirmier / infirmière',
+        'Laboratory' => 'Laboratoire',
+        'Reception' => 'Accueil',
+        'Secretary' => 'Secrétariat',
+        'Accountant' => 'Comptabilité / caisse',
+        'Pharmacy' => 'Pharmacie',
+        'Admin' => 'Administration',
+        'Other' => 'Autre',
+    ];
+
+    /**
+     * CORRIGÉ — les formulaires envoyaient « Docteur », « Secretaire »… (écran Employés)
+     * ou le nom du rôle « medecin », « secretaire »… (création d'utilisateur), valeurs
+     * refusées par la colonne ENUM : en mode strict la création échouait, sinon le type
+     * était vidé et le médecin n'apparaissait dans aucune liste de médecins.
+     * Toute saisie est ramenée ici à une valeur autorisée.
+     */
+    public function setTypeAttribute($valeur): void
+    {
+        $this->attributes['type'] = self::normaliserType($valeur);
+    }
+
+    public static function normaliserType($valeur): string
+    {
+        if ($valeur === null || $valeur === '') {
+            return 'Other';
+        }
+
+        if (array_key_exists($valeur, self::TYPES)) {
+            return $valeur;
+        }
+
+        $cle = \Illuminate\Support\Str::lower(\Illuminate\Support\Str::ascii(trim((string) $valeur)));
+
+        return match (true) {
+            in_array($cle, ['medecin', 'docteur', 'doctor', 'dr', 'sage-femme', 'sage femme'], true) => 'Doctor',
+            in_array($cle, ['infirmier', 'infirmiere', 'nurse'], true) => 'Nurse',
+            in_array($cle, ['laboratoire', 'laborantin', 'biologiste', 'laboratory', 'labo'], true) => 'Laboratory',
+            in_array($cle, ['accueil', 'reception', 'receptionniste'], true) => 'Reception',
+            in_array($cle, ['secretaire', 'secretariat', 'secretary'], true) => 'Secretary',
+            in_array($cle, ['comptable', 'caissier', 'caissiere', 'caisse', 'accountant'], true) => 'Accountant',
+            in_array($cle, ['pharmacie', 'pharmacien', 'pharmacy'], true) => 'Pharmacy',
+            in_array($cle, ['admin', 'administrateur', 'administration', 'super-admin'], true) => 'Admin',
+            default => 'Other',
+        };
+    }
+
+    public function getTypeLibelleAttribute(): string
+    {
+        return self::TYPES[$this->type] ?? 'Autre';
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);
@@ -69,7 +127,24 @@ class Employee extends Model
 
     public function getFullNameAttribute()
     {
-        return $this->first_name . ' ' . $this->last_name;
+        return preg_replace('/\s+/u', ' ', trim($this->first_name . ' ' . $this->last_name));
+    }
+
+    /**
+     * Nom à afficher pour un soignant : « Dr Alpha Barry ».
+     *
+     * Le titre n'est ajouté que s'il manque — plusieurs fiches portent déjà
+     * « Dr » dans le prénom, d'où les « Dr Dr » vus à l'écran.
+     */
+    public function getNomAfficheAttribute(): string
+    {
+        $nom = $this->full_name;
+
+        if ($this->type !== 'Doctor') {
+            return $nom;
+        }
+
+        return preg_match('/^(dr|docteur|pr|professeur)\b/iu', $nom) ? $nom : 'Dr ' . $nom;
     }
 
     /**

@@ -19,21 +19,77 @@
 
 @section('style')
 <style>
-    .chip { border: 1px solid #ccc; border-radius: 999px; padding: 2px 12px; margin: 0 6px 6px 0; background: #fff; font-size: .8rem; cursor: pointer; }
-    .chip:hover { background: #e6f4f1; border-color: #087f6b; }
+    /* ------------------------------------------------ Consultation */
+
+    /* Puces : diagnostics fréquents, médicaments, modèles, signes, délais */
+    .chip {
+        display: inline-flex; align-items: center; gap: 6px; min-height: 30px; margin: 0 6px 6px 0; padding: 0 12px;
+        border: 1px solid var(--hali-bordure); border-radius: 999px; background: #fff;
+        color: var(--hali-texte); font-size: .82rem; font-weight: 500; cursor: pointer;
+        transition: background-color .12s ease, border-color .12s ease, color .12s ease;
+    }
+    .chip:hover { background: var(--hali-primaire-pale); border-color: var(--hali-primaire); color: var(--hali-primaire-fonce); }
+    .chip:focus-visible { outline: 2px solid var(--hali-primaire); outline-offset: 2px; }
+    #listeSignes .chip { background: var(--hali-primaire-pale); border-color: var(--hali-primaire-clair); color: var(--hali-primaire-fonce); }
+
+    /* Délai du prochain rendez-vous : le choix actif (classe posée par le script) */
+    .js-delai.bg-light { background: var(--hali-primaire) !important; border-color: var(--hali-primaire); color: #fff; }
+
     .panneau-actes { max-height: 230px; overflow-y: auto; }
-    .recap { position: sticky; top: 80px; }
+    .panneau-actes:empty { display: none; }
+
+    /* Récapitulatif : reste visible sous le bandeau patient */
+    .recap { position: sticky; top: calc(var(--hali-haut) + var(--bandeau-h, 0px) + 12px); }
+
+    /* Étapes numérotées : l'écran se lit de haut en bas */
+    #formConsultation { counter-reset: etape; }
+    .card-title.etape::before {
+        counter-increment: etape; content: counter(etape);
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 22px; height: 22px; margin-right: .55rem; border-radius: 50%;
+        background: var(--hali-primaire-clair); color: var(--hali-primaire-fonce); font-size: .75rem; font-weight: 700;
+    }
+
+    /* Modèles : une barre fine, pas une carte entière */
+    .cs-modeles { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-bottom: 16px; padding: 10px 14px; }
+    .cs-modeles-titre { color: var(--hali-encre); font-size: .85rem; font-weight: 650; margin-right: 4px; }
+    .cs-modeles .chip { margin: 0; }
+    .cs-modeles-aide { color: var(--hali-discret); font-size: .82rem; }
+
+    .cs-libelle { display: block; margin-bottom: 6px; color: var(--hali-encre); font-size: .85rem; font-weight: 650; }
+    .cs-precedente { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 14px; padding: 10px 12px; border-radius: 10px; background: #f9fafb; color: var(--hali-discret); font-size: .84rem; }
+    .cs-precedente .chip { margin: 0; }
+
+    #listeMedicaments .form-control-sm { min-width: 90px; }
+    #listeExamens .list-group-item, #listeServices .list-group-item, #listePackages .list-group-item { padding: .55rem .25rem; }
+
+    /* Montant */
+    .montant-recap { padding: 14px 16px; border-radius: 10px; background: var(--hali-primaire-pale); }
+    .montant-recap .montant { display: block; margin: 2px 0; color: var(--hali-encre); font-size: 1.7rem; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; }
+
+    /* Actions secondaires : repliées, rangées par usage, sans couleur */
+    .actions-secondaires { margin-top: 14px; padding-top: 12px; border-top: 1px solid #f3f4f6; }
+    .actions-secondaires > summary { color: var(--hali-primaire); font-size: .88rem; font-weight: 600; padding: 4px 0; }
+    .intitule-groupe { margin: 12px 0 4px; color: var(--hali-discret); font-size: .78rem; font-weight: 650; }
+    .liste-actions { display: flex; flex-direction: column; }
+    .liste-actions > a, .liste-actions > button {
+        display: flex; align-items: center; gap: .65rem; width: 100%; padding: .5rem .6rem;
+        border: none; border-radius: 8px; background: none; color: var(--hali-texte);
+        font-size: .86rem; text-align: left; text-decoration: none;
+    }
+    .liste-actions > a:hover, .liste-actions > button:hover { background: var(--hali-primaire-pale); color: var(--hali-primaire-fonce); }
+    .liste-actions i { width: 1.1rem; color: #9ca3af; text-align: center; }
+
+    @media (max-width: 991.98px) { .recap { position: static; } }
 </style>
 @endsection
 
+
 @section('content')
 <div class="container-fluid"><div class="page-inner">
-    <div class="page-header d-flex align-items-center">
-        <h3 class="fw-bold mb-0">Consultation — {{ $patient->full_name }}</h3>
-        <a href="{{ route('parcours.file.index') }}" class="btn btn-sm btn-secondary ms-auto">Retour à la file</a>
-    </div>
+    {{-- Un seul bandeau : identité, motif, allergies, grossesse, constantes. Il reste visible au défilement. --}}
+    @include('parcours.partials.resume-visite', ['consultation' => $consultation, 'collant' => true, 'retour' => route('parcours.file.index')])
 
-    @include('parcours.partials.resume-visite', ['consultation' => $consultation])
 
     <form method="POST" action="{{ route('parcours.consultation.enregistrer', $consultation) }}" id="formConsultation">@csrf
         <input type="hidden" name="action" id="champAction" value="terminer">
@@ -43,45 +99,32 @@
         <div class="row">
             <div class="col-lg-8">
                 {{-- ----------------------------------------- Modèles --}}
-                <div class="card">
-                    <div class="card-header"><h4 class="card-title">Modèles</h4></div>
-                    <div class="card-body">
-                        @forelse($modeles as $m)
-                            <button type="button" class="chip js-modele" data-url="{{ route('parcours.consultation.modele', [$consultation, $m]) }}">
-                                <i class="fa fa-bolt text-warning"></i> {{ $m->libelle }}
-                                <span class="text-muted">({{ $m->lignes_count }} acte(s){{ $m->estPartage() ? ', partagé' : '' }})</span>
-                            </button>
-                        @empty
-                            <span class="small text-muted">Aucun modèle. Terminez une consultation puis cliquez « Enregistrer comme modèle » : elle sera réutilisable en un clic.</span>
-                        @endforelse
-                    </div>
+                <div class="hl-bloc cs-modeles">
+                    <span class="cs-modeles-titre"><i class="fa fa-bolt text-warning" aria-hidden="true"></i> Modèles</span>
+                    @forelse($modeles as $m)
+                        <button type="button" class="chip js-modele" data-url="{{ route('parcours.consultation.modele', [$consultation, $m]) }}"
+                                title="{{ $m->lignes_count }} acte(s){{ $m->estPartage() ? ', partagé' : '' }}">
+                            {{ $m->libelle }}
+                        </button>
+                    @empty
+                        <span class="cs-modeles-aide">Aucun pour l'instant. Une consultation terminée peut devenir un modèle : Autres actions › Enregistrer comme modèle.</span>
+                    @endforelse
                 </div>
 
-                @if($grossesse && $grossesse->estEnCours())
-                    @php $prochainContact = $grossesse->prochainContact(); @endphp
-                    <div class="card border-success">
-                        <div class="card-body small d-flex flex-wrap gap-3 align-items-center">
-                            <strong><i class="fas fa-baby text-success"></i> Grossesse</strong>
-                            <span>{{ $grossesse->termeLisible() }}</span>
-                            <span>DPA {{ $grossesse->dpa->format('d/m/Y') }}</span>
-                            @if($prochainContact)<span>Prochaine CPN : {{ $prochainContact['semaines'] }} SA ({{ $prochainContact['date_cible']->format('d/m/Y') }})</span>@endif
-                            <a href="{{ route('parcours.grossesses.show', $grossesse) }}" target="_blank" class="ms-auto">Ouvrir le suivi</a>
-                        </div>
-                    </div>
-                @endif
+                {{-- Grossesse en cours : affichée dans le bandeau patient (terme, DPA, CPN à programmer). --}}
 
                 {{-- ----------------------------------------- Clinique --}}
                 <div class="card">
-                    <div class="card-header"><h4 class="card-title">Examen et diagnostic</h4></div>
+                    <div class="card-header"><h4 class="card-title etape">Examen et diagnostic</h4></div>
                     <div class="card-body">
-                        <label class="form-label">Signes cliniques</label>
+                        <label class="cs-libelle" for="saisieSigne">Signes cliniques</label>
                         <div class="input-group input-group-sm mb-2">
                             <input type="text" class="form-control" id="saisieSigne" placeholder="Fièvre, céphalées… (Entrée pour ajouter)">
                             <button type="button" class="btn btn-outline-secondary" id="ajouterSigne">Ajouter</button>
                         </div>
                         <div id="listeSignes" class="mb-3"></div>
 
-                        <label class="form-label">Diagnostic <span class="text-danger">*</span></label>
+                        <label class="cs-libelle" for="champDiagnostic">Diagnostic <span class="text-danger">*</span></label>
                         <textarea name="diagnostic" id="champDiagnostic" class="form-control mb-2" rows="2" placeholder="Diagnostic principal">{{ old('diagnostic', $consultation->diagnostic) }}</textarea>
                         <div class="mb-3">
                             @forelse($diagnosticsFrequents as $d)
@@ -91,11 +134,11 @@
                             @endforelse
                         </div>
 
-                        <label class="form-label">Observation</label>
+                        <label class="cs-libelle">Observation</label>
                         <textarea name="observation" class="form-control" rows="2" placeholder="Facultatif">{{ old('observation', $consultation->observation) }}</textarea>
 
-                        <details class="mt-3">
-                            <summary class="text-primary" style="cursor:pointer">Allergies, antécédents et traitement en cours</summary>
+                        <details class="mt-3 hl-repli">
+                            <summary class="text-primary" style="font-weight:600">Allergies, antécédents et traitement en cours <span class="hl-repli-aide">à compléter si besoin</span></summary>
                             <div class="row g-2 mt-1">
                                 <div class="col-md-4"><label class="form-label small text-danger">Allergies</label>
                                     <textarea name="antecedents[allergies]" class="form-control form-control-sm" rows="2">{{ $consultation->patient?->antecedant?->allergies }}</textarea></div>
@@ -107,9 +150,10 @@
                         </details>
 
                         @if($precedente)
-                            <div class="small text-muted mt-2">
-                                Dernière consultation ({{ $precedente->created_at->format('d/m/Y') }}) : {{ \Illuminate\Support\Str::limit($precedente->diagnostic, 120) }}
-                                <button type="button" class="chip js-diagnostic" data-valeur="{{ $precedente->diagnostic }}">Reprendre</button>
+                            <div class="cs-precedente">
+                                <i class="fas fa-history" aria-hidden="true"></i>
+                                <span>Dernière consultation le {{ $precedente->created_at->format('d/m/Y') }} : <strong>{{ \Illuminate\Support\Str::limit($precedente->diagnostic, 120) }}</strong></span>
+                                <button type="button" class="chip js-diagnostic" data-valeur="{{ $precedente->diagnostic }}">Reprendre ce diagnostic</button>
                             </div>
                         @endif
                     </div>
@@ -118,7 +162,7 @@
                 {{-- ----------------------------------------- Ordonnance --}}
                 <div class="card">
                     <div class="card-header d-flex align-items-center">
-                        <h4 class="card-title">Ordonnance</h4>
+                        <h4 class="card-title etape">Ordonnance</h4>
                         @if($derniereOrdonnance['lignes'])
                             <button type="button" class="btn btn-sm btn-outline-primary ms-auto" id="renouveler">
                                 Renouveler celle du {{ $derniereOrdonnance['date'] }}
@@ -145,7 +189,7 @@
                 {{-- ----------------------------------------- Examens et actes --}}
                 <div class="row">
                     <div class="col-md-6"><div class="card">
-                        <div class="card-header"><h4 class="card-title">Examens</h4></div>
+                        <div class="card-header"><h4 class="card-title etape">Examens</h4></div>
                         <div class="card-body">
                             <div class="mb-2">
                                 @foreach($examensFrequents as $e)
@@ -158,7 +202,7 @@
                         </div>
                     </div></div>
                     <div class="col-md-6"><div class="card">
-                        <div class="card-header"><h4 class="card-title">Actes et forfaits</h4></div>
+                        <div class="card-header"><h4 class="card-title etape">Actes et forfaits</h4></div>
                         <div class="card-body">
                             <input type="text" class="form-control form-control-sm mb-2 js-recherche" data-cat="services" placeholder="Chercher un acte…">
                             <div class="panneau-actes mb-2 js-resultats" data-cat="services"></div>
@@ -176,10 +220,14 @@
                 <div class="card recap">
                     <div class="card-header"><h4 class="card-title">Récapitulatif</h4></div>
                     <div class="card-body">
-                        <p class="mb-1">Actes de la consultation : <strong id="totalActes">0</strong> GNF</p>
-                        <p class="small text-muted">La part assurance et la part patient sont calculées à l'enregistrement.</p>
+                        {{-- Le montant d'abord : c'est ce que le médecin annonce au patient. --}}
+                        <div class="montant-recap">
+                            <span class="small text-muted d-block">Actes de la consultation</span>
+                            <span class="montant"><strong id="totalActes">0</strong> GNF</span>
+                            <span class="small text-muted d-block">part assurance et part patient calculées à l'enregistrement</span>
+                        </div>
 
-                        <label class="form-label mt-2">Prochain rendez-vous</label>
+                        <label class="cs-libelle mt-3">Prochain rendez-vous</label>
                         <div class="mb-2">
                             @foreach([0 => 'Aucun', 7 => '1 semaine', 14 => '2 semaines', 30 => '1 mois', 90 => '3 mois'] as $jours => $libelle)
                                 <button type="button" class="chip js-delai {{ $jours === 0 ? 'bg-light' : '' }}" data-jours="{{ $jours }}">{{ $libelle }}</button>
@@ -190,42 +238,70 @@
                             @foreach($motifs as $motif)<option value="{{ $motif->id }}">{{ $motif->nom }}</option>@endforeach
                         </select>
 
+                        {{-- Une seule action verte : celle qui clôt la consultation. --}}
                         <button type="submit" class="btn btn-success w-100 mb-2" id="boutonTerminer">
                             <i class="fa fa-check"></i> Terminer la consultation
                         </button>
-                        <button type="submit" class="btn btn-outline-secondary w-100 mb-2" id="boutonBrouillon">Enregistrer sans terminer</button>
-                        <button type="button" class="btn btn-outline-primary w-100" data-bs-toggle="modal" data-bs-target="#modalModele">Enregistrer comme modèle</button>
+                        <button type="submit" class="btn btn-secondary w-100" id="boutonBrouillon">Enregistrer sans terminer</button>
 
-                        <hr>
-                        <div class="d-grid gap-1 mb-2">
-                            @can('parcours.constantes')
-                                @if($consultation->visite)
-                                    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalConstantes">Prendre les constantes</button>
-                                @endif
-                            @endcan
-                            @can('hospitalisation.create')
-                                <a href="{{ route('hospitalisations.create', ['patient' => $consultation->patient_id]) }}" class="btn btn-sm btn-outline-danger">Hospitaliser</a>
-                            @endcan
-                            @if(\Illuminate\Support\Facades\Route::has('labo.demandes.create'))
-                                @can('labo.demande.create')
-                                    <a href="{{ route('labo.demandes.create', ['consultation' => $consultation->id]) }}" class="btn btn-sm btn-outline-info">Demande d'analyses</a>
+                        {{-- Tout le reste est secondaire : replié, sobre, et rangé par usage. --}}
+                        <details class="actions-secondaires hl-repli">
+                            <summary>Autres actions</summary>
+
+                            <p class="intitule-groupe">Pendant la consultation</p>
+                            <div class="liste-actions">
+                                @can('parcours.constantes')
+                                    @if($consultation->visite)
+                                        <button type="button" data-bs-toggle="modal" data-bs-target="#modalConstantes">
+                                            <i class="fa fa-heartbeat"></i> Prendre les constantes
+                                        </button>
+                                    @endif
                                 @endcan
-                            @endif
-                            @can('labo.reseau.demander')
-                                <a href="{{ route('labo.reseau.create', ['consultation_id' => $consultation->id, 'patient_id' => $consultation->patient_id]) }}" class="btn btn-sm btn-outline-info">Analyses — laboratoire partenaire</a>
-                            @endcan
-                            @can('parcours.document')
-                                <button type="button" class="btn btn-sm btn-outline-warning" data-bs-toggle="modal" data-bs-target="#modalDocument">Certificat / arrêt de travail</button>
-                            @endcan
-                            @can('parcours.dossier')
-                                <a href="{{ route('parcours.dossier.show', $consultation->patient_id) }}" target="_blank" class="btn btn-sm btn-outline-secondary">Dossier du patient</a>
-                            @endcan
-                        </div>
-                        <div class="d-grid gap-1">
-                            <a href="{{ route('consultation.rapport.ordonnance.a5', $consultation) }}" target="_blank" class="btn btn-sm btn-outline-warning">Imprimer l'ordonnance</a>
-                            <a href="{{ route('consultation.rapport.examens.a5', $consultation) }}" target="_blank" class="btn btn-sm btn-outline-info">Imprimer les examens</a>
-                            <a href="{{ route('consultation.show', $consultation) }}" class="btn btn-sm btn-outline-secondary">Fiche complète</a>
-                        </div>
+                                @can('hospitalisation.create')
+                                    <a href="{{ route('hospitalisations.create', ['patient' => $consultation->patient_id]) }}">
+                                        <i class="fa fa-hospital"></i> Hospitaliser
+                                    </a>
+                                @endcan
+                                @if(\Illuminate\Support\Facades\Route::has('labo.demandes.create'))
+                                    @can('labo.demande.create')
+                                        <a href="{{ route('labo.demandes.create', ['consultation' => $consultation->id]) }}">
+                                            <i class="fa fa-vials"></i> Demande d'analyses
+                                        </a>
+                                    @endcan
+                                @endif
+                                @can('labo.reseau.demander')
+                                    <a href="{{ route('labo.reseau.create', ['consultation_id' => $consultation->id, 'patient_id' => $consultation->patient_id]) }}">
+                                        <i class="fa fa-share-nodes"></i> Analyses — laboratoire partenaire
+                                    </a>
+                                @endcan
+                                @can('parcours.document')
+                                    <button type="button" data-bs-toggle="modal" data-bs-target="#modalDocument">
+                                        <i class="fa fa-file-medical"></i> Certificat ou arrêt de travail
+                                    </button>
+                                @endcan
+                            </div>
+
+                            <p class="intitule-groupe">Documents et dossier</p>
+                            <div class="liste-actions">
+                                <a href="{{ route('consultation.rapport.ordonnance.a5', $consultation) }}" target="_blank">
+                                    <i class="fa fa-print"></i> Imprimer l'ordonnance
+                                </a>
+                                <a href="{{ route('consultation.rapport.examens.a5', $consultation) }}" target="_blank">
+                                    <i class="fa fa-print"></i> Imprimer les examens
+                                </a>
+                                @can('parcours.dossier')
+                                    <a href="{{ route('parcours.dossier.show', $consultation->patient_id) }}" target="_blank">
+                                        <i class="fa fa-folder-open"></i> Dossier du patient
+                                    </a>
+                                @endcan
+                                <a href="{{ route('consultation.show', $consultation) }}">
+                                    <i class="fa fa-file-lines"></i> Fiche complète
+                                </a>
+                                <button type="button" data-bs-toggle="modal" data-bs-target="#modalModele">
+                                    <i class="fa fa-bookmark"></i> Enregistrer comme modèle
+                                </button>
+                            </div>
+                        </details>
                     </div>
                 </div>
             </div>
@@ -295,6 +371,15 @@
 
 @section('script')
 <script>
+(function () {
+    // Le récapitulatif colle sous le bandeau patient, quelle que soit sa hauteur.
+    const bandeau = document.getElementById('bandeauPatient');
+    if (!bandeau) return;
+    const mesurer = () => document.documentElement.style.setProperty('--bandeau-h', bandeau.offsetHeight + 'px');
+    mesurer();
+    if (window.ResizeObserver) new ResizeObserver(mesurer).observe(bandeau);
+})();
+
 (function () {
     const catalogue = @json($catalogue);
     const derniere = @json($derniereOrdonnance['lignes']);

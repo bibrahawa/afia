@@ -1,13 +1,17 @@
-{{-- @include('labo.partials.entete', ['titre' => '...', 'fil' => [url => libellé]]) --}}
-<div class="page-header">
-    <h3 class="fw-bold mb-3">{{ $titre }}</h3>
-    <ul class="breadcrumbs mb-3">
-        <li class="nav-home"><a href="{{ url('/') }}"><i class="icon-home"></i></a></li>
-        <li class="separator"><i class="icon-arrow-right"></i></li>
-        <li class="nav-item"><a href="{{ route('labo.tableau-bord') }}">Laboratoire</a></li>
-        @foreach(($fil ?? []) as $url => $libelle)
-            <li class="separator"><i class="icon-arrow-right"></i></li>
-            <li class="nav-item">@if(is_string($url))<a href="{{ $url }}">{{ $libelle }}</a>@else{{ $libelle }}@endif</li>
-        @endforeach
-    </ul>
-</div>
+{{--
+    En-tête des pages du laboratoire.
+    @include('labo.partials.entete', ['titre' => '...', 'fil' => [url => libellé], 'sousTitre' => '... (facultatif)'])
+--}}
+<header class="hl-entete labo-entete">
+    <div>
+        <nav class="labo-fil" aria-label="Fil d'Ariane">
+            <a href="{{ route('labo.tableau-bord') }}">Laboratoire</a>
+            @foreach(($fil ?? []) as $url => $libelle)
+                <span aria-hidden="true">›</span>
+                @if(is_string($url) && $url !== url()->current())<a href="{{ $url }}">{{ $libelle }}</a>@else<span>{{ $libelle }}</span>@endif
+            @endforeach
+        </nav>
+        <h1>{{ $titre }}</h1>
+        @if(! empty($sousTitre))<p>{{ $sousTitre }}</p>@endif
+    </div>
+</header>

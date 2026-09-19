@@ -116,6 +116,26 @@
 
     <script>
 
+      // Tous les tableaux DataTables de l'application parlent français,
+      // sans fichier de langue à télécharger (connexion lente).
+      if ($.fn.dataTable) {
+          $.extend(true, $.fn.dataTable.defaults, {
+              language: {
+                  emptyTable: 'Aucune donnée',
+                  info: '_START_ à _END_ sur _TOTAL_',
+                  infoEmpty: 'Aucun résultat',
+                  infoFiltered: '(filtré sur _MAX_)',
+                  lengthMenu: 'Afficher _MENU_ lignes',
+                  loadingRecords: 'Chargement…',
+                  processing: 'Traitement…',
+                  search: 'Rechercher :',
+                  zeroRecords: 'Aucun résultat',
+                  paginate: { first: 'Premier', last: 'Dernier', next: 'Suivant', previous: 'Précédent' },
+                  aria: { sortAscending: ' : trier par ordre croissant', sortDescending: ' : trier par ordre décroissant' }
+              }
+          });
+      }
+
       $(document).ready(function () {
           const table = $('#add-row');
           if (table.length && table.find('tbody tr').length) {
@@ -166,8 +186,8 @@
             @if(session('success'))
                 $.notify({
                     icon: 'fas fa-check',
-                    title: 'Succès!',
-                    message: '{{ session("success") }}'
+                    title: 'Succès',
+                    message: @json(session('success'))
                 }, {
                     type: 'success', placement: { from: "bottom", align: "right" }, timer: 3000,
                     animate: { enter: 'animated fadeInRight', exit: 'animated fadeOutRight' }
@@ -178,8 +198,8 @@
             @if(session('error'))
                 $.notify({
                     icon: 'fas fa-exclamation-triangle',
-                    title: 'Erreur!',
-                    message: '{{ session("error") }}'
+                    title: 'Erreur',
+                    message: @json(session('error'))
                 }, {
                     type: 'danger', placement: { from: "bottom", align: "right" }, timer: 3000,
                     animate: { enter: 'animated fadeInRight', exit: 'animated fadeOutRight' }

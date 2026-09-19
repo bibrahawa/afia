@@ -5,13 +5,13 @@
     <title>Bon d'analyses {{ $demande->numero }}</title>
     <style>
         body { font-family: Arial, sans-serif; font-size: 13px; color: #222; margin: 25px 30px; }
-        .entete { display: flex; justify-content: space-between; border-bottom: 2px solid #087f6b; padding-bottom: 8px; }
+        .entete { display: flex; justify-content: space-between; border-bottom: 2px solid #0f766e; padding-bottom: 8px; }
         h1 { font-size: 18px; text-align: center; margin: 20px 0 4px; text-transform: uppercase; }
         .sous-titre { text-align: center; color: #666; margin-bottom: 18px; }
         .bloc { border: 1px solid #ccc; border-radius: 6px; padding: 10px 12px; margin-bottom: 12px; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { border: 1px solid #bbb; padding: 5px 7px; text-align: left; }
-        th { background: #087f6b; color: #fff; }
+        th { background: #0f766e; color: #fff; }
         .consignes { background: #fff4e0; border-left: 4px solid #b26a00; padding: 8px 12px; margin-top: 12px; }
         .signature { margin-top: 40px; text-align: right; }
         @media print { .no-print { display: none; } body { margin: 12mm; } }
@@ -68,7 +68,7 @@
     </div>
 
     @if($demande->consentement_partage_le)
-        <p class="consignes" style="background:#e6f4f1; border-left-color:#087f6b">
+        <p class="consignes" style="background:#f0fdfa; border-left-color:#0f766e">
             Le patient a été informé le {{ $demande->consentement_partage_le->format('d/m/Y') }} que ses analyses sont confiées à ce laboratoire.
         </p>
     @endif

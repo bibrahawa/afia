@@ -1,43 +1,23 @@
 @extends('layouts.backend')
 
 @section('content')
-<div class="max-w-2xl mx-auto bg-white p-6 rounded shadow">
-    <h2 class="text-xl font-bold mb-4">Ajouter un médicament</h2>
+<div class="container"><div class="page-inner hl">
+    <header class="hl-entete">
+        <div><h1>Nouveau médicament</h1><p>Il apparaîtra dans la liste de l'ordonnance.</p></div>
+        <div class="hl-entete-actions"><a href="{{ route('medicaments.index') }}" class="hl-bouton"><i class="fas fa-arrow-left" aria-hidden="true"></i> Médicaments</a></div>
+    </header>
 
-    <form action="{{ route('medicaments.store') }}" method="POST">
+    @include('partials.catalogue')
+
+    @if($errors->any())<div class="hl-note hl-note-danger mb-3" role="alert"><ul class="mb-0 ps-3">@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>@endif
+
+    <form action="{{ route('medicaments.store') }}" method="POST" class="hl-bloc cat-modal" style="max-width:640px">
         @csrf
-
-        <div class="mb-3">
-            <label class="block font-semibold">Nom</label>
-            <input type="text" name="nom" class="w-full border rounded px-3 py-2" required>
+        <div class="modal-body" style="padding:20px 22px">@include('medicaments._champs', ['p' => '', 'm' => null])</div>
+        <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:8px; padding:0 22px 20px">
+            <a href="{{ route('medicaments.index') }}" class="hl-bouton">Annuler</a>
+            <button type="submit" class="hl-bouton hl-bouton-plein">Ajouter le médicament</button>
         </div>
-
-        <div class="mb-3">
-            <label class="block font-semibold">Forme</label>
-            <input type="text" name="forme" class="w-full border rounded px-3 py-2" placeholder="Comprimé, sirop...">
-        </div>
-
-        <div class="mb-3">
-            <label class="block font-semibold">Dosage</label>
-            <input type="text" name="dosage" class="w-full border rounded px-3 py-2" placeholder="500mg, 1g...">
-        </div>
-
-        <div class="mb-3">
-            <label class="block font-semibold">Fréquence</label>
-            <input type="text" name="frequence" class="w-full border rounded px-3 py-2" placeholder="2 fois/jour...">
-        </div>
-
-        <div class="mb-3">
-            <label class="block font-semibold">Durée</label>
-            <input type="text" name="duree" class="w-full border rounded px-3 py-2" placeholder="5 jours...">
-        </div>
-
-        <div class="mb-3">
-            <label class="block font-semibold">Instructions spéciales</label>
-            <textarea name="instructions" class="w-full border rounded px-3 py-2"></textarea>
-        </div>
-
-        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Enregistrer</button>
     </form>
-</div>
+</div></div>
 @endsection

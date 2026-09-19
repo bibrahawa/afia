@@ -21,22 +21,23 @@
     <div class="row mb-4">
         <div class="col-md-12">
             <div class="card">
-                <div class="card-header text-white" style="background: var(--aprosafe-primary, #087f6b);">
+                {{-- bg-primary : rendu sobre avec filet de couleur (admin-theme.css), comme les autres cartes de la fiche. --}}
+                <div class="card-header bg-primary">
                     <h5 class="card-title mb-0"><i class="fas fa-flask me-2"></i>Analyses de laboratoire</h5>
                 </div>
                 <div class="card-body">
                     @forelse($demandesLabo as $d)
                         @php($cr = $d->comptesRendus->first())
-                        <div class="border rounded p-3 mb-3">
+                        <div class="p-3 mb-3" style="border:1px solid var(--hali-bordure, #e5e7eb); border-radius:10px; {{ $d->urgence ? 'border-left:4px solid var(--hali-danger, #b91c1c);' : '' }}">
                             <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
                                 <strong>{{ $d->numero }}</strong>
                                 <span class="badge badge-{{ $d->statut->couleur() }}">{{ $d->statut->libelle() }}</span>
-                                @if($d->urgence)<span class="badge bg-danger">URGENT</span>@endif
+                                @if($d->urgence)<span class="hl-statut hl-s-danger"><i class="fas fa-bolt"></i> Urgent</span>@endif
                                 <span class="small text-muted">{{ $d->created_at->format('d/m/Y H:i') }}</span>
                                 <div class="ms-auto d-flex gap-2">
                                     @if($cr)
                                         @can('labo.compte_rendu.view')
-                                            <a href="{{ route('labo.comptes-rendus.pdf', $cr) }}" target="_blank" class="btn btn-sm btn-outline-danger">
+                                            <a href="{{ route('labo.comptes-rendus.pdf', $cr) }}" target="_blank" class="btn btn-sm btn-primary">
                                                 <i class="fas fa-file-pdf me-1"></i>Compte rendu v{{ $cr->version }}@if($cr->est_rectificatif) (rectificatif)@endif
                                             </a>
                                         @endcan

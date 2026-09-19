@@ -247,13 +247,15 @@ class AppointmentController extends Controller
 
         if ($request->isMethod('post')) {
             if (in_array($appointment->status, ['pending', 'confirmed'])) {
-                $statusService->cancel($appointment, "Annulé via le lien SMS — rendez-vous non reconnu par le patient");
+                $statusService->cancel($appointment, $request->query('motif') === 'empeche'
+                    ? 'Patient empêché — créneau libéré via le rappel SMS'
+                    : 'Annulé via le lien SMS — rendez-vous non reconnu par le patient');
             }
 
-            return view('appointments.annulation-confirmee');
+            return view('appointments.annulation-confirmee', ['empeche' => $request->query('motif') === 'empeche', 'appointment' => $appointment]);
         }
 
-        return view('appointments.annulation-non-reconnue', compact('appointment'));
+        return view('appointments.annulation-non-reconnue', ['appointment' => $appointment, 'empeche' => $request->query('motif') === 'empeche']);
     }
 
     /**
@@ -451,7 +453,8 @@ class AppointmentController extends Controller
         $code = $otp->generer();
         Cache::put($this->cleOtpRdv($data['telephone']), $otp->hacher($code), now()->addMinutes(5));
 
-        $sms->sendSms($data['telephone'], "Votre code pour confirmer le rendez-vous : {$code} (valable 5 minutes).");
+        // Page publique d'une clinique : son expéditeur, son journal. Code masqué au journal.
+        $sms->sendSms($data['telephone'], "Votre code pour confirmer le rendez-vous : {$code} (valable 5 minutes).", ['type' => 'code_rdv', 'masquer' => true]);
 
         return response()->json(['message' => 'Code envoyé.']);
     }

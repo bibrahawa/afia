@@ -1,139 +1,136 @@
 @extends('layouts.backend')
 
+@php $gnf = fn ($v) => number_format((float) $v, 0, ',', ' '); @endphp
+
+@section('style')
+<style>
+    .mt-dep { margin-bottom: 16px; }
+    .mt-ligne { display: grid; grid-template-columns: 14px minmax(160px, 1.4fr) 110px minmax(160px, 1.2fr) 110px auto; align-items: center; gap: 14px; padding: 12px 18px; border-top: 1px solid #f3f4f6; }
+    .mt-ligne:first-of-type { border-top: 0; }
+    .mt-ligne.est-inactif { opacity: .55; }
+    .mt-pastille { width: 12px; height: 12px; border-radius: 4px; }
+    .mt-duree-aff { color: var(--hali-encre); font-weight: 700; font-variant-numeric: tabular-nums; }
+    .mt-actions { display: flex; justify-content: flex-end; gap: 4px; }
+    .mt-actions form { margin: 0; }
+    .mt-duree { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+    .mt-duree button { min-width: 38px; min-height: 30px; border: 1px solid var(--hali-bordure); border-radius: 7px; background: #fff; font-size: .8rem; font-weight: 700; cursor: pointer; }
+    .mt-duree button.est-choisi { background: var(--hali-primaire); border-color: var(--hali-primaire); color: #fff; }
+    .mt-couleurs { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+    .mt-couleurs button { width: 28px; height: 28px; border: 2px solid #fff; border-radius: 8px; box-shadow: 0 0 0 1px var(--hali-bordure); cursor: pointer; }
+    .mt-couleurs button.est-choisi { box-shadow: 0 0 0 2px var(--hali-encre); }
+    .mt-couleurs input[type=color] { width: 40px; height: 32px; padding: 2px; }
+    @media (max-width: 991.98px) { .mt-ligne { grid-template-columns: 14px 1fr auto; } .mt-ligne > :nth-child(3), .mt-ligne > :nth-child(4), .mt-ligne > :nth-child(5) { grid-column: 2 / -1; } }
+</style>
+@endsection
+
 @section('content')
-<div class="container">
-    <div class="page-inner">
-      <div class="page-header">
-        <ul class="breadcrumbs">
-          <li class="nav-home"><a href="{{url('/')}}"><i class="icon-home"></i></a></li>
-          <li class="separator"><i class="icon-arrow-right"></i></li>
-          <li class="nav-item"><a href="{{ route('motifs-rdv.index') }}">Motifs de rendez-vous</a></li>
-        </ul>
-      </div>
-
-      <p class="small text-muted">
-          Chaque département a sa propre liste de motifs — pédiatrie et gynécologie ne partagent
-          rien ici, même si un nom se ressemble d'un département à l'autre.
-      </p>
-
-      @foreach($departments as $department)
-      <div class="row">
-        <div class="col-md-12">
-          <div class="card">
-            <div class="card-header">
-              <div class="d-flex align-items-center">
-                <h4 class="card-title">{{ $department->name }}</h4>
-                @can('motif_rdv.create')
-                    <button class="btn btn-primary btn-round btn-sm ms-auto" data-bs-toggle="modal"
-                        data-bs-target="#addMotifModal-{{ $department->id }}">
-                        <i class="fa fa-plus"></i> Motif
-                    </button>
-                @endcan
-              </div>
-            </div>
-            <div class="card-body">
-                @if($department->motifsRdv->isEmpty())
-                    <p class="text-muted mb-0">Aucun motif configuré pour ce département.</p>
-                @else
-                <table class="table table-striped table-hover">
-                    <thead><tr><th></th><th>Nom</th><th>Durée</th><th>Marge tampon</th><th>Statut</th><th style="width:15%">Action</th></tr></thead>
-                    <tbody>
-                        @foreach($department->motifsRdv as $motif)
-                            <tr class="{{ $motif->actif ? '' : 'text-muted' }}">
-                                <td><span style="display:inline-block;width:12px;height:12px;background:{{ $motif->couleur }};border-radius:2px;"></span></td>
-                                <td>{{ $motif->nom }}</td>
-                                <td>{{ $motif->duree_minutes_defaut }} min</td>
-                                <td>{{ $motif->marge_tampon_minutes }} min</td>
-                                <td>
-                                    <span class="badge badge-{{ $motif->actif ? 'success' : 'secondary' }}">
-                                        {{ $motif->actif ? 'Actif' : 'Désactivé' }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <div class="form-button-action">
-                                        @can('motif_rdv.edit')
-                                            <button type="button" class="btn btn-warning btn-round btn-sm edit-motif"
-                                                data-bs-toggle="modal" data-bs-target="#editMotifModal"
-                                                data-action="{{ route('motifs-rdv.update', $motif) }}"
-                                                data-nom="{{ $motif->nom }}" data-duree="{{ $motif->duree_minutes_defaut }}"
-                                                data-marge="{{ $motif->marge_tampon_minutes }}" data-couleur="{{ $motif->couleur }}">
-                                                <i class="fa fa-edit"></i>
-                                            </button>
-                                            <form action="{{ route('motifs-rdv.toggle', $motif) }}" method="POST" class="d-inline">
-                                                @csrf @method('PATCH')
-                                                <button type="submit" class="btn btn-secondary btn-round btn-sm" title="Activer/désactiver">
-                                                    <i class="fa fa-power-off"></i>
-                                                </button>
-                                            </form>
-                                        @endcan
-                                        @can('motif_rdv.delete')
-                                            <form action="{{ route('motifs-rdv.delete', $motif) }}" method="POST" class="d-inline" onsubmit="return confirm('Supprimer ce motif ?');">
-                                                @csrf @method('DELETE')
-                                                <button type="submit" class="btn btn-danger btn-round btn-sm"><i class="fa fa-trash"></i></button>
-                                            </form>
-                                        @endcan
-                                    </div>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-                @endif
-            </div>
-          </div>
+<div class="container"><div class="page-inner hl">
+    <header class="hl-entete">
+        <div>
+            <h1>Motifs de rendez-vous</h1>
+            <p>Ce que le patient choisit en prenant rendez-vous. Chaque département a ses motifs, avec leur durée et leur couleur dans l'agenda.</p>
         </div>
-      </div>
+    </header>
 
-      {{-- Modal ajout, une par département --}}
-      <div class="modal fade" id="addMotifModal-{{ $department->id }}" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog"><div class="modal-content">
-          <div class="modal-header border-0"><h5 class="modal-title">Nouveau motif — {{ $department->name }}</h5>
-              <button type="button" class="close" data-bs-dismiss="modal"><span>&times;</span></button></div>
-          <form action="{{ route('motifs-rdv.add') }}" method="POST">
-              @csrf
-              <input type="hidden" name="department_id" value="{{ $department->id }}">
-              <div class="modal-body">
-                  @include('motifs_rdv._form')
-              </div>
-              <div class="modal-footer border-0">
-                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                  <button type="submit" class="btn btn-primary">Créer</button>
-              </div>
-          </form>
-        </div></div>
-      </div>
-      @endforeach
+    @include('partials.catalogue')
 
-      {{-- Modal édition, unique et réutilisée --}}
-      <div class="modal fade" id="editMotifModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog"><div class="modal-content">
-          <div class="modal-header border-0"><h5 class="modal-title">Modifier le motif</h5>
-              <button type="button" class="close" data-bs-dismiss="modal"><span>&times;</span></button></div>
-          <form id="editMotifForm" method="POST">
-              @csrf @method('PUT')
-              <div class="modal-body">
-                  @include('motifs_rdv._form')
-              </div>
-              <div class="modal-footer border-0">
-                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                  <button type="submit" class="btn btn-primary">Enregistrer</button>
-              </div>
-          </form>
-        </div></div>
-      </div>
+    @forelse($departments as $department)
+        <section class="hl-bloc mt-dep">
+            <h2 class="hl-bloc-titre">{{ ucfirst(mb_strtolower($department->name)) }} <small>{{ $department->motifsRdv->count() }} motif{{ $department->motifsRdv->count() > 1 ? 's' : '' }}</small>
+                @can('motif_rdv.create')
+                    <button type="button" class="hl-bouton" style="margin-left:auto; min-height:32px" data-bs-toggle="modal" data-bs-target="#addMotifModal-{{ $department->id }}"><i class="fa fa-plus" aria-hidden="true"></i> Motif</button>
+                @endcan
+            </h2>
+            @if($department->motifsRdv->isEmpty())
+                <div class="hl-vide" style="padding:20px">Aucun motif : les patients ne peuvent pas prendre rendez-vous dans ce département.</div>
+            @else
+                @foreach($department->motifsRdv as $motif)
+                    <div class="mt-ligne {{ $motif->actif ? '' : 'est-inactif' }}">
+                        <span class="mt-pastille" style="background: {{ $motif->couleur ?: '#9ca3af' }}" aria-hidden="true"></span>
+                        <span class="cat-nom">{{ $motif->nom }}</span>
+                        <span><span class="mt-duree-aff">{{ $motif->duree_minutes_defaut }} min</span><span class="cat-sous">+ {{ $motif->marge_tampon_minutes }} min de marge</span></span>
+                        <span style="font-size:.84rem">@if($motif->service){{ $motif->service->name }}<span class="cat-sous">{{ $gnf($motif->service->amount) }} GNF à l'arrivée</span>@else<span class="cat-sous">Aucun acte automatique</span>@endif</span>
+                        <span><span class="hl-statut {{ $motif->actif ? 'hl-s-succes' : 'hl-s-neutre' }}">{{ $motif->actif ? 'Proposé' : 'Masqué' }}</span></span>
+                        <div class="mt-actions">
+                            @can('motif_rdv.edit')
+                                <button type="button" class="cat-icone edit-motif" title="Modifier" aria-label="Modifier {{ $motif->nom }}" data-bs-toggle="modal" data-bs-target="#editMotifModal"
+                                        data-action="{{ route('motifs-rdv.update', $motif) }}" data-nom="{{ $motif->nom }}" data-duree="{{ $motif->duree_minutes_defaut }}"
+                                        data-marge="{{ $motif->marge_tampon_minutes }}" data-couleur="{{ $motif->couleur }}" data-service="{{ $motif->service_id }}"><i class="fa fa-pen"></i></button>
+                                <form action="{{ route('motifs-rdv.toggle', $motif) }}" method="POST">@csrf @method('PATCH')
+                                    <button type="submit" class="cat-icone" title="{{ $motif->actif ? 'Masquer aux patients' : 'Proposer aux patients' }}" aria-label="{{ $motif->actif ? 'Masquer' : 'Proposer' }} {{ $motif->nom }}"><i class="fa {{ $motif->actif ? 'fa-eye-slash' : 'fa-eye' }}"></i></button></form>
+                            @endcan
+                            @can('motif_rdv.delete')
+                                <form action="{{ route('motifs-rdv.delete', $motif) }}" method="POST" onsubmit="return confirm('Supprimer ce motif ? S\'il a déjà servi, masquez-le plutôt.');">@csrf @method('DELETE')
+                                    <button type="submit" class="cat-icone est-risque" title="Supprimer" aria-label="Supprimer {{ $motif->nom }}"><i class="fa fa-trash"></i></button></form>
+                            @endcan
+                        </div>
+                    </div>
+                @endforeach
+            @endif
+        </section>
+
+        @can('motif_rdv.create')
+            <div class="modal fade cat-modal" id="addMotifModal-{{ $department->id }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered" role="document">
+                    <form class="modal-content js-motif" action="{{ route('motifs-rdv.add') }}" method="POST">
+                        @csrf
+                        <input type="hidden" name="department_id" value="{{ $department->id }}">
+                        <div class="modal-header"><h5 class="modal-title">Nouveau motif · {{ ucfirst(mb_strtolower($department->name)) }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button></div>
+                        <div class="modal-body">@include('motifs_rdv._form', ['departementId' => $department->id])</div>
+                        <div class="modal-footer">
+                            <button type="button" class="hl-bouton" data-bs-dismiss="modal">Annuler</button>
+                            <button type="submit" class="hl-bouton hl-bouton-plein">Créer le motif</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        @endcan
+    @empty
+        <section class="hl-bloc"><div class="hl-vide">Créez d'abord un département.</div></section>
+    @endforelse
+
+    <div class="modal fade cat-modal" id="editMotifModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <form class="modal-content js-motif" id="editMotifForm" method="POST">
+                @csrf @method('PUT')
+                <div class="modal-header"><h5 class="modal-title">Modifier le motif</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button></div>
+                <div class="modal-body">@include('motifs_rdv._form', ['departementId' => null])</div>
+                <div class="modal-footer">
+                    <button type="button" class="hl-bouton" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="hl-bouton hl-bouton-plein">Enregistrer</button>
+                </div>
+            </form>
+        </div>
     </div>
-</div>
+</div></div>
+@endsection
 
+@section('script')
 <script>
-document.querySelectorAll('.edit-motif').forEach(btn => {
-    btn.addEventListener('click', () => {
-        const f = document.getElementById('editMotifForm');
-        f.action = btn.dataset.action;
-        f.querySelector('[name=nom]').value = btn.dataset.nom || '';
-        f.querySelector('[name=duree_minutes_defaut]').value = btn.dataset.duree || 15;
-        f.querySelector('[name=marge_tampon_minutes]').value = btn.dataset.marge || 5;
-        f.querySelector('[name=couleur]').value = btn.dataset.couleur || '#3B82F6';
+(function () {
+    function synchroniser(f) {
+        var d = f.querySelector('[name=duree_minutes_defaut]').value, c = (f.querySelector('[name=couleur]').value || '').toLowerCase();
+        f.querySelectorAll('[data-duree]').forEach(function (b) { b.classList.toggle('est-choisi', b.dataset.duree === d); });
+        f.querySelectorAll('[data-couleur]').forEach(function (b) { b.classList.toggle('est-choisi', b.dataset.couleur.toLowerCase() === c); });
+    }
+    document.querySelectorAll('.js-motif').forEach(function (f) {
+        f.querySelectorAll('[data-duree]').forEach(function (b) { b.addEventListener('click', function () { f.querySelector('[name=duree_minutes_defaut]').value = b.dataset.duree; synchroniser(f); }); });
+        f.querySelectorAll('[data-couleur]').forEach(function (b) { b.addEventListener('click', function () { f.querySelector('[name=couleur]').value = b.dataset.couleur; synchroniser(f); }); });
+        f.addEventListener('input', function () { synchroniser(f); });
+        synchroniser(f);
     });
-});
+    document.querySelectorAll('.edit-motif').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var f = document.getElementById('editMotifForm');
+            f.action = btn.dataset.action;
+            f.querySelector('[name=nom]').value = btn.dataset.nom || '';
+            f.querySelector('[name=duree_minutes_defaut]').value = btn.dataset.duree || 15;
+            f.querySelector('[name=marge_tampon_minutes]').value = btn.dataset.marge || 5;
+            f.querySelector('[name=couleur]').value = btn.dataset.couleur || '#0f766e';
+            f.querySelector('[name=service_id]').value = btn.dataset.service || '';
+            synchroniser(f);
+        });
+    });
+})();
 </script>
 @endsection

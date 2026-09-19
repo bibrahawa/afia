@@ -1,138 +1,82 @@
-<div class="table-responsive">
-    <table class="table table-hover">
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>Patient</th>
-                <th>Téléphone</th>
-                <th>Date</th>
-                <th>Heure</th>
-                <th>Notes</th>
-                <th>Statut</th>
-                <th class="text-center">Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            @forelse ($appointments as $index => $item)
-                <tr data-patient="{{ strtolower($item['patient']['first_name'] ?? '') }} {{ strtolower($item['patient']['last_name'] ?? '') }}"
-                    data-date="{{ \Carbon\Carbon::parse($item['appointment_date'])->format('Y-m-d') }}"
-                    data-status="{{ $item['status'] }}"
-                    data-notes="{{ strtolower($item['notes'] ?? '') }}">
-                    <td>
-                        <strong class="text-primary">#{{ $appointments->firstItem() + $index }}</strong>
-                    </td>
-                    <td>
-                        <div class="d-flex align-items-center">
-                            <div class="avatar avatar-sm me-2">
-                                <span class="avatar-title rounded-circle bg-primary">
-                                    {{ substr($item['patient']['first_name'] ?? 'N', 0, 1) }}
-                                </span>
-                            </div>
-                            <div>
-                                <strong>{{ $item['patient']['first_name'] ?? 'Nom' }} {{ $item['patient']['last_name'] ?? 'inconnu' }}</strong>
-                            </div>
-                        </div>
-                    </td>
-                    <td>
-                        @if(isset($patient->telephone))
-                            <i class="fas fa-phone text-muted me-1"></i>
-                            {{ $patient->telephone }}
-                        @else
-                            <span class="text-muted">-</span>
-                        @endif
-                    </td>
-                    <td>
-                        <i class="far fa-calendar text-muted me-1"></i>
-                        {{ \Carbon\Carbon::parse($item['appointment_date'])->locale('fr')->isoFormat('DD MMM YYYY') }}
-                    </td>
-                    <td>
-                        <i class="far fa-clock text-muted me-1"></i>
-                        {{ $item['appointment_time']->format('H:i') }}
-                    </td>
-                    <td>
-                        @if ($item['reason'])
-                            <span class="text-truncate d-inline-block" style="max-width: 200px;" title="{{ $item['reason'] }}">
-                                {{ $item['reason'] }}
-                            </span>
-                        @else
-                            <span class="text-muted">-</span>
-                        @endif
-                    </td>
-                    <td>
-                        <span class="status-badge 
-                            {{ $item['status'] === 'pending' ? 'status-pending' :
-                            ($item['status'] === 'confirmed' ? 'status-confirmed' :
-                            ($item['status'] === 'completed' ? 'status-completed' : 
-                            ($item['status'] === 'cancelled' ? 'status-cancelled' : ''))) }}">
-                            @if($item['status'] === 'pending')
-                                <i class="fas fa-clock me-1"></i> En attente
-                            @elseif($item['status'] === 'confirmed')
-                                <i class="fas fa-check me-1"></i> Confirmé
-                            @elseif($item['status'] === 'completed')
-                                <i class="fas fa-check-double me-1"></i> Terminé
-                            @elseif($item['status'] === 'cancelled')
-                                <i class="fas fa-times me-1"></i> Annulé
-                            @endif
-                        </span>
-                    </td>
-                    <td class="text-center">
-                        <div class="d-flex justify-content-center gap-1">
-                            @if ($item['status'] === 'pending')
-                                @can('medecin.confirm_appointment')
-                                    <form method="POST" action="{{ route('medecin.appointments.confirm', $item['id']) }}" class="d-inline">
-                                        @csrf
-                                        <button type="submit" class="btn btn-sm btn-success" title="Confirmer">
-                                            <i class="fas fa-check"></i>
-                                        </button>
-                                    </form>
-                                @endcan
-                            @elseif ($item['status'] === 'confirmed')
-                                @can('medecin.complete_appointment')
-                                    <form method="POST" action="{{ route('medecin.appointments.complete', $item['id']) }}" class="d-inline">
-                                        @csrf
-                                        <button type="submit" class="btn btn-sm btn-info" title="Terminer">
-                                            <i class="fas fa-check-double"></i>
-                                        </button>
-                                    </form>
+{{-- Liste des rendez-vous du médecin (page « Mes rendez-vous » et réponse AJAX). --}}
+@php
+    $statutsRdv = [
+        'pending' => ['À confirmer', 'hl-s-alerte'],
+        'confirmed' => ['Confirmé', 'hl-s-succes'],
+        'completed' => ['Honoré', 'hl-s-neutre'],
+        'cancelled' => ['Annulé', 'hl-s-danger'],
+        'no_show' => ['Absent', 'hl-s-danger'],
+    ];
+    $joursRdv = ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'];
+    $moisRdv = ['', 'janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+    $parJour = $appointments->getCollection()->groupBy(fn ($a) => \Carbon\Carbon::parse($a->appointment_date)->toDateString());
+@endphp
 
-                                    <form method="POST" action="{{ route('medecin.appointments.cancel', $item['id']) }}" class="d-inline">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-danger" title="Annuler" onclick="return confirm('Êtes-vous sûr de vouloir annuler ce rendez-vous ?')">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    </form>
-                                @endcan
-                            @else
-                                <button type="button" class="btn btn-sm btn-secondary" disabled title="Terminé">
-                                    <i class="fas fa-check-circle"></i>
-                                </button>
-                            @endif
-                        </div>
-                    </td>
-                </tr>
-            @empty
-                <tr>
-                    <td colspan="8" class="text-center py-5">
-                        <div class="alert alert-info mb-0">
-                            <i class="fas fa-info-circle me-2"></i>
-                            Aucun rendez-vous trouvé
-                        </div>
-                    </td>
-                </tr>
-            @endforelse
-        </tbody>
-    </table>
-</div>
-
-{{-- Pagination --}}
-@if($appointments->hasPages())
-    <div class="d-flex justify-content-between align-items-center mt-4">
-        <div class="text-muted">
-            Affichage de {{ $appointments->firstItem() }} à {{ $appointments->lastItem() }} sur {{ $appointments->total() }} résultats
-        </div>
-        <div>
-            {{ $appointments->links() }}
-        </div>
+@if($appointments->isEmpty())
+    <div class="hl-vide">
+        <i class="fas fa-calendar-check" aria-hidden="true"></i>
+        Aucun rendez-vous pour cette sélection.
     </div>
+@else
+    @foreach($parJour as $jour => $rdvDuJour)
+        @php $d = \Carbon\Carbon::parse($jour); @endphp
+        <h3 class="mr-jour">
+            {{ $d->isToday() ? "Aujourd'hui" : ($d->isTomorrow() ? 'Demain' : ucfirst($joursRdv[$d->dayOfWeek]) . ' ' . $d->day . ' ' . $moisRdv[$d->month]) }}
+            <small>{{ $rdvDuJour->count() }} rendez-vous</small>
+        </h3>
+        @foreach($rdvDuJour as $item)
+            @php
+                [$libelleStatut, $tonStatut] = $statutsRdv[$item->status] ?? [$item->status, 'hl-s-neutre'];
+                $p = $item->patient;
+            @endphp
+            <div class="mr-ligne {{ in_array($item->status, ['completed', 'cancelled', 'no_show'], true) ? 'est-passe' : '' }}">
+                <span class="mr-heure">{{ $item->appointment_time?->format('H:i') }}</span>
+                <div class="mr-patient">
+                    <span class="hl-avatar" aria-hidden="true">{{ $p ? mb_strtoupper(mb_substr((string) $p->first_name, 0, 1) . mb_substr((string) $p->last_name, 0, 1)) : '?' }}</span>
+                    <div style="min-width:0">
+                        <strong>{{ $p?->full_name ?? 'Patient inconnu' }}</strong>
+                        <span class="mr-sous">{{ $p?->telephone ?: 'Téléphone non renseigné' }}</span>
+                    </div>
+                </div>
+                <div style="min-width:0">
+                    <span class="mr-motif">
+                        @if($item->motifRdv)<i style="background: {{ $item->motifRdv->couleur ?: '#9ca3af' }}"></i>{{ $item->motifRdv->nom }}@else Consultation @endif
+                    </span>
+                    @if($item->notes)<span class="mr-sous mr-notes" title="{{ $item->notes }}">{{ $item->notes }}</span>@endif
+                </div>
+                <span><span class="hl-statut {{ $tonStatut }}">{{ $libelleStatut }}</span></span>
+                <div class="mr-actions">
+                    @if($item->status === 'pending')
+                        @can('medecin.confirm_appointment')
+                            <form method="POST" action="{{ route('medecin.appointments.confirm', $item->id) }}">@csrf
+                                <button type="submit" class="hl-bouton hl-bouton-plein mr-petit">Confirmer</button>
+                            </form>
+                        @endcan
+                    @elseif($item->status === 'confirmed')
+                        @can('medecin.complete_appointment')
+                            <form method="POST" action="{{ route('medecin.appointments.complete', $item->id) }}">@csrf
+                                <button type="submit" class="hl-bouton mr-petit" title="Le patient a été vu">Honoré</button>
+                            </form>
+                        @endcan
+                        @can('medecin.confirm_appointment')
+                            <form method="POST" action="{{ route('medecin.appointments.cancel', $item->id) }}"
+                                  onsubmit="return confirm('Annuler ce rendez-vous ? Le patient sera prévenu si les SMS sont activés.');">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="mr-icone est-risque" title="Annuler" aria-label="Annuler le rendez-vous"><i class="fas fa-times"></i></button>
+                            </form>
+                        @endcan
+                    @endif
+                    @if($p)
+                        @can('parcours.dossier')
+                            <a href="{{ route('parcours.dossier.show', $p->id) }}" class="mr-icone" title="Dossier du patient" aria-label="Dossier du patient"><i class="fas fa-folder-open"></i></a>
+                        @endcan
+                    @endif
+                </div>
+            </div>
+        @endforeach
+    @endforeach
+
+    @if($appointments->hasPages())
+        <div class="mr-pagination">{{ $appointments->links() }}</div>
+    @endif
 @endif

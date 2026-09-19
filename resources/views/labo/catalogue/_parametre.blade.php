@@ -11,7 +11,7 @@
                 </select></div>
             <div class="col-md-1"><label class="form-label small">Unité</label><input name="parametres[{{ $i }}][unite]" value="{{ $p['unite'] ?? '' }}" class="form-control form-control-sm"></div>
             <div class="col-md-1"><label class="form-label small">Déc.</label><input type="number" min="0" max="4" name="parametres[{{ $i }}][decimales]" value="{{ $p['decimales'] ?? 1 }}" class="form-control form-control-sm"></div>
-            <div class="col-md-1 text-end"><button type="button" class="btn btn-sm btn-link text-danger" data-action="supprimer-param" title="Retirer"><i class="fa fa-trash"></i></button></div>
+            <div class="col-md-1 text-end"><button type="button" class="hl-bouton lb-petit lb-risque" data-action="supprimer-param" title="Retirer ce paramètre" aria-label="Retirer ce paramètre" style="margin-top:22px"><i class="fa fa-trash"></i></button></div>
             <div class="col-md-4"><label class="form-label small">Formule (type calculé)</label><input name="parametres[{{ $i }}][formule]" value="{{ $p['formule'] ?? '' }}" class="form-control form-control-sm"></div>
             <div class="col-md-4"><label class="form-label small">Options (une par ligne)</label><textarea name="parametres[{{ $i }}][options]" rows="1" class="form-control form-control-sm">{{ $p['options'] ?? '' }}</textarea></div>
             <div class="col-md-4 d-flex gap-3 align-items-end">
@@ -24,6 +24,7 @@
                 @include('labo.catalogue._norme', ['i' => $i, 'j' => $j, 'n' => $n])
             @endforeach
         </div>
-        <button type="button" class="btn btn-sm btn-link px-0" data-action="ajouter-norme">+ plage de référence</button>
+        <button type="button" class="hl-bouton lb-petit" data-action="ajouter-norme" style="margin-top:8px"><i class="fa fa-plus" aria-hidden="true"></i> Plage de référence</button>
+        <span class="lb-sous" style="display:inline; margin-left:8px">Sexe · âge min/max (jours) · grossesse · min/max · critique min/max · valeur attendue · texte</span>
     </div>
 </div>

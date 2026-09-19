@@ -9,13 +9,21 @@
 <body>
 <div class="an-shell">
     <div class="an-carte">
-        <div class="an-icone">?</div>
-
-        <h1 class="an-titre">Ce rendez-vous est-il le vôtre ?</h1>
-        <p class="an-texte">
-            Un rendez-vous a été pris avec ce numéro de téléphone. Si c'est bien vous,
-            vous n'avez rien à faire — il reste confirmé normalement.
-        </p>
+        @if($empeche ?? false)
+            <div class="an-icone" style="background:#fffbeb;color:#b45309">!</div>
+            <h1 class="an-titre">Vous ne pourrez pas venir ?</h1>
+            <p class="an-texte">
+                Prévenez {{ $appointment->etablissement?->nom ?? 'la clinique' }} en un clic : votre créneau sera proposé
+                à un autre patient. Merci pour lui.
+            </p>
+        @else
+            <div class="an-icone">?</div>
+            <h1 class="an-titre">Ce rendez-vous est-il le vôtre ?</h1>
+            <p class="an-texte">
+                Un rendez-vous a été pris avec ce numéro de téléphone. Si c'est bien vous,
+                vous n'avez rien à faire — il reste confirmé normalement.
+            </p>
+        @endif
 
         <div class="an-recap">
             <div class="an-ligne">
@@ -24,7 +32,7 @@
             </div>
             <div class="an-ligne">
                 <span class="an-label">Médecin</span>
-                <span class="an-valeur">Dr. {{ $appointment->employee->full_name }}</span>
+                <span class="an-valeur">{{ $appointment->employee->nom_affiche }}</span>
             </div>
             <div class="an-ligne">
                 <span class="an-label">Date</span>
@@ -39,21 +47,27 @@
         @if(!in_array($appointment->status, ['pending', 'confirmed']))
             <p class="an-deja-traite">Ce rendez-vous n'est plus actif (déjà annulé ou terminé) — aucune action nécessaire.</p>
         @else
-            <p class="an-question">Si vous n'êtes pas à l'origine de cette réservation :</p>
-
-            <form method="POST" action="{{ url()->full() }}" id="formAnnuler">
-                @csrf
-                <button type="submit" class="an-btn an-btn-danger">Ce n'est pas moi — annuler ce rendez-vous</button>
-            </form>
-
-            <p class="an-note">Si c'est bien vous, ignorez simplement ce message.</p>
+            @if($empeche ?? false)
+                <form method="POST" action="{{ url()->full() }}" id="formAnnuler">
+                    @csrf
+                    <button type="submit" class="an-btn an-btn-danger">Je ne pourrai pas venir — libérer le créneau</button>
+                </form>
+                <p class="an-note">Vous venez bien ? Vous n'avez rien à faire.</p>
+            @else
+                <p class="an-question">Si vous n'êtes pas à l'origine de cette réservation :</p>
+                <form method="POST" action="{{ url()->full() }}" id="formAnnuler">
+                    @csrf
+                    <button type="submit" class="an-btn an-btn-danger">Ce n'est pas moi — annuler ce rendez-vous</button>
+                </form>
+                <p class="an-note">Si c'est bien vous, ignorez simplement ce message.</p>
+            @endif
         @endif
     </div>
 </div>
 
 <style>
 :root{
-    --primary:#087f6b; --primary-dark:#056655; --primary-soft:#e9f7f3;
+    --primary:#0f766e; --primary-dark:#115e59; --primary-soft:#f0fdfa;
     --danger:#c4472d; --danger-soft:#fff1ed;
     --bg:#f5f7f6; --surface:#ffffff; --text:#17231f; --text-soft:#66756f; --border:#e1e8e5;
 }
@@ -79,7 +93,7 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,"
 
 <script>
 document.getElementById('formAnnuler')?.addEventListener('submit', function(e){
-    if(!confirm("Confirmer l'annulation de ce rendez-vous ?")){
+    if(!confirm(@json(($empeche ?? false) ? 'Libérer ce créneau ? Votre rendez-vous sera annulé.' : "Confirmer l'annulation de ce rendez-vous ?"))){
         e.preventDefault();
     }
 });

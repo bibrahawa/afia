@@ -142,6 +142,12 @@ class PaymentController extends Controller
 
     public function paiementHospitalisation(Hospitalisation $hospitalisation)
     {
+        // CORRIGÉ — chaque clic créait une NOUVELLE facture du séjour (le bouton
+        // « Facturer » restait affiché) : patient débité deux fois.
+        if ($hospitalisation->transaction()->exists()) {
+            return redirect()->back()->with('error', 'Ce séjour est déjà facturé : encaissez-le depuis la caisse.');
+        }
+
         DB::beginTransaction();
 
         try {

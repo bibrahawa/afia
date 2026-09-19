@@ -68,6 +68,7 @@ class PermissionSeeder extends Seeder
             'insurance_balance.view', 'insurance_balance.show', 'insurance_balance.payment', 'insurance_balance.export',
             'motif_rdv.view', 'motif_rdv.create', 'motif_rdv.edit', 'motif_rdv.delete',
             'consentement.demander', 'consentement.revoquer',
+            'sms.journal', 'sms.renvoyer',
         ], $labo);
 
         $medecinPermissions = [
@@ -125,6 +126,8 @@ class PermissionSeeder extends Seeder
             'payment.view', 'payment.calculate',
             'motif_rdv.view',
             'labo.demande.view', 'labo.demande.create', 'labo.compte_rendu.view', 'labo.catalogue.view',
+            // Journal des SMS : vérifier qu'un patient a reçu son rappel, et le renvoyer.
+            'sms.journal', 'sms.renvoyer',
         ];
 
         // Administrateur PLATEFORME (équipe Aprosafe, compte sans établissement) : tout.

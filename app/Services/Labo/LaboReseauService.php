@@ -200,7 +200,7 @@ class LaboReseauService
             : null;
 
         $prescripteurLisible = $donnees['prescripteur_externe']
-            ?? trim(($medecin ? 'Dr ' . $medecin->full_name : 'Médecin') . ' — ' . ($clinique?->nom ?? 'clinique partenaire'));
+            ?? trim(($medecin?->nom_affiche ?? 'Médecin') . ' — ' . ($clinique?->nom ?? 'clinique partenaire'));
 
         $demande = ContexteTemporaire::pour($partenariat->etablissement_id, fn () => $this->demandes->creer([
             'patient_id' => $patient->id,

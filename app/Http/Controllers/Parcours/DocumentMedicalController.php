@@ -34,7 +34,7 @@ class DocumentMedicalController extends Controller
             'contenu' => $this->documents->proposerTexte(
                 TypeDocumentMedical::from($donnees['type']),
                 $consultation->patient,
-                $donnees + ['medecin' => $consultation->medecin ? 'Dr ' . $consultation->medecin->full_name : null]
+                $donnees + ['medecin' => $consultation->medecin?->nom_affiche]
             ),
         ]);
     }

@@ -2,53 +2,46 @@
 
 @php $gnf = fn ($m) => number_format((float) $m, 0, ',', ' '); @endphp
 
+@section('style')
+    @include('labo.partials.styles')
+    <style>.fa-total td { background: #fafbfc; font-weight: 700; color: var(--hali-encre); border-top: 2px solid var(--hali-bordure) !important; }</style>
+@endsection
+
 @section('content')
-<div class="container"><div class="page-inner">
-    <div class="page-header d-flex flex-wrap align-items-center gap-2">
-        <h3 class="fw-bold mb-0">Relevé {{ $releve->numero }}</h3>
-        <span class="text-muted">{{ $releve->partenariat?->laboratoire?->nom }}</span>
-        <a href="{{ route('labo.reseau.factures') }}" class="btn btn-sm btn-secondary ms-auto">Retour</a>
+<div class="container"><div class="page-inner hl">
+    @include('labo.partials.entete', ['titre' => 'Relevé ' . $releve->numero, 'fil' => [route('labo.reseau.factures') => 'Factures', 0 => $releve->numero], 'sousTitre' => ($releve->partenariat?->laboratoire?->nom ?? '') . ' · période du ' . $releve->periode_debut->format('d/m/Y') . ' au ' . $releve->periode_fin->format('d/m/Y') . ($releve->echeance ? ' · à régler avant le ' . $releve->echeance->format('d/m/Y') : '')])
+
+    <div class="hl-kpis">
+        <div class="hl-bloc hl-kpi"><span class="hl-kpi-libelle">Dû au laboratoire</span><span class="hl-kpi-valeur">{{ $gnf($rapprochement['du_au_laboratoire']) }} <small>GNF</small></span></div>
+        <div class="hl-bloc hl-kpi"><span class="hl-kpi-libelle">Facturé à vos patients</span><span class="hl-kpi-valeur">{{ $gnf($rapprochement['facture_au_patient']) }} <small>GNF</small></span></div>
+        <div class="hl-bloc hl-kpi {{ $rapprochement['marge'] < 0 ? 'est-danger' : '' }}"><span class="hl-kpi-libelle">Marge</span><span class="hl-kpi-valeur">{{ $gnf($rapprochement['marge']) }} <small>GNF</small></span>
+            @if($rapprochement['marge'] < 0)<span class="hl-kpi-detail" style="color:var(--hali-danger)">vente à perte</span>@endif</div>
     </div>
 
-    <div class="card">
-        <div class="card-header">
-            <div class="small text-muted">Période du {{ $releve->periode_debut->format('d/m/Y') }} au {{ $releve->periode_fin->format('d/m/Y') }}
-                @if($releve->echeance) · à régler avant le {{ $releve->echeance->format('d/m/Y') }}@endif</div>
-        </div>
-        <div class="card-body table-responsive">
-            <table class="table table-sm align-middle">
-                <thead><tr><th>Demande</th><th>Patient</th><th>Examens</th><th>Date</th><th class="text-end">Montant</th></tr></thead>
+    @if($rapprochement['facturation_absente'])
+        <p class="lb-alerte lb-alerte-avert"><i class="fas fa-exclamation-triangle mt-1" aria-hidden="true"></i><span>Aucune de ces analyses n'a été facturée à un patient dans votre établissement. Soit elles sont incluses dans vos consultations, soit personne n'a encaissé : vérifiez avant de régler ce relevé.</span></p>
+    @endif
+
+    <section class="hl-bloc">
+        <div class="table-responsive">
+            <table class="lb-table">
+                <thead><tr><th>Demande</th><th>Patient</th><th>Examens</th><th>Date</th><th class="lb-n">Montant</th></tr></thead>
                 <tbody>
                 @foreach($releve->creances as $creance)
                     <tr>
-                        <td>{{ $creance->demande?->numero }}</td>
+                        <td class="lb-fort">{{ $creance->demande?->numero }}</td>
                         <td>{{ $creance->demande?->patient?->full_name }}</td>
-                        <td class="small">{{ $creance->demande?->examens->pluck('examen_nom')->join(', ') }}</td>
-                        <td class="small">{{ $creance->demande?->created_at->format('d/m/Y') }}</td>
-                        <td class="text-end">{{ $gnf($creance->montant) }}</td>
+                        <td style="font-size:.84rem">{{ $creance->demande?->examens->pluck('examen_nom')->join(', ') }}</td>
+                        <td style="font-size:.84rem">{{ $creance->demande?->created_at->format('d/m/Y') }}</td>
+                        <td class="lb-n">{{ $gnf($creance->montant) }}</td>
                     </tr>
                 @endforeach
+                <tr class="fa-total"><td colspan="4" style="text-align:right">Total</td><td class="lb-n">{{ $gnf($releve->montant_total) }} GNF</td></tr>
+                <tr class="fa-total"><td colspan="4" style="text-align:right">Reste à payer</td><td class="lb-n">{{ $gnf($releve->resteDu()) }} GNF</td></tr>
                 </tbody>
-                <tfoot>
-                    <tr><th colspan="4" class="text-end">Total</th><th class="text-end">{{ $gnf($releve->montant_total) }} GNF</th></tr>
-                    <tr><th colspan="4" class="text-end">Reste à payer</th><th class="text-end">{{ $gnf($releve->resteDu()) }} GNF</th></tr>
-                </tfoot>
             </table>
-            <div class="row g-2">
-                <div class="col-md-4"><div class="border rounded p-2 small">Dû au laboratoire<div class="h5 mb-0">{{ $gnf($rapprochement['du_au_laboratoire']) }} GNF</div></div></div>
-                <div class="col-md-4"><div class="border rounded p-2 small">Facturé à vos patients<div class="h5 mb-0">{{ $gnf($rapprochement['facture_au_patient']) }} GNF</div></div></div>
-                <div class="col-md-4"><div class="border rounded p-2 small {{ $rapprochement['marge'] < 0 ? 'border-danger text-danger' : '' }}">Marge<div class="h5 mb-0">{{ $gnf($rapprochement['marge']) }} GNF</div></div></div>
-            </div>
-
-            @if($rapprochement['facturation_absente'])
-                <div class="alert alert-warning small mt-2 mb-0">
-                    Aucune de ces analyses n'a été facturée à un patient dans votre établissement.
-                    Soit elles sont incluses dans vos consultations, soit personne n'a encaissé : vérifiez avant de régler ce relevé.
-                </div>
-            @endif
-
-            <p class="small text-muted mb-0 mt-2">Les règlements sont enregistrés par le laboratoire ; ce relevé se met à jour quand il les saisit.</p>
         </div>
-    </div>
+        <p class="lb-aide" style="padding:12px 18px; margin:0">Les règlements sont enregistrés par le laboratoire : ce relevé se met à jour quand il les saisit.</p>
+    </section>
 </div></div>
 @endsection

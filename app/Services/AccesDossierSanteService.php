@@ -124,8 +124,10 @@ class AccesDossierSanteService
 
         $this->sms->sendSms(
             $telephone,
-            "{$nomDemandeur} demande à consulter votre dossier medical. "
-            . "Confirmez ici : {$lien} ou donnez ce code a l'accueil : {$codeEnClair}"
+            \Illuminate\Support\Str::ascii($nomDemandeur) . " demande a consulter votre dossier medical. "
+            . "Confirmez ici : {$lien} ou donnez ce code a l'accueil : {$codeEnClair}",
+            // Le code ne doit jamais apparaître en clair dans le journal.
+            ['type' => 'consentement', 'sujet' => $demande, 'masquer' => true]
         );
     }
 

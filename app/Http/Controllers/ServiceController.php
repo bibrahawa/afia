@@ -18,8 +18,8 @@ class ServiceController extends Controller
      */
     public function getIndex()
     {
-        $services = Service::get();
-        $departments = Department::select('id','name')->get();
+        $services = Service::with('department')->orderBy('name')->get();
+        $departments = Department::select('id','name')->orderBy('name')->get();
         return view('services.index', compact('services' , 'departments'));
     }
     /**
@@ -34,9 +34,9 @@ class ServiceController extends Controller
         $request->validate([
             'name'=>'required',
             'amount'=>'required|numeric',
-            'department_id' => 'required',
+            'department_id' => 'required|exists_etablissement:departments,id',
             'famille_acte' => ['nullable', \Illuminate\Validation\Rule::enum(\App\Enums\Assurance\FamilleActe::class)],
-        ]);
+        ], ['name.required' => 'Indiquez le nom de l\'acte.', 'amount.required' => 'Indiquez le prix.', 'amount.numeric' => 'Le prix doit être un nombre.']);
 
         $tax = Hospital::first()->tax_percent;
 
@@ -45,8 +45,8 @@ class ServiceController extends Controller
             $request['amount'] = $request->amount*100/$tax_cal;
         }
 
-        Service::create($request->all());
-        return back()->with('success', 'Service saved Successfully.');
+        Service::create($request->only(['name', 'amount', 'department_id', 'famille_acte']));
+        return back()->with('success', 'Acte ajouté au catalogue.');
         //
     }
 
@@ -60,7 +60,7 @@ class ServiceController extends Controller
     public function update(Request $request)
     {
          $tax = Hospital::first()->tax_percent;
-        $request->validate(['name' => 'required', 'amount' => 'required|numeric', 'department_id' => 'required|numeric',
+        $request->validate(['id' => 'required|exists_etablissement:services,id', 'name' => 'required', 'amount' => 'required|numeric', 'department_id' => 'required|exists_etablissement:departments,id',
             'famille_acte' => ['nullable', \Illuminate\Validation\Rule::enum(\App\Enums\Assurance\FamilleActe::class)]]);
         $data = Service::find ( $request->id );
         $data->name = ($request->name);
@@ -75,7 +75,7 @@ class ServiceController extends Controller
         $data->department_id = ($request->department_id);
         $data->famille_acte = $request->input('famille_acte', $data->famille_acte);
         $data->save ();
-        return back()->with('success', 'Service Updated successfully');
+        return back()->with('success', 'Acte modifié. Les factures déjà émises gardent leur ancien prix.');
         //
     }
 
@@ -90,8 +90,37 @@ class ServiceController extends Controller
 
       $service = Service::find($request->id);
 
+      if (! $service) {
+          return back()->with('error', 'Acte introuvable.');
+      }
+
+      // CORRIGÉ — supprimait un acte déjà utilisé : consultations et factures
+      // perdaient la référence de ce qui avait été fait et facturé.
+      $utilise = \Illuminate\Support\Facades\DB::table('consultation_service')->where('service_id', $service->id)->exists()
+          || \App\Models\InvoiceItem::whereIn('coverage_type_type', \App\Support\Facturation\TypesFacturables::variantes(Service::class))
+              ->where('coverage_type_id', $service->id)->exists();
+
+      if ($utilise) {
+          return back()->with('error', "« {$service->name} » a déjà été utilisé en consultation ou facturé : il ne peut pas être supprimé. Masquez-le : il ne sera plus proposé, l'historique reste intact.");
+      }
+
       $service->delete();
-      return back()->with('success', 'Service deleted successfully');
+      return back()->with('success', 'Acte supprimé.');
+    }
+
+    /** Lot S3 — Masquer / réafficher : plus proposé au choix, historique intact. */
+    public function basculerVisibilite(Service $service)
+    {
+        $service->update(['actif' => ! $service->actif]);
+
+        // Un motif de rendez-vous qui facture cet acte à l'arrivée continue de le facturer :
+        // on le signale pour que l'administrateur choisisse un autre acte.
+        $motifs = \App\Models\MotifRdv::where('service_id', $service->id)->pluck('nom');
+        $avertissement = ! $service->actif && $motifs->isNotEmpty()
+            ? ' Attention : il est encore facturé à l\'arrivée pour le(s) motif(s) ' . $motifs->implode(', ') . '.'
+            : '';
+
+        return back()->with('success', ($service->actif ? "« {$service->name} » est de nouveau proposé." : "« {$service->name} » est masqué : il n'est plus proposé, l'historique reste intact.") . $avertissement);
 
     //   if(count($service->consultations)) {
 

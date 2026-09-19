@@ -26,6 +26,9 @@ class Consultation extends Model
     public const EN_COURS = 'en_cours';
     public const TERMINEE = 'terminee';
 
+    /** Le patient est reparti sans être vu : consultation close, jamais remplie. */
+    public const ANNULEE = 'annulee';
+
     /** Passage du patient (lot 3a) : arrivée, file d'attente, constantes. */
     public function visite()
     {

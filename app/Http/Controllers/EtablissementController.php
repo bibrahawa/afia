@@ -24,6 +24,11 @@ class EtablissementController extends Controller
             'adresse' => ['nullable', 'string', 'max:255'],
             'contact' => ['nullable', 'string', 'max:50'],
             'email' => ['nullable', 'email', 'max:255'],
+            // Nom d'expéditeur SMS enregistré chez Nimba pour cette clinique.
+            'sms_expediteur' => ['nullable', 'string', 'max:11', 'regex:/^[A-Za-z0-9 \-]+$/'],
+        ], [
+            'sms_expediteur.max' => 'Le nom d\'expéditeur SMS fait 11 caractères au plus.',
+            'sms_expediteur.regex' => 'Le nom d\'expéditeur SMS ne peut contenir que des lettres sans accent, des chiffres, des espaces et des tirets.',
         ]);
 
         $data['slug'] = $this->slugUnique($data['nom']);
@@ -42,6 +47,11 @@ class EtablissementController extends Controller
             'adresse' => ['nullable', 'string', 'max:255'],
             'contact' => ['nullable', 'string', 'max:50'],
             'email' => ['nullable', 'email', 'max:255'],
+            // Nom d'expéditeur SMS enregistré chez Nimba pour cette clinique.
+            'sms_expediteur' => ['nullable', 'string', 'max:11', 'regex:/^[A-Za-z0-9 \-]+$/'],
+        ], [
+            'sms_expediteur.max' => 'Le nom d\'expéditeur SMS fait 11 caractères au plus.',
+            'sms_expediteur.regex' => 'Le nom d\'expéditeur SMS ne peut contenir que des lettres sans accent, des chiffres, des espaces et des tirets.',
         ]);
 
         $etablissement->update($data);
