@@ -122,19 +122,11 @@ class ConsultationController extends Controller
         $identite = IdentiteDocument::courante();
         $invoiceData = $this->prepareInvoiceData($consultation);
 
-        $itemCount = optional($invoiceData['invoice'])->items->count() ?? 1;
+        // CORRIGÉ : $invoiceData peut être nul (consultation sans facture) — l'ancien calcul plantait.
+        $invoice = $invoiceData['invoice'] ?? null;
+        $hauteur = 360 + ($invoice?->items->count() ?? 0) * 34 + ($invoice?->insuranceClaims()->count() ?? 0) * 16;
 
-        $height = 200 + ($itemCount * 35) + (optional($invoiceData['invoice'])->insuranceClaims()?->count() ?? 0) * 20;
-
-        $pdf = Pdf::loadView('consultations.rapport.facture-a80', compact(
-            'consultation',
-            'identite',
-            'invoiceData'
-        ));
-
-        return $pdf
-            ->setPaper([0, 0, 226.77, $height], 'portrait')
-            ->stream('ticket-'.$consultation->id.'.pdf');
+        return $this->ticket('consultations.rapport.facture-a80', compact('consultation', 'identite', 'invoiceData'), $hauteur, 'facture-' . $consultation->id . '.pdf');
     }
 
     public function recuPdfA80(Consultation $consultation)
@@ -149,13 +141,9 @@ class ConsultationController extends Controller
 
         $invoiceData = $this->prepareInvoiceData($consultation);
 
-        $pdf = Pdf::loadView('consultations.rapport.paiement-a80', compact(
-            'consultation','identite','invoiceData'
-        ));
+        $hauteur = 340 + ($consultation->transaction?->paiements->count() ?? 0) * 30;
 
-        return $pdf
-            ->setPaper([0, 0, 226.77, 600], 'portrait') // A80
-            ->stream('recu-'.$consultation->id.'.pdf');
+        return $this->ticket('consultations.rapport.paiement-a80', compact('consultation', 'identite', 'invoiceData'), $hauteur, 'recu-' . $consultation->id . '.pdf');
     }
 
      public function recuPdfA5(Consultation $consultation)
@@ -185,6 +173,38 @@ class ConsultationController extends Controller
      * de la part patient : dès que l'assureur réglait, le reçu du patient
      * affichait un reste à payer faux.
      */
+    /**
+     * Ticket 80 mm à la hauteur exacte de son contenu.
+     * Un premier rendu sur une très longue bande mesure le bas du dernier élément
+     * (rappel « end_frame » de DomPDF), puis le ticket est rendu à cette hauteur :
+     * ni ticket coupé en deux (ancienne hauteur approximative), ni papier thermique gâché.
+     * $hauteur ne sert plus que de valeur de secours si la mesure échoue.
+     */
+    private function ticket(string $vue, array $donnees, float $hauteur, string $fichier)
+    {
+        try {
+            $mesure = Pdf::loadView($vue, $donnees)->setPaper([0, 0, 226.77, 14000], 'portrait');
+            $bas = 0.0;
+            $mesure->getDomPDF()->setCallbacks([['event' => 'end_frame', 'f' => function ($frame) use (&$bas) {
+                if (in_array($frame->get_node()->nodeName, ['html', 'body', '#document'], true)) {
+                    return;
+                }
+                $boite = $frame->get_border_box();
+                if ($boite['h'] > 0) {
+                    $bas = max($bas, $boite['y'] + $boite['h']);
+                }
+            }]]);
+            $mesure->render();
+            if ($bas > 50) {
+                $hauteur = ceil($bas + 14);   // + marge basse du ticket
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Ticket 80 mm : mesure impossible, hauteur estimée', ['error' => $e->getMessage()]);
+        }
+
+        return Pdf::loadView($vue, $donnees)->setPaper([0, 0, 226.77, $hauteur], 'portrait')->stream($fichier);
+    }
+
     private function prepareInvoiceData($consultation)
     {
         $transaction = $consultation->transaction;

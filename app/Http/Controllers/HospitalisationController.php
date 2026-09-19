@@ -285,12 +285,20 @@ class HospitalisationController extends Controller
         $factureNo = $hospitalisation->transaction?->invoice_no
             ?? ('HOSP-' . now()->format('Ym') . str_pad($hospitalisation->id, 3, '0', STR_PAD_LEFT));
 
+        // Lot G — identité de la clinique (absente de la facture) et vrai solde de la caisse :
+        // « total_payer » est le total FACTURÉ, le « reste à payer » valait donc toujours 0.
+        $solde = $hospitalisation->transaction
+            ? \App\Support\Facturation\SoldeTransaction::pour($hospitalisation->transaction)
+            : null;
+
         $pdf = Pdf::loadView('hospitalisations.facture-pdf', [
             'hospitalisation' => $hospitalisation,
             'nombreJours' => $nombreJours,
             'total' => $total,
             'factureNo' => $factureNo,
-        ]);
+            'identite' => \App\Support\Etablissement\IdentiteDocument::courante(),
+            'solde' => $solde,
+        ])->setPaper('A4', 'portrait');
 
         return $pdf->stream("Facture-{$factureNo}.pdf");
     }
