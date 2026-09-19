@@ -235,10 +235,13 @@ class EmployeeController extends Controller
     {
         $donnees = $request->validate([
             'mot_de_passe_actuel' => ['required', 'current_password'],
-            'password' => ['required', 'string', 'min:8', 'confirmed', 'different:mot_de_passe_actuel'],
+            // Lot R2 : même règle partout (mot de passe oublié, création d'utilisateur) : au moins une lettre et un chiffre.
+            'password' => ['required', 'string', 'confirmed', 'different:mot_de_passe_actuel', \Illuminate\Validation\Rules\Password::min(8)->letters()->numbers()],
         ], [
             'mot_de_passe_actuel.current_password' => 'Le mot de passe actuel est incorrect.',
             'password.min' => 'Le nouveau mot de passe doit contenir au moins 8 caractères.',
+            'password.letters' => 'Le nouveau mot de passe doit contenir au moins une lettre.',
+            'password.numbers' => 'Le nouveau mot de passe doit contenir au moins un chiffre.',
             'password.confirmed' => 'Les deux saisies du nouveau mot de passe ne correspondent pas.',
             'password.different' => 'Choisissez un mot de passe différent de l\'actuel.',
         ]);

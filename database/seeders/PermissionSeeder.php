@@ -151,6 +151,25 @@ class PermissionSeeder extends Seeder
             Role::firstOrCreate(['name' => $nom, 'guard_name' => 'web'])->syncPermissions($permissions);
         }
 
+        // CORRIGÉ (lot Menu) — syncPermissions() ci-dessus RETIRAIT aux rôles toutes les
+        // permissions des modules (accueil et parcours, assurance, caisse, rapports, réseau de
+        // laboratoires), car elles ne figurent pas dans les listes ci-dessus. Lancer ce seeder
+        // seul (par exemple pour ajouter une permission) privait donc le personnel de ces
+        // écrans. Les seeders de modules sont désormais relancés ici : ils ne font qu'AJOUTER
+        // des permissions, ce qui rend l'opération sûre quel que soit le point d'entrée.
+        foreach ([
+            \Database\Seeders\Labo\LaboPermissionsSeeder::class,
+            \Database\Seeders\Labo\LaboReseauPermissionsSeeder::class,   // n'était appelé par aucun seeder
+            \Database\Seeders\Facturation\FacturationPermissionsSeeder::class,
+            \Database\Seeders\Assurance\AssurancePermissionsSeeder::class,
+            \Database\Seeders\Parcours\ParcoursPermissionsSeeder::class,
+            \Database\Seeders\Rapports\RapportsPermissionsSeeder::class,
+        ] as $seederModule) {
+            if (class_exists($seederModule)) {
+                $this->call($seederModule);
+            }
+        }
+
         app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
 
         $this->command?->info('Permissions synchronisées : ' . implode(', ', array_keys($roles)));

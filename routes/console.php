@@ -52,6 +52,20 @@ Schedule::command('queue:work --stop-when-empty --max-time=55 --tries=3')
     ->everyMinute()
     ->withoutOverlapping(5);
 
+// Créances assurance : filet de sécurité pour les montants stockés sur les réclamations
+// (recalculés à chaque enregistrement ; ceci rattrape un encaissement fait hors circuit).
+Schedule::command('assurance:recalculer-creances')
+    ->dailyAt('03:00')
+    ->withoutOverlapping(30)
+    ->appendOutputTo(storage_path('logs/creances.log'));
+
+// Sauvegarde quotidienne de la base (lot R2) : compressée, chiffrée si HALI_SAUVEGARDE_CLE,
+// copiée hors du serveur si HALI_SAUVEGARDE_DRIVER. Alerte SMS si elle échoue.
+Schedule::command('hali:sauvegarder')
+    ->dailyAt('02:30')
+    ->withoutOverlapping(120)
+    ->appendOutputTo(storage_path('logs/sauvegardes.log'));
+
 // Journaux SMS de plus de 90 jours (commande existante du projet).
 Schedule::command('sms:clean-logs --days=90')
     ->dailyAt('02:00');

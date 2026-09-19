@@ -23,443 +23,165 @@
     </div>
     <div class="sidebar-wrapper scrollbar scrollbar-inner">
         <div class="sidebar-content">
+{{--
+    Menu latéral (lot Menu) — organisé comme la journée d'une clinique :
+    soigner → planifier → patients → laboratoire → encaisser → piloter → paramétrer.
+
+    Piloté par les données : chaque entrée déclare son droit, son module et les écrans
+    où elle est active ; une section n'apparaît que si elle a au moins une entrée visible.
+    L'établissement est lu UNE fois (avant : une requête par bloc @module, ~10 par page).
+--}}
+@php
+    $u = auth()->user();
+    $etab = \App\Support\EtablissementContext::current();
+    $mod = fn (string $code) => (bool) $etab?->aModule($code);
+    $peut = fn ($p) => $u && (is_array($p) ? $u->canAny($p) : $u->can($p));
+    $medecin = $u?->employee?->type === 'Doctor';
+
+    // Catalogue médical : une seule entrée, vers le premier écran autorisé (les onglets font le reste).
+    $cibleCatalogue = collect([
+        'service.view' => 'service.index', 'department.view' => 'department.index', 'test.view' => 'test.index',
+        'medicament.view' => 'medicaments.index', 'package.view' => 'package.index', 'motif_rdv.view' => 'motifs-rdv.index',
+    ])->first(fn ($route, $perm) => $peut($perm) && Route::has($route));
+
+    // [libellé, icône, route, visible, écrans actifs (routeIs), options]
+    $sections = [
+        [null, [
+            ['Tableau de bord', 'fa-home', null, (bool) $u, [], ['url' => url('/home'), 'actif' => request()->is('/', 'home')]],
+        ]],
+        ['Accueil et soins', [
+            ['Accueil du jour', 'fa-door-open', 'parcours.accueil.index', $mod('consultation') && $peut('parcours.accueil'), ['parcours.accueil.*']],
+            ['Ma file d\'attente', 'fa-user-md', 'parcours.file.index', $mod('consultation') && $medecin && $peut('parcours.file'), ['parcours.file.*', 'parcours.consultation.*']],
+            ['Consultations', 'fa-stethoscope', 'consultation.index', $mod('consultation') && $peut('consultation.view'), ['consultation.*']],
+            ['Hospitalisations', 'fa-procedures', 'hospitalisations.index', $mod('hospitalisation') && $peut('hospitalisation.view'), ['hospitalisations.*', 'hospitalisation.*']],
+            ['Grossesses suivies', 'fa-female', 'parcours.grossesses.index', $mod('consultation') && $peut('parcours.dossier'), ['parcours.grossesses.*']],
+            ['Écran de la salle d\'attente', 'fa-tv', 'parcours.salle-attente.index', $mod('consultation') && $peut('parcours.accueil'), ['parcours.salle-attente.*'], ['externe' => true]],
+        ]],
+        ['Rendez-vous', [
+            ['Agenda', 'fa-calendar-alt', 'appointment.index', $mod('rdv') && $peut('appointment.view'), ['appointment.*']],
+            ['Mes rendez-vous', 'fa-calendar-check', 'medecin.appointments', $mod('rdv') && $medecin && $peut('medecin.appointments'), ['medecin.appointments*']],
+            ['Mes horaires', 'fa-clock', 'medecin.availabilities.index', $mod('rdv') && $medecin && $peut('medecin.availabilities'), ['medecin.availabilities.*']],
+            ['Congés et pauses', 'fa-umbrella-beach', 'medecin.leaves.index', $mod('rdv') && $medecin && $peut('medecin.leaves'), ['medecin.leaves.*', 'medecin.breaks.*']],
+            ['Affiche et QR code', 'fa-qrcode', 'rdv.affiche', $mod('rdv') && $peut('appointment.view'), ['rdv.affiche']],
+        ]],
+        ['Patients', [
+            ['Patients', 'fa-users', 'patient.index', $peut('patient.view'), ['patient.*', 'parcours.dossier.*', 'consentement.*', 'assurance.droits.*']],
+            ['Comptes du portail', 'fa-mobile-alt', 'comptes-patients.index', $peut('patient.edit'), ['comptes-patients.*']],
+            ['Patients assurés', 'fa-user-shield', 'insurance_patient.index', $mod('assurance') && $peut('patient_insurance.view'), ['insurance_patient.*']],
+        ]],
+        ['Laboratoire', [
+            ['Laboratoire', 'fa-flask', null, $mod('laboratoire'), ['labo.*'], ['sauf' => ['labo.reseau.*'], 'enfants' => [
+                ['Tableau de bord', 'labo.tableau-bord', $peut('labo.tableau_bord'), ['labo.tableau-bord']],
+                ['Demandes', 'labo.demandes.index', $peut('labo.demande.view'), ['labo.demandes.*']],
+                ['Prélèvements', 'labo.prelevements.index', $peut('labo.prelevement'), ['labo.prelevements.*']],
+                ['Réception', 'labo.reception.index', $peut('labo.reception'), ['labo.reception.*']],
+                ['Paillasse', 'labo.paillasse.index', $peut('labo.resultat.saisir'), ['labo.paillasse.*']],
+                ['Validation', 'labo.validation.index', $peut('labo.validation.technique'), ['labo.validation.*']],
+                ['Déclarations (MDO)', 'labo.declarations.index', $peut('labo.validation.biologique'), ['labo.declarations.*']],
+                ['Catalogue des analyses', 'labo.catalogue.index', $peut('labo.catalogue.view'), ['labo.catalogue.*']],
+                ['Cliniques partenaires', 'labo.partenariats.index', $peut('labo.partenariat.gerer'), ['labo.partenariats.*']],
+                ['Créances partenaires', 'labo.creances.index', $peut('labo.partenariat.facturer'), ['labo.creances.*', 'labo.releves.*']],
+            ]]],
+            ['Laboratoires partenaires', 'fa-project-diagram', null, true, ['labo.reseau.*'], ['enfants' => [
+                ['Analyses envoyées', 'labo.reseau.index', $peut('labo.reseau.view'), ['labo.reseau.index', 'labo.reseau.create', 'labo.reseau.show', 'labo.reseau.demandes*']],
+                ['Laboratoires proposés', 'labo.reseau.propositions', $peut('labo.reseau.demander'), ['labo.reseau.propositions*']],
+                ['Correspondances des examens', 'labo.reseau.correspondances', $peut('labo.reseau.demander'), ['labo.reseau.correspondances*']],
+                ['Factures reçues', 'labo.reseau.factures', $peut('labo.reseau.factures'), ['labo.reseau.facture*']],
+            ]]],
+        ]],
+        ['Caisse et assurances', [
+            ['Caisse', 'fa-money-bill-wave', 'caisse.index', $peut('account.facture'), ['caisse.*', 'account.*']],
+            ['Créances assurance', 'fa-hand-holding-usd', 'assurance.creances.index', $mod('assurance') && $peut('assurance.creances.view'),
+                ['assurance.creances.*', 'assurance.reclamations.*', 'assurance.bordereaux.*', 'assurance.reglements.*']],
+            ['Contrats et conventions', 'fa-file-contract', 'assurance.contrats.index', $mod('assurance') && $peut('assurance.referentiel.view'),
+                ['assurance.contrats.*', 'assurance.adhesions.*', 'assurance.entreprises.*', 'assurance.conventions.*', 'assurance.feuilles-de-soins.*']],
+            ['Organismes payeurs', 'fa-building', 'insurance-companies.index', $mod('assurance') && $peut('insurance_company.view'), ['insurance-companies.*']],
+        ]],
+        ['Pilotage', [
+            ['Rapports', 'fa-chart-pie', 'rapports.index', $peut('rapports.view'), ['rapports.*']],
+            ['Statistiques médicales', 'fa-chart-line', 'parcours.statistiques.index', $mod('consultation') && $peut('parcours.statistiques'), ['parcours.statistiques.*']],
+            ['Journal des SMS', 'fa-comment-dots', 'sms.journal.index', $peut('sms.journal'), ['sms.journal.*']],
+        ]],
+        ['Paramètres', [
+            ['Catalogue médical', 'fa-notes-medical', $cibleCatalogue, (bool) $cibleCatalogue,
+                ['department.*', 'service.*', 'test.*', 'medicaments.*', 'package.*', 'motifs-rdv.*', 'catalogue.import*']],
+            ['Chambres', 'fa-bed', 'chambres.index', $mod('hospitalisation') && $peut('chambre.view'), ['chambres.*']],
+            ['Personnel', 'fa-id-badge', 'employee.index', $peut('employee.view'), ['employee.*', 'employees.*']],
+            ['Comptes et accès', 'fa-user-lock', 'users.index', $peut('users.view'), ['users.*', 'user.*']],
+        ]],
+        ['Plateforme', [
+            ['Établissements', 'fa-hospital', 'etablissement.index', $peut('etablissement.view'), ['etablissement.*']],
+            ['Modules', 'fa-puzzle-piece', 'module.index', $peut('module.view'), ['module.*']],
+        ]],
+    ];
+
+    // Filtrage : entrées visibles (route existante), sous-menus avec au moins un enfant visible.
+    $estActif = fn (array $motifs, array $sauf = []) => $motifs && request()->routeIs(...$motifs) && ! ($sauf && request()->routeIs(...$sauf));
+    $sections = collect($sections)->map(function ($section) use ($estActif) {
+        [$titre, $items] = $section;
+        $items = collect($items)->map(function ($i) use ($estActif) {
+            [$libelle, $icone, $route, $visible, $motifs] = $i;
+            $opt = $i[5] ?? [];
+            if (! $visible) {
+                return null;
+            }
+            if (isset($opt['enfants'])) {
+                $enfants = collect($opt['enfants'])->filter(fn ($e) => $e[2] && Route::has($e[1]))
+                    ->map(fn ($e) => ['libelle' => $e[0], 'url' => route($e[1]), 'actif' => $estActif($e[3])])->values();
+                if ($enfants->isEmpty()) {
+                    return null;
+                }
+                return ['libelle' => $libelle, 'icone' => $icone, 'enfants' => $enfants, 'id' => 'menu-' . \Illuminate\Support\Str::slug($libelle),
+                        'actif' => $estActif($motifs, $opt['sauf'] ?? [])];
+            }
+            $url = $opt['url'] ?? ($route && Route::has($route) ? route($route) : null);
+            if (! $url) {
+                return null;
+            }
+            return ['libelle' => $libelle, 'icone' => $icone, 'url' => $url, 'externe' => $opt['externe'] ?? false,
+                    'actif' => $opt['actif'] ?? $estActif($motifs)];
+        })->filter()->values();
+
+        return ['titre' => $titre, 'items' => $items];
+    })->filter(fn ($s) => $s['items']->isNotEmpty())->values();
+@endphp
             <ul class="nav nav-secondary">
-                <!-- DASHBOARD -->
-                <li class="nav-item {{ request()->is('/') ? 'active' : '' }}">
-                    <a href="{{ url('/home') }}">
-                        <i class="fas fa-home"></i>
-                        <p>Dashboard</p>
-                    </a>
-                </li>
-
-                <!-- GESTION DES PATIENTS -->
-                <li class="nav-section">
-                    <span class="sidebar-mini-icon">
-                        <i class="fa fa-ellipsis-h"></i>
-                    </span>
-                    <h4 class="text-section">Patients</h4>
-                </li>
-                @can('rapports.view')
-                    <li class="nav-item {{ request()->routeIs('rapports.*') ? 'active' : '' }}">
-                        <a href="{{ route('rapports.index') }}">
-                            <i class="fas fa-chart-pie"></i>
-                            <p>Rapports</p>
-                        </a>
-                    </li>
-                @endcan
-
-@module('consultation')
-                @can('parcours.accueil')
-                    <li class="nav-item {{ request()->routeIs('parcours.accueil.*') ? 'active' : '' }}">
-                        <a href="{{ route('parcours.accueil.index') }}">
-                            <i class="fas fa-door-open"></i>
-                            <p>Accueil du jour</p>
-                        </a>
-                    </li>
-                @endcan
-
-                @can('parcours.dossier')
-                    <li class="nav-item {{ request()->routeIs('parcours.grossesses.*') ? 'active' : '' }}">
-                        <a href="{{ route('parcours.grossesses.index') }}">
-                            <i class="fas fa-baby"></i>
-                            <p>Grossesses suivies</p>
-                        </a>
-                    </li>
-                @endcan
-
-                @can('parcours.statistiques')
-                    <li class="nav-item {{ request()->routeIs('parcours.statistiques.*') ? 'active' : '' }}">
-                        <a href="{{ route('parcours.statistiques.index') }}">
-                            <i class="fas fa-chart-line"></i>
-                            <p>Statistiques</p>
-                        </a>
-                    </li>
-                @endcan
-
-                @can('parcours.accueil')
-                    <li class="nav-item {{ request()->routeIs('parcours.salle-attente.*') ? 'active' : '' }}">
-                        <a href="{{ route('parcours.salle-attente.index') }}" target="_blank">
-                            <i class="fas fa-tv"></i>
-                            <p>Écran salle d'attente</p>
-                        </a>
-                    </li>
-                @endcan
-
-                @can('parcours.file')
-                    <li class="nav-item {{ request()->routeIs('parcours.file.*') ? 'active' : '' }}">
-                        <a href="{{ route('parcours.file.index') }}">
-                            <i class="fas fa-users"></i>
-                            <p>Ma file d'attente</p>
-                        </a>
-                    </li>
-                @endcan
-                @endmodule
-
-
-                @can('patient.view')
-                    <li class="nav-item {{ request()->routeIs('patient.*') ? 'active' : '' }}">
-                        <a href="{{ route('patient.index') }}">
-                            <i class="fas fa-user"></i>
-                            <p>Liste des patients</p>
-                        </a>
-                    </li>
-                @endcan
-
-@module('rdv')
-                {{-- Deux écrans distincts : la réception voit ceux de toute la clinique,
-                     un médecin voit les siens. L'administrateur, qui n'est pas médecin,
-                     voyait jusqu'ici une page « Rendez-vous » toujours vide. --}}
-                @can('appointment.view')
-                <li class="nav-item {{ request()->routeIs('appointment.*') ? 'active' : '' }}">
-                    <a href="{{ route('appointment.index') }}">
-                        <i class="fas fa-calendar-alt"></i>
-                        <p>Rendez-vous</p>
-                    </a>
-                </li>
-                @endcan
-                @can('appointment.view')
-                <li class="nav-item {{ request()->routeIs('rdv.affiche') ? 'active' : '' }}">
-                    <a href="{{ route('rdv.affiche') }}">
-                        <i class="fas fa-qrcode"></i>
-                        <p>Affiche et QR code</p>
-                    </a>
-                </li>
-                @endcan
-                @if(auth()->user()?->employee?->type === 'Doctor')
-                @can('medecin.appointments')
-                <li class="nav-item {{ request()->routeIs('medecin.appointments') ? 'active' : '' }}">
-                    <a href="{{ route('medecin.appointments') }}">
-                        <i class="fas fa-calendar-check"></i>
-                        <p>Mes rendez-vous</p>
-                    </a>
-                </li>
-                @endcan
-                @endif
-                @endmodule
-
-
-@module('consultation')
-                @can('consultation.view')
-                    <li class="nav-item {{ request()->routeIs('consultation.*') ? 'active' : '' }}">
-                        <a href="{{ route('consultation.index') }}">
-                            <i class="fas fa-stethoscope"></i>
-                            <p>Consultations</p>
-                        </a>
-                    </li>
-                @endcan
-                @endmodule
-
-
-@module('hospitalisation')
-                @can('hospitalisation.view')
-                    <li class="nav-item {{ request()->routeIs('hospitalisations.*') ? 'active' : '' }}">
-                        <a href="{{ route('hospitalisations.index') }}">
-                            <i class="fas fa-hospital"></i>
-                            <p>Hospitalisations</p>
-                        </a>
-                    </li>
-                @endcan
-                @endmodule
-
-
-                @module('laboratoire')
-                    @include('labo.partials.sidebar')
-                @endmodule
-
-                @can('labo.reseau.view')
-                    <li class="nav-item {{ request()->routeIs('labo.reseau.*') ? 'active' : '' }}">
-                        <a href="{{ route('labo.reseau.index') }}">
-                            <i class="fas fa-vials"></i>
-                            <p>Analyses envoyées</p>
-                        </a>
-                    </li>
-                @endcan
-
-                @can('labo.reseau.factures')
-                    <li class="nav-item {{ request()->routeIs('labo.reseau.facture*') ? 'active' : '' }}">
-                        <a href="{{ route('labo.reseau.factures') }}">
-                            <i class="fas fa-file-invoice"></i>
-                            <p>Factures laboratoires</p>
-                        </a>
-                    </li>
-                @endcan
-
-                @can('labo.reseau.demander')
-                    <li class="nav-item {{ request()->routeIs('labo.reseau.propositions*') ? 'active' : '' }}">
-                        <a href="{{ route('labo.reseau.propositions') }}">
-                            <i class="fas fa-handshake"></i>
-                            <p>Propositions de laboratoires</p>
-                        </a>
-                    </li>
-                    <li class="nav-item {{ request()->routeIs('labo.reseau.correspondances*') ? 'active' : '' }}">
-                        <a href="{{ route('labo.reseau.correspondances') }}">
-                            <i class="fas fa-exchange-alt"></i>
-                            <p>Correspondances labo</p>
-                        </a>
-                    </li>
-                @endcan
-
-                @can('employee.view')
-                <!-- PERSONNEL MÉDICAL -->
-                <li class="nav-section">
-                    <span class="sidebar-mini-icon">
-                        <i class="fa fa-ellipsis-h"></i>
-                    </span>
-                    <h4 class="text-section">Personnel</h4>
-                </li>
-
-                <li class="nav-item {{ request()->routeIs('employee.*') ? 'active' : '' }}">
-                    <a href="{{ route('employee.index') }}">
-                        <i class="fas fa-users"></i>
-                        <p>Employés</p>
-                    </a>
-                </li>
-                @endcan
-
-@module('rdv')
-                @can('medecin.availabilities')
-                    <li class="nav-item {{ request()->routeIs('medecin.*') && request()->routeIs('*.availabilities') ? 'active' : '' }}">
-                        <a href="{{ route('medecin.availabilities.index') }}">
-                            <i class="fas fa-calendar-check"></i>
-                            <p>Disponibilités</p>
-                        </a>
-                    </li>
-                @endcan
-
-                @can('medecin.leaves')
-                    <li class="nav-item {{ request()->routeIs('medecin.*') && request()->routeIs('*.leaves') ? 'active' : '' }}">
-                        <a href="{{ route('medecin.leaves.index') }}">
-                            <i class="fas fa-plane"></i>
-                            <p>Congés & Absences</p>
-                        </a>
-                    </li>
-                @endcan
-                @endmodule
-
-
-                @can('department.view')
-                <!-- RESSOURCES & SERVICES -->
-                <li class="nav-section">
-                    <span class="sidebar-mini-icon">
-                        <i class="fa fa-ellipsis-h"></i>
-                    </span>
-                    <h4 class="text-section">Ressources & Services</h4>
-                </li>
-
-                    <li class="nav-item {{ request()->routeIs('department.*') ? 'active' : '' }}">
-                        <a href="{{ route('department.index') }}">
-                            <i class="fas fa-building"></i>
-                            <p>Départements</p>
-                        </a>
-                    </li>
-                @endcan
-
-                @can('service.view')
-                    <li class="nav-item {{ request()->routeIs('service.*') ? 'active' : '' }}">
-                        <a href="{{ route('service.index') }}">
-                            <i class="fas fa-cogs"></i>
-                            <p>Services médicaux</p>
-                        </a>
-                    </li>
-                @endcan
-
-@module('hospitalisation')
-                @can('chambre.view')
-                    <li class="nav-item {{ request()->routeIs('chambres.*') ? 'active' : '' }}">
-                        <a href="{{ route('chambres.index') }}">
-                            <i class="fas fa-bed"></i>
-                            <p>Chambres</p>
-                        </a>
-                    </li>
-                @endcan
-                @endmodule
-
-
-                @can('test.view')
-                    <li class="nav-item {{ request()->routeIs('test.*') ? 'active' : '' }}">
-                        <a href="{{ route('test.index') }}">
-                            <i class="fas fa-microscope"></i>
-                            <p>Examens & Tests</p>
-                        </a>
-                    </li>
-                @endcan
-
-@module('consultation')
-                @can('package.view')
-                    <li class="nav-item {{ request()->routeIs('package.*') ? 'active' : '' }}">
-                        <a href="{{ route('package.index') }}">
-                            <i class="fas fa-box-open"></i>
-                            <p>Packages de soins</p>
-                        </a>
-                    </li>
-                @endcan
-                @endmodule
-
-
-                @can('medicament.view')
-                    <li class="nav-item {{ request()->routeIs('medicaments.*') ? 'active' : '' }}">
-                        <a href="{{ route('medicaments.index') }}">
-                            <i class="fas fa-pills"></i>
-                            <p>Médicaments</p>
-                        </a>
-                    </li>
-                @endcan
-
-@module('assurance')
-                @can('insurance_company.view')
-                <!-- ASSURANCES -->
-                <li class="nav-section">
-                    <span class="sidebar-mini-icon">
-                        <i class="fa fa-ellipsis-h"></i>
-                    </span>
-                    <h4 class="text-section">Assurances</h4>
-                </li>
-
-                <li class="nav-item {{ request()->routeIs('insurance-companies.*') ? 'active' : '' }}">
-                    <a href="{{ route('insurance-companies.index') }}">
-                        <i class="fas fa-building"></i>
-                        <p>Compagnies</p>
-                    </a>
-                </li>
-                @endcan
-
-                @can('assurance.referentiel.view')
-                    <li class="nav-item {{ request()->routeIs('assurance.contrats.*', 'assurance.adhesions.*') ? 'active' : '' }}">
-                        <a href="{{ route('assurance.contrats.index') }}">
-                            <i class="fas fa-file-contract"></i>
-                            <p>Contrats</p>
-                        </a>
-                    </li>
-                    <li class="nav-item {{ request()->routeIs('assurance.entreprises.*') ? 'active' : '' }}">
-                        <a href="{{ route('assurance.entreprises.index') }}">
-                            <i class="fas fa-industry"></i>
-                            <p>Entreprises</p>
-                        </a>
-                    </li>
-                @endcan
-
-                @can('insurance_coverage.view')
-                    <li class="nav-item {{ request()->routeIs('insurance-coverages.*', 'assurance.conventions.*') ? 'active' : '' }}">
-                        <a href="{{ route('assurance.conventions.index') }}">
-                            <i class="fas fa-shield-alt"></i>
-                            <p>Conventions</p>
-                        </a>
-                    </li>
-                @endcan
-
-                @can('patient_insurance.view')
-                    <li class="nav-item {{ request()->routeIs('insurance_patient.*') ? 'active' : '' }}">
-                        <a href="{{ route('insurance_patient.index') }}">
-                            <i class="fas fa-user-shield"></i>
-                            <p>Patients assurés</p>
-                        </a>
-                    </li>
-                @endcan
-                
-
-                @can('assurance.creances.view')
-                    <li class="nav-item {{ request()->routeIs('assurance.creances.*', 'assurance.bordereaux.*', 'assurance.reclamations.*', 'assurance.reglements.*') ? 'active' : '' }}">
-                        <a href="{{ route('assurance.creances.index') }}">
-                            <i class="fas fa-balance-scale"></i>
-                            <p>Créances et règlements</p>
-                        </a>
-                    </li>
-                @endcan
-                @endmodule
-
-
-                <!-- FACTURATION -->
-                @can('invoice.view')
-                <li class="nav-section">
-                    <span class="sidebar-mini-icon">
-                        <i class="fa fa-ellipsis-h"></i>
-                    </span>
-                    <h4 class="text-section">Facturation</h4>
-                </li>
-
-                @endcan
-
-                @can('account.facture')
-                    <li class="nav-item {{ request()->routeIs('account.*') ? 'active' : '' }}">
-                        <a href="{{ route('account.facture') }}">
-                            <i class="fas fa-clock"></i>
-                            <p>Paiements en attente</p>
-                        </a>
-                    </li>
-                @endcan
-
-                <!-- COMMUNICATION -->
-                @can('sms.journal')
-                    <li class="nav-section">
-                        <span class="sidebar-mini-icon"><i class="fa fa-ellipsis-h"></i></span>
-                        <h4 class="text-section">Communication</h4>
-                    </li>
-                    <li class="nav-item {{ request()->routeIs('sms.journal.*') ? 'active' : '' }}">
-                        <a href="{{ route('sms.journal.index') }}">
-                            <i class="fas fa-sms"></i>
-                            <p>Journal des SMS</p>
-                        </a>
-                    </li>
-                @endcan
-
-                <!-- ADMINISTRATION -->
-
-                <li class="nav-section">
-                    <span class="sidebar-mini-icon"><i class="fa fa-minus"></i></span>
-                    <h4 class="text-section">Administration plateforme</h4>
-                </li>
-
-                @can('etablissement.view')
-                    <li class="nav-item {{ request()->routeIs('etablissement.*') ? 'active' : '' }}">
-                        <a href="{{ route('etablissement.index') }}">
-                            <i class="fas fa-hospital"></i>
-                            <p>Établissements</p>
-                        </a>
-                    </li>
-                @endcan
-
-                @can('module.view')
-                    <li class="nav-item {{ request()->routeIs('module.*') ? 'active' : '' }}">
-                        <a href="{{ route('module.index') }}">
-                            <i class="fas fa-th-large"></i>
-                            <p>Modules</p>
-                        </a>
-                    </li>
-                @endcan
-
-@module('rdv')
-                @can('motif_rdv.view')
-                    <li class="nav-item {{ request()->routeIs('motifs-rdv.*') ? 'active' : '' }}">
-                        <a href="{{ route('motifs-rdv.index') }}">
-                            <i class="fas fa-stopwatch"></i>
-                            <p>Motifs de rendez-vous</p>
-                        </a>
-                    </li>
-                @endcan
-                @endmodule
-
-
-                @can('patient.view')
-                    <li class="nav-item {{ request()->routeIs('comptes-patients.*') ? 'active' : '' }}">
-                        <a href="{{ route('comptes-patients.index') }}">
-                            <i class="fas fa-user-lock"></i>
-                            <p>Comptes patients</p>
-                        </a>
-                    </li>
-                @endcan
-
-                @can('users.view')
-
-                <li class="nav-item {{ request()->routeIs('users.*') ? 'active' : '' }}">
-                    <a href="{{ route('users.index') }}">
-                        <i class="fas fa-user-cog"></i>
-                        <p>Utilisateurs</p>
-                    </a>
-                </li>
-                @endcan
-
-                {{-- Lot F : l'ancienne entrée « Rapports & Analytics » (page en erreur) est retirée ;
-                     les rapports sont dans l'entrée « Rapports » en haut du menu. --}}
+                @foreach($sections as $section)
+                    @if($section['titre'])
+                        <li class="nav-section">
+                            <span class="sidebar-mini-icon"><i class="fa fa-ellipsis-h" aria-hidden="true"></i></span>
+                            <h4 class="text-section">{{ $section['titre'] }}</h4>
+                        </li>
+                    @endif
+                    @foreach($section['items'] as $item)
+                        @if(isset($item['enfants']))
+                            <li class="nav-item {{ $item['actif'] ? 'active submenu' : '' }}">
+                                <a data-bs-toggle="collapse" href="#{{ $item['id'] }}" class="{{ $item['actif'] ? '' : 'collapsed' }}" aria-expanded="{{ $item['actif'] ? 'true' : 'false' }}">
+                                    <i class="fas {{ $item['icone'] }}" aria-hidden="true"></i>
+                                    <p>{{ $item['libelle'] }}</p>
+                                    <span class="caret"></span>
+                                </a>
+                                <div class="collapse {{ $item['actif'] ? 'show' : '' }}" id="{{ $item['id'] }}">
+                                    <ul class="nav nav-collapse">
+                                        @foreach($item['enfants'] as $enfant)
+                                            <li class="{{ $enfant['actif'] ? 'active' : '' }}">
+                                                <a href="{{ $enfant['url'] }}" @if($enfant['actif']) aria-current="page" @endif><span class="sub-item">{{ $enfant['libelle'] }}</span></a>
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            </li>
+                        @else
+                            <li class="nav-item {{ $item['actif'] ? 'active' : '' }}">
+                                <a href="{{ $item['url'] }}" @if($item['externe']) target="_blank" rel="noopener" @endif @if($item['actif']) aria-current="page" @endif>
+                                    <i class="fas {{ $item['icone'] }}" aria-hidden="true"></i>
+                                    <p>{{ $item['libelle'] }}</p>
+                                    @if($item['externe'])<i class="fas fa-external-link-alt hl-menu-externe" aria-label="(nouvel onglet)"></i>@endif
+                                </a>
+                            </li>
+                        @endif
+                    @endforeach
+                @endforeach
             </ul>
         </div>
     </div>
@@ -473,6 +195,7 @@
     .sidebar-wrapper.scrollbar-inner { scrollbar-width: thin; scrollbar-color: rgba(15, 118, 110, .3) transparent; }
     .sidebar-wrapper.scrollbar-inner::-webkit-scrollbar { width: 6px; }
     .sidebar-wrapper.scrollbar-inner::-webkit-scrollbar-thumb { background-color: rgba(15, 118, 110, .3); border-radius: 3px; }
+    .sidebar .nav-item a .hl-menu-externe { margin-left: auto; font-size: .62rem; opacity: .5; }
 </style>
 
 <script>

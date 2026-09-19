@@ -33,6 +33,8 @@ class SmsJournal extends Model
         'labo_reseau' => 'Laboratoire partenaire',
         'cpn' => 'Rappel de consultation prénatale',
         'acces_personnel' => 'Accès du personnel',
+        'reinitialisation_mdp' => 'Mot de passe oublié (code)',
+        'alerte_sauvegarde' => 'Alerte de sauvegarde',
         'test' => 'Test',
         'autre' => 'Autre',
     ];

@@ -118,7 +118,7 @@
                         @csrf @method('PUT')
                         <div><label for="pfActuel">{{ auth()->user()?->doit_changer_mot_de_passe ? 'Mot de passe provisoire (reçu par SMS)' : 'Mot de passe actuel' }}</label><input type="password" id="pfActuel" name="mot_de_passe_actuel" class="form-control" autocomplete="current-password" required></div>
                         <div><label for="pfNouveau">Nouveau mot de passe</label><input type="password" id="pfNouveau" name="password" class="form-control" autocomplete="new-password" minlength="8" required>
-                            <p class="pf-sous mb-0 mt-1" style="font-size:.78rem">8 caractères au moins. Évitez votre date de naissance ou votre numéro.</p></div>
+                            <p class="pf-sous mb-0 mt-1" style="font-size:.78rem">8 caractères au moins, avec au moins une lettre et un chiffre. Évitez votre date de naissance ou votre numéro.</p></div>
                         <div><label for="pfConfirme">Confirmer le nouveau mot de passe</label><input type="password" id="pfConfirme" name="password_confirmation" class="form-control" autocomplete="new-password" minlength="8" required></div>
                         <button type="submit" class="hl-bouton hl-bouton-plein" style="justify-self:start">Changer le mot de passe</button>
                     </form>

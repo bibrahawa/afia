@@ -20,7 +20,7 @@ use App\Http\Controllers\{
     ProfileController, ConsultationController, MedicamentController,
     HospitalisationController, ChambreController, InsuranceCompanyController,
     InsuranceCoverageController, PatientInsuranceController,
-    PaymentController, SmsController, SmsReportController,
+    PaymentController,
     AppointmentExportController, DoctorAppointmentController, DoctorAvailabilityController, DoctorLeaveController, DoctorBreakController,
     // Ajoutés par la refonte multi-tenant / rdv / consentement :
     ComptePatientController, ConsentementController, DisponibiliteController,
@@ -81,6 +81,15 @@ Route::middleware('auth:patient')->prefix('portail')->name('portail.')->group(fu
 Route::middleware('guest')->group(function () {
     Route::view('login', 'auth.login');
     Route::post('login', [AuthController::class, 'login'])->name('login');
+
+    // Lot R2 : « Mot de passe oublié ? » du personnel, par code SMS
+    // (le lien apparaît sur la page de connexion dès que password.request existe).
+    Route::controller(\App\Http\Controllers\Auth\MotDePasseOublieController::class)->prefix('mot-de-passe-oublie')->group(function () {
+        Route::get('/', 'demande')->name('password.request');
+        Route::post('/', 'envoyer')->middleware('throttle:10,1')->name('password.email');
+        Route::get('code', 'formulaireCode')->name('password.code');
+        Route::post('code', 'reinitialiser')->middleware('throttle:20,1')->name('password.update');
+    });
 });
 
 

@@ -136,6 +136,10 @@ class ReglementAssuranceService
             // Les réclamations rejetées restent visibles tant que la part refusée n'est
             // ni transférée au patient ni passée en perte.
             ->where('status', '!=', 'paid')
+            // Lot R2 — préfiltre sur le reste dû stocké : on ne charge plus toutes les
+            // réclamations non réglées de l'organisme. Le calcul en direct ci-dessous reste
+            // l'arbitre ; une réclamation jamais calculée (montants_calcules_le nul) passe.
+            ->where(fn ($q) => $q->where('reste_du_calcule', '>=', 0.01)->orWhereNull('montants_calcules_le'))
             ->with(['invoice.transaction.patient', 'bordereau', 'patientInsurance'])
             ->orderByRaw("CASE WHEN status = 'draft' THEN 1 ELSE 0 END")
             ->orderBy('submission_date')
