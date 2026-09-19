@@ -522,13 +522,16 @@ Route::middleware('auth')->group(function () {
     | IDENTITÉ PATIENT, CONSENTEMENT, FAMILLE (NOUVEAU — Pilier B)
     |--------------------------------------------------------------------------
     */
+    // Lot E2 : consulter = patient.view ; toute action qui donne ou retire un accès = patient.edit.
     Route::prefix('comptes-patients')->name('comptes-patients.')->middleware('permission:patient.view')->group(function () {
         Route::get('/', [ComptePatientController::class, 'getIndex'])->name('index');
-        Route::post('/', [ComptePatientController::class, 'store'])->name('add');
-        Route::put('{comptePatient}', [ComptePatientController::class, 'update'])->name('update');
-        Route::delete('{comptePatient}', [ComptePatientController::class, 'delete'])->name('delete');
-        Route::post('{comptePatient}/attacher', [ComptePatientController::class, 'attacherPatient'])->name('attacher');
-        Route::delete('{comptePatient}/detacher/{patient}', [ComptePatientController::class, 'detacherPatient'])->name('detacher');
+        Route::middleware(['permission:patient.edit', 'throttle:30,1'])->group(function () {
+            Route::post('/', [ComptePatientController::class, 'store'])->name('add');
+            Route::put('{comptePatient}', [ComptePatientController::class, 'update'])->name('update');
+            Route::delete('{comptePatient}', [ComptePatientController::class, 'delete'])->name('delete');
+            Route::post('{comptePatient}/attacher', [ComptePatientController::class, 'attacherPatient'])->name('attacher');
+            Route::delete('{comptePatient}/detacher/{patient}', [ComptePatientController::class, 'detacherPatient'])->name('detacher');
+        });
     });
 
     Route::middleware('permission:patient.edit')->group(function () {

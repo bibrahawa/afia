@@ -10,7 +10,9 @@ class EtablissementController extends Controller
 {
     public function getIndex()
     {
-        $etablissements = Etablissement::withCount('utilisateurs', 'patients')->latest()->get();
+        $etablissements = Etablissement::withCount('utilisateurs', 'patients')
+            ->with(['modules' => fn ($q) => $q->wherePivot('est_actif', true)->orderBy('nom')])
+            ->orderBy('nom')->get();
 
         return view('etablissements.index', compact('etablissements'));
     }
